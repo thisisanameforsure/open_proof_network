@@ -1,0 +1,56 @@
+# C — auditor, Lean on call, words (t1029e-c), 2026-10-29
+
+## Log
+
+- 13:08Z started. Read BRIEF, prior README/board. Graph clone at c3996bd447 in private scratch. MCP via JSON-RPC helper (stateless POST to /mcp, no session id needed). Tutorial precheck submitted anonymously to mint the token.
+- 13:11Z token minted for t1029e-c (kept in private scratch). Reading MRSTT arXiv 2106.03335 source for the §3 structure (postmortem on --h3--h1--h1 says §3 has no stated intermediate results; the paper has Lemma 3.1 and Prop 3.2 in §3).
+- 13:13Z posted plan; claiming variant-3969f1f7--h3--h1--h1 for a Lemma 3.1 / Prop 3.2 / §3-deduction split.
+- 13:19Z C/h19-partial.lean: partial of --h3--h1--h1 (Prop 1.9) along MRSTT §3 — holes h_scale (Lemma 3.1), h_covar (Prop 3.2), h_deduce (§3 case analysis); assembly proved (fast check: only sorry). First precheck attempt refused 400 partial-unlabelled (h_covar's claim line did not end with $; claims rewritten as $$…$$ displays). Precheck job 01M63X1JPG35XBX4TN440SFYSP started. NOTE my board line stamped 13:21Z was actually posted ~13:14Z (typed by hand).
+- 14:44Z AUDIT clean: three holes (C/audit-1.lean, Iff.rfl, okay). Numeric cross-check of SdW (39)/(40), 1611.a1, 37.a1 lists: no extra points. Outage 13:24–14:42 (poll script blocked).
+- 14:45Z SUBMITTED #1173 (submission 01M641YVX0T7WKG8AQ5WGRPNC8), partial on --h3--h1--h1, precheck 01M641NNYR0TWVBYCC2RN714X1 pass (steps 1-8 pass, witnesses checked). First precheck 01M63X1JPG35XBX4TN440SFYSP failed step 4 hole-not-roundtrip on h_covar/h_deduce: the printed set literal {(↑k:ℝ),…} without its ': Set ℝ' ascription does not elaborate back; replaced by explicit disjunctions N = … ∨ …. Second attempt was 409 products-pending (A's #1166 merged) then accepted.
+
+## Findings
+
+- **F-C1 [bug] The hole printer drops a set literal's type ascription, so the hole is refused `hole-not-roundtrip`.** 13:20Z, `precheck_submission` on `variant-3969f1f7--h3--h1--h1` (job 01M63X1JPG35XBX4TN440SFYSP): step 4 `hole-not-roundtrip` for h_covar and h_deduce. The `have` wrote `∀ N ∈ ({(k : ℝ), (n : ℝ), …} : Set ℝ)`; `details.unwritable[].closed_type` prints `∀ N ∈ {(↑k : ℝ), (↑n : ℝ), …}` with the `: Set ℝ` gone, which no longer elaborates to the same term (Set vs Finset/insert ambiguity). Expected: the printer keeps the ascription it needs (the hint tells the contributor to "ascribe the type", but I had, and the printer removed it). Cure that worked: replace membership by explicit disjunctions `N = … ∨ …`. Cost: one precheck round (~4 min) plus diagnosis. Repro: any partial whose hole quantifies `∀ x ∈ ({a, b} : Set ℝ), …`.
+- **F-C2 [docs] The claim-line rule is "starts with `$` and ends with `$`", not "one `$…$`".** 13:19Z, `precheck_submission` refused `400 partial-unlabelled` (`claim-form`) for h_covar only, whose claim was `$…$ … text … $a,b$ exist` (ends in words). h_scale's claim, several `$…$` segments separated by words but ending in `$`, passed. The guide says "`-- claim: $<the hole in notation>$`" and the message says "is not `$…$` with something inside". Cost: 2 min. (Prior #8 noted "must begin with `$`"; the end matters too, and inner words between dollar segments are accepted.)
+- **F-C3 [env] Laptop network outage 13:24Z–14:42Z** (A saw the same): my precheck request itself was only created at 14:40:23Z. Not the service (`time_connect` 0.16 s at 14:44Z). Cost: ~75 min.
+- **F-C4 [record] The postmortem on `--h3--h1--h1` (20261027T115222Z-t1027e-a.yaml) says §3's argument "has no stated intermediate results of its own"; the paper's §3 has Lemma 3.1 (selection of scale) and Proposition 3.2 (covariance estimates), which is the split #1173 makes.** The `--h3--h2` postmortem (Prop 1.10) is accurate against the TeX source: the step to m ≥ n^{9/10} is unnumbered prose through f_t (eq. (2.7)).
+- 14:46Z NOTE to correct after #1173 renders: the prose line of h_deduce in my partial says 'Legendre's formula gives (3.3) for every prime'; (3.3) in the paper is Lemma 3.1's dichotomy display. The identity at every prime is the unnumbered display of §1.3 (label p-eq), the covariance identity is (3.4), its j=1 form (3.14). Plan: superseding statement gloss on --h3--h1--h1--h3.
+- **F-C5 [bug] A transient GitHub 503 kills a post-merge job, with no retry.** 14:59Z: B's #1171 merged 14:44:44Z; its post-merge gate run 40894548804 (graph Actions, public) failed in 42 s at step "Fetch the merged pull request's body as the gate saw it": `gh api repos/.../pulls/1171` → `gh: HTTP 503`, `exit code 1` (the script has `set -euo pipefail`; no retry). get_submission 1171 at 14:58Z: `waiting_on: products`, `attestation_note: attestation-pending`, `holes[0].became: null`. Expected: the job retries a 5xx (it is one API read), or a later job catches the merge up; the state "post-merge job failed" should be legible to the submitter, who sees only "pending". Watching whether #1172/#1173's jobs record it. Update 15:03Z: #1172's bot commit (15:00:27Z) did not record #1171; a run 'gate: replay of #1171' (40897163463, workflow_dispatch) started 15:00:31Z — so a replay does come, ~16 min after the failure, but nothing on get_submission says the job failed meanwhile.
+- 15:01Z AUDIT clean: #1172's two holes (C/audit-2.lean). #1171 still unrecorded after #1172's bot commit.
+- 15:11Z gate: #1173 pass; audit of my three holes clean (C/audit-3.lean).
+- 15:18Z FILED: literature #1184/#1189/#1190, glosses #1192/#1198 (superseding), explainer #1199, postmortem #1200. Payloads in C/words/*.json, results *.result.json. Each call took 6–75 s (laptop path).
+- 15:32Z prior #1 still present: #1175 merged ~15:20Z, its post-merge job reached 'Commit the attestation and the products' at 15:29:11Z and is still pushing at 15:31Z while erdos-68 appends' bot commits and #1178/#1208/#1179 merges moved main.
+- 15:35Z audit-6 clean (#1175 hole).
+- **F-C6 [bug/feature] The quiet-window protocol cannot be kept by contributors: an append filed in a quiet window merges whenever the actor reaches it, which is usually not quiet.** My seven appends (#1184–#1200) were filed 15:16–15:18Z, right after `gate: #1174 pass` with no partial merged-and-unrecorded. They sat `waiting_on: branch-update` behind the partials in the lane, and the actor merged them from ~15:37Z (#1183–#1188 merged 15:36–15:38Z) while #1178 (merged 15:25Z) and #1179 (merged 15:30Z) still had no bot commit. Same for A's and B's batches. Expected: the merge actor holds appends on a target while a proof/partial on it is merged but unrecorded (prior #1's remedy), since only the actor knows when it will merge them. Cost: none to me directly; it lengthens every partial's attestation gap.
+- 15:40Z audit-7 clean (#1178 hole).
+- 15:49Z prior #1 still present, instance #1179: run 40902300897 'refused 6 times; its merges are replayed' (15:46:48Z), replay 40904999533. The batch that starved it was the appends filed 15:16–15:18Z in a quiet window and merged 15:36Z+ (F-C6).
+- 16:00Z audit-8 clean (#1180 holes).
+- 16:02Z audit-9 clean (#1179 hole, after its replay).
+- 16:04Z released claim 01M63WPD90N6CNPDNJHM24Q2S8 on --h3--h1--h1. Stopping.
+
+## Final report (C, t1029e-c)
+
+### 1. Landed
+- **#1173 partial, merged 14:56Z, attested (`gate: #1173 pass` 15:10Z)** on `variant-3969f1f7--h3--h1--h1` (MRSTT Prop 1.9): the split along the paper's §3 that the 10-27 postmortem said did not exist. Three cited holes, assembly proved in Lean (C = 1), witnesses carried:
+  `--h3--h1--h1--h1` h_scale = MRSTT Lemma 3.1 (ε = 1/20; elementary), `--h2` h_covar = Prop 3.2 (covariance estimates over a random prime; the only place Prop 1.12 enters), `--h3` h_deduce = the §3 case analysis (elementary). Lean: `C/h19-partial.lean`.
+- Words, all merged: literature (status known) #1184, #1189, #1190 on the three holes; superseding self-contained statement glosses #1192 (`--h3`, also corrects a "(3.3)" mis-citation in the claim-born gloss) and #1198 (`--h2`); explainer #1199 of the #1173 assembly (step-anchored); postmortem #1200 on `--h3--h1--h1`.
+- Audits (every gate-written hole of the run, Iff.rfl against the partial's `have`, fast check okay): 16 holes — `--h2--h1--h4--h2--h1--h1`, `--h2--h1--h4--h2--h2--h1`, `--h2--h1--h1--h1--h1`, `--h2--h1--h1--h6--h1`, `--h2--h1--h4--h2--h3--h1/--h2`, my three, `--h2--h1--h1--h3--h1`, `--h2--h1--h1--h4--h1`, `--h2--h1--h1--h7--h1`, `--h2--h1--h4--h2--h3--h2--h1` (Nagura), its `--h2`, and `--h2--h1--h1--h8--h1` (C/audit-1…9.lean). **Zero mismatches.** Every integral-point list was also checked against an exact integer search (C/numeric-lists.txt): no missing point in any of SdW (39), (40), (3,6), 1611.a1, 37.a1, 14475.a1, 232425.a1, BMSST Thm 2.
+- MRSTT verdict: Prop 1.10 (`--h3--h2`) has no honest cited split (the step to m ≥ n^{9/10} is unnumbered prose through f_t); Prop 1.9 did, and it is #1173.
+
+### 2. Unfinished business for the lead
+- **Explainers for A's assemblies #1166, #1167, #1172, #1174**: written and step-anchored to their outlines, ready as `submit_gloss` arguments in `C/words/ex-1166.json`, `ex-1167.json`, `ex-1172.json`, `ex-1174.json`. Not filed: no quiet window after 15:18Z (F-C6). File them after the last bot commit on erdos-849.
+- Audits: none owed — #1179's hole (replayed 16:00Z) and #1180's two were audited clean at 16:00–16:02Z.
+- The three new MRSTT holes: h_scale and h_deduce are elementary and provable, but long (see postmortem #1200 for the plan); h_covar is the analytic core.
+
+### 3. Findings, most important first
+1. prior #1 still present, reproduced exactly: #1179's post-merge run 40902300897 "refused 6 times; its merges are replayed" (15:46:48Z), and #1175/#1173 spent 4–6 min in the push step.
+2. F-C6: the quiet-window protocol cannot be kept by contributors — appends filed in a quiet window are merged by the actor later, under partials' running jobs (that is what starved #1179).
+3. F-C5: a transient GitHub 503 killed #1171's post-merge job in 42 s with no retry; a replay came 16 min later, and nothing on get_submission said the job had failed.
+4. F-C1: the hole printer drops a set literal's `: Set ℝ` ascription, so the hole is refused `hole-not-roundtrip` although the contributor had ascribed it.
+5. F-C4: the 10-27 postmortem on `--h3--h1--h1` was factually wrong about the paper (corrected by #1173/#1200).
+6. F-C2 (docs): the claim line must end with `$`; the guide/message do not say so.
+7. F-C3 (env): laptop network outage 13:24–14:42Z (~75 min lost; precheck request only created at 14:40Z).
+
+### 4. What would have made me twice as productive
+The outage cost a third of the run; beyond that, most of the remaining time was waiting on bot commits: every audit, every words filing and every next level waits for a post-merge job that takes 10–27 minutes when appends and other targets' merges move main under it. If the merge actor held appends on a target while a partial there is merged-but-unrecorded (and retried a 5xx), each partial would be recorded in ~4 minutes, my audits would land minutes after each merge, and my explainers would have gone in. The gate's step-4 round-trip check already compares each printed hole with its obligation (it refused mine once); publishing that comparison on the hole's node would replace the hand audit I ran with a 30-line script after every bot commit.

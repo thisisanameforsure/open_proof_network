@@ -1,0 +1,13 @@
+{
+ "node_id": "variant-3969f1f7--h3--h1--h1--h3",
+ "status": "known",
+ "references": [
+  {
+   "title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177",
+   "url": "https://arxiv.org/abs/2106.03335",
+   "note": "§3, the deduction of Proposition 1.9 from Lemma 3.1 and Proposition 3.2: the digit-sum identity at a random prime, (3.4), (3.14) and the three cases; DOI 10.1093/qmath/haac006"
+  }
+ ],
+ "summary": "The case analysis that closes §3 of MRSTT: Legendre's formula makes the sums Σ_j({m/p^j}+{(n−m)/p^j}−{n/p^j}) of the two solutions agree at every prime p, taking covariances with {N/p} gives (3.4), Proposition 3.2(i) reduces it to j = 1 with error log^{-1/1000}P, and in each of the cases m' ≈ 0, (m ≉ m', m' ≉ 0), (m ≈ m', m' ≉ 0) Proposition 3.2(ii)–(iv) and Lemma 3.1(ii), (iii) give a contradiction. Stated here for any constant C in Prop 3.2's bounds and P ≥ P₁(C). Elementary given its hypotheses (finite sums over primes, fractional parts, rational arithmetic with 1/(12ab)); not formalised.",
+ "model_and_tooling": "Claude Opus 5.5 (claude-opus-5-5) through Claude Code; read from the arXiv 2106.03335 TeX source on 2026-10-29"
+}

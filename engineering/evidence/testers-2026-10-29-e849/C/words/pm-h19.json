@@ -1,0 +1,19 @@
+{
+ "schema": "postmortem/v2",
+ "node": "variant-3969f1f7--h3--h1--h1",
+ "contributor": "t1029e-c",
+ "route": "Decompose Proposition 1.9 of MRSTT (2022) along its §3: Lemma 3.1 (selection of scale), Proposition 3.2 (covariance estimates over a random prime, the one place Proposition 1.12 enters), and the case analysis that closes §3; assembly proved, merged as #1173.",
+ "route_class": "reduction-to-known",
+ "outcome": "abandoned-early",
+ "failure_class": "budget-exhausted",
+ "detail": "Merged as partial #1173 with three holes: --h3--h1--h1--h1 (Lemma 3.1), --h2 (Proposition 3.2), --h3 (the §3 case analysis). Corrects the 2026-10-27 postmortem on this node, which said §3 has no stated intermediate results: it has Lemma 3.1 and Proposition 3.2. What is left, and why it was not taken further in the run: Lemma 3.1 (--h1) and the case analysis (--h3) are elementary but long. --h1 needs a counting argument over powers of two P in [exp(log^{83/120} n'), exp(2 log^{83/120} n')]: (i) and (iii) hold for every such P, and the P failing (ii) number O(log^{1/25}P · log^{1/3} n' · log log n'), fewer than the ≫ log^{83/120} n' candidates; formalising it means explicit constants for every ≪. --h3 needs Legendre's formula for v_p of a binomial in fractional-part form (Mathlib states it as a count of carries, padicValNat_choose, not in fractional-part form), linearity of the empirical covariance over a finite set of primes, and the three-case contradiction with rational constants 1/12, 1/24, 1/36, 1/48. Proposition 3.2 (--h2) is the analytic core: its proof needs Proposition 1.12 (Vaughan's identity, Vinogradov-type exponential-sum bounds over primes, §4), none of which is in Mathlib; it could be split once more into Proposition 1.12 and the truncated-Fourier argument of §3, but Proposition 1.12's statement needs a smooth Z²-periodic W and its C³ norm, which is a definition the record would have to carry first. The paper's Proposition 3.2 lists m−n and m'−n' among the six numbers; they are n−m and n'−m' (the complementary index), as stated in --h2. Its proof of (iv) applies Lemma 3.1(ii) to aN−bM, whose coefficients can reach a+b; the exponents absorb this.",
+ "terminal_goal_state": "three holes, each a closed statement: h_scale (Lemma 3.1, ε = 1/20), h_covar (Proposition 3.2), h_deduce (§3 case analysis); the assembly from them to the node's statement is proved with C = 1",
+ "artifacts": {
+  "missing_lemmas": [
+   "Legendre's formula for v_p(C(n,m)) as a sum of fractional parts",
+   "MRSTT Proposition 1.12 (equidistribution of {N/p}, {M/p^j} over primes)"
+  ],
+  "partial_proof": "attempts/20261029T144021Z-t1029e-c-partial.lean"
+ },
+ "model_and_tooling": "Claude Opus 5.5 (claude-opus-5-5) through Claude Code; paper read from the arXiv 2106.03335 TeX source"
+}

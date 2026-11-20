@@ -1,0 +1,360 @@
+{
+ "id": "01M641NNYR0TWVBYCC2RN714X1",
+ "node_id": "variant-3969f1f7--h3--h1--h1",
+ "target_id": "erdos-849",
+ "state": "done",
+ "created": "2026-10-29T14:40:23Z",
+ "graph_commit": "4f771bb8ade887b4b158d06b3da2d3437ba50fec",
+ "bundle_digest": "db53cf3d1f4e10a69605248a79306d16c01ee486277704172cd5ccdfbf2960e3",
+ "authenticated": true,
+ "automation": {
+  "framework": "Claude Code",
+  "method": "agent",
+  "models": [
+   "claude-opus-5-5"
+  ]
+ },
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "e38f6799bb22ab44ae339d3f99abe7c26ed17194f2c21cc389d1e7995b870b1c",
+   "graph_commit": "4f771bb8ade887b4b158d06b3da2d3437ba50fec",
+   "graph_id": "erdos-849",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "372e6cbbeb5a9a636ab20ac6e8014fa04306e02c",
+   "node_id": "variant-3969f1f7--h3--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-29T14:44:13Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQLisi99AI4nj9Bi2Ws20503qg/FRnLmKdNlN8Mv+UGmEaIH8bo\n0dmv3Le2saGgdzTazbSfd2UuqtvBLaiY/o9gc=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "41077a62290fae097d7c851ce7fe67dac547a67a144db743292b120cd97447dd",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261029T144021Z-t1029e-c-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261029T144021Z-t1029e-c-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-partial",
+      "details": {
+       "holes": [
+        "h_scale",
+        "h_covar",
+        "h_deduce"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: variant_3969f1f7__h3__h1__h1 declares ∃ C,\n  0 ≤ C ∧\n    ∃ a₁,\n      ∀ a ≥ a₁,\n        ∀ (n k n' k' : ℕ),\n          1 ≤ k ∧ 2 * k ≤ n ∧ n.choose k = a →\n            1 ≤ k' ∧ 2 * k' ≤ n' ∧ n'.choose k' = a →\n              |↑k - ↑k'| ≤ C * Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)) ∧\n                (Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)) ≤ ↑k →\n                  Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)) ≤ ↑k' →\n                    |↑n - ↑n'| ≤ C * Real.exp (Real.log (↑n + ↑n') ^ (43 / 60))); 3 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "junk-value",
+         "location": "Real.log (↑n + ↑n')",
+         "message": "Real.log of a possibly-negative argument is a junk value (0)"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ k",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ k'",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "3 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: junk-value at Real.log (↑n + ↑n'): Real.log of a possibly-negative argument is a junk value (0)"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": {
+      "code": "hole-witnesses",
+      "details": {
+       "witnesses": [
+        {
+         "hole": "h_scale",
+         "path": "attempts/20261029T144021Z-t1029e-c-partial.1.witness",
+         "sha256": "cc60038cb1b51b259d96ad695e7926722c0fdd13dc1a75246439c0df7addded4"
+        },
+        {
+         "hole": "h_covar",
+         "path": "attempts/20261029T144021Z-t1029e-c-partial.2.witness",
+         "sha256": "c5793af0fce34d236e8d1ee3aa158144af2aec95be7d8e9d6b3e5c123c054ff6"
+        },
+        {
+         "hole": "h_deduce",
+         "path": "attempts/20261029T144021Z-t1029e-c-partial.3.witness",
+         "sha256": "f0ce3050cfd813b5e4a64da5d4d6950755afa2adacdfcadd95e2e4b5f16f4eab"
+        }
+       ]
+      },
+      "message": "3 of 3 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+     },
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": {
+   "framework": "Claude Code",
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  "bundle_digest": "db53cf3d1f4e10a69605248a79306d16c01ee486277704172cd5ccdfbf2960e3",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∀ (P₂ : ℝ),\n  ∃ (a₀ : ℕ),\n    ∀ a ≥ a₀,\n      ∀ (n k n' k' : ℕ),\n        (1 : ℕ) ≤ k' →\n          k' < k →\n            n < n' →\n              (2 : ℕ) * k ≤ n →\n                (2 : ℕ) * k' ≤ n' →\n                  n.choose k = a →\n                    n'.choose k' = a →\n                      Real.exp (Real.log (↑n' : ℝ) ^ (43 / 60 : ℝ)) ≤ (↑k : ℝ) - (↑k' : ℝ) ∨\n                          Real.exp (Real.log (↑n' : ℝ) ^ (43 / 60 : ℝ)) ≤ (↑k : ℝ) ∧\n                            Real.exp (Real.log (↑n' : ℝ) ^ (43 / 60 : ℝ)) ≤ (↑k' : ℝ) ∧\n                              Real.exp (Real.log (↑n' : ℝ) ^ (43 / 60 : ℝ)) ≤ (↑n' : ℝ) - (↑n : ℝ) →\n                        ∃ (P : ℝ),\n                          P₂ ≤ P ∧\n                            (1 : ℝ) < P ∧\n                              ((↑k : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                                  (↑k' : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                                    (↑n : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                                      (↑n' : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ))) ∧\n                                (∀ (x₁ x₂ y₁ y₂ : ℤ),\n                                    |(↑x₁ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                      |(↑x₂ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                        |(↑y₁ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                          |(↑y₂ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                            ∀ (j : ℕ),\n                                              (1 : ℕ) ≤ j →\n                                                |(↑x₁ : ℝ) * (↑k : ℝ) + (↑x₂ : ℝ) * (↑k' : ℝ) + (↑y₁ : ℝ) * (↑n : ℝ) +\n                                                        (↑y₂ : ℝ) * (↑n' : ℝ)| ≤\n                                                    P ^ j / Real.log P ^ (1000 : ℕ) ∨\n                                                  P ^ j * Real.log P ^ (1000 : ℕ) ≤\n                                                    |(↑x₁ : ℝ) * (↑k : ℝ) + (↑x₂ : ℝ) * (↑k' : ℝ) +\n                                                          (↑y₁ : ℝ) * (↑n : ℝ) +\n                                                        (↑y₂ : ℝ) * (↑n' : ℝ)|) ∧\n                                  (P * Real.log P ^ (100 : ℕ) ≤ (↑k : ℝ) - (↑k' : ℝ) ∨\n                                    P * Real.log P ^ (100 : ℕ) ≤ (↑k : ℝ) ∧\n                                      P * Real.log P ^ (100 : ℕ) ≤ (↑k' : ℝ) ∧\n                                        P * Real.log P ^ (100 : ℕ) ≤ (↑n' : ℝ) - (↑n : ℝ))",
+    "expected_new": true,
+    "expected_node_id": "variant-3969f1f7--h3--h1--h1--h1",
+    "expected_witness": "∃ (P₂ : ℝ), True",
+    "name": "h_scale",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261029T144021Z-t1029e-c-partial.1.witness",
+     "sha256": "cc60038cb1b51b259d96ad695e7926722c0fdd13dc1a75246439c0df7addded4"
+    }
+   },
+   {
+    "closed_type": "∃ (C : ℝ) (P₀ : ℝ),\n  ∀ P ≥ P₀,\n    ∀ (n k n' k' : ℕ),\n      (1 : ℕ) ≤ k' →\n        k' < k →\n          n < n' →\n            (2 : ℕ) * k ≤ n →\n              (2 : ℕ) * k' ≤ n' →\n                n.choose k = n'.choose k' →\n                  (↑k : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                      (↑k' : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                        (↑n : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                          (↑n' : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) →\n                    (∀ (x₁ x₂ y₁ y₂ : ℤ),\n                        |(↑x₁ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                          |(↑x₂ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                            |(↑y₁ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                              |(↑y₂ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                ∀ (j : ℕ),\n                                  (1 : ℕ) ≤ j →\n                                    |(↑x₁ : ℝ) * (↑k : ℝ) + (↑x₂ : ℝ) * (↑k' : ℝ) + (↑y₁ : ℝ) * (↑n : ℝ) +\n                                            (↑y₂ : ℝ) * (↑n' : ℝ)| ≤\n                                        P ^ j / Real.log P ^ (1000 : ℕ) ∨\n                                      P ^ j * Real.log P ^ (1000 : ℕ) ≤\n                                        |(↑x₁ : ℝ) * (↑k : ℝ) + (↑x₂ : ℝ) * (↑k' : ℝ) + (↑y₁ : ℝ) * (↑n : ℝ) +\n                                            (↑y₂ : ℝ) * (↑n' : ℝ)|) →\n                      ∀ (S : Finset ℕ),\n                        S = Finset.filter Nat.Prime (Finset.Icc ⌈P⌉₊ ⌊P + P / Real.log P ^ (100 : ℕ)⌋₊) →\n                          ∀ (N : ℝ),\n                            N = (↑k : ℝ) ∨\n                                N = (↑n : ℝ) ∨\n                                  N = (↑n : ℝ) - (↑k : ℝ) ∨ N = (↑k' : ℝ) ∨ N = (↑n' : ℝ) ∨ N = (↑n' : ℝ) - (↑k' : ℝ) →\n                              ∀ (M : ℝ),\n                                M = (↑k : ℝ) ∨\n                                    M = (↑n : ℝ) ∨\n                                      M = (↑n : ℝ) - (↑k : ℝ) ∨\n                                        M = (↑k' : ℝ) ∨ M = (↑n' : ℝ) ∨ M = (↑n' : ℝ) - (↑k' : ℝ) →\n                                  ∀ (j : ℕ),\n                                    (1 : ℕ) ≤ j →\n                                      (↑j : ℝ) ≤ Real.log P ^ (1 / 2 : ℝ) →\n                                        ∀ (c : ℝ),\n                                          c =\n                                              (∑ p ∈ S, Int.fract (N / (↑p : ℝ)) * Int.fract (M / (↑p : ℝ) ^ j)) /\n                                                  (↑S.card : ℝ) -\n                                                (∑ p ∈ S, Int.fract (N / (↑p : ℝ))) / (↑S.card : ℝ) *\n                                                  ((∑ p ∈ S, Int.fract (M / (↑p : ℝ) ^ j)) / (↑S.card : ℝ)) →\n                                            ((2 : ℕ) ≤ j → |c| ≤ C / Real.log P ^ (10 : ℕ)) ∧\n                                              (j = (1 : ℕ) →\n                                                  |N| ≤ P / Real.log P ^ (1000 : ℕ) ∨\n                                                      |M| ≤ P / Real.log P ^ (1000 : ℕ) →\n                                                    |c| ≤ C / Real.log P ^ (1000 : ℕ)) ∧\n                                                (j = (1 : ℕ) →\n                                                    P / Real.log P ^ (1000 : ℕ) < |N| →\n                                                      P / Real.log P ^ (1000 : ℕ) < |M| →\n                                                        ∀ (a b : ℕ),\n                                                          (1 : ℕ) ≤ a →\n                                                            (1 : ℕ) ≤ b →\n                                                              a.Coprime b →\n                                                                (↑a : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                  (↑b : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                    |(↑a : ℝ) * N - (↑b : ℝ) * M| ≤\n                                                                        P / Real.log P ^ (1000 : ℕ) →\n                                                                      |c - (1 : ℝ) / ((12 : ℝ) * (↑a : ℝ) * (↑b : ℝ))| ≤\n                                                                        C / Real.log P ^ (1 / 1000 : ℝ)) ∧\n                                                  (j = (1 : ℕ) →\n                                                    P / Real.log P ^ (1000 : ℕ) < |N| →\n                                                      P / Real.log P ^ (1000 : ℕ) < |M| →\n                                                        (∀ (a b : ℕ),\n                                                            (1 : ℕ) ≤ a →\n                                                              (1 : ℕ) ≤ b →\n                                                                a.Coprime b →\n                                                                  (↑a : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                    (↑b : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                      P / Real.log P ^ (1000 : ℕ) <\n                                                                        |(↑a : ℝ) * N - (↑b : ℝ) * M|) →\n                                                          |c| ≤ C / Real.log P ^ (1 / 1000 : ℝ))",
+    "expected_new": true,
+    "expected_node_id": "variant-3969f1f7--h3--h1--h1--h2",
+    "expected_witness": "True",
+    "name": "h_covar",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261029T144021Z-t1029e-c-partial.2.witness",
+     "sha256": "c5793af0fce34d236e8d1ee3aa158144af2aec95be7d8e9d6b3e5c123c054ff6"
+    }
+   },
+   {
+    "closed_type": "∀ (C : ℝ),\n  ∃ (P₁ : ℝ),\n    ∀ P ≥ P₁,\n      ∀ (n k n' k' : ℕ),\n        (1 : ℕ) ≤ k' →\n          k' < k →\n            n < n' →\n              (2 : ℕ) * k ≤ n →\n                (2 : ℕ) * k' ≤ n' →\n                  n.choose k = n'.choose k' →\n                    (↑k : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                        (↑k' : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                          (↑n : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) ∧\n                            (↑n' : ℝ) ≤ Real.exp (Real.log P ^ (299 / 200 : ℝ)) →\n                      (∀ (x₁ x₂ y₁ y₂ : ℤ),\n                          |(↑x₁ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                            |(↑x₂ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                              |(↑y₁ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                |(↑y₂ : ℝ)| ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                  ∀ (j : ℕ),\n                                    (1 : ℕ) ≤ j →\n                                      |(↑x₁ : ℝ) * (↑k : ℝ) + (↑x₂ : ℝ) * (↑k' : ℝ) + (↑y₁ : ℝ) * (↑n : ℝ) +\n                                              (↑y₂ : ℝ) * (↑n' : ℝ)| ≤\n                                          P ^ j / Real.log P ^ (1000 : ℕ) ∨\n                                        P ^ j * Real.log P ^ (1000 : ℕ) ≤\n                                          |(↑x₁ : ℝ) * (↑k : ℝ) + (↑x₂ : ℝ) * (↑k' : ℝ) + (↑y₁ : ℝ) * (↑n : ℝ) +\n                                              (↑y₂ : ℝ) * (↑n' : ℝ)|) →\n                        P * Real.log P ^ (100 : ℕ) ≤ (↑k : ℝ) - (↑k' : ℝ) ∨\n                            P * Real.log P ^ (100 : ℕ) ≤ (↑k : ℝ) ∧\n                              P * Real.log P ^ (100 : ℕ) ≤ (↑k' : ℝ) ∧\n                                P * Real.log P ^ (100 : ℕ) ≤ (↑n' : ℝ) - (↑n : ℝ) →\n                          (∀ (S : Finset ℕ),\n                              S = Finset.filter Nat.Prime (Finset.Icc ⌈P⌉₊ ⌊P + P / Real.log P ^ (100 : ℕ)⌋₊) →\n                                ∀ (N : ℝ),\n                                  N = (↑k : ℝ) ∨\n                                      N = (↑n : ℝ) ∨\n                                        N = (↑n : ℝ) - (↑k : ℝ) ∨\n                                          N = (↑k' : ℝ) ∨ N = (↑n' : ℝ) ∨ N = (↑n' : ℝ) - (↑k' : ℝ) →\n                                    ∀ (M : ℝ),\n                                      M = (↑k : ℝ) ∨\n                                          M = (↑n : ℝ) ∨\n                                            M = (↑n : ℝ) - (↑k : ℝ) ∨\n                                              M = (↑k' : ℝ) ∨ M = (↑n' : ℝ) ∨ M = (↑n' : ℝ) - (↑k' : ℝ) →\n                                        ∀ (j : ℕ),\n                                          (1 : ℕ) ≤ j →\n                                            (↑j : ℝ) ≤ Real.log P ^ (1 / 2 : ℝ) →\n                                              ∀ (c : ℝ),\n                                                c =\n                                                    (∑ p ∈ S, Int.fract (N / (↑p : ℝ)) * Int.fract (M / (↑p : ℝ) ^ j)) /\n                                                        (↑S.card : ℝ) -\n                                                      (∑ p ∈ S, Int.fract (N / (↑p : ℝ))) / (↑S.card : ℝ) *\n                                                        ((∑ p ∈ S, Int.fract (M / (↑p : ℝ) ^ j)) / (↑S.card : ℝ)) →\n                                                  ((2 : ℕ) ≤ j → |c| ≤ C / Real.log P ^ (10 : ℕ)) ∧\n                                                    (j = (1 : ℕ) →\n                                                        |N| ≤ P / Real.log P ^ (1000 : ℕ) ∨\n                                                            |M| ≤ P / Real.log P ^ (1000 : ℕ) →\n                                                          |c| ≤ C / Real.log P ^ (1000 : ℕ)) ∧\n                                                      (j = (1 : ℕ) →\n                                                          P / Real.log P ^ (1000 : ℕ) < |N| →\n                                                            P / Real.log P ^ (1000 : ℕ) < |M| →\n                                                              ∀ (a b : ℕ),\n                                                                (1 : ℕ) ≤ a →\n                                                                  (1 : ℕ) ≤ b →\n                                                                    a.Coprime b →\n                                                                      (↑a : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                        (↑b : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                          |(↑a : ℝ) * N - (↑b : ℝ) * M| ≤\n                                                                              P / Real.log P ^ (1000 : ℕ) →\n                                                                            |c -\n                                                                                  (1 : ℝ) /\n                                                                                    ((12 : ℝ) * (↑a : ℝ) * (↑b : ℝ))| ≤\n                                                                              C / Real.log P ^ (1 / 1000 : ℝ)) ∧\n                                                        (j = (1 : ℕ) →\n                                                          P / Real.log P ^ (1000 : ℕ) < |N| →\n                                                            P / Real.log P ^ (1000 : ℕ) < |M| →\n                                                              (∀ (a b : ℕ),\n                                                                  (1 : ℕ) ≤ a →\n                                                                    (1 : ℕ) ≤ b →\n                                                                      a.Coprime b →\n                                                                        (↑a : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                          (↑b : ℝ) ≤ Real.log P ^ (1 / 100 : ℝ) →\n                                                                            P / Real.log P ^ (1000 : ℕ) <\n                                                                              |(↑a : ℝ) * N - (↑b : ℝ) * M|) →\n                                                                |c| ≤ C / Real.log P ^ (1 / 1000 : ℝ))) →\n                            False",
+    "expected_new": true,
+    "expected_node_id": "variant-3969f1f7--h3--h1--h1--h3",
+    "expected_witness": "∃ (C : ℝ), True",
+    "name": "h_deduce",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261029T144021Z-t1029e-c-partial.3.witness",
+     "sha256": "f0ce3050cfd813b5e4a64da5d4d6950755afa2adacdfcadd95e2e4b5f16f4eab"
+    }
+   }
+  ],
+  "job_id": "01M641NNYR0TWVBYCC2RN714X1",
+  "node_id": "variant-3969f1f7--h3--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261029T144021Z-t1029e-c-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261029T144021Z-t1029e-c-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-partial",
+     "details": {
+      "holes": [
+       "h_scale",
+       "h_covar",
+       "h_deduce"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: variant_3969f1f7__h3__h1__h1 declares ∃ C,\n  0 ≤ C ∧\n    ∃ a₁,\n      ∀ a ≥ a₁,\n        ∀ (n k n' k' : ℕ),\n          1 ≤ k ∧ 2 * k ≤ n ∧ n.choose k = a →\n            1 ≤ k' ∧ 2 * k' ≤ n' ∧ n'.choose k' = a →\n              |↑k - ↑k'| ≤ C * Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)) ∧\n                (Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)) ≤ ↑k →\n                  Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)) ≤ ↑k' →\n                    |↑n - ↑n'| ≤ C * Real.exp (Real.log (↑n + ↑n') ^ (43 / 60))); 3 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "junk-value",
+        "location": "Real.log (↑n + ↑n')",
+        "message": "Real.log of a possibly-negative argument is a junk value (0)"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ k",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ k'",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "3 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: junk-value at Real.log (↑n + ↑n'): Real.log of a possibly-negative argument is a junk value (0)"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "h_scale",
+        "path": "attempts/20261029T144021Z-t1029e-c-partial.1.witness",
+        "sha256": "cc60038cb1b51b259d96ad695e7926722c0fdd13dc1a75246439c0df7addded4"
+       },
+       {
+        "hole": "h_covar",
+        "path": "attempts/20261029T144021Z-t1029e-c-partial.2.witness",
+        "sha256": "c5793af0fce34d236e8d1ee3aa158144af2aec95be7d8e9d6b3e5c123c054ff6"
+       },
+       {
+        "hole": "h_deduce",
+        "path": "attempts/20261029T144021Z-t1029e-c-partial.3.witness",
+        "sha256": "f0ce3050cfd813b5e4a64da5d4d6950755afa2adacdfcadd95e2e4b5f16f4eab"
+       }
+      ]
+     },
+     "message": "3 of 3 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

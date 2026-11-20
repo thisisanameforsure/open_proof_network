@@ -1,0 +1,24 @@
+{
+ "status": 201,
+ "body": {
+  "id": "01M643VP687G7YASJ4KWF517Y0",
+  "path": "targets/erdos-849/nodes/variant-3969f1f7--h3--h1--h1/explainer/511c0cdd11e61edfda31f793365fc8feac2427201d43b3dc83ba3a389b1672f6.md",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/1199",
+  "pr_number": 1199,
+  "hash": "511c0cdd11e61edfda31f793365fc8feac2427201d43b3dc83ba3a389b1672f6",
+  "record": "explainer",
+  "warnings": [
+   {
+    "code": "explainer-name-unanchored",
+    "message": "targets/erdos-849/nodes/variant-3969f1f7--h3--h1--h1/explainer/511c0cdd11e61edfda31f793365fc8feac2427201d43b3dc83ba3a389b1672f6.md: the section 'One ordering of the columns' cites `Nat.choose_le_choose`, which none of the constants its steps (dir) use contains; check that the prose describes the Lean it names (F20-R5)",
+    "details": {
+     "path": "targets/erdos-849/nodes/variant-3969f1f7--h3--h1--h1/explainer/511c0cdd11e61edfda31f793365fc8feac2427201d43b3dc83ba3a389b1672f6.md",
+     "name": "Nat.choose_le_choose",
+     "steps": [
+      "dir"
+     ]
+    }
+   }
+  ]
+ }
+}

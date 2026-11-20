@@ -1,0 +1,30 @@
+# C words drafts (to file in the quiet windows after 15:30Z)
+
+## literature: variant-3969f1f7--h3--h1--h1--h1 (h_scale) — status known
+refs: MRSTT, Quart. J. Math. 73 (2022) 1137–1177, arXiv 2106.03335, Lemma 3.1 (selection of scale), §3.
+summary: Lemma 3.1 of Matomäki–Radziwiłł–Shao–Tao–Teräväinen with ε = 1/20: under the separation hypotheses (3.1) m−m' ≥ exp(log^{2/3+ε} n') or (3.2) m, m', n'−n ≥ exp(log^{2/3+ε} n') (here 2/3+ε = 43/60, the paper's m, m' are k, k'), a scale P obeys (i) m,m',n,n' ≤ exp(log^{3/2−ε/10} P) (3/2 − 1/200 = 299/200), (ii) the dichotomy |am+a'm'+bn+b'n'| ≤ P^j/log^{1000}P or ≥ P^j log^{1000}P for integer coefficients of size ≤ log^{1/100}P, (iii) m−m' ≥ P log^{100}P or m,m',n'−n ≥ P log^{100}P. The paper's "P sufficiently large" is written P ≥ P₂ for t ≥ a₀(P₂); natural numbers j are taken ≥ 1. The proof is elementary: P ranges over powers of two in [exp(log^{2/3+ε/2} n'), exp(2 log^{2/3+ε/2} n')], (i) and (iii) hold for all of them, and a count shows fewer than all fail (ii). Not formalised.
+
+## literature: variant-3969f1f7--h3--h1--h1--h2 (h_covar) — status known
+refs: same paper, Proposition 3.2 (covariance estimates), proved in §3 assuming Proposition 1.12 (equidistribution estimate, proved in §4 by Vaughan's identity and Vinogradov-type bounds).
+summary: Proposition 3.2 of MRSTT with ε = 1/20, for P large and a configuration obeying Lemma 3.1 (i), (ii): with p uniform over the primes in [P, P+P log^{-100}P] and c_j(N,M) the covariance of {N/p} and {M/p^j}, for N,M ∈ {m,n,n−m,m',n',n'−m'} and 1 ≤ j ≤ log^{1/2}P: (i) |c_j| ≪ log^{-10}P for j ≥ 2; (ii) |c_1| ≪ log^{-1000}P if N ≈ 0 or M ≈ 0; (iii) c_1 = 1/(12ab) + O(log^{-1/1000}P) if aN ≈ bM for coprime 1 ≤ a,b ≤ log^{1/100}P; (iv) |c_1| ≪ log^{-1/1000}P otherwise; x ≈ y means |x−y| ≤ P/log^{1000}P. The interval is written ⌈P⌉ ≤ p ≤ ⌊P+P/log^{100}P⌋ and the expectation as an average over that finite set; ≪ is one constant C. This is the only place the analytic number theory (Prop 1.12) enters the proof of Prop 1.9. The paper's own set lists "m−n" and "m'−n'"; these are n−m and n'−m' (the binomial's complementary index), as written here. The proof of (iv) applies Lemma 3.1(ii) to aN−bM, whose coefficients can reach a+b ≤ 2 log^{1/100}P; the paper's exponents absorb this. Not formalised.
+
+## literature: variant-3969f1f7--h3--h1--h1--h3 (h_deduce) — status known
+refs: same paper, §3: the argument after Lemma 3.1 that is not the proof of Proposition 3.2 — the identity of §1.3 (digit sums of the two solutions agree at every prime, from Legendre's formula) at a random prime, the covariance identity (3.4), its j = 1 form (3.14), and the three cases m'≈0, m≉m', m≈m'.
+summary: The case analysis that closes §3 of MRSTT: Legendre's formula makes the sums Σ_j({m/p^j}+{(n−m)/p^j}−{n/p^j}) of the two solutions agree at every prime p, taking covariances with {N/p} gives (3.4), Proposition 3.2(i) reduces it to j = 1 with error log^{-1/1000}P, and in each of the cases m' ≈ 0, (m ≉ m', m' ≉ 0), (m ≈ m', m' ≉ 0) Proposition 3.2(ii)–(iv) and Lemma 3.1(ii), (iii) give a contradiction. Stated here for any constant C in Prop 3.2's bounds and P ≥ P₁(C). Elementary given its hypotheses (finite sums over primes, fractional parts, rational arithmetic with 1/(12ab)); not formalised.
+
+## explainer: #1173 assembly on variant-3969f1f7--h3--h1--h1 (step ids to fill from the outline)
+
+## Overview
+The statement is MRSTT Proposition 1.9 with $\varepsilon = 1/20$: there are $C \ge 0$ and $a_1$ such that for $a \ge a_1$, two solutions $(n,k)$, $(n',k')$ of $\binom{n}{k} = \binom{n'}{k'} = a$ with $1 \le k$, $2k \le n$, $1 \le k'$, $2k' \le n'$ satisfy $|k-k'| \le C E$, and $|n-n'| \le C E$ when $k, k' \ge E$, where $E = e^{(\log(n+n'))^{43/60}}$. The assembly follows §3 of the paper: it takes Lemma 3.1 (`h_scale`), Proposition 3.2 (`h_covar`) and the case analysis that ends §3 (`h_deduce`) as three holes and proves the statement from them with $C = 1$. Write $T(x) = e^{(\log x)^{43/60}}$.
+
+## The three holes {steps: hall …}
+`hall` states the three holes as one conjunction, each in its own scope. `h_covar` provides a constant $C$ and a threshold $P_0$; `h_deduce` applied to that $C$ provides $P_1$; `h_scale` applied to $\max(P_0, P_1)$ provides $a_0$, the threshold used for $a$.
+
+## No well-separated pair of solutions {steps: key …}
+`key`: for $a \ge a_0$ there is no pair of solutions with $1 \le k' < k$, $n < n'$, $2k \le n$, $2k' \le n'$ that is separated in the sense of (3.1) or (3.2), i.e. $k - k' \ge T(n')$, or $k, k', n'-n \ge T(n')$. Given one, `h_scale` gives a scale $P \ge \max(P_0,P_1)$ obeying (i), (ii), (iii) of Lemma 3.1; `h_covar` at $P$ gives the covariance bounds with constant $C$ (it needs (i), (ii) and $\binom{n}{k} = \binom{n'}{k'}$); and `h_deduce` at $P$, with (i), (ii), (iii) and those bounds, gives a contradiction.
+
+## One ordering of the columns {steps: dir …}
+`dir`: for $a \ge a_0$ and solutions with $1 \le k' < k$, $2k \le n$, $2k' \le n'$: first $n < n'$, since $n' \le n$ would give $\binom{n'}{k'} \le \binom{n}{k'} < \binom{n}{k}$ (the column inequality is monotonicity in the row, `Nat.choose_le_choose`, and the row inequality is strict growth of $\binom{n}{r}$ for $r < k \le n/2$, the private lemmas `e849_choose_succ_lt`, `e849_choose_lt_col`, `e849_choose_lt`). Then $k - k' < T(n')$, by `key` with the first separation; and if $T(n') \le k'$ then $n' - n < T(n')$, by `key` with the second (using $k' < k$ for $T(n') \le k$).
+
+## The statement with C = 1 {steps: …}
+Take $C = 1$, $a_1 = a_0$. For any $x$ with $1 \le x \le n + n'$, $T(x) \le E$ by monotonicity of $\log$, of $t \mapsto t^{43/60}$ on $t \ge 0$, and of $\exp$ (`hTE`). If $k' < k$, `dir` gives $n < n'$ and $|k - k'| = k - k' < T(n') \le E$; and if $E \le k'$ then $T(n') \le k'$, so $|n - n'| = n' - n < T(n') \le E$. If $k = k'$, then $n = n'$, since $\binom{n}{k}$ is strictly increasing in $n \ge k$ for $k \ge 1$ (`e849_choose_lt_row`), and both differences are $0 \le E$. If $k < k'$, `dir` with the roles exchanged gives the same bounds with $T(n)$.

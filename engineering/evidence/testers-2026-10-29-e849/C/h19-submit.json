@@ -1,0 +1,29 @@
+{
+ "status": 201,
+ "body": {
+  "submission_id": "01M641YVX0T7WKG8AQ5WGRPNC8",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/1173",
+  "pr_number": 1173,
+  "node_id": "variant-3969f1f7--h3--h1--h1",
+  "target_id": "erdos-849",
+  "artifact_type": "partial",
+  "holes": [
+   {
+    "name": "h_scale",
+    "expected_node_id": "variant-3969f1f7--h3--h1--h1--h1",
+    "expected_new": true
+   },
+   {
+    "name": "h_covar",
+    "expected_node_id": "variant-3969f1f7--h3--h1--h1--h2",
+    "expected_new": true
+   },
+   {
+    "name": "h_deduce",
+    "expected_node_id": "variant-3969f1f7--h3--h1--h1--h3",
+    "expected_new": true
+   }
+  ],
+  "holes_note": "expected as planned at graph commit 4f771bb8ade887b4b158d06b3da2d3437ba50fec: a hole restating an existing node is that node (expected_new false), the rest are new nodes numbered after the node's earlier holes; another decomposition of this node merging first renumbers them. A hole that restates a node under another branch of the target (expected_new false and the node not a hole child of this one) makes that node a lemma of this node, listed in its META.yaml and CONTEXT.json: its theorem is in this node's Context.lean, the assembly or a direct proof may use it once it is proved, and this node never waits on it; one proof of the lemma serves every branch that restated it"
+ }
+}

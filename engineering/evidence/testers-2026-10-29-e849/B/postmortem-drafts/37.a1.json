@@ -1,0 +1,12 @@
+{
+ "schema": "postmortem/v2",
+ "node": "variant-3969f1f7--h2--h1--h1--h6",
+ "contributor": "t1029e-b",
+ "route": "Reduce the pair equation to integral points on the minimal model of the elliptic curve 37.a1 (y^2 + y = x^3 - x) by x = n - 1, y = m(m-3)/2; partial PR #1171 proves the map and reads the binomial solutions off the curve's integral points, one hole = that list.",
+ "route_class": "reduction-to-known",
+ "outcome": "blocked",
+ "failure_class": "missing-library",
+ "terminal_goal_state": "⊢ ∀ x y : ℤ, y^ 2 + y = x^ 3 - x → (x, y) ∈ the LMFDB integral points of 37.a1   (node variant-3969f1f7--h2--h1--h1--h6--h1)",
+ "detail": "What is left is exactly the integral points of one elliptic curve, 37.a1: the LMFDB computes them from a Mordell–Weil basis with an elliptic-logarithm bound (Stroeker–Tzanakis 1994; Sage/Magma IntegralPoints). Mathlib has neither Mordell–Weil for a specific curve nor a Baker-type lower bound for linear forms in elliptic logarithms, so the hole is not formalisable today and is not split further: any split would be a restatement. The model is the LMFDB minimal one, so its integral points are exactly the list printed on the curve page, and a reader can check the hole against Sage in one line (EllipticCurve(...).integral_points()). Point list re-checked in Python: each listed point satisfies the equation and an exhaustive search over |x| <= 3e6 finds no other. Lean notes for the next person: the binomial algebra goes through Nat.descFactorial_eq_factorial_mul_choose and simp [Nat.descFactorial_succ]; avoid parity case splits by taking k(k+1) = 2r from Nat.even_mul_succ_self; clear the nonlinear hypotheses before a many-way rcases or the 20 s fast check times out.",
+ "model_and_tooling": "Claude Opus 5.5 through Claude Code; LMFDB curve pages; Python for the point checks"
+}

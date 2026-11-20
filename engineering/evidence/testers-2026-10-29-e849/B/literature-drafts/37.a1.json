@@ -1,0 +1,23 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h1--h6--h1",
+ "status": "known",
+ "references": [
+  {
+   "title": "LMFDB, Elliptic curve 37.a1 over Q",
+   "url": "https://www.lmfdb.org/EllipticCurve/Q/37/a/1",
+   "note": "Minimal model y^2 + y = x^3 - x; Cremona 37a1, conductor 37, rank 1, trivial torsion. Lists exactly the 10 integral points of this node's conclusion."
+  },
+  {
+   "title": "L. J. Mordell, On the integer solutions of y(y+1) = x(x+1)(x+2), Pacific J. Math. 13 (1963) 1347–1351",
+   "url": "https://doi.org/10.2140/pjm.1963.13.1347",
+   "note": "The same curve (x -> x - 1); Mordell determined all its integer points."
+  },
+  {
+   "title": "R. J. Stroeker, N. Tzanakis, Solving elliptic diophantine equations by estimating linear forms in elliptic logarithms, Acta Arith. 67 (1994) 177–196",
+   "url": null,
+   "note": "The method by which integral points of a rank-r elliptic curve are determined completely (Baker-type lower bound, then LLL reduction); implemented in Sage and Magma."
+  }
+ ],
+ "summary": "Known. The integral points of the elliptic curve 37.a1 (y^2 + y = x^3 - x) are a published computation: the LMFDB lists exactly the 10 in this node's conclusion, found from a Mordell–Weil basis by the elliptic-logarithm method. Not formalised: a Lean proof would need the Mordell–Weil group and a Baker-type bound. This node is the whole number-theoretic content of its parent; the parent's assembly, which maps the binomial equation onto this curve, is proved.",
+ "model_and_tooling": "Claude Opus 5.5 through Claude Code; LMFDB curve pages read 2026-10-29; point lists re-checked in Python (each point satisfies the equation, and a search over |x| <= 3e6 finds no other)"
+}

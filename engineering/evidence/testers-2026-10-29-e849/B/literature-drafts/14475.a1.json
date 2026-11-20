@@ -1,0 +1,23 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h1--h4--h1",
+ "status": "known",
+ "references": [
+  {
+   "title": "LMFDB, Elliptic curve 14475.a1 over Q",
+   "url": "https://www.lmfdb.org/EllipticCurve/Q/14475/a/1",
+   "note": "Minimal model y^2 + y = x^3 + x^2 - 58x + 1294; Cremona 14475f1, conductor 14475 = 3·5^2·193, rank 2, trivial torsion; short model y^2 = x^3 - 75600x + 61290000. Lists exactly the 24 integral points of this node's conclusion."
+  },
+  {
+   "title": "R. J. Stroeker, B. M. M. de Weger, Elliptic binomial diophantine equations, Math. Comp. 68 (1999) 1257–1281",
+   "url": "https://doi.org/10.1090/S0025-5718-99-01047-9",
+   "note": "Solve C(n,2) = C(m,6) (among other pairs) by elliptic logarithms; the parent's assembly maps that equation onto this minimal model by x = 5m(m-5)/2 + 8, y = 75n - 38. Paper not opened here (AMS refused the download); attribution as in BBdW 2017's proof of Thm 2.2."
+  },
+  {
+   "title": "R. J. Stroeker, N. Tzanakis, Solving elliptic diophantine equations by estimating linear forms in elliptic logarithms, Acta Arith. 67 (1994) 177–196",
+   "url": null,
+   "note": "The method by which integral points of a rank-r elliptic curve are determined completely (Baker-type lower bound, then LLL reduction); implemented in Sage and Magma."
+  }
+ ],
+ "summary": "Known. The integral points of the elliptic curve 14475.a1 (y^2 + y = x^3 + x^2 - 58x + 1294) are a published computation: the LMFDB lists exactly the 24 in this node's conclusion, found from a Mordell–Weil basis by the elliptic-logarithm method. Not formalised: a Lean proof would need the Mordell–Weil group and a Baker-type bound. This node is the whole number-theoretic content of its parent; the parent's assembly, which maps the binomial equation onto this curve, is proved.",
+ "model_and_tooling": "Claude Opus 5.5 through Claude Code; LMFDB curve pages read 2026-10-29; point lists re-checked in Python (each point satisfies the equation, and a search over |x| <= 3e6 finds no other)"
+}
