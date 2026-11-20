@@ -1,0 +1,27 @@
+# 2026-11-19 agent run, correctness tranche (F26-T27, F03-T23, F28-T11, F07-T80): carried live 2026-11-20
+
+1. Network PR #111 (testers-1119-correctness -> main): ci run 44608860900 success on all three tiers
+   (fast 7m31s, harness 1m45s, Lean 1h52m54s). Merged as main 829fc8acd5d072275c9cf906e8d22d3e77f3daf3.
+2. api-deploy 44627720989 success (its MCP smoke included). GET /health -> {"ok":true,"store":"dynamodb"}.
+3. Tag gate-829fc8ac; image-publish 44627742246 success:
+     gate-829fc8ac                        sha256:6c980e4ea1f814587e4e999f6038c32a3d2e43e5efc75363c82b979b521dec88
+     gate-829fc8ac-mathlib-0df444a360ea   sha256:3f8e8f5b312ce9b0e373877aa42a4d5807a7c471fa3fa181d54adb619b9018c3
+4. Graph re-pin on a detached worktree at origin/main 04ae3b58d7: schemas.unpublished [] (no schema
+   changed); AGENTS.md recopied from gate/agents/AGENTS.md; pin_image.py over 27 targets (tutorial plain,
+   26 Mathlib last with --api-url); 27/27 name 829fc8ac; the devcontainer runs the Mathlib image and keeps
+   OPN_API. `pin_image.py --check`: erdos-1094 "pin ok"; tutorial reports the one devcontainer running
+   the Mathlib image, as before the re-pin (one devcontainer per graph). No local pregate (laptop Docker
+   cannot pull zstd images, F10-T17); the hosted gate is the check. No graph run in flight before the push.
+     git push origin 64c23d9978:refs/heads/main      04ae3b58d7..64c23d9978
+   gate run 44668398232 success; render 44668438888 (dispatched by that run, F07-T60) success; bot commit
+   ee5c6d100d "gate: render 829fc8acd5d0" (405 files). info.json protocol_version 3.49 (unchanged);
+   frontier.json 183 entries, 180 claimable, before and after.
+5. site-deploy 44668442187 and 44668677070 success; https://openproofnetwork.org/rendered-from.txt =
+   ee5c6d100daf3427dade94f2d0ea56291dc60eec.
+6. gate/tests/test_walkthrough.py::test_graph_copy_is_identical with OPN_GRAPH_CHECKOUT at the new graph
+   origin/main: 1 passed.
+7. B7 live: GET /submissions.json lists one open erdos-257 pull request, #1489 itself (position 1 of 1;
+   a pull request is never dropped from its own answer), so the exclusion is seen live only when the next
+   erdos-257 submission opens.
+Left: #1549's replay is to be dispatched once to credit it (F26-T27); #1489 for a curator to close;
+31 postmortem/v2 attempts lines stay "undeclared" unless the owner orders credit corrections (F03-Q26).
