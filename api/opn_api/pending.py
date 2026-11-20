@@ -497,25 +497,62 @@ QUEUE_BASE = "main"
 QUEUE_ORDER = (
     "pull-request number, oldest first, over the open pull requests the merge actor takes "
     "(non-draft, on a branch the service opened, against main), counted in the pull request's "
-    "own lane: the merge actor runs one lane per target in parallel (F07-T56), so only the "
-    "pull requests on the same target, and any whose target the service does not know (the "
+    "own lane: the merge actor runs one lane per target in parallel (F07-T56), and each target's "
+    "lane in two halves that do not wait for each other (F07-T81): appends (on append/ branches: "
+    "annexes, postmortems, words, literature and the other records) and building pull requests "
+    "(on propose/ and submit/: proofs, partials, proposals, witnesses). So only the pull requests "
+    "on the same target in the same half, and any whose target the service does not know (the "
     "actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor "
     "merges the first one whose gate is green and passes over a red, conflicting or "
     "behind-and-still-running one, so a position is an upper bound on the merges ahead, not a "
     "count of them; consecutive green appends may merge as one batch. Left out of ahead, "
     "position and of (F07-T80), though the actor still lists them: a witness whose slot main "
     "already fills, and one whose gate failed and that has been idle longer than the service's "
-    "window (OPN_API_QUEUE_IDLE_RED_DAYS)"
+    "window (OPN_API_QUEUE_IDLE_RED_DAYS); and one the service has already seen merge or close "
+    "while the listing, read once a window, still carries it (F07-T86)"
 )
 QUEUE_NOTE = (
     "each entry's queue.waiting_on is what the service last read for that pull request, with "
     "when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing. "
     "queue.order is the actor's order across every lane; each entry's position counts its own "
-    "lane: its target's (the record's target_id), or every lane for one the service cannot place"
+    "lane: its target's (the record's target_id) and, within it, its half (appends on append/ "
+    "branches, or building pull requests on propose/ and submit/), or every lane for one the "
+    "service cannot place"
 )
 #: The lane of a pull request the service cannot place in one target: every lane, as the merge
 #: actor's ``EVERY_LANE`` (the graph's ``merge.yml``, F07-T56).
 EVERY_LANE = "*"
+#: F07-T83: the two halves of a target's lane in the merge actor (F07-T81/T82, the graph's
+#: ``merge.yml``): appends, on the service's ``append/`` branches, and building pull requests, on
+#: ``propose/`` and ``submit/``. Neither holds the other back.
+APPEND_PREFIX = "append/"  # ``submissions.APPEND_BRANCH_PREFIX``, asserted equal in the tests
+BUILD_PREFIXES: tuple[str, ...] = ("propose/", "submit/")
+SUB_APPEND = "append"
+SUB_BUILD = "build"
+#: The record kinds whose routes open a building pull request: ``POST /submissions``' artifact
+#: types on ``submit/``, and ``proposals.open_proposal``'s kinds on ``propose/``. Every other
+#: route opens on ``append/`` (or on a branch the actor does not take, ``review/``, ``curate/``).
+BUILD_KINDS: tuple[str, ...] = (*ATTESTING_KINDS, "speculative", "variant", "witness")
+
+
+def branch_sub_lane(branch: str) -> str:
+    """The half of its target's lane a pull request on ``branch`` goes in: building on
+    ``propose/`` and ``submit/``, and an append otherwise (only ``append/`` is in the queue)."""
+    return SUB_BUILD if branch.startswith(BUILD_PREFIXES) else SUB_APPEND
+
+
+def sub_lane(record: Submission | None, entry: OpenPullRequest | None) -> str:
+    """F07-T83, T84: append or build, from the host's word on the branch where the open listing
+    carries the pull request (the merge actor decides by the branch), else from the record's kind,
+    which decided the branch when the route opened it (``BUILD_KINDS``). With neither, building:
+    the stricter half."""
+    if entry is not None and entry.head_ref:
+        return branch_sub_lane(entry.head_ref)
+    if record is not None:
+        return SUB_BUILD if record.kind in BUILD_KINDS else SUB_APPEND
+    return SUB_BUILD
+
+
 #: The most pull requests an answer names as ahead; ``position`` says how many there are.
 MAX_AHEAD = 50
 #: F07-T70: the most finished submissions ``GET /submissions/mine`` names, newest first.
@@ -546,15 +583,49 @@ def last_read(ctx: Context, number: int) -> tuple[str | None, str | None]:
     return cached.state.waiting_on, cached.read_at
 
 
-def lane_queue(order: list[int], lanes: dict[int, str], number: int) -> list[int]:
-    """F07-T69: the part of the actor's ``order`` that shares ``number``'s lane —
-    the pull requests on its target and every one the service cannot place, which the actor
-    lets hold every lane. A pull request that cannot itself be placed waits for the whole
-    queue, as the actor's does (``merge.yml``: "waits until it is first")."""
-    lane = lanes.get(number, EVERY_LANE)
-    if lane == EVERY_LANE:
+#: F07-T83: a pull request's place in the merge actor's lanes: its target and its half of it
+#: (``SUB_APPEND`` or ``SUB_BUILD``); ``UNPLACED`` for one the service cannot place in one target.
+Lane = tuple[str, str]
+UNPLACED: Lane = (EVERY_LANE, EVERY_LANE)
+
+
+def lane_queue(order: list[int], lanes: dict[int, Lane], number: int) -> list[int]:
+    """F07-T69, T83: the part of the actor's ``order`` that shares ``number``'s lane — the pull
+    requests on its target in the same half (appends, or building ones), and every one the
+    service cannot place, which the actor lets hold every lane. A pull request that cannot itself
+    be placed waits for the whole queue, as the actor's does (``merge.yml``: "waits until it is
+    first")."""
+    lane = lanes.get(number, UNPLACED)
+    if lane == UNPLACED:
         return list(order)
-    return [n for n in order if lanes.get(n, EVERY_LANE) in (lane, EVERY_LANE)]
+    return [n for n in order if lanes.get(n, UNPLACED) in (lane, UNPLACED)]
+
+
+def place(
+    ctx: Context, listed: Listing, records: dict[int, Submission], order: list[int]
+) -> tuple[dict[int, Lane], set[int]]:
+    """F07-T83, T86: each pull request of ``order`` in its lane, and the ones that have finished.
+
+    The lane is the record's target and its half (``sub_lane``: the listing's branch, else the
+    record's kind). A pull request with no open record is looked up once in the store: a record
+    there that is closed means a per-id read has already seen it merge or close while the
+    listing, read up to a window ago, still carries it, so it is ahead of nobody (B17 b: counted
+    in every lane until the next listing, it moved positions 8 -> 9 -> 8). One with no record at
+    all is one the service cannot place, ``UNPLACED``."""
+    lanes: dict[int, Lane] = {}
+    finished: set[int] = set()
+    for number in order:
+        record = records.get(number)
+        if record is None:
+            record = ctx.store.get_submission_by_pr(number)
+            if record is not None and record.closed is not None:
+                finished.add(number)
+                continue
+        if record is None:
+            lanes[number] = UNPLACED
+        else:
+            lanes[number] = (record.target_id, sub_lane(record, listed.get(number)))
+    return lanes, finished
 
 
 #: F07-T80: the ``waiting_on`` of a pull request whose own submission the gate refused.
@@ -617,11 +688,11 @@ def entry_queue(
     ctx: Context,
     number: int,
     order: list[int] | None,
-    lanes: dict[int, str],
+    lanes: dict[int, Lane],
     aside: set[int] | frozenset[int] = frozenset(),
 ) -> dict[str, Any]:
     """One open submission's place: ``position`` from 1 in its own lane, ``of`` how many share
-    that lane (F07-T69), and what it was last read to be waiting on.
+    that lane (F07-T69; its target's half, F07-T83), and what it was last read to be waiting on.
     ``position`` is null for a pull request the actor does not take, and both are null when the
     host has never been listed."""
     waiting, read_at = last_read(ctx, number)
@@ -656,10 +727,11 @@ def queue_block(
             "stale": True,
         }
     records = {s.pr_number: s for s in ctx.store.list_open_submissions()}
-    lanes = {n: s.target_id for n, s in records.items()}
     number = found.pr_number
-    lanes[number] = found.target_id  # its own record, whatever the open index says
-    order = lane_queue(queue_order(listed), lanes, number)
+    records[number] = found  # its own record, whatever the open index says
+    whole = queue_order(listed)
+    lanes, finished = place(ctx, listed, records, whole)
+    order = lane_queue([n for n in whole if n not in finished], lanes, number)
     aside = passed_over(ctx, listed, records, [n for n in order if n != number])
     order = [n for n in order if n not in aside]
     position = order.index(number) + 1 if number in order else None
@@ -1329,9 +1401,14 @@ def snapshot(ctx: Context) -> dict[str, Any]:
     order = queue_order(listed) if listed is not None else None
     rank = {number: index for index, number in enumerate(order or [])}
     still_open.sort(key=lambda s: (rank.get(s.pr_number, len(rank)), s.pr_number))
-    lanes = {s.pr_number: s.target_id for s in still_open}
     by_number = {s.pr_number: s for s in still_open}
-    aside = passed_over(ctx, listed, by_number, order) if listed is not None and order else set()
+    lanes: dict[int, Lane] = {}
+    aside: set[int] = set()
+    if listed is not None and order:
+        lanes, aside = place(ctx, listed, by_number, order)
+        aside |= passed_over(ctx, listed, by_number, [n for n in order if n not in aside])
+    for s in still_open:  # one the actor does not take still names its own lane's count
+        lanes.setdefault(s.pr_number, (s.target_id, sub_lane(s, (listed or {}).get(s.pr_number))))
     open_now = [
         {**document(s), "queue": entry_queue(ctx, s.pr_number, order, lanes, aside)}
         for s in still_open

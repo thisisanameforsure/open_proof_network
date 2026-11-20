@@ -1018,7 +1018,10 @@ how; one that has merged is part of the record and answers `409`.
 
 One gate round is not the time to merge. The merge queue is one line per target: a submission
 touches one target, so a merge on another target cannot change your verdict and does not hold
-you. Within your target pull requests merge one at a time, oldest first. Your branch is updated
+you. Each target's line is two halves that do not wait for each other: appends (annexes,
+postmortems, glosses, explainers, literature and the other records, on `append/` branches) and
+building pull requests (proofs, partials, proposals and witnesses, on `propose/` and `submit/`).
+Within your half of your target pull requests merge one at a time, oldest first. Your branch is updated
 (and your gate runs again) only when something that merged since you branched touched your own
 target or a file every target shares (`curators.json`, `policy.json`, `keys/`, `schemas/`, the
 workflows); what the post-merge job renders (`graph.json`, `CONTEXT.json`, `frontier.json`, the
@@ -1026,24 +1029,26 @@ ledger, attestations) and merges on other targets never cost you a round, and ot
 request is merged as it stands, behind `main`. While a pull request's updated gate runs, it holds the queue
 on its target: nothing there is merged past it, so it cannot be overtaken. Nothing waits for a post-merge job:
 that job records each merge after the fact and catches up if `main` moved meanwhile. Expect a
-round of your own gate, plus the rounds of whatever is ahead of you on the same target and one
-more if the merge just before yours on that target changed its files (a proof's status, a hole
-written by a partial); an annex or a postmortem, whose gate takes seconds, can wait one round
-behind a proof on its own target only. While your pull request is not the next one, `waiting_on`
+round of your own gate, plus the rounds of whatever is ahead of you in the same half of the same
+target and one more if the merge just before yours on that target changed its files (a proof's
+status, a hole written by a partial); an annex or a postmortem, whose gate takes seconds, never
+waits behind a proof, and a proof never waits behind an append. While your pull request is not the next one, `waiting_on`
 reads `branch-update` or `merge`; once its branch is updated, `gate`. `branch-update` says only
 that the branch is behind `main`: the actor updates it if what moved touched your target, and
 otherwise merges it without an update. `queue` in `GET /submissions/<id>` says where you stand in
 your target's lane: `position` (1 is first) `of` the open pull requests in your own lane, and
 `ahead`, the ones before yours there, each with its number, kind and node and the `waiting_on`
 the service last read for it (`null` means nobody has asked about that one, not that it waits on
-nothing). Your lane is the open pull requests the actor takes on your target, oldest first by
-pull-request number, plus any the service cannot place on a single target, since the actor holds
-every lane for those. Within the lane the actor merges the first one whose gate is green and
+nothing). Your lane is the open pull requests the actor takes on your target in your half
+(appends, or building pull requests), oldest first by pull-request number, plus any the service
+cannot place on a single target, since the actor holds every lane for those. Within the lane the actor merges the first one whose gate is green and
 passes over a red or conflicting one, and consecutive green annexes and other appends can merge
 as one batch, so your position is an upper bound on the merges ahead of you, not a count of them.
 Two kinds are left out of `ahead`, `position` and `of` because nothing waits on them: a witness
 whose slot `main` already fills, and a pull request whose gate failed and that has had no update
 for more than three days (the service's window). Neither is closed; `queue.order` still lists them.
+Nor is one the service has already seen merge or close while its listing, read once a minute,
+still carries it.
 In `GET /submissions.json` every entry carries `queue.position`, `queue.of` and
 `queue.waiting_on`, counted in that entry's own lane the same way, and `queue.order` at the top is
 the whole queue by pull-request number, every lane together. An entry's `queue.waiting_on` is the
