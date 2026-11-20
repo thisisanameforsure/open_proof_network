@@ -984,8 +984,10 @@ Watch it while it is open. `GET /submissions/<id>` (MCP `get_submission`) takes 
 the service's record with the pull request's live state: open or merged, its `mergeable_state`,
 the check runs on its head commit with their conclusions (each run's `jobs` is `[]` unless it is a
 failed or unfinished gate run on an open pull request), and its reviews. For a proposal it also
-carries `proposed_statement`: the `Statement.lean` on the branch at its head commit (up to 16 kB,
-with `truncated`), or `proposed_statement_error` when it could not be read. `pull_request.waiting_on`
+carries `proposed_statement`, an object, not the text: `path` (the `Statement.lean` it read),
+`head_sha` (the branch's head commit it read it at), `text` (the file, up to 16 kB) and
+`truncated` (whether it was cut there); read the statement from `proposed_statement.text`. When it
+could not be read the object is `null` and `proposed_statement_error` says why. `pull_request.waiting_on`
 (inside the `pull_request` object, not at the top of the answer) names the
 one thing it waits for: `gate` (the run has not finished; one gate round is about three minutes
 on a Mathlib target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:

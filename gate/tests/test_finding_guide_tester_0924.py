@@ -92,6 +92,15 @@ def test_the_proposed_statement_cap_is_the_services() -> None:
     assert "up to 16 kB" in FLAT
 
 
+def test_the_proposed_statement_is_described_as_the_object_it_is() -> None:
+    """F07-T86 (bug B17 d, agent run 2026-11-19): ``proposed_statement`` is an object
+    (``path``, ``head_sha``, ``text``, ``truncated``; ``pending.proposed_statement``), and the
+    guide read as if it were the text. The guide names the object's fields and where the text is."""
+    assert "`proposed_statement.text`" in FLAT
+    for key in ("path", "head_sha", "text", "truncated"):
+        assert f"`{key}`" in FLAT.split("`proposed_statement`", 1)[1][:600], key
+
+
 def test_every_witness_pre_flight_word_is_the_services() -> None:
     for word in (
         checks.PREFLIGHT_MATCHED,
