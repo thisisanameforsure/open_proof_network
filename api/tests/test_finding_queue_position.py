@@ -159,8 +159,9 @@ def test_the_queue_costs_no_read_per_record() -> None:
     """The 2026-09-24 rule: nothing here grows with the queue. Twenty-five open, listed five
     times and asked about by id: one listing call, and one pull-request read (the one asked).
     F07-T67 caps one pseudonym's open pull requests (default 10), so this queue of one author's
-    twenty-five runs with the cap at 25, below which the cap reads nothing from the host."""
-    harness = make_harness({"OPN_API_OPEN_PRS_PER_IDENTITY": "25"})
+    twenty-five runs with the cap at 25, below which the cap reads nothing from the host (the
+    append cap since F07-T84: annexes are appends)."""
+    harness = make_harness({"OPN_API_OPEN_APPENDS_PER_IDENTITY": "25"})
     token = harness.token_for("code_alice", "alice")
     for _ in range(25):
         annex(harness, token)

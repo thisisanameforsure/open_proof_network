@@ -3019,13 +3019,16 @@ protocol version, every schema the graph publishes, each target's gate-spec hash
 `info/v2`, `guide_url` (this guide) and `errors_url` (the error codes below), filled in by the
 service.
 
-Open pull requests are capped as well. You may have at most 10 pull requests open under one
-pseudonym, every kind the service opens counted (proofs, partials, proposals, witnesses, annexes
-and the other records); one more is refused `429 open-pull-requests-cap`, listing your open ones
-in `details.open`: wait for one to merge or close, or withdraw one. The service opens at most
-150 across the graph; past that every route that would open one answers `503 queue-full`. Both
-carry `Retry-After`, nothing is opened, and `rate_limit_policy` publishes the two caps as
-`open_pull_requests_per_identity` and `open_pull_requests_global`.
+Open pull requests are capped as well, in the same two halves as the queue. You may have at most
+10 pull requests open under one pseudonym that build (proofs, partials, proposals and witnesses),
+and, counted apart, at most 10 appends (annexes, postmortems, glosses, explainers, literature and
+the other records), so green appends waiting to merge never stop you opening a proof. One more in
+either half is refused `429 open-pull-requests-cap`, naming the cap in `details.cap_name` and
+`details.half` and listing your open ones in that half in `details.open`: wait for one to merge
+or close, or withdraw one. The service opens at most 150 across the graph; past that every route
+that would open one answers `503 queue-full`. Both carry `Retry-After`, nothing is opened, and
+`rate_limit_policy` publishes the three caps as `open_pull_requests_per_identity`,
+`open_appends_per_identity` and `open_pull_requests_global`.
 
 ```sh
 curl -fsS "$OPN_API/info.json" | python3 -c '

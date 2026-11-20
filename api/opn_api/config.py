@@ -53,7 +53,11 @@ Variables (prefix ``OPN_API_``):
     Node proposals per identity per day (F08 §6; D-29's identity-layer bound). Default ``40``.
 ``OPN_API_OPEN_PRS_PER_IDENTITY`` / ``OPN_API_OPEN_PRS_GLOBAL``
     Pull requests the service may hold open on the graph per pseudonym, and in all (F07-T67).
-    Defaults ``10`` / ``150``, not yet signed off by the owner.
+    Defaults ``10`` / ``150``, not yet signed off by the owner. Since F07-T84 the per-pseudonym
+    cap counts building pull requests only (``propose/``, ``submit/``).
+``OPN_API_OPEN_APPENDS_PER_IDENTITY``
+    Appends (``append/``: annexes, postmortems, words and the other records) a pseudonym may hold
+    open, counted apart from the cap above (F07-T84, bug B3). Default ``10``.
 ``OPN_API_PRECHECK_REPO`` / ``OPN_API_PRECHECK_BRANCH`` / ``OPN_API_PRECHECK_WORKFLOW``
     The scratch repository job branches are pushed to, the branch they are based on, and the
     workflow file dispatched there (F06-R3; D-35). Defaults: the Stage 0 scratch repo under the
@@ -287,6 +291,7 @@ class Settings:
     proposals_per_day: int = DEFAULT_PROPOSALS_PER_DAY
     open_prs_per_identity: int = DEFAULT_OPEN_PRS_PER_IDENTITY
     open_prs_global: int = DEFAULT_OPEN_PRS_GLOBAL
+    open_appends_per_identity: int = DEFAULT_OPEN_PRS_PER_IDENTITY  # F07-T84
     precheck_repo: str = DEFAULT_PRECHECK_REPO
     precheck_branch: str = DEFAULT_PRECHECK_BRANCH
     precheck_workflow: str = DEFAULT_PRECHECK_WORKFLOW
@@ -364,6 +369,7 @@ class Settings:
             "proposals_per_day": self.proposals_per_day,
             "open_pull_requests_per_identity": self.open_prs_per_identity,
             "open_pull_requests_global": self.open_prs_global,
+            "open_appends_per_identity": self.open_appends_per_identity,  # F07-T84
             "claim_ttl_hours": {"min": self.claim_ttl_min_h, "max": self.claim_ttl_max_h},
         }
 
@@ -482,6 +488,9 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
             env, "OPN_API_OPEN_PRS_PER_IDENTITY", DEFAULT_OPEN_PRS_PER_IDENTITY
         ),
         open_prs_global=_int(env, "OPN_API_OPEN_PRS_GLOBAL", DEFAULT_OPEN_PRS_GLOBAL),
+        open_appends_per_identity=_int(
+            env, "OPN_API_OPEN_APPENDS_PER_IDENTITY", DEFAULT_OPEN_PRS_PER_IDENTITY
+        ),
         precheck_repo=env.get("OPN_API_PRECHECK_REPO", DEFAULT_PRECHECK_REPO),
         precheck_branch=env.get("OPN_API_PRECHECK_BRANCH", DEFAULT_PRECHECK_BRANCH),
         precheck_workflow=env.get("OPN_API_PRECHECK_WORKFLOW", DEFAULT_PRECHECK_WORKFLOW),
