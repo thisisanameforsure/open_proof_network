@@ -145,33 +145,58 @@ def document(submission: Submission) -> dict[str, Any]:
 
 # --- a node that is not in the products yet (F08-T11) --------------------------------------------
 
-#: How long a merged proposal usually waits for the post-merge job's products commit.
-#: Measured 2026-09-20: three to six minutes from a merge to the post-merge job's products commit
-#: (a Mathlib re-derivation is most of it). 120 s sent agents back three times too early.
-PRODUCTS_RETRY_AFTER_S = 240
+#: F06-T20: how long to wait before asking again for something the post-merge job has not
+#: rendered yet. Measured over 91 merges on 2026-11-19 (engineering/evidence/F07/task-87.txt):
+#: the products land a median of about 14 minutes after a merge (p75 16, p90 about 36), not the
+#: three to six minutes of 2026-09-20 that the old flat 240 s was set from. When the service knows
+#: when the merge it waits on happened, the wait is what is left of the median, between a floor
+#: and a ceiling; otherwise one flat wait. Retune these when the median moves.
+PRODUCTS_MEDIAN_S = 840
+PRODUCTS_RETRY_MIN_S = 60
+PRODUCTS_RETRY_MAX_S = 600
+PRODUCTS_RETRY_FLAT_S = 300
 NOT_RENDERED = (
     "a node merged in the last few minutes appears once the post-merge job has rendered the "
-    "products, usually three to six minutes after the merge"
+    "products, usually about fourteen minutes after the merge and sometimes much longer"
 )
 WAITING_ON_PRODUCTS = "products"
 
 
-def products_pending(ctx: Context, message: str, details: dict[str, Any] | None = None) -> ApiError:
+def products_retry_after_s(ctx: Context, merged_at: str | None) -> int:
+    """The ``Retry-After`` of a ``products-pending``: ``max(60, min(600, 840 - seconds since the
+    merge))`` when the merge time is known and readable, else the flat 300."""
+    if merged_at:
+        try:
+            merged = clockmod.parse(merged_at)
+        except ValueError:
+            merged = None
+        if merged is not None:
+            since = (ctx.clock.now() - merged).total_seconds()
+            left = int(PRODUCTS_MEDIAN_S - since)
+            return max(PRODUCTS_RETRY_MIN_S, min(PRODUCTS_RETRY_MAX_S, left))
+    return PRODUCTS_RETRY_FLAT_S
+
+
+def products_pending(
+    ctx: Context,
+    message: str,
+    details: dict[str, Any] | None = None,
+    *,
+    merged_at: str | None = None,
+) -> ApiError:
     """F06-T20 (bug B8): every ``409 products-pending``, built in one place. ``Retry-After`` was a
     header only, and an agent reading the JSON body polled blindly, so the body carries the same
-    number as ``details.retry_after_s``, and ``details.graph_commit``: the commit the service's
-    products were read at (``ctx.head``; ``null`` before the first read), unless the refusal
-    names the commit it was judged against itself (F06-T14, F06-T18)."""
+    number as ``details.retry_after_s`` (``products_retry_after_s``: from ``merged_at``, the merge
+    being waited on, when the caller knows it), and ``details.graph_commit``: the commit the
+    service's products were read at (``ctx.head``; ``null`` before the first read), unless the
+    refusal names the commit it was judged against itself (F06-T14, F06-T18)."""
+    wait = products_retry_after_s(ctx, merged_at)
     return ApiError(
         409,
         "products-pending",
         message,
-        details={
-            "graph_commit": ctx.head,
-            **(details or {}),
-            "retry_after_s": PRODUCTS_RETRY_AFTER_S,
-        },
-        headers={"Retry-After": str(PRODUCTS_RETRY_AFTER_S)},
+        details={"graph_commit": ctx.head, **(details or {}), "retry_after_s": wait},
+        headers={"Retry-After": str(wait)},
     )
 
 
@@ -211,7 +236,14 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
             if hole is not None
             else f"{node_id} merged as pull request #{found.pr_number}"
         )
-        return products_pending(ctx, f"{became}; {NOT_RENDERED}. Retry shortly.", details)
+        merged_at = (
+            state.merged_at
+            if state is not None
+            else (found.final_state or {}).get("merged_at") or found.closed
+        )
+        return products_pending(
+            ctx, f"{became}; {NOT_RENDERED}. Retry shortly.", details, merged_at=merged_at
+        )
     if found.closed is not None or (state is not None and state.finished):
         return unknown  # closed unmerged: the node never entered the graph
     waiting = state.waiting_on if state is not None else None

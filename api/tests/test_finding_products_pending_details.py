@@ -16,6 +16,7 @@ the holes the precheck said would be new) is missing from the products the servi
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -35,7 +36,6 @@ def assert_body_says_the_wait(r: Any) -> dict[str, Any]:
     assert (r.status_code, r.json()["error"]) == (409, "products-pending"), r.text
     details: dict[str, Any] = r.json()["details"]
     assert details["retry_after_s"] == int(r.headers["Retry-After"])
-    assert details["retry_after_s"] == pending.PRODUCTS_RETRY_AFTER_S
     assert "graph_commit" in details
     return details
 
@@ -72,6 +72,39 @@ def test_a_merged_witness_refusal_carries_the_wait_in_its_body(harness: Harness)
     harness.context.files.clear()
     details = assert_body_says_the_wait(claim(harness, HOLE))
     assert details["node_id"] == HOLE
+    # the service does not know when this witness merged (it reads the tree): the flat wait
+    assert details["retry_after_s"] == pending.PRODUCTS_RETRY_FLAT_S == 300
+
+
+# --- the wait itself (B2's measurement, engineering/evidence/F07/task-87.txt) ---------------------
+
+
+@pytest.mark.parametrize(
+    ("minutes_ago", "expected"),
+    [
+        (2, 600),  # 840 - 120 = 720, capped at 600
+        (8, 360),  # 840 - 480
+        (13, 60),  # 840 - 780 = 60
+        (20, 60),  # past the median: the floor
+    ],
+)
+def test_a_known_merge_time_sets_the_wait(
+    harness: Harness, key: PrecheckKey, minutes_ago: int, expected: int
+) -> None:
+    receipt = submitted_partial(harness, key)
+    merged_at = (harness.clock.now() - timedelta(minutes=minutes_ago)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    harness.githost.set_pull_request_state(
+        receipt["pr_number"], state="closed", merged=True, merged_at=merged_at
+    )
+    details = assert_body_says_the_wait(claim(harness, CHILD))
+    assert details["retry_after_s"] == expected
+
+
+def test_an_unknown_merge_time_is_the_flat_wait(harness: Harness) -> None:
+    assert pending.products_retry_after_s(harness.context, None) == 300
+    assert pending.products_retry_after_s(harness.context, "not a time") == 300
 
 
 # --- waiting_on for a merged partial ------------------------------------------------------------

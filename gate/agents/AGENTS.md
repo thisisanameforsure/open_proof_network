@@ -1805,7 +1805,10 @@ the new node, and the products have to render after that: until then those calls
 `409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
 Every `409 products-pending` also carries the wait in its body: `details.retry_after_s` is the
 `Retry-After` header's number, and `details.graph_commit` the commit the service read the products
-at (or the commit the refusal was judged against, when it names one). A merged partial reads
+at (or the commit the refusal was judged against, when it names one). Products usually land
+about fourteen minutes after a merge, so when the service knows when the merge it waits on
+happened the wait is what is left of that, never under one minute or over ten; otherwise it is
+five minutes. A merged partial reads
 `waiting_on: products` in `GET /submissions/<id>` until every new hole it made is in the products,
 so you can poll that one call rather than the holes.
 
