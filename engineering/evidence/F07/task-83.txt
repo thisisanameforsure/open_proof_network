@@ -63,3 +63,44 @@ Not done
   is placed by its record's target, as before.
 * The order of `queue.order` at the top of GET /submissions.json is unchanged (the actor's whole
   order across every lane).
+
+Rework: the actor's rule is narrower (lead, after F07-T81/T82 landed)
+--------------------------------------------------------------------
+The actor's words sub-lane holds only `append/` pull requests whose every path has an inert role
+(merge.yml `inert_role`: postmortem, precheck-record, explainer, explainer-signature, gloss,
+gloss-signature, approach-record, literature). Annexes, shelvings, review records, steward and
+panel records, display names, defect claims and revision requests are on `append/` but stay in
+the target's building sub-lane.
+
+Service side, keyed on the record's kind (cheaper than paths), one named constant:
+`pending.WORDS_KINDS_ON_NODE` = postmortem, gloss, explainer, approval (a steward's signature of a
+gloss or explainer: approvals.signature_path writes under gloss/ or explainer/), literature,
+literature-confirmation (literature.record_path: literature/<ts>-<login>.yaml); and
+`WORDS_KINDS_ON_TARGET` = approach-record (approaches/<name>.yaml). Kinds recorded by the routes
+(grep of `append_pr(`/`kind=` across api/opn_api) and their mapping:
+  words:    postmortem, gloss, explainer, approval, literature, literature-confirmation (on a node);
+            approach-record (on the target)
+  building: annex, shelving, steward, panel kinds, display-name, registration, revision-request,
+            defect-claim, gloss-withdrawal (writes withdrawals/, not inert), review, candidate,
+            review-answer, review-signature, pair-proof, proof/partial/... (submit/),
+            speculative/variant/witness (propose/), and any kind not named.
+A gloss or explainer with no node (a target's or a definition module's) is building: inert_role
+only takes paths under targets/<t>/nodes/<n>/ (or approaches/). The precheck-record role has no
+service record kind (no route records one). `sub_lane(record, entry)`: words only if the kind is
+words AND, where the listing carries the pull request, its head_ref is append/; else building.
+No record: building (it is UNPLACED anyway). `branch_sub_lane`, `BUILD_KINDS`, `BUILD_PREFIXES`
+and `SUB_APPEND` are gone; `SUB_WORDS = "words"`.
+
+Red run (tests restated to the narrower rule first; seam SUB_WORDS = SUB_APPEND alias):
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_queue_sub_lanes.py
+test_a_words_append_is_not_counted_behind_a_building_one     assert ([1, 2], 3, 3) == ([], 1, 1)
+test_a_building_one_is_not_counted_behind_a_words_append     assert ([1, 2], 3, 3) == ([2], 2, 2)
+test_the_listing_counts_each_entry_in_its_own_sub_lane       {1: (1, 3), 2: (2, 3), 3: (3, 3)} != ...
+test_an_unplaced_pull_request_is_ahead_in_both_halves        assert (1, 4) == (1, 3)
+test_a_words_kind_off_an_append_branch_is_building           assert ([], 1, 1) == ([1, 2], 3, 3)
+test_the_kind_decides_and_the_branch_checks                  AssertionError: annex  'append' == 'build'
+6 failed, 3 passed (test_an_annex_stays_in_the_building_half passed before and after: a guard)
+
+Green: see the combined run below (task-84's rework section).
+QUEUE_ORDER / QUEUE_NOTE and the guide's queue passage now describe "words and reports" vs
+"everything else", and say an annex waits in line with the proofs on its target.

@@ -511,12 +511,14 @@ QUEUE_ORDER = (
     "pull-request number, oldest first, over the open pull requests the merge actor takes "
     "(non-draft, on a branch the service opened, against main), counted in the pull request's "
     "own lane: the merge actor runs one lane per target in parallel (F07-T56), and each target's "
-    "lane in two halves that do not wait for each other (F07-T81): appends (on append/ branches: "
-    "annexes, postmortems, words, literature and the other records) and building pull requests "
-    "(on propose/ and submit/: proofs, partials, proposals, witnesses). So only the pull requests "
-    "on the same target in the same half, and any whose target the service does not know (the "
-    "actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor "
-    "merges the first one whose gate is green and passes over a red, conflicting or "
+    "lane in two halves that do not wait for each other (F07-T81): words and reports (an append/ "
+    "pull request whose every file is one no building verdict reads: postmortems, glosses, "
+    "explainers and their signatures, literature records, approach records) and everything else "
+    "on the target (proofs, partials, proposals, witnesses, and appends such as an annex, which a "
+    "skeleton cites, a shelving or a review record). So only the pull requests on the same "
+    "target in the same half, and any whose target the service does not know (the actor holds "
+    "every lane for one it cannot place), are ahead of it. Within a lane the actor merges the "
+    "first one whose gate is green and passes over a red, conflicting or "
     "behind-and-still-running one, so a position is an upper bound on the merges ahead, not a "
     "count of them; consecutive green appends may merge as one batch. Left out of ahead, "
     "position and of (F07-T80), though the actor still lists them: a witness whose slot main "
@@ -528,42 +530,54 @@ QUEUE_NOTE = (
     "each entry's queue.waiting_on is what the service last read for that pull request, with "
     "when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing. "
     "queue.order is the actor's order across every lane; each entry's position counts its own "
-    "lane: its target's (the record's target_id) and, within it, its half (appends on append/ "
-    "branches, or building pull requests on propose/ and submit/), or every lane for one the "
+    "lane: its target's (the record's target_id) and, within it, its half (words and reports, "
+    "by the record's kind, on an append/ branch; or everything else), or every lane for one the "
     "service cannot place"
 )
 #: The lane of a pull request the service cannot place in one target: every lane, as the merge
 #: actor's ``EVERY_LANE`` (the graph's ``merge.yml``, F07-T56).
 EVERY_LANE = "*"
 #: F07-T83: the two halves of a target's lane in the merge actor (F07-T81/T82, the graph's
-#: ``merge.yml``): appends, on the service's ``append/`` branches, and building pull requests, on
-#: ``propose/`` and ``submit/``. Neither holds the other back.
+#: ``merge.yml``): words and reports, an ``append/`` pull request whose every path has an inert
+#: role (``inert_role``: one no building verdict reads), and everything else on the target, the
+#: building pull requests and every other append. Neither half holds the other back.
 APPEND_PREFIX = "append/"  # ``submissions.APPEND_BRANCH_PREFIX``, asserted equal in the tests
-BUILD_PREFIXES: tuple[str, ...] = ("propose/", "submit/")
-SUB_APPEND = "append"
+SUB_WORDS = "words"
 SUB_BUILD = "build"
-#: The record kinds whose routes open a building pull request: ``POST /submissions``' artifact
-#: types on ``submit/``, and ``proposals.open_proposal``'s kinds on ``propose/``. Every other
-#: route opens on ``append/`` (or on a branch the actor does not take, ``review/``, ``curate/``).
-BUILD_KINDS: tuple[str, ...] = (*ATTESTING_KINDS, "speculative", "variant", "witness")
+#: F07-T83: the record kinds whose route writes only files ``merge.yml``'s ``inert_role`` calls
+#: inert (F07-T81), on a node: a postmortem (``attempts/<name>.yaml``), a gloss or explainer
+#: (``gloss/``, ``explainer/``) and a steward's signature of one (``approval``, under the same
+#: directories), a literature record and its confirmation (``literature/``). A gloss or explainer
+#: with no node (a target's or a definition module's) is outside every node, which ``inert_role``
+#: does not take. Every other kind is building: an annex (a skeleton's step 2 reads the annex it
+#: cites), a shelving, review records, steward and panel records, a display name, a defect claim,
+#: a revision request, a gloss withdrawal (``withdrawals/``), and any kind not named here.
+WORDS_KINDS_ON_NODE: frozenset[str] = frozenset(
+    {"postmortem", "gloss", "explainer", "approval", "literature", "literature-confirmation"}
+)
+#: ... and on a target: an approach record (``approaches/<name>.yaml``).
+WORDS_KINDS_ON_TARGET: frozenset[str] = frozenset({"approach-record"})
 
 
-def branch_sub_lane(branch: str) -> str:
-    """The half of its target's lane a pull request on ``branch`` goes in: building on
-    ``propose/`` and ``submit/``, and an append otherwise (only ``append/`` is in the queue)."""
-    return SUB_BUILD if branch.startswith(BUILD_PREFIXES) else SUB_APPEND
+def is_words_kind(kind: str, node_id: str | None) -> bool:
+    """F07-T83, T84: whether a record of ``kind`` (on ``node_id``, or on the target when
+    ``None``) is words and reports in the actor's sense (``WORDS_KINDS_ON_NODE``). Keyed on the
+    record's kind, which decided its route and so its files, rather than on the paths."""
+    if node_id is None:
+        return kind in WORDS_KINDS_ON_TARGET
+    return kind in WORDS_KINDS_ON_NODE
 
 
 def sub_lane(record: Submission | None, entry: OpenPullRequest | None) -> str:
-    """F07-T83, T84: append or build, from the host's word on the branch where the open listing
-    carries the pull request (the merge actor decides by the branch), else from the record's kind,
-    which decided the branch when the route opened it (``BUILD_KINDS``). With neither, building:
-    the stricter half."""
-    if entry is not None and entry.head_ref:
-        return branch_sub_lane(entry.head_ref)
-    if record is not None:
-        return SUB_BUILD if record.kind in BUILD_KINDS else SUB_APPEND
-    return SUB_BUILD
+    """F07-T83, T84: the half of its target's lane a pull request is in. Words only for a record
+    whose kind is words (``is_words_kind``) and, where the open listing carries the pull request,
+    whose branch the host says is ``append/`` (the actor's other half of the rule); building for
+    anything else, a pull request with no record included (it is unplaced anyway)."""
+    if record is None or not is_words_kind(record.kind, record.node_id):
+        return SUB_BUILD
+    if entry is not None and entry.head_ref and not entry.head_ref.startswith(APPEND_PREFIX):
+        return SUB_BUILD
+    return SUB_WORDS
 
 
 #: The most pull requests an answer names as ahead; ``position`` says how many there are.
@@ -604,7 +618,7 @@ UNPLACED: Lane = (EVERY_LANE, EVERY_LANE)
 
 def lane_queue(order: list[int], lanes: dict[int, Lane], number: int) -> list[int]:
     """F07-T69, T83: the part of the actor's ``order`` that shares ``number``'s lane — the pull
-    requests on its target in the same half (appends, or building ones), and every one the
+    requests on its target in the same half (words and reports, or the rest), and every one the
     service cannot place, which the actor lets hold every lane. A pull request that cannot itself
     be placed waits for the whole queue, as the actor's does (``merge.yml``: "waits until it is
     first")."""
@@ -619,12 +633,12 @@ def place(
 ) -> tuple[dict[int, Lane], set[int]]:
     """F07-T83, T86: each pull request of ``order`` in its lane, and the ones that have finished.
 
-    The lane is the record's target and its half (``sub_lane``: the listing's branch, else the
-    record's kind). A pull request with no open record is looked up once in the store: a record
-    there that is closed means a per-id read has already seen it merge or close while the
-    listing, read up to a window ago, still carries it, so it is ahead of nobody (B17 b: counted
-    in every lane until the next listing, it moved positions 8 -> 9 -> 8). One with no record at
-    all is one the service cannot place, ``UNPLACED``."""
+    The lane is the record's target and its half (``sub_lane``: the record's kind, checked
+    against the listing's branch). A pull request with no open record is looked up once in the
+    store: a record there that is closed means a per-id read has already seen it merge or
+    close while the listing, read up to a window ago, still carries it, so it is ahead of
+    nobody (B17 b: counted in every lane until the next listing, it moved positions 8, 9, 8).
+    One with no record at all is one the service cannot place, ``UNPLACED``."""
     lanes: dict[int, Lane] = {}
     finished: set[int] = set()
     for number in order:

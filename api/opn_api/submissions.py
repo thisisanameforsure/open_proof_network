@@ -88,14 +88,16 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
     subject: str,
     title: str,
     body: str,
+    words: bool = False,
 ) -> PullRequest:
-    """R2: one authored commit on a fresh branch of the graph, then the pull request.
+    """R2: one authored commit on a fresh branch of the graph, then the pull request. ``words``:
+    it is words and reports (``pending.is_words_kind``, on ``append/``), for the caps (F07-T84).
 
     A host failure is never silent and never half-done from the caller's point of view: the
     branch may survive a failed pull-request call, but the caller is told the submission did not
     open, so nothing is recorded as submitted that is not (C7).
     """
-    check_open_caps(ctx, identity, branch)  # F07-T67: before anything is pushed
+    check_open_caps(ctx, identity, words=words)  # F07-T67: before anything is pushed
     settings = ctx.settings
     now = clockmod.render(ctx.clock.now())
     message = f"{subject}\n\n{sign_off(identity)}\n"
@@ -151,16 +153,18 @@ def still_open(ctx: Context, records: list[Submission]) -> list[Submission]:
 #: F07-T84: each half's per-pseudonym cap, by the name ``rate_limit_policy`` publishes it, and
 #: the words a refusal uses for what it counted.
 CAP_NAMES = {
-    pending.SUB_APPEND: "open_appends_per_identity",
+    pending.SUB_WORDS: "open_appends_per_identity",
     pending.SUB_BUILD: "open_pull_requests_per_identity",
 }
 CAP_WORDS = {
-    pending.SUB_APPEND: (
-        "appends open (annexes, postmortems, words and the other records)",
-        "the cap for appends",
+    pending.SUB_WORDS: (
+        "words and reports open (postmortems, glosses, explainers and their signatures, "
+        "literature records, approach records)",
+        "the cap for words and reports",
     ),
     pending.SUB_BUILD: (
-        "building pull requests open (proofs, partials, proposals and witnesses)",
+        "pull requests open other than words and reports (proofs, partials, proposals, "
+        "witnesses, annexes and the other records)",
         "the cap for those",
     ),
 }
@@ -168,20 +172,21 @@ CAP_WORDS = {
 
 def open_in_half(ctx: Context, records: list[Submission], half: str) -> list[Submission]:
     """F07-T84: the records of ``records`` in ``half``, classified as the queue classifies them
-    (``pending.sub_lane``: the branch where the listing the service already holds carries the
-    pull request, else the record's kind). No host read of its own."""
+    (``pending.sub_lane``: the record's kind, checked against the branch where the listing the
+    service already holds carries the pull request). No host read of its own."""
     listed = ctx.open_pulls.by_number if ctx.open_pulls is not None else {}
     return [
         found for found in records if pending.sub_lane(found, listed.get(found.pr_number)) == half
     ]
 
 
-def check_open_caps(ctx: Context, identity: Identity, branch: str) -> None:
+def check_open_caps(ctx: Context, identity: Identity, *, words: bool = False) -> None:
     """F07-T67 (audit 2026-10-04): every route opens its pull request here, so the queue's caps
     are here. Per pseudonym (pseudonyms are unique, D-19), in two halves since F07-T84 (bug B3:
-    green appends waiting on the queue held an agent at the cap, so it could file nothing): a
-    pull request on ``branch`` counts against its own half's cap, ``open_appends_per_identity``
-    for an append and ``open_prs_per_identity`` for a building one (``pending.branch_sub_lane``).
+    green postmortems and literature waiting on the queue held an agent at the cap, so it could
+    file nothing), the halves of the merge actor's lane (F07-T81, ``pending.sub_lane``): words
+    and reports (``words``) count against ``open_appends_per_identity``, every other pull
+    request against ``open_prs_per_identity``.
     At the cap the caller's own records in that half are reconciled against the host first, so a
     pull request that merged while nobody asked does not count, and if they are still at the cap
     the answer is 429 ``open-pull-requests-cap`` naming the cap (``details.cap_name``,
@@ -189,13 +194,9 @@ def check_open_caps(ctx: Context, identity: Identity, branch: str) -> None:
     host's open listing is the recount, and a full queue is 503 ``queue-full`` with
     ``Retry-After``. Soft caps: two requests arriving together may both pass at the cap's edge."""
     records = ctx.store.list_open_submissions()
-    half = pending.branch_sub_lane(branch)
+    half = pending.SUB_WORDS if words else pending.SUB_BUILD
     settings = ctx.settings
-    cap = (
-        settings.open_appends_per_identity
-        if half == pending.SUB_APPEND
-        else settings.open_prs_per_identity
-    )
+    cap = settings.open_appends_per_identity if words else settings.open_prs_per_identity
     mine = open_in_half(
         ctx, [found for found in records if found.pseudonym == identity.pseudonym], half
     )

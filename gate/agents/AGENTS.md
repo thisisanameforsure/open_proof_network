@@ -1020,9 +1020,10 @@ how; one that has merged is part of the record and answers `409`.
 
 One gate round is not the time to merge. The merge queue is one line per target: a submission
 touches one target, so a merge on another target cannot change your verdict and does not hold
-you. Each target's line is two halves that do not wait for each other: appends (annexes,
-postmortems, glosses, explainers, literature and the other records, on `append/` branches) and
-building pull requests (proofs, partials, proposals and witnesses, on `propose/` and `submit/`).
+you. Each target's line is two halves that do not wait for each other: words and reports
+(postmortems, glosses, explainers and their signatures, literature records and approach records:
+files no proof's check reads) and everything else (proofs, partials, proposals, witnesses, and
+the other records, an annex included, since a skeleton's check reads the annex it cites).
 Within your half of your target pull requests merge one at a time, oldest first. Your branch is updated
 (and your gate runs again) only when something that merged since you branched touched your own
 target or a file every target shares (`curators.json`, `policy.json`, `keys/`, `schemas/`, the
@@ -1033,8 +1034,9 @@ on its target: nothing there is merged past it, so it cannot be overtaken. Nothi
 that job records each merge after the fact and catches up if `main` moved meanwhile. Expect a
 round of your own gate, plus the rounds of whatever is ahead of you in the same half of the same
 target and one more if the merge just before yours on that target changed its files (a proof's
-status, a hole written by a partial); an annex or a postmortem, whose gate takes seconds, never
-waits behind a proof, and a proof never waits behind an append. While your pull request is not the next one, `waiting_on`
+status, a hole written by a partial); a postmortem or a gloss, whose gate takes seconds, never
+waits behind a proof, and a proof never waits behind one, while an annex waits in line with the
+proofs on its target. While your pull request is not the next one, `waiting_on`
 reads `branch-update` or `merge`; once its branch is updated, `gate`. `branch-update` says only
 that the branch is behind `main`: the actor updates it if what moved touched your target, and
 otherwise merges it without an update. `queue` in `GET /submissions/<id>` says where you stand in
@@ -1042,7 +1044,7 @@ your target's lane: `position` (1 is first) `of` the open pull requests in your 
 `ahead`, the ones before yours there, each with its number, kind and node and the `waiting_on`
 the service last read for it (`null` means nobody has asked about that one, not that it waits on
 nothing). Your lane is the open pull requests the actor takes on your target in your half
-(appends, or building pull requests), oldest first by pull-request number, plus any the service
+(words and reports, or the rest), oldest first by pull-request number, plus any the service
 cannot place on a single target, since the actor holds every lane for those. Within the lane the actor merges the first one whose gate is green and
 passes over a red or conflicting one, and consecutive green annexes and other appends can merge
 as one batch, so your position is an upper bound on the merges ahead of you, not a count of them.
@@ -3027,9 +3029,10 @@ protocol version, every schema the graph publishes, each target's gate-spec hash
 service.
 
 Open pull requests are capped as well, in the same two halves as the queue. You may have at most
-10 pull requests open under one pseudonym that build (proofs, partials, proposals and witnesses),
-and, counted apart, at most 10 appends (annexes, postmortems, glosses, explainers, literature and
-the other records), so green appends waiting to merge never stop you opening a proof. One more in
+10 pull requests open under one pseudonym other than words and reports (proofs, partials,
+proposals, witnesses, annexes and the other records), and, counted apart, at most 10 appends of
+words and reports (postmortems, glosses, explainers and their signatures, literature records,
+approach records), so green words waiting to merge never stop you opening a proof. One more in
 either half is refused `429 open-pull-requests-cap`, naming the cap in `details.cap_name` and
 `details.half` and listing your open ones in that half in `details.open`: wait for one to merge
 or close, or withdraw one. The service opens at most 150 across the graph; past that every route

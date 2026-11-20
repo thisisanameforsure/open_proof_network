@@ -94,7 +94,7 @@ def test_the_cap_holds_at_the_one_place_every_route_opens(tmp_path: Path) -> Non
     assert submit(h, alice, precheck_job_id=job["id"]).status_code == 201
 
 
-# --- F07-T84 (bug B3): appends count against a cap of their own ----------------------------------
+# --- F07-T84 (bug B3): words and reports count against a cap of their own -----------------------
 
 
 def seed_open(h: Harness, number: int, kind: str, pseudonym: str) -> None:
@@ -117,7 +117,7 @@ def seed_open(h: Harness, number: int, kind: str, pseudonym: str) -> None:
     h.githost.set_pull_request_state(number, head_ref=branch)
 
 
-def test_an_identity_with_ten_open_appends_can_still_open_a_proof(tmp_path: Path) -> None:
+def test_an_identity_with_ten_open_postmortems_can_still_open_a_proof(tmp_path: Path) -> None:
     h = harness()
     alice = h.token_for("code_alice", "alice")
     for n in range(10):
@@ -130,11 +130,11 @@ def test_an_identity_with_ten_open_appends_can_still_open_a_proof(tmp_path: Path
     doc = over.json()
     assert doc["error"] == "open-pull-requests-cap"
     assert doc["details"]["cap_name"] == "open_appends_per_identity"
-    assert doc["details"]["half"] == "append" and "append" in doc["message"]
-    assert len(doc["details"]["open"]) == 10  # the appends, not the proof
+    assert doc["details"]["half"] == "words" and "words and reports" in doc["message"]
+    assert len(doc["details"]["open"]) == 10  # the postmortems, not the proof
 
 
-def test_an_identity_with_ten_open_proofs_can_still_open_an_append() -> None:
+def test_an_identity_with_ten_open_proofs_can_still_open_a_postmortem() -> None:
     h = harness()
     alice = h.token_for("code_alice", "alice")
     for number in range(100, 110):
@@ -155,6 +155,24 @@ def test_a_building_refusal_names_the_building_cap(tmp_path: Path) -> None:
     assert doc["details"]["cap_name"] == "open_pull_requests_per_identity"
     assert doc["details"]["half"] == "build" and doc["details"]["cap"] == 2
     assert sorted(o["pr_number"] for o in doc["details"]["open"]) == [100, 101]
+
+
+def test_annexes_count_with_the_building_pull_requests() -> None:
+    """An annex is on ``append/`` but is not words and reports (a skeleton's step 2 reads the
+    annex it cites), so the actor keeps it in the building half and the cap counts it there."""
+    from test_pending_submissions import annex  # noqa: PLC0415
+
+    h = harness(OPN_API_OPEN_PRS_PER_IDENTITY="1")
+    alice = h.token_for("code_alice", "alice")
+    annex(h, alice)
+    r = h.client.post(
+        "/annexes",
+        json={"node_id": TUTORIAL_NODE, "text": "Another argument.\n", "licence": "CC-BY-4.0"},
+        headers=h.auth(alice),
+    )
+    assert r.status_code == 429, r.text
+    assert r.json()["details"]["half"] == "build"
+    assert note(h, alice, 0).status_code == 201  # a postmortem is words: its own cap
 
 
 def test_the_append_cap_is_its_own_setting() -> None:

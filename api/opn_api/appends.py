@@ -402,6 +402,8 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
             subject=subject,
             title=subject,
             body=pr_body(what, identity.pseudonym, path) + extra_body,
+            # F07-T84: words and reports count against their own cap, as the actor's half
+            words=branch_prefix == pending.APPEND_PREFIX and pending.is_words_kind(kind, node_id),
         )
         held_name.opened = True  # kept until the record below stands in its place
     log.info("%s %s opened %s for %s", what, append_id, pr.url, identity.id)

@@ -170,7 +170,7 @@ def test_the_open_pull_request_caps_are_the_services() -> None:
     assert {"open_pull_requests_per_identity", "open_pull_requests_global"} <= set(policy)
     # F07-T84: appends are counted apart, under their own published cap
     assert "`open_appends_per_identity`" in FLAT and "open_appends_per_identity" in policy
-    assert f"at most {config.Settings().open_appends_per_identity} appends" in FLAT
+    assert f"at most {config.Settings().open_appends_per_identity} appends of words" in FLAT
 
 
 def test_a_precheck_backs_one_pull_request() -> None:

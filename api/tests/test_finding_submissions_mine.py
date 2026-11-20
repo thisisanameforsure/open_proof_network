@@ -94,7 +94,7 @@ def test_a_finished_submission_moves_to_recent_with_how_it_ended(h: Harness) -> 
 def test_recent_is_capped_newest_first() -> None:
     from opn_api import pending  # noqa: PLC0415
 
-    h = make_harness({"OPN_API_OPEN_APPENDS_PER_IDENTITY": "50"})  # annexes: appends (F07-T84)
+    h = make_harness({"OPN_API_OPEN_PRS_PER_IDENTITY": "50"})
     alice = h.token_for("code_alice", "alice-p")
     total = pending.MAX_RECENT_MINE + 2
     for _ in range(total):
