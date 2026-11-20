@@ -987,11 +987,15 @@ failed or unfinished gate run on an open pull request), and its reviews. For a p
 carries `proposed_statement`: the `Statement.lean` on the branch at its head commit (up to 16 kB,
 with `truncated`), or `proposed_statement_error` when it could not be read. `pull_request.waiting_on`
 (inside the `pull_request` object, not at the top of the answer) names the
-one thing it waits for: `gate` (the run has not finished; one gate round is about three minutes
-on a Mathlib target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
+one thing it waits for: `gate` (the run has not finished; one gate round of a proof, partial or
+proposal is three to five minutes on a Mathlib target, and an append's under a minute), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
 it was refused, and `gate_verdict` beside it says why), `conflict` (it conflicts with `main` and
 cannot merge as it stands; a losing racer's proof is moved to an alternate for you, see below), or `products` for a merged proof, partial, proposal, annex or witness
-(the post-merge job has not committed its attestation or rendered it yet: about a minute for a merge that builds nothing, three to five for a proof or a partial, whose verdict it re-derives). `state` at the top
+(the post-merge job has not committed its attestation, or the products are not rendered yet:
+measured over 91 merges on 2026-11-19, the record lands about nine minutes after the merge and
+the products about fourteen, a quarter of the time more than sixteen, and up to 48 under a burst
+of merges; an annex or a postmortem waits as long as a proof, because most of the job is spent
+on work every merge pays). `state` at the top
 of the answer is `open`, `merged` or `closed`, and `submission.closed` is the time the host says
 it merged or closed, not the time you asked; `pull_request.read_at` is when its state was read.
 Once it has merged, the same call carries
