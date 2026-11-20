@@ -1,0 +1,56 @@
+F29-T12 — a hole's -- label: on its focusing bullet's own line (B13, 2026-11-19 run)
+
+Finding: in a partial, `· -- label: …` with the `-- claim:` and `have … := sorry` on the lines
+below (inside the bullet) was refused `partial-unlabelled`, by the service before any precheck
+(F29-T3, api/opn_api/submissions.py check_declarations) and by the gate at step 4 (F29-T2,
+steps/artifact.py). A plain comment on the bullet line with the label on the next line passed.
+Cause: both call opn_gate.labels.problems -> declarations -> _comment_lines, which collected the
+contiguous `^\s*--` lines above the `have` and stopped at the bullet line, since `  · -- …` does
+not start with `--`.
+
+Red (gate): uv run --frozen pytest gate/tests/test_finding_bullet_line_label.py -m "not lean and not docker"
+E       AssertionError: assert None == 'the right half'
+E        +  where None = HoleWords(name='right', label=None, claim='q', prose='The second conjunct of the hypothesis.', line=9).label
+E       AssertionError: assert [Problem(code...ft', line=13)] == []
+E         
+E         Left contains 2 more items, first extra item: Problem(code='label', message='hole right: no `-- label: <at most 60 characters>` line in the comment block directly above its `have` (D-12 v3.44)', hole='right', line=9)
+E         Use -v to get more diff
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x109a27aa0>('the right half')
+E        +    where <built-in method startswith of str object at 0x109a27aa0> = 'The second conjunct of the hypothesis.'.startswith
+E        +      where 'The second conjunct of the hypothesis.' = HoleWords(name='right', label='the right half', claim='q', prose='The second conjunct of the hypothesis.', line=10).prose
+E       AssertionError: assert None == 'the left half'
+E        +  where None = HoleWords(name='left', label=None, claim='p', prose='', line=14).label
+FAILED gate/tests/test_finding_bullet_line_label.py::test_a_label_on_the_bullet_line_is_read
+FAILED gate/tests/test_finding_bullet_line_label.py::test_step_4_takes_a_label_on_the_bullet_line
+FAILED gate/tests/test_finding_bullet_line_label.py::test_prose_on_the_bullet_line_still_reads_as_prose
+FAILED gate/tests/test_finding_bullet_line_label.py::test_the_bullet_line_closes_the_block
+4 failed in 0.05s
+
+Red (service): uv run --frozen pytest api/tests/test_finding_bullet_line_label_service.py
+E       opn_api.app.ApiError: a partial names its approach, a licence and each hole's label and claim in its comments (D-12 v3.44; the guide's Skeletonization section): hole h_left: no `-- label: <at most 60 characters>` line in the comment block directly above its `have` (D-12 v3.44); hole h_right: no `-- label: <at most 60 characters>` line in the comment block directly above its `have` (D-12 v3.44)
+E       assert 400 == 202
+E       assert 'partial-unlabelled' != 'partial-unlabelled'
+E       opn_api.app.ApiError: a partial names its approach, a licence and each hole's label and claim in its comments (D-12 v3.44; the guide's Skeletonization section): hole h_left: no `-- label: <at most 60 characters>` line in the comment block directly above its `have` (D-12 v3.44); hole h_right: no `-- label: <at most 60 characters>` line in the comment block directly above its `have` (D-12 v3.44)
+E       opn_api.app.ApiError: a partial names its approach, a licence and each hole's label and claim in its comments (D-12 v3.44; the guide's Skeletonization section): hole h_left: no `-- label: <at most 60 characters>` line in the comment block directly above its `have` (D-12 v3.44); hole h_right: no `-- label: <at most 60 characters>` line in the comment block directly above its `have` (D-12 v3.44)
+FAILED api/tests/test_finding_bullet_line_label_service.py::test_check_declarations_takes_the_bullet_line_label
+FAILED api/tests/test_finding_bullet_line_label_service.py::test_precheck_takes_a_label_on_the_bullet_line
+FAILED api/tests/test_finding_bullet_line_label_service.py::test_submission_does_not_refuse_it_as_unlabelled
+FAILED api/tests/test_finding_bullet_line_label_service.py::test_both_declared_and_inferred_partials_take_it[partial]
+FAILED api/tests/test_finding_bullet_line_label_service.py::test_both_declared_and_inferred_partials_take_it[None]
+5 failed, 2 warnings in 0.82s
+
+Fix: gate/opn_gate/labels.py. `_BULLET_COMMENT_RE` (`^\s*·\s*--`) — a comment on a focusing
+bullet's own line is the first line of the hole's comment block, and closes it (a comment above
+the bullet belongs to the enclosing proof and is still reported as a stray line). The stray-line
+scan reads bullet-line comments too, so `· -- approach:` / `· -- licence:` are found and a
+bullet-line label outside any hole's block is still reported. One reader serves the gate, the
+service and the post-merge gloss filing (postmerge.py reads labels.declarations), so all three
+accept it at once. No change to the service code itself.
+
+Green:
+$ uv run --frozen pytest gate/tests/test_finding_bullet_line_label.py api/tests/test_finding_bullet_line_label_service.py gate/tests/test_labels.py gate/tests/test_finding_partial_unlabelled_gate.py api/tests/test_finding_partial_unlabelled.py gate/tests/test_finding_hole_gloss_filed.py gate/tests/test_finding_route_gloss.py api/tests/test_finding_submissions_mine.py -m "not lean and not docker"
+75 passed, 2 warnings in 3.40s
+make lint: 0 (ruff check, ruff format --check); make types: 0 (mypy --strict gate/api/site)
+
+Not done: the guide is unchanged (both forms are now accepted, so no form needs documenting as required).
