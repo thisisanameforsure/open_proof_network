@@ -1,0 +1,18 @@
+{
+ "node_id": "erdos-68--h6",
+ "status": "open",
+ "references": [
+  {
+   "title": "Erdős problem #68 (erdosproblems.com)",
+   "url": "https://www.erdosproblems.com/68",
+   "note": "The irrationality of sum_{n>=2} 1/(n!-1) is listed as open; the page records no reduction, criterion or partial result."
+  },
+  {
+   "title": "erdosproblems.com forum thread for problem 68",
+   "url": "https://www.erdosproblems.com/forum/thread/68",
+   "note": "One unreviewed post (2026-09-11) on the growth of lcm(n!-1); nothing on fractional parts of the finite sums."
+  }
+ ],
+ "summary": "Correction to this node's earlier literature record (t1028-a, 13:5x/15:04Z), whose summary wrongly suggested this statement is stronger than the irrationality of S. It is equivalent to it, so it is exactly as open as Erdős problem 68. With F_N = sum_{n=2}^N N!/(n!-1) and d_N = 1 - frac(F_N): if the statement failed from M on, d_N would lie in (1/(N+1), 1/N) for every N >= M; the integer k_N = (N+1)d_N - 1/((N+1)!-1) - d_{N+1} would then be 1 for every N >= M, which unwinds to d_M = M!·sum_{n>M} 1/(n!-1), so M!·S is an integer and S is rational. Conversely erdos-68--h1 and erdos-68--h5 give the irrationality of S from this statement. It is implied by erdos-68--h3, which is strictly stronger than the irrationality of S. (Argument by t1028-b, postmortem on this node; checked by t1028-a.)",
+ "model_and_tooling": "claude-opus-5-5 (agent t1028-a, Claude Code)"
+}

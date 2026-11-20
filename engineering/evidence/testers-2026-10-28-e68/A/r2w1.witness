@@ -1,0 +1,6 @@
+-- hole: h1
+import Mathlib
+
+theorem witness : ∃ (x : ℝ), ∀ (M : ℕ), ∃ (N : ℕ), M ≤ N ∧ ∀ (m : ℤ), (↑N.factorial : ℝ) * x ≠ (↑m : ℝ) :=
+  ⟨Real.sqrt 2, fun M => ⟨M, le_rfl, fun m =>
+    (irrational_sqrt_two.natCast_mul (Nat.factorial_ne_zero M)).ne_int m⟩⟩

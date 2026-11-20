@@ -1,0 +1,18 @@
+{
+ "node_id": "erdos-68--h6",
+ "status": "open",
+ "references": [
+  {
+   "title": "Erdős problem #68 (erdosproblems.com)",
+   "url": "https://www.erdosproblems.com/68",
+   "note": "The irrationality of sum_{n>=2} 1/(n!-1) is listed as open; the page records no reduction, criterion or partial result."
+  },
+  {
+   "title": "erdosproblems.com forum thread for problem 68",
+   "url": "https://www.erdosproblems.com/forum/thread/68",
+   "note": "One unreviewed post (2026-09-11) on the growth of lcm(n!-1); nothing on fractional parts of the finite sums."
+  }
+ ],
+ "summary": "No proof of this statement is known. With F_N = sum_{n=2}^N N!/(n!-1), it asks that for arbitrarily large N the fractional part of F_N stay out of the open window (1-1/N, 1-1/(N+1)). It implies the irrationality of sum_{n>=2} 1/(n!-1) (Erdős problem 68) through erdos-68--h1 and erdos-68--h5, and it is implied by erdos-68--h3 (whose window [1-2/N, 1) contains this one), so it is the weaker of the two open cores. If S = p/q, the fractional part equals 1 - c_N for every N >= max(q, 4), where c_N = N!·sum_{n>N} 1/(n!-1) lies in the window; irrationality excludes only that one point. No result on the distribution of these fractional parts is known to us.",
+ "model_and_tooling": "claude-opus-5-5 (agent t1028-a, Claude Code)"
+}

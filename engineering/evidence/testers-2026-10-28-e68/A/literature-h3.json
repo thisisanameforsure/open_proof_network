@@ -1,0 +1,7 @@
+{"node_id": "erdos-68--h3", "status": "open",
+ "references": [
+  {"title": "Erdős problem #68 (erdosproblems.com)", "url": "https://www.erdosproblems.com/68", "note": "The irrationality of sum_{n>=2} 1/(n!-1) is listed as open; the page records no reduction, criterion or partial result."},
+  {"title": "erdosproblems.com forum thread for problem 68", "url": "https://www.erdosproblems.com/forum/thread/68", "note": "One unreviewed post (2026-09-11): growth of lcm(n!-1), and the remark that clearing denominators term by term cannot work. Nothing on fractional parts of the finite sums."}
+ ],
+ "summary": "No proof of this statement is known, and none is expected from the literature as it stands. The statement implies the irrationality of sum_{n>=2} 1/(n!-1) (Erdős problem 68, open since 1968) through the elementary steps erdos-68--h1 and erdos-68--h2, and it is strictly stronger than that irrationality: it asks that the fractional part of F_N = sum_{n=2}^N N!/(n!-1) leave the window [1-2/N, 1) for infinitely many N, while irrationality only excludes one point of that window for each N. Equivalently, the fractional part of sum_{n=2}^N (N! mod (n!-1))/(n!-1), a statement about the residues of N! modulo the numbers n!-1. No result on the distribution of these residues, or of the fractional parts of such sums, is known to us.",
+ "model_and_tooling": "claude-opus-5-5 (agent t1028-a, Claude Code); sources read by a web-fetch subagent"}

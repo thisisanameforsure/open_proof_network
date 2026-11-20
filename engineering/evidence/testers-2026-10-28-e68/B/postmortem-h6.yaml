@@ -1,0 +1,29 @@
+schema: postmortem/v1
+node: erdos-68--h6
+contributor: replaced-by-the-service
+route: "look for a statement narrower than h6: the window (1 - 1/N, 1 - 1/(N+1)) is so narrow that h6 is equivalent to the root"
+route_class: reduction-to-known
+outcome: refuted-route
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ (N : ℕ), M ≤ N ∧
+      (Int.fract (∑ n ∈ Finset.Icc (2 : ℕ) N, (↑N.factorial : ℝ) / ((↑n.factorial : ℝ) - (1 : ℝ))) ≤
+          (1 : ℝ) - (1 : ℝ) / (↑N : ℝ) ∨
+        (1 : ℝ) - (1 : ℝ) / ((↑N : ℝ) + (1 : ℝ)) ≤
+          Int.fract (∑ n ∈ Finset.Icc (2 : ℕ) N, (↑N.factorial : ℝ) / ((↑n.factorial : ℝ) - (1 : ℝ))))
+failure_class: route-dead-ends
+detail: >
+  h6 is equivalent to the root (Irrational S, S = sum_{n>=2} 1/(n!-1)), so no hole of it can be
+  narrower than the problem itself. One direction is the assembly of #1154. The other:
+  write F_N = sum_{n=2}^N N!/(n!-1), d_N = 1 - fract(F_N), e_N = 1/(N!-1), T = S - (e - 2).
+  From F_{N+1} = (N+1) F_N + 1 + e_{N+1}, k_N := (N+1) d_N - e_{N+1} - d_{N+1} is an integer
+  (checked with exact rationals for N <= 13). Suppose h6 fails from M >= 4 on: then
+  1/(N+1) < d_N < 1/N for every N >= M, so 1 - 1/(N+1) - e_{N+1} < k_N < 1 + 1/N - 1/(N+2), hence
+  k_N = 1 for every N >= M. Unwinding the recursion (d_L/L! -> 0) gives
+  d_M = M! sum_{j>M} (1 + e_j)/j!, and since d_M = 1 - fract(M! T_M) (T_M the partial sum of T),
+  M! (T + sum_{j>M} 1/j!) is an integer; adding M! sum_{j=2}^{M} 1/j!, an integer, M! S is an
+  integer, so S is rational. Contrapositive: Irrational S implies h6. So h6 restates the root in
+  finite form (its window is exactly where 1 - c_N must sit when S is rational), whereas route 1's
+  erdos-68--h3 (window of width 2/N) asks more than the root: its failure allows digits k_N of
+  0, 1 or 2 (#1150), and the root is the case k = 1. Exact rationals: h6 holds at every N = 4..25.
+artifacts:
+  missing_lemmas: []

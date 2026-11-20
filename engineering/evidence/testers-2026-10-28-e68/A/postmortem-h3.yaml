@@ -1,0 +1,15 @@
+schema: postmortem/v1
+node: erdos-68/erdos-68--h3
+contributor: t1028-a
+route: "Split the open core one level further: look for a known theorem, or a narrower finite statement, that implies frac(F_N) < 1 - 2/N for infinitely many N, F_N = sum_{n=2}^N N!/(n!-1)."
+route_class: reduction-to-known
+outcome: blocked
+failure_class: route-dead-ends
+detail: |
+  Three reformulations were examined and none is narrower than the node.
+  (1) Residues: N!/(n!-1) has fractional part (N! mod (n!-1))/(n!-1), and the n-th residue vanishes once (n!-1) | N! (all n with n!-1 <= N, and more), so the node is a statement about the residues of N! modulo the n!-1 that are not N-smooth. Equivalent, not narrower.
+  (2) Recursion: F_{N+1} = (N+1) F_N + 1 + 1/((N+1)!-1). If the node fails, x_N = frac(F_N) stays in [1-2/N, 1) for all large N; writing x_N = 1 - y_N, y_{N+1} = (N+1) y_N - 1/((N+1)!-1) - k_N with k_N in {0,1,2}, so the whole tail of the sequence is fixed by one choice of k_N in {0,1,2} at each step, and failure means that N!·S is within 2/N of an integer for every large N. A rational S is the case k_N = 1 for every N. This is the same question about S, not a smaller one.
+  (3) Denominators: replacing N! by L_N = lcm(n!-1 : 2 <= n <= N), or by the reduced denominator of the partial sum, does not help. gcd((N-1)!-1, N!-1) divides N-1, so L_N >= (N!-1)((N-1)!-1)/(N-1), and L_N times the tail tends to infinity; such a hole would be false, not open.
+  No result on the distribution of these residues or of these fractional parts is known to us (erdosproblems.com/68 and its forum thread record none). Exact rational computation for N <= 60 finds the node's inequality failing only at N = 2, 4, 8, 22, 51, 59, as a heuristic in which frac(F_N) is roughly uniform predicts; that is evidence the node is not false, nothing more.
+artifacts:
+  annex: 60c3f96117863c5f8df64b6be6d5178d8de0e3ff7996bca4be9a4628810cb206

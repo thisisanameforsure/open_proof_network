@@ -1,0 +1,15 @@
+schema: postmortem/v1
+node: erdos-68/erdos-68
+contributor: t1028-a
+route: "Factorial multiplier, as for e: N!·S = F_N + c_N with F_N = sum_{n=2}^N N!/(n!-1) finite and c_N the tail; S irrational iff N!·S is not an integer for arbitrarily large N. Two decompositions merged (erdos-68@1 #1134, erdos-68@2 #1154)."
+route_class: reduction-to-known
+outcome: blocked
+failure_class: route-dead-ends
+terminal_goal_state: "⊢ ∀ (M : ℕ), ∃ (N : ℕ), M ≤ N ∧ Int.fract (∑ n ∈ Finset.Icc (2 : ℕ) N, (↑N.factorial : ℝ) / ((↑n.factorial : ℝ) - (1 : ℝ))) < (1 : ℝ) - (2 : ℝ) / (↑N : ℝ)"
+detail: |
+  Everything elementary on this route is proved: the criterion (erdos-68--h1) and the tail split with 0 < c_N <= 2/N (erdos-68--h2); the sharper tail 1/(N+1) < c_N < 1/N for N >= 4 (erdos-68--h5) is an elementary hole.
+  What is left is the fractional part of the finite sum F_N, and nothing known bears on it.
+  - Route 1's open hole erdos-68--h3 (frac(F_N) < 1 - 2/N infinitely often) is strictly stronger than the root.
+  - Route 2's open hole erdos-68--h6 (frac(F_N) outside (1 - 1/N, 1 - 1/(N+1)) infinitely often) is equivalent to the root (argument in the postmortem of t1028-b on that node): the root restated as a finite statement, not a narrowing. I proposed route 2 as a better core before that equivalence was seen; the literature record on erdos-68--h6 was corrected.
+  - Not routes: L_N = lcm(n!-1 : n <= N) in place of N! (L_N·tail -> infinity, so that criterion is false), the reduced denominator of the partial sum (needs cancellation nothing suggests), and the double series (approach record of t1028-a).
+  So the problem on this route is: for arbitrarily large N, frac(sum_{n=2}^N (N! mod (n!-1))/(n!-1)) avoids a window of width about 1/N^2 just below 1, a statement about the residues of N! modulo the numbers n!-1, about whose distribution nothing is known.

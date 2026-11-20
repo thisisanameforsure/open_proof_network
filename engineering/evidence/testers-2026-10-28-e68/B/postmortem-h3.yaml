@@ -1,0 +1,31 @@
+schema: postmortem/v1
+node: erdos-68--h3
+contributor: replaced-by-the-service
+route: "digit dynamics: rewrite the failure of h3 as a statement about T = S - (e - 2) and factorial series with digits in {0,1,2}"
+route_class: reduction-to-known
+outcome: blocked
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ (N : ℕ), M ≤ N ∧
+      Int.fract (∑ n ∈ Finset.Icc (2 : ℕ) N, (↑N.factorial : ℝ) / ((↑n.factorial : ℝ) - (1 : ℝ))) <
+        (1 : ℝ) - (2 : ℝ) / (↑N : ℝ)
+failure_class: route-dead-ends
+detail: >
+  Write F_N = sum_{n=2}^N N!/(n!-1) and T = sum_{n>=2} 1/(n!(n!-1)), so S = (e - 2) + T.
+  (1) N!/(n!-1) = N!/n! + N!/(n!(n!-1)) and N!/n! is an integer for n <= N, so
+  fract(F_N) = fract(N! T_N) with T_N the N-th partial sum of T (checked in Lean on the network fast check;
+  exact rationals agree for N <= 13).
+  (2) Put d_N = 1 - fract(F_N) and e_N = 1/(N!-1). From F_{N+1} = (N+1)F_N + 1 + e_{N+1},
+  k_N := (N+1) d_N - e_{N+1} - d_{N+1} is an integer for every N.
+  (3) If h3 failed from some M >= 2 on, then 0 < d_N <= 2/N for all N >= M, which forces k_N in {0,1,2},
+  and unwinding the recursion gives d_M = M! sum_{j>M} (k_{j-1} + e_j)/j!, hence
+  T + sum_{j>M} k_{j-1}/j! is a rational with denominator dividing M!.
+  (4) The root itself is the special case k = 1 everywhere: S = p/q means T + sum_{j>=2} 1/j! = p/q.
+  So h3 asks that T avoid, modulo (1/M!)Z, every factorial series sum_{j>M} k_j/j! with digits
+  k_j in {0,1,2} (a Cantor-like set for each M), where the root asks only that it avoid the all-ones
+  series. That is exactly how much stronger than the root h3 is; the converse of (3) holds up to the
+  boundary cases, so this is a restatement, not a narrower hole.
+  (5) Nothing is known about the factorial-base digits of T (its terms (n!)^{-k} are finite
+  factorial fractions multinomial(kn; n,...,n)/(kn)!, whose superposition carries without pattern),
+  so no named theorem closes this; the route stops here. Complements A's #1138 and C's #1136.
+artifacts:
+  missing_lemmas: []
