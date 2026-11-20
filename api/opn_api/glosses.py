@@ -35,6 +35,7 @@ write one for anybody else.
 
 from __future__ import annotations
 
+import html
 import logging
 import re
 import tempfile
@@ -705,10 +706,21 @@ def dry_sections(target_dir: Path, subject: dict[str, Any], text: str) -> list[d
     return out
 
 
-def preview_html(text: str) -> str:
+def preview_html(text: str, *, explainer: bool = False) -> str:
     """F22-T5: the words as the site renders prose, by the site's own renderer (``opn_site.prose``,
-    packaged with the function): escaped, math marked for the page's renderer."""
-    return prose.render(text, math=True)
+    packaged with the function): escaped, math marked for the page's renderer. F22-T30 (B17c): an
+    explainer as the node page shows a version (``Renderer.version_words``), section by section,
+    each heading followed by the steps it names, ``(s1 s2)``, never the ``{steps: ...}`` anchor
+    as written; held equal to the site's by test."""
+    if not explainer:
+        return prose.render(text, math=True)
+    out: list[str] = []
+    for sec in explainers.sections(text):  # the pre-flight has read it as sections already
+        ids = html.escape(" ".join(sec.steps), quote=True)
+        steps = f' <span class="po-id">({ids})</span>' if sec.steps else ""
+        out.append(f"<h4>{prose.inline_math(sec.heading)}{steps}</h4>")
+        out.append(prose.render(sec.text, math=True))
+    return "".join(out)
 
 
 def amended_submission(ctx: Context, identity: Identity, raw: Any) -> Submission:
@@ -943,7 +955,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
                 "hash": digest,
                 "warnings": [w.as_dict() for w in warned],
                 "sections": sections,
-                "preview_html": preview_html(text),
+                "preview_html": preview_html(text, explainer=record == "explainer"),
             }
         )
     if amended is not None:
