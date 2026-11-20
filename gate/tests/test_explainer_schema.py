@@ -340,3 +340,37 @@ def test_names_the_outline_binds_do_not_warn(graph: tuple[Path, dict[str, str]])
     change = file_explainer(root, explainer_text(proof, body))
     assert check(root, change) == []
     assert [w.details["name"] for w in warnings(root, change)] == ["Finset.prod", "hidden.val"]
+
+
+def test_a_name_written_through_dot_notation_in_the_steps_does_not_warn(
+    graph: tuple[Path, dict[str, str]],
+) -> None:
+    """F19-T11 (2026-11-19 run, B15): an outline extracted before F19-T11 lists no constant written
+    through dot notation, so ``hp.dvd_choose_add`` in the Lean left ``Nat.Prime.dvd_choose_add``
+    in the prose warned on an accurate explainer. A cited name whose last component the anchored
+    steps' own lines call through a dot is not warned about; one whose last component is called
+    only outside those lines, or nowhere, still is."""
+    root, _ = graph
+    proof_file = nodes(root) / NODE / "Proof.lean"
+    proof_file.write_text(
+        "theorem x : True := by\n"
+        "  have h1 := hp.dvd_choose_add hk\n"
+        "  have h2 := hq.two_le\n"
+        "  trivial\n",
+        encoding="utf-8",
+    )
+    s1 = step("s1")  # lines 1-2, no constant listed: the old extractor's answer
+    s2 = step("s2")
+    s2["span"] = {"start_line": 3, "end_line": 3}
+    proof = write_outline(root, NODE, "Proof.lean", [s1, s2])
+    body = (
+        "## Intro\nThe idea.\n\n"
+        "## The step {steps: s1}\nBy `Nat.Prime.dvd_choose_add`; and `Nat.Prime.two_le`, used "
+        "only in s2; and `Nat.Prime.one_lt`, used nowhere.\n"
+    )
+    change = file_explainer(root, explainer_text(proof, body))
+    assert check(root, change) == []
+    assert [w.details["name"] for w in warnings(root, change)] == [
+        "Nat.Prime.two_le",
+        "Nat.Prime.one_lt",
+    ]

@@ -1,0 +1,63 @@
+F22-T28 — an anchored explainer whose outline is not rendered yet answers 409 products-pending
+(2026-11-19 nine-agent run, finding B9)
+
+Finding
+-------
+During the post-merge lag (B2), POST /glosses (dry run included) refused an explainer whose
+sections name outline steps with `explainer-step-unknown` "...named on Proof.lean, which has no
+outline to name steps of". The outline is written by its own job after the post-merge job pushes
+(graph gate.yml `outline`, F19-T4), and the service then reads main through its own window, so
+the refusal lasted 1–2 minutes past the outline's commit too. Three agents read it as permanent.
+
+Red run (before the fix)
+------------------------
+UV_PROJECT_ENVIRONMENT=.../open_proof_network/.venv uv run --frozen pytest \
+  api/tests/test_finding_explainer_outline_pending.py -m "not lean and not docker" -q
+
+E       assert 400 == 409      (body: {"error":"explainer-step-unknown", ... "outline":false})
+E       assert 400 == 409
+FAILED ...::test_an_anchored_explainer_of_a_merged_proof_without_its_outline_is_products_pending[False]
+FAILED ...::test_an_anchored_explainer_of_a_merged_proof_without_its_outline_is_products_pending[True]
+2 failed, 3 passed
+
+The three that passed pin what must not change: a wrong step against an outline in hand is still
+explainer-step-unknown, an explainer naming no step files at once (201), an unmerged artifact is
+still explainer-proof-unknown.
+
+Fix
+---
+api/opn_api/glosses.py: `check_outline_rendered`, run after the scratch tree is materialised and
+before the gate's pre-flight. When the subject is an explainer, its text has a level-2 heading
+ending in a `{steps: ...}` anchor (`names_steps`), the proof is a merged artifact of the node
+(`explainers.merged_artifacts`) and the service holds no outline of it (`explainers.outline_of`),
+the answer is the existing `precheck.awaits_render` helper's 409 products-pending (Retry-After
+header, shape unchanged), with details {node_id, proof, artifact, outline}. The message says the
+same words can be filed once the outline is there and words naming no step can be filed now.
+gate/opn_gate/explainers.py: the heading and anchor regexes became public (ANCHOR_RE,
+HEADING_RE) so the service reads anchors with the gate's own patterns. The gate's own refusal at
+merge is unchanged (a merge without the outline is still explainer-step-unknown there).
+
+Existing test restated: api/tests/test_glosses_route.py::
+test_an_explainer_of_an_unknown_proof_or_step_is_refused asserted explainer-step-unknown for an
+anchored explainer of the merged Proof.lean with no outline — the defect itself. It now asserts
+products-pending there, adds the case "outline in hand, step absent → explainer-step-unknown",
+and keeps the rest.
+
+Green run
+---------
+uv run --frozen pytest api/tests/test_finding_explainer_outline_pending.py \
+  api/tests/test_glosses_route.py api/tests/test_finding_gloss_dry_run.py \
+  api/tests/test_finding_gloss_amends.py api/tests/test_finding_gloss_warnings.py \
+  api/tests/test_mcp_glosses.py api/tests/test_glosses_one_writer.py \
+  api/tests/test_finding_route_gloss_service.py api/tests/test_finding_gloss_math_first.py \
+  -m "not lean and not docker" -q
+102 passed
+make lint: exit 0. make types: exit 0.
+
+Not done
+--------
+- Retry-After is the helper's PRODUCTS_RETRY_AFTER_S (240 s), whatever the other agent makes of
+  it in pending.py; the outline job's own timing is not measured here (that is B2).
+- An artifact whose outline extraction fails for good (F19-R5: timeout, memory) leaves no record
+  on the graph the service can read, so its anchored explainers wait until the backfill makes
+  one. The message says words naming no step can be filed meanwhile.

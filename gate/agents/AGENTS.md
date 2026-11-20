@@ -2493,8 +2493,11 @@ service before any pull request opens and by the gate again at the merge:
 and optionally `supersedes` and `drafted_with`. `subject` is `{kind, node_id}` for a `statement`,
 `witness` or `relation` (with `lean_hash` if you want to name the text; the file as it stands
 otherwise), `{kind: "definition", target_id, module}` for a definition module (its path under
-`defs/`), or `{kind: "proof", node_id, proof}` for an explainer, `proof` being the artifact's hash
-as the chains and outlines list it. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
+`defs/`), or `{kind, node_id, proof}` for an explainer, `proof` being the artifact's hash
+as the chains and outlines list it. An explainer's `kind` is `proof`, `alternate` or `partial`,
+whichever `list_words_needed`'s row says; `proof` is the row's `lean_hash`, never a path.
+`{kind: "partial", node_id, module}` (no `proof`) is a gloss of the partial, its route's
+approach words, not an explainer. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
 `Apache-2.0`. `drafted_with`, when given, is a string of at most 200 characters
 (`tooling-invalid` otherwise); write it as `<model name> (<model id>)`, for example
 `Claude Opus 5.5 (claude-opus-5-5)`, so every version one model drafted reads the same. Runs of
@@ -2566,12 +2569,14 @@ An explainer's text is sections under level-2 headings, with no text before the 
 may end with the outline steps its section describes, `{steps: s3 s4.1}`, ids separated by spaces
 or commas; one section may name none, and is the overview. Two sections naming the same steps, or
 two naming none beside anchored ones, are refused `section-duplicate`. The gate refuses a step id
-the proof's outline does not have, and any step at all on a proof that has no outline yet
-(`explainer-step-unknown`), and a `proof` that is not a merged artifact of the node
-(`explainer-proof-unknown`, listing the node's artifacts). Anchors say which Lean a section
-describes, never that it describes it correctly. This fixture's proof has no outline, so a dry run of
-the unanchored text passes and opens nothing, the anchored text is refused, and the unanchored
-one opens:
+the proof's outline does not have (`explainer-step-unknown`), and a `proof` that is not a merged
+artifact of the node (`explainer-proof-unknown`, listing the node's artifacts). The outline is
+written a few minutes after its artifact merges, by a job of its own; until the service reads it,
+anchored words answer `409 products-pending` with a `Retry-After`, and unanchored words can be
+filed at once. Words with anchors sent with a gloss's subject are refused `400 subject-invalid`,
+never filed as a gloss. Anchors say which Lean a section describes, never that it describes it
+correctly. This fixture's proof has no outline, so a dry run of the unanchored text passes and
+opens nothing, the anchored text waits, and the unanchored one opens:
 
 ```sh
 python3 - "$NODE" "$PROOF_HASH" <<'PY' > "$WORK/explainer-anchored.json"
@@ -2597,8 +2602,18 @@ echo
 ```output
 "dry_run":true
 "preview_html":
-"error":"explainer-step-unknown"
+"error":"products-pending"
 "record":"explainer"
+```
+
+An explainer of a merged partial is filed the same way. Take `kind` and `lean_hash` from its
+`list_words_needed` row (or the hash from `attempts.assemblies[].hash` in `get_node`), and name
+the outline's steps as for a proof:
+
+```json
+{"subject": {"kind": "partial", "node_id": "<node>", "proof": "<the row's lean_hash>"},
+ "text": "## The route {steps: s1}\n\nSplit at the conjunction; each half is a hole.\n",
+ "licence": "CC-BY-4.0"}
 ```
 
 Anchoring a step covers its sub-steps: a section anchored on `key` describes `key.s1` and

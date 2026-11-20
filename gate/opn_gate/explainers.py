@@ -270,8 +270,8 @@ RECORD_SCHEMAS: frozenset[str] = frozenset({"explainer/v1", "explainer/v2"})
 OUTLINES_DIR = "outlines"
 OUTLINE_SCHEMA = "outline/v1"
 #: F20-Q2: a section names steps at the end of its level-2 heading, ``{steps: s3 s4.1}``.
-_ANCHOR_RE = re.compile(r"\s*\{steps:(?P<ids>[^{}]*)\}\s*$")
-_HEADING_RE = re.compile(r"^## (?P<heading>.*)$")
+ANCHOR_RE = re.compile(r"\s*\{steps:(?P<ids>[^{}]*)\}\s*$")
+HEADING_RE = re.compile(r"^## (?P<heading>.*)$")
 #: A qualified Lean name in backticks: the cited names R5's warning reads (F20-T5).
 _CITED_RE = re.compile(r"`(?P<name>[A-Za-z_][\w']*(?:\.[A-Za-z_][\w']*)+)`")
 
@@ -300,7 +300,7 @@ def sections(body: str) -> list[Section]:
     heading: str | None = None
     lines: list[str] = []
     for line in body.splitlines():
-        m = _HEADING_RE.match(line)
+        m = HEADING_RE.match(line)
         if m is None:
             if heading is None and line.strip():
                 msg = "an explainer's body is sections under level-2 headings (## ...)"
@@ -318,7 +318,7 @@ def sections(body: str) -> list[Section]:
 
 
 def _section(heading: str, lines: list[str]) -> Section:
-    m = _ANCHOR_RE.search(heading)
+    m = ANCHOR_RE.search(heading)
     steps: tuple[str, ...] = ()
     if m is not None:
         steps = tuple(s for s in re.split(r"[\s,]+", m.group("ids")) if s)
@@ -600,18 +600,20 @@ def name_warnings(graph_root: Path, located: Located) -> list[Diagnostic]:
     if outline is None:
         return []
     steps = outline_steps(outline)
+    source = _artifact_lines(graph_root, located, outline)
     out: list[Diagnostic] = []
     for section in found:
         if not section.steps or any(s not in steps for s in section.steps):
             continue
         constants = _constants(steps[s] for s in section.steps)
         locals_ = _locals(steps[s] for s in section.steps)
+        lean = _span_lines(source, (steps[s] for s in section.steps))
         seen: set[str] = set()
         for m in _CITED_RE.finditer(section.text):
             name = m.group("name")
             if name in seen or any(_occurs(name, c) for c in constants):
                 continue
-            if _not_a_constant(name, steps, locals_):
+            if _not_a_constant(name, steps, locals_) or _called_through_a_dot(name, lean):
                 continue
             seen.add(name)
             out.append(
@@ -659,6 +661,38 @@ def _not_a_constant(name: str, steps: Mapping[str, Any], locals_: set[str]) -> b
     writers to cite), a field of a local the section's steps bind (its first component), or a
     file name (``Context.lean``)."""
     return name in steps or name.split(".", 1)[0] in locals_ or name.endswith(LEAN_FILE_SUFFIX)
+
+
+def _artifact_lines(graph_root: Path, located: Located, outline: dict[str, Any]) -> list[str]:
+    """The lines of the artifact the outline describes, or none when it cannot be read."""
+    rel = str((outline.get("artifact") or {}).get("path") or "")
+    path = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id) / rel
+    try:
+        return path.read_text(encoding="utf-8").splitlines() if rel else []
+    except (OSError, UnicodeDecodeError):
+        return []
+
+
+def _span_lines(source: list[str], steps: Any) -> str:
+    """The artifact's lines the steps span (1-based, inclusive; a sub-step lies inside its
+    step's span), joined."""
+    picked: set[int] = set()
+    for step in steps:
+        span = step.get("span") or {}
+        start, end = span.get("start_line"), span.get("end_line")
+        if isinstance(start, int) and isinstance(end, int):
+            picked.update(range(max(start, 1), min(end, len(source)) + 1))
+    return "\n".join(source[i - 1] for i in sorted(picked))
+
+
+def _called_through_a_dot(name: str, lean: str) -> bool:
+    """F19-T11 (2026-11-19 run, B15): whether the steps' own lines call the cited name's last
+    component through a dot (``hp.dvd_choose_add`` for ``Nat.Prime.dvd_choose_add``). An outline
+    extracted before F19-T11 lists no constant written so (the extractor read identifiers only),
+    and an outline is never extracted twice, so for those the source is the one witness that the
+    steps call the name; for a newer outline the constant is already among the uses."""
+    last = name.rsplit(".", 1)[-1]
+    return re.search(rf"[\w'\)\]⟩]\.{re.escape(last)}(?![\w'])", lean) is not None
 
 
 def _occurs(name: str, constant: str) -> bool:
