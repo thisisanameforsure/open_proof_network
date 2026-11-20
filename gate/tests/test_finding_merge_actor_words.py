@@ -331,3 +331,185 @@ def test_a_decision_leaves_a_proof_up_to_date_behind_a_postmortem(pick: dict[str
         lane_of=lambda _n: "t1",
     )
     assert got == [(2, pulls[0]["head"]["sha"], "merge")]
+
+
+# --- F07-T82: an append sub-lane in each target --------------------------------------------------
+
+
+def green() -> list[dict[str, Any]]:
+    return [check(GATE_JOB, "success"), check(STEP9_JOB, "skipped", id_=2)]
+
+
+def gating() -> list[dict[str, Any]]:
+    stamp = (NOW - timedelta(minutes=1)).isoformat().replace("+00:00", "Z")
+    return [{**check(GATE_JOB, None), "started_at": stamp}, check(STEP9_JOB, None, id_=2)]
+
+
+def sublanes(
+    pick: dict[str, Any],
+    pulls: list[dict[str, Any]],
+    checks: dict[int, list[dict[str, Any]]],
+    targets: dict[int, str | None],
+    inert: set[int],
+    *,
+    stale: dict[int, int] | None = None,
+    words_moved: set[int] | None = None,
+) -> list[tuple[int, str, str]]:
+    by_sha = {p["head"]["sha"]: p["number"] for p in pulls}
+    decided: list[tuple[int, str, str]] = pick["decide_lanes"](
+        pulls,
+        RULES,
+        lambda sha: checks[by_sha[sha]],
+        lambda sha: (stale or {}).get(by_sha[sha], 0),
+        lambda _number: False,
+        now=NOW,
+        lane_of=targets.__getitem__,
+        inert_of=lambda number: number in inert,
+        words_moved=lambda number: number in (words_moved or set()),
+    )
+    return decided
+
+
+def sha(pulls: list[dict[str, Any]], number: int) -> str:
+    return str(next(p["head"]["sha"] for p in pulls if p["number"] == number))
+
+
+def the_afternoon_of_1552(appends: int = 14) -> dict[int, tuple[int, str, int, str, list[str]]]:
+    """2026-11-19's shape on one target: three proofs churning (each merge makes the others stale,
+    so each is updated and gated again), a fourth arriving later, and words and reports arriving
+    every ninety seconds from the agents working beside them."""
+    out: dict[int, tuple[int, str, int, str, list[str]]] = {}
+    for i, when in enumerate((5, 15, 25, 400)):
+        out[when] = (1 + i, f"submit/p{i}", SLOW_S, "t1", [PROOF.format(t="t1", k=1 + i)])
+    for i in range(appends):
+        number = 20 + i
+        shape = (POSTMORTEM, EXPLAINER)[i % 2]
+        out[60 + 90 * i] = (number, f"append/a{i}", FAST_S, "t1", [shape.format(t="t1", k=number)])
+    return out
+
+
+def append_latency(w: PathWorld, arrivals: dict[int, Any]) -> dict[int, int]:
+    """Seconds from the host first reporting each append green to its merge."""
+    return {
+        number: w.merged_at[number] - (when + gate_s + CHECK_LAG_S)
+        for when, (number, ref, gate_s, *_rest) in arrivals.items()
+        if ref.startswith("append/") and number in w.merged_at
+    }
+
+
+def test_a_green_append_merges_while_a_building_pull_request_gates(pick: dict[str, Any]) -> None:
+    """A building pull request holding its target (T31) closes the building sub-lane only."""
+    pulls = [pull(1, "submit/p"), pull(2, "append/a")]
+    got = sublanes(pick, pulls, {1: gating(), 2: green()}, {1: "t1", 2: "t1"}, {2})
+    assert got == [(1, sha(pulls, 1), "hold"), (2, sha(pulls, 2), "merge")]
+
+
+def test_a_green_append_merges_while_a_building_pull_request_is_updated(
+    pick: dict[str, Any],
+) -> None:
+    pulls = [pull(1, "submit/p"), pull(2, "append/a")]
+    got = sublanes(pick, pulls, {1: green(), 2: green()}, {1: "t1", 2: "t1"}, {2}, stale={1: 1})
+    assert got == [(1, sha(pulls, 1), "update"), (2, sha(pulls, 2), "merge")]
+
+
+def test_a_batch_walks_its_own_sub_lane_past_a_green_building_pull_request(
+    pick: dict[str, Any],
+) -> None:
+    """T45's batch ended at the first green building pull request; it is in the other sub-lane
+    now, so the batch takes every green words append behind it, and it merges too."""
+    pulls = [pull(1, "append/a"), pull(2, "submit/p"), pull(3, "append/b"), pull(4, "submit/q")]
+    targets: dict[int, str | None] = {1: "t1", 2: "t1", 3: "t1", 4: "t1"}
+    got = sublanes(pick, pulls, {n: green() for n in (1, 2, 3, 4)}, targets, {1, 3})
+    assert got == [
+        (1, sha(pulls, 1), "merge"),
+        (3, sha(pulls, 3), "merge"),
+        (2, sha(pulls, 2), "merge"),
+    ], "one building step, and the batch beside it"
+
+
+def test_an_append_a_building_verdict_can_read_stays_in_the_building_sub_lane(
+    pick: dict[str, Any],
+) -> None:
+    """An annex, a review record or a shelving is an append the gate's building checks read: it
+    still waits behind a building pull request's hold, and a building merge ends its batch."""
+    pulls = [pull(1, "submit/p"), pull(2, "append/annex"), pull(3, "append/words")]
+    got = sublanes(
+        pick, pulls, {1: gating(), 2: green(), 3: green()}, dict.fromkeys((1, 2, 3), "t1"), {3}
+    )
+    assert got == [(1, sha(pulls, 1), "hold"), (3, sha(pulls, 3), "merge")]
+    # and a words append's batch does not take it
+    pulls = [pull(5, "append/words"), pull(6, "append/annex"), pull(7, "append/more")]
+    checks = {n: green() for n in (5, 6, 7)}
+    got = sublanes(pick, pulls, checks, dict.fromkeys((5, 6, 7), "t1"), {5, 7})
+    assert got == [
+        (5, sha(pulls, 5), "merge"),
+        (7, sha(pulls, 7), "merge"),
+        (6, sha(pulls, 6), "merge"),
+    ]
+
+
+def test_a_submit_branch_of_words_alone_is_still_a_building_one(pick: dict[str, Any]) -> None:
+    """The sub-lane is the service's append branches: a building branch is never batched."""
+    pulls = [pull(1, "submit/p"), pull(2, "submit/words")]
+    got = sublanes(pick, pulls, {1: gating(), 2: green()}, {1: "t1", 2: "t1"}, {2})
+    assert got == [(1, sha(pulls, 1), "hold")]
+
+
+def test_a_pull_request_in_no_lane_still_closes_both_sub_lanes(pick: dict[str, Any]) -> None:
+    pulls = [pull(1, "propose/policy"), pull(2, "append/a"), pull(3, "submit/p")]
+    targets: dict[int, str | None] = {1: None, 2: "t1", 3: "t1"}
+    got = sublanes(pick, pulls, {n: green() for n in (1, 2, 3)}, targets, {2})
+    assert got == [(1, sha(pulls, 1), "merge")]
+    # and it waits until it is first: an append ahead of it goes, and it does not
+    pulls = [pull(2, "append/a"), pull(4, "propose/policy")]
+    got = sublanes(pick, pulls, {2: green(), 4: green()}, {2: "t1", 4: None}, {2})
+    assert got == [(2, sha(pulls, 2), "merge")]
+
+
+def test_a_words_update_closes_only_the_append_sub_lane(pick: dict[str, Any]) -> None:
+    """F22-T22's update of an append whose words moved holds its sub-lane, not the proof's."""
+    pulls = [pull(1, "append/a"), pull(2, "append/b"), pull(3, "submit/p")]
+    targets: dict[int, str | None] = dict.fromkeys((1, 2, 3), "t1")
+    got = sublanes(pick, pulls, {n: green() for n in (1, 2, 3)}, targets, {1, 2}, words_moved={1})
+    assert got == [(1, sha(pulls, 1), "update"), (3, sha(pulls, 3), "merge")]
+
+
+def test_the_batch_cap_still_spans_the_run(pick: dict[str, Any]) -> None:
+    cap = int(pick["MAX_BATCH"])
+    words = [pull(10 + i, f"append/a{i}") for i in range(cap + 2)]
+    pulls = [pull(1, "submit/p"), *words]
+    checks = {p["number"]: green() for p in pulls}
+    targets: dict[int, str | None] = {p["number"]: "t1" for p in pulls}
+    got = sublanes(pick, pulls, checks, targets, {p["number"] for p in words})
+    merged = [n for n, _s, a in got if a == "merge"]
+    assert merged[0] == 1 and merged[1:] == [p["number"] for p in words[:cap]]
+
+
+def test_the_run_tells_the_decision_which_appends_are_words_alone(doc: dict[Any, Any]) -> None:
+    (step,) = [s for s in doc["jobs"]["merge"]["steps"] if s.get("id") == "pick"]
+    script = str(step["run"])
+    assert "inert_of=inert_of" in script
+    assert "all(inert_role(path) for path in files)" in script and "bool(files)" in script
+
+
+def test_a_green_append_merges_within_one_queue_tick(
+    pick: dict[str, Any], gate_doc: dict[Any, Any]
+) -> None:
+    """B1's second acceptance criterion, on 2026-11-19's shape: one target, three proofs churning
+    and a fourth later, words and reports arriving every ninety seconds. Every append merges
+    within one tick of the host reporting it green, while the proofs are updated and gated
+    beside it; the proofs still go one at a time, each up to date when it merges (``World.act``
+    asserts that on every merge), and none is gated more often than before."""
+    arrivals = the_afternoon_of_1552()
+    w = path_world(pick, gate_doc, arrivals)
+    w.advance(4 * 3600)
+    assert w.open == {}, w.log
+    latency = append_latency(w, arrivals)
+    assert len(latency) == 14
+    tick = int(pick["SETTLE_EVERY_S"]) + 2 * 5  # one decision again, and the wake and the tick
+    assert max(latency.values()) <= tick, sorted(latency.items())
+    assert w.updates, "the proofs still churned: the replay has building work beside the appends"
+    one_lane = path_world(pick, gate_doc, arrivals, sublanes=False)
+    one_lane.advance(4 * 3600)
+    assert one_lane.open == {}
+    assert w.gate_runs == one_lane.gate_runs, "no proof was gated more often"

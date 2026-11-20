@@ -1,0 +1,114 @@
+F07-T82 — appends have a sub-lane of their own in each target
+(2026-11-19 run, finding B1 (b) and (c); the merge actor, graph .github/workflows/merge.yml, pick.py)
+
+THE FINDING
+  Append pull requests (postmortems, explainers, glosses, literature) green within about a minute
+  sat 20 to 50+ minutes behind the proofs and partials on their target: a lane takes one step at a
+  time and closes on any building pull request's hold (T31) or update, and T45's batch ended at the
+  first green building pull request. At the end of the run about 25 green pull requests were queued.
+
+THE RULE
+  A target is two sub-lanes. An append/ branch whose every path is a word or a report T81 leaves
+  inert (`inert_role`) is in the target's append sub-lane, keyed (target, "appends"). Everything
+  else in the target, building pull requests and the appends a building verdict can read (annex,
+  review records, shelving, status, withdrawals, revisions, defects, stewards, ...), is in the
+  building sub-lane, keyed by the target as every lane was. A building pull request that holds,
+  updates or merges closes only the building sub-lane; a batch closes only its own sub-lane, and
+  `more_appends` walks only it, so a words batch no longer ends at a building pull request. A pull
+  request in no lane (lane None) still waits until it is first and closes every sub-lane;
+  EMPTY_LANE stays its own (an empty diff is never words). Kept: F22-T22's words_moved update
+  (closes the append sub-lane only), MAX_BATCH across the run, T32's unknown-mergeability holds,
+  T46's stale heads. The run computes `inert_of` from the pull request's file list (the host's
+  facts only; an empty or unreadable list is not words).
+
+SOUNDNESS (checked, not assumed)
+  - Appends already merged behind main without a re-gate (T45). Unchanged: a building merge in the
+    same run as a words batch is the same pairing as the two in consecutive runs before.
+  - A building pull request merges behind main only when nothing that can change its verdict
+    moved. A words append merged past a holding or updating building pull request moves only
+    paths T81 found no building verdict reads, so the building pull request stays up to date and
+    its running gate is gated against everything its verdict can see.
+  - An append that a building verdict can read stays in the building sub-lane. Had every append
+    gone in the sub-lane, a shelving merged past a holding proof could change that proof's verdict
+    (shelved_refusal reads it through load_target), and an annex could flip a holding skeleton
+    from red to green. Neither would have produced a false merge (the proof would read behind and
+    be updated, as any stale one is), but each would restart the gate T31 exists to protect, so
+    they are excluded by construction rather than caught after.
+  - The post-merge job re-checks every merge commit and attests nothing that fails: the backstop.
+
+THE RED TEST
+  Seam first, at today's behaviour: `decide` took `inert_of` and ignored it (graph commit
+  c9aa069616, held on a temporary local branch `t1119-actor-seam` for the red run and deleted
+  after). Command:
+    uv run --frozen pytest -q -m "not lean and not docker" \
+      gate/tests/test_finding_merge_actor_words.py -p no:cacheprovider
+  result: 8 failed, 84 passed. The failing assertions:
+    test_a_green_append_merges_while_a_building_pull_request_gates
+      assert [(1, ..., 'hold')] == [(1, ..., 'hold'), (2, ..., 'merge')]
+    test_a_green_append_merges_while_a_building_pull_request_is_updated
+      assert [(1, ..., 'update')] == [(1, ..., 'update'), (2, ..., 'merge')]
+    test_a_batch_walks_its_own_sub_lane_past_a_green_building_pull_request
+      assert [(1, ..., 'merge')] == [(1, 'merge'), (3, 'merge'), (2, 'merge')]
+    test_an_append_a_building_verdict_can_read_stays_in_the_building_sub_lane
+      assert [(1, ..., 'hold')] == [(1, 'hold'), (3, 'merge')]
+    test_a_words_update_closes_only_the_append_sub_lane
+      assert [(1, ..., 'update')] == [(1, 'update'), (3, 'merge')]
+    test_the_batch_cap_still_spans_the_run
+      assert (1 == 1 and [] == [10, 11, 12, 13, 14, 15, ...])
+    test_the_run_tells_the_decision_which_appends_are_words_alone
+      assert 'inert_of=inert_of' in '...pick.py...'
+    test_a_green_append_merges_within_one_queue_tick   (B1's second acceptance criterion)
+      AssertionError: [(20, 1140), (21, 1050), (22, 960), (23, 870), (24, 780), (25, 690), ...]
+      assert 1140 <= 30
+
+THE REPLAY: 2026-11-19's shape on one target (test_finding_merge_actor_words.the_afternoon_of_1552)
+  Proofs #1-#3 arrive at 5, 15 and 25 s and #4 at 400 s (180 s gates, each churning the others:
+  every proof merge makes the rest stale); fourteen words appends (postmortems and explainers,
+  20 s gates) arrive every 90 s from 60 s. The replay is test_finding_merge_actor_wakes's World
+  (late check reports, wakes only when the host would, one pending run, no cron), with every
+  commit on main carrying its paths so staleness is the actor's own stale_count.
+  Append latency = seconds from the host first reporting the append green to its merge.
+
+                                         append latency (s)        proofs merged at (s)       proof
+                                         median   max              #1   #2    #3    #4        updates
+    actor on graph origin/main           600      1140             225  660   1095  1535      8
+    after T81, before T82 (seam)         600      1140             225  660   1095  1535      8
+    after T81 and T82                    10       15               220  675   1125  1560      8
+    T82 with T81's rule switched off     10       15               1550 1990  2425  2860      27
+
+  Gate rounds per proof are identical before and after (#2: 3, #3: 4, #4: 4); the test asserts it.
+  Proofs merge 5 s earlier to 30 s later: a run that merges an append acts and returns, so a proof
+  whose check the host has not yet reported is read by the next wake (the rewake 35 s after any
+  merge) rather than by that run's settle loop. The last row is why T82 rests on T81: told the
+  sub-lanes but counting words against the lane, every append merged past a proof made it stale
+  again, and the proofs were starved.
+  Measured with /private/tmp/claude-501/t82-measure*.py (scratch, not kept); the table's rows two
+  and three are also what test_a_green_append_merges_within_one_queue_tick compares.
+
+THE FIX (graph branch t1119-actor, .github/workflows/merge.yml, commit 37079a2af0)
+  - APPEND_SUBLANE = "appends"; `decide(..., inert_of=...)` keys each pull request by its sub-lane.
+  - The run's `inert_of(number)`: the file list is non-empty and every path has an `inert_role`.
+  - The narrating comment block at the top of merge.yml: a T81 paragraph (words and reports do not
+    count), a T82 paragraph (two sub-lanes, why it is safe, the replay's numbers), and T31's
+    paragraph now says a hold is per sub-lane.
+
+THE GREEN RUN
+  command:
+    uv run --frozen pytest -q -m "not lean and not docker" \
+      gate/tests/test_finding_merge_actor_*.py -p no:cacheprovider
+  result: 226 passed (the 216 after T81, plus ten for T82)
+  make lint: exit 0 (All checks passed!, 959 files already formatted)
+  make types: exit 0 (gate 468, api 280, site 129 source files, no issues)
+
+EXISTING TESTS RESTATED
+  None for T82: the existing lanes, batch, queue, wakes, robust and stale-head tests pass no
+  `inert_of`, so every append is in the building sub-lane there and they run the rule as it was.
+
+LEFT UNDONE
+  - Proof-vs-proof churn on one target is untouched: each building merge still makes the others
+    on its target stale (8 updates in the replay). Skipping that re-gate when the merged proof is
+    on a node the queued one cannot import (B1 (a) in full) needs the dependency graph, which the
+    actor does not read (it reads no pull request content); not attempted.
+  - The guide's "can wait one round behind a proof" sentence was not edited (the brief named no
+    guide passage); after this task an annex, a review record or a shelving still can, a words
+    append should not.
