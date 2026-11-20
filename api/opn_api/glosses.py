@@ -439,7 +439,7 @@ def names_steps(text: str) -> bool:
 
 
 def check_outline_rendered(
-    target_dir: Path, node_id: str | None, subject: dict[str, Any], text: str
+    ctx: Context, target_dir: Path, node_id: str | None, subject: dict[str, Any], text: str
 ) -> None:
     """F22-T28 (2026-11-19 run, B9): an explainer whose sections name steps of a merged artifact
     the service holds no outline of waits for the outline, rather than being told its steps are
@@ -457,6 +457,7 @@ def check_outline_rendered(
         return
     outline = f"targets/{target_dir.name}/{explainers.OUTLINES_DIR}/{proof}.json"
     raise precheck.awaits_render(
+        ctx,
         node_id,
         f"{artifacts[proof]} of {node_id} has merged, and its outline ({outline}), whose steps "
         "a {steps: ...} anchor names, is written after the merge by the outline job and is not "
@@ -923,7 +924,9 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
             label=label,
         )
         appends.validated(front, schema)
-        check_outline_rendered(target_dir, node_id, subject, text)  # F22-T28: before the gate's
+        check_outline_rendered(
+            ctx, target_dir, node_id, subject, text
+        )  # F22-T28: before the gate's
         content = record_file(front, text)
         digest = schemas.content_hash(content.encode())
         parent = f"targets/{target_id}/" + (f"nodes/{node_id}/" if node_id else "")
