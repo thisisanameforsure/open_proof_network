@@ -312,17 +312,30 @@ def check_own_name(identity: Identity, root: Path, target_id: str, verifier: Hos
 # --- POST /glosses -------------------------------------------------------------------------------
 
 
+#: F22-T29 (B10): the artifact kinds ``list_words_needed`` gives a merged proof artifact's row
+#: (``glosses.ARTIFACT_KINDS``). A subject of one of them that names ``proof`` is an explainer,
+#: whichever of the three the row said: the record names the artifact by its hash alone.
+ARTIFACT_KINDS: tuple[str, ...] = (PROOF_KIND, "alternate", PARTIAL_KIND)
+#: The explainer subject, as every refusal that concerns one spells it.
+EXPLAINER_SHAPE = (
+    "an explainer's subject is {kind, node_id, proof}: kind proof, alternate or partial (the "
+    "row's kind in list_words_needed), proof the merged artifact's SHA-256, 64 lowercase hex "
+    "characters (the row's lean_hash, or attempts.assemblies[].hash in get_node), never its path"
+)
+SUBJECT_SHAPES = (
+    "subject is an object: {kind, node_id} for a statement, witness or relation; {kind: "
+    "definition, target_id, module} for a definition module; {kind: partial, node_id, module} "
+    "for a gloss of a merged partial (its route's approach words); and " + EXPLAINER_SHAPE
+)
+
+
 def subject_of(raw: Any) -> dict[str, Any]:
-    """The ``subject`` object, its keys within ``SUBJECT_KEYS`` and its kind one of the six."""
+    """The ``subject`` object, its keys within ``SUBJECT_KEYS`` and its kind one of the seven. A
+    subject of an artifact kind that names ``proof`` is an explainer's and comes back with kind
+    ``proof`` (F22-T29): ``{kind: partial, node_id, proof}`` is what ``list_words_needed``'s row
+    of a merged partial reads as."""
     if not isinstance(raw, dict):
-        raise ApiError(
-            400,
-            "subject-invalid",
-            "subject is an object: {kind, node_id} for a statement, witness or relation; "
-            "{kind: definition, target_id, module} for a definition module; {kind: partial, "
-            "node_id, module} for a merged partial (its route's approach words); {kind: proof, "
-            "node_id, proof} for an explainer of a merged proof artifact",
-        )
+        raise ApiError(400, "subject-invalid", SUBJECT_SHAPES)
     unknown = sorted(k for k in raw if k not in SUBJECT_KEYS)
     if unknown:
         raise ApiError(
@@ -333,25 +346,45 @@ def subject_of(raw: Any) -> dict[str, Any]:
             details={"unknown": unknown, "accepted": list(SUBJECT_KEYS)},
         )
     kind = raw.get("kind")
-    if kind not in (*GLOSS_KINDS, PROOF_KIND):
+    kinds = tuple(dict.fromkeys((*GLOSS_KINDS, *ARTIFACT_KINDS)))
+    if kind not in kinds:
         raise ApiError(
             400,
             "subject-invalid",
-            f"subject.kind is one of {', '.join((*GLOSS_KINDS, PROOF_KIND))}",
+            f"subject.kind is one of {', '.join(kinds)}; {SUBJECT_SHAPES}",
             details={"kind": kind},
         )
     for key in ("node_id", "target_id", "module", "proof", "lean_hash"):
         value = raw.get(key)
         if value is not None and not isinstance(value, str):
             raise ApiError(400, "subject-invalid", f"subject.{key} is a string")
-    if kind == PROOF_KIND and not HASH_RE.match(str(raw.get("proof") or "")):
+    explainer = kind in (PROOF_KIND, "alternate") or raw.get("proof") is not None
+    if not explainer:
+        return dict(raw)
+    if kind not in ARTIFACT_KINDS:
         raise ApiError(
             400,
             "subject-invalid",
-            "an explainer's subject names the merged artifact it describes: subject.proof is "
-            "its SHA-256 (64 lowercase hex characters), as get_node's outlines list them",
+            f"subject.proof names a merged proof artifact, and a {kind} is not one; "
+            f"{EXPLAINER_SHAPE}",
+            details={"kind": kind},
         )
-    return dict(raw)
+    if raw.get("module") is not None:
+        raise ApiError(
+            400,
+            "subject-invalid",
+            "subject names both module and proof: a gloss of a merged partial names it by "
+            f"module, an explainer by proof alone; {EXPLAINER_SHAPE}",
+            details={"module": raw.get("module"), "proof": raw.get("proof")},
+        )
+    if not HASH_RE.match(str(raw.get("proof") or "")):
+        raise ApiError(
+            400,
+            "subject-invalid",
+            f"subject.proof is not a SHA-256; {EXPLAINER_SHAPE}",
+            details={"kind": kind, "proof": raw.get("proof")},
+        )
+    return {**raw, "kind": PROOF_KIND}
 
 
 def where(ctx: Context, subject: dict[str, Any]) -> tuple[str, str | None]:
@@ -376,8 +409,9 @@ def where(ctx: Context, subject: dict[str, Any]) -> tuple[str, str | None]:
         raise ApiError(
             400,
             "subject-invalid",
-            "a partial's subject names the merged partial by its path under the node: "
-            "attempts/<stamp>-<pseudonym>-partial.lean (as get_node's attempts list it)",
+            "a gloss of a merged partial (its route's approach words) is {kind: partial, node_id, "
+            "module}, module its path under the node: attempts/<stamp>-<pseudonym>-partial.lean "
+            f"(as get_node's attempts list it); {EXPLAINER_SHAPE}",
             details={"module": subject.get("module")},
         )
     node_id, target_id = appends.node_target(ctx, {"node_id": subject.get("node_id")})
@@ -428,6 +462,38 @@ def check_outline_rendered(
         "yet in the graph the service reads. The same words can be filed then; words that name "
         "no step can be filed now",
         {"proof": proof, "artifact": artifacts[proof], "outline": outline},
+    )
+
+
+def check_gloss_names_no_steps(
+    target_dir: Path, node_id: str | None, subject: dict[str, Any], text: str
+) -> None:
+    """F22-T29 (B10): words whose headings name outline steps are an explainer's, and a gloss
+    is one whole section that would print the anchors as text (the gate's ``gloss-step-anchors``
+    warning, F-D7). Such words sent with a gloss's subject are refused, never filed as a gloss;
+    for a gloss of a merged partial the refusal names the explainer subject to send instead."""
+    if subject["kind"] == PROOF_KIND or not names_steps(text):
+        return
+    instead: dict[str, Any] | None = None
+    module = subject.get("module")
+    if subject["kind"] == PARTIAL_KIND and node_id is not None and isinstance(module, str):
+        file = target_dir / "nodes" / node_id / module
+        if file.is_file():
+            digest = schemas.content_hash(file.read_bytes())
+            instead = {"kind": PARTIAL_KIND, "node_id": node_id, "proof": digest}
+    send = (
+        f"to explain the merged partial send subject {instead}"
+        if instead is not None
+        else "to explain a merged proof artifact send its explainer subject"
+    )
+    raise ApiError(
+        400,
+        "subject-invalid",
+        f"these words name outline steps ({{steps: ...}} in a heading), which only an "
+        f"explainer reads, and the subject is a gloss's (kind {subject['kind']}): they are not "
+        f"filed as a gloss. {send.capitalize()} ({EXPLAINER_SHAPE}); for a gloss, drop the "
+        "anchors",
+        details={"kind": subject["kind"], "explainer_subject": instead},
     )
 
 
@@ -831,6 +897,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         target_dir = materialise(ctx, root, target_id, node_id)
         verifier = HostVerifier()
         check_own_name(identity, root, target_id, verifier)
+        check_gloss_names_no_steps(target_dir, node_id, subject, text)  # F22-T29
         front, schema = front_matter(
             target_dir,
             subject,
