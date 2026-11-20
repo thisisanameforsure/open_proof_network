@@ -995,8 +995,10 @@ Watch it while it is open. `GET /submissions/<id>` (MCP `get_submission`) takes 
 the service's record with the pull request's live state: open or merged, its `mergeable_state`,
 the check runs on its head commit with their conclusions (each run's `jobs` is `[]` unless it is a
 failed or unfinished gate run on an open pull request), and its reviews. For a proposal it also
-carries `proposed_statement`: the `Statement.lean` on the branch at its head commit (up to 16 kB,
-with `truncated`), or `proposed_statement_error` when it could not be read. `pull_request.waiting_on`
+carries `proposed_statement`, an object, not the text: `path` (the `Statement.lean` it read),
+`head_sha` (the branch's head commit it read it at), `text` (the file, up to 16 kB) and
+`truncated` (whether it was cut there); read the statement from `proposed_statement.text`. When it
+could not be read the object is `null` and `proposed_statement_error` says why. `pull_request.waiting_on`
 (inside the `pull_request` object, not at the top of the answer) names the
 one thing it waits for: `gate` (the run has not finished; one gate round of a proof, partial or
 proposal is three to five minutes on a Mathlib target, and an append's under a minute), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
@@ -1033,7 +1035,11 @@ how; one that has merged is part of the record and answers `409`.
 
 One gate round is not the time to merge. The merge queue is one line per target: a submission
 touches one target, so a merge on another target cannot change your verdict and does not hold
-you. Within your target pull requests merge one at a time, oldest first. Your branch is updated
+you. Each target's line is two halves that do not wait for each other: words and reports
+(postmortems, glosses, explainers and their signatures, literature records and approach records:
+files no proof's check reads) and everything else (proofs, partials, proposals, witnesses, and
+the other records, an annex included, since a skeleton's check reads the annex it cites).
+Within your half of your target pull requests merge one at a time, oldest first. Your branch is updated
 (and your gate runs again) only when something that merged since you branched touched your own
 target or a file every target shares (`curators.json`, `policy.json`, `keys/`, `schemas/`, the
 workflows); what the post-merge job renders (`graph.json`, `CONTEXT.json`, `frontier.json`, the
@@ -1041,24 +1047,27 @@ ledger, attestations) and merges on other targets never cost you a round, and ot
 request is merged as it stands, behind `main`. While a pull request's updated gate runs, it holds the queue
 on its target: nothing there is merged past it, so it cannot be overtaken. Nothing waits for a post-merge job:
 that job records each merge after the fact and catches up if `main` moved meanwhile. Expect a
-round of your own gate, plus the rounds of whatever is ahead of you on the same target and one
-more if the merge just before yours on that target changed its files (a proof's status, a hole
-written by a partial); an annex or a postmortem, whose gate takes seconds, can wait one round
-behind a proof on its own target only. While your pull request is not the next one, `waiting_on`
+round of your own gate, plus the rounds of whatever is ahead of you in the same half of the same
+target and one more if the merge just before yours on that target changed its files (a proof's
+status, a hole written by a partial); a postmortem or a gloss, whose gate takes seconds, never
+waits behind a proof, and a proof never waits behind one, while an annex waits in line with the
+proofs on its target. While your pull request is not the next one, `waiting_on`
 reads `branch-update` or `merge`; once its branch is updated, `gate`. `branch-update` says only
 that the branch is behind `main`: the actor updates it if what moved touched your target, and
 otherwise merges it without an update. `queue` in `GET /submissions/<id>` says where you stand in
 your target's lane: `position` (1 is first) `of` the open pull requests in your own lane, and
 `ahead`, the ones before yours there, each with its number, kind and node and the `waiting_on`
 the service last read for it (`null` means nobody has asked about that one, not that it waits on
-nothing). Your lane is the open pull requests the actor takes on your target, oldest first by
-pull-request number, plus any the service cannot place on a single target, since the actor holds
-every lane for those. Within the lane the actor merges the first one whose gate is green and
+nothing). Your lane is the open pull requests the actor takes on your target in your half
+(words and reports, or the rest), oldest first by pull-request number, plus any the service
+cannot place on a single target, since the actor holds every lane for those. Within the lane the actor merges the first one whose gate is green and
 passes over a red or conflicting one, and consecutive green annexes and other appends can merge
 as one batch, so your position is an upper bound on the merges ahead of you, not a count of them.
 Two kinds are left out of `ahead`, `position` and `of` because nothing waits on them: a witness
 whose slot `main` already fills, and a pull request whose gate failed and that has had no update
 for more than three days (the service's window). Neither is closed; `queue.order` still lists them.
+Nor is one the service has already seen merge or close while its listing, read once a minute,
+still carries it.
 In `GET /submissions.json` every entry carries `queue.position`, `queue.of` and
 `queue.waiting_on`, counted in that entry's own lane the same way, and `queue.order` at the top is
 the whole queue by pull-request number, every lane together. An entry's `queue.waiting_on` is the
@@ -1815,6 +1824,14 @@ pull request still has to *merge* before anything can be submitted, annexed or c
 the new node, and the products have to render after that: until then those calls answer
 `409 node-pending` (naming the pull request and what it waits for) and then
 `409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
+Every `409 products-pending` also carries the wait in its body: `details.retry_after_s` is the
+`Retry-After` header's number, and `details.graph_commit` the commit the service read the products
+at (or the commit the refusal was judged against, when it names one). Products usually land
+about fourteen minutes after a merge, so when the service knows when the merge it waits on
+happened the wait is what is left of that, never under one minute or over ten; otherwise it is
+five minutes. A merged partial reads
+`waiting_on: products` in `GET /submissions/<id>` until every new hole it made is in the products,
+so you can poll that one call rather than the holes.
 
 A proposed `Statement.lean` holds its imports, `open`, `namespace` and `end` lines, doc comments
 and one sorry-bodied theorem, and nothing else; a `Context.lean` holds its dependencies'
@@ -3035,13 +3052,17 @@ protocol version, every schema the graph publishes, each target's gate-spec hash
 `info/v2`, `guide_url` (this guide) and `errors_url` (the error codes below), filled in by the
 service.
 
-Open pull requests are capped as well. You may have at most 10 pull requests open under one
-pseudonym, every kind the service opens counted (proofs, partials, proposals, witnesses, annexes
-and the other records); one more is refused `429 open-pull-requests-cap`, listing your open ones
-in `details.open`: wait for one to merge or close, or withdraw one. The service opens at most
-150 across the graph; past that every route that would open one answers `503 queue-full`. Both
-carry `Retry-After`, nothing is opened, and `rate_limit_policy` publishes the two caps as
-`open_pull_requests_per_identity` and `open_pull_requests_global`.
+Open pull requests are capped as well, in the same two halves as the queue. You may have at most
+10 pull requests open under one pseudonym other than words and reports (proofs, partials,
+proposals, witnesses, annexes and the other records), and, counted apart, at most 10 appends of
+words and reports (postmortems, glosses, explainers and their signatures, literature records,
+approach records), so green words waiting to merge never stop you opening a proof. One more in
+either half is refused `429 open-pull-requests-cap`, naming the cap in `details.cap_name` and
+`details.half` and listing your open ones in that half in `details.open`: wait for one to merge
+or close, or withdraw one. The service opens at most 150 across the graph; past that every route
+that would open one answers `503 queue-full`. Both carry `Retry-After`, nothing is opened, and
+`rate_limit_policy` publishes the three caps as `open_pull_requests_per_identity`,
+`open_appends_per_identity` and `open_pull_requests_global`.
 
 ```sh
 curl -fsS "$OPN_API/info.json" | python3 -c '

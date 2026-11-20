@@ -1,0 +1,46 @@
+F07-T86 — queue position jitter, and proposed_statement described as the object it is (bug B17 b, d, agent run 2026-11-19)
+=========================================================================================================================
+
+(b) Position jittered 8 -> 9 -> 8 around 14:36Z
+-----------------------------------------------
+Cause (clear, reproduced): the queue is counted over the host's open listing, read once per
+`pull_listing_max_stale_s` (60 s), but lanes came from the store's *open* records. When a pull
+request on another target merged and a per-id read (GET /submissions/<n>, or the cap's or the
+copy rule's reconcile) closed its record, the cached listing still carried it for up to a window;
+with no open record the service could not place it, so `lane_queue` counted it as UNPLACED, ahead
+of every pull request with a higher number in *every* lane: +1. At the next listing it was gone:
+-1. Same-target merges did not jitter (they were counted ahead either way until the listing moved).
+
+Red (api/tests/test_finding_queue_sub_lanes.py::test_a_merged_pull_request_the_listing_still_carries_is_ahead_of_nobody):
+  #1 on erdos-69, #2, #3 on the tutorial target; #3 reads ([2], 2, 2); #1 merges and a per-id
+  read closes its record while the listing still carries it; #3 then read
+    assert ([1, 2], 3, 3) == ([2], 2, 2)        (test line 132, the post-close assertion)
+
+Fix (landed in the F07-T83 commit fc4551d1, because it lives in the same `place` function):
+`pending.place` looks a listed pull request with no open record up in the store once; a record
+there that is closed has finished, and is counted in no lane (left out of ahead, position and of,
+for the per-id answer and the listing alike). QUEUE_ORDER says so; the guide's queue passage says
+"Nor is one the service has already seen merge or close while its listing, read once a minute,
+still carries it." No "may move by one" text was needed, since the cause is fixed.
+
+Not fixed (named for the record): `idle_red` and `slot_filled` (F07-T80) keep a pull request in
+the queue whenever their read fails (C7), so a host or budget failure can still add one for a
+window. That is the existing, documented upper-bound behaviour.
+
+(d) proposed_statement read as if it were text
+----------------------------------------------
+The guide said "carries `proposed_statement`: the `Statement.lean` on the branch at its head
+commit (up to 16 kB, with `truncated`)". It is `{path, head_sha, text, truncated}`
+(`pending.proposed_statement`; pinned by api/tests/test_finding_proposal_statement.py).
+
+Red: gate/tests/test_finding_guide_tester_0924.py::test_the_proposed_statement_is_described_as_the_object_it_is
+  assert '`proposed_statement.text`' in "# AGENTS.md — how to contribute ..."     1 failed
+
+Fix: gate/agents/AGENTS.md now says it is an object, names the four fields, says to read the
+statement from `proposed_statement.text`, and that the object is `null` with
+`proposed_statement_error` when it could not be read. (The api serves exactly that; no code change.)
+
+Green:
+$ uv run --frozen pytest -q -m "not lean and not docker" gate/tests/test_finding_guide*.py api/tests/test_finding_proposal_statement.py
+207 passed
+make lint: exit 0.

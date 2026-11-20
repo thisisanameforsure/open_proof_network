@@ -1,0 +1,61 @@
+F07-T85 — duplicate-submission says what matched and names the pull request (bug B11, agent run 2026-11-19)
+==========================================================================================================
+
+Finding
+-------
+B11 (1 agent): `409 duplicate-submission` said "an identical explainer ... submitted in the last
+2 minutes" when the open pull request (#1512) was another author's *different* text on the same
+subject, and `details.pr_number` was missing although the guide says the refusal names it.
+
+Cause
+-----
+The message is `duplicates.take`'s, the two-minute slot guard every request holds so two arriving
+together cannot both open (F07-T35). For a gloss or explainer the request holds two kinds of
+slot: its content fingerprint (`slot(kind, owner, fp)`) and its subject (`words:...`, F21-R5) or
+chain head (`supersedes:...`, F22-T1); a proposal or witness holds its node's one slot. `take`
+said "identical" for every one and carried no `details` at all. The one-writer check
+(`check_words`, which does name the pull request) sets aside a rival that cannot merge (gate
+failed, conflict), so such a request passes it and meets the subject slot inside its window. The
+explainer route has no separate check of its own (glosses.post_glosses -> one_writer ->
+appends.append_pr -> duplicates.holding).
+
+Red run
+-------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_duplicate_subject_message.py
+test_a_different_explainer_on_the_same_subject_is_not_called_identical
+    AssertionError: 'identical' is contained here: an identical explainer for this node was
+    submitted in the last 2 minutes; read GET /submissions.json, ...    (the B11 text, reproduced)
+test_identical_text_is_still_called_identical_and_names_the_pull_request
+    KeyError: 'details'   (the slot refusal carried no details)
+2 failed
+
+Fix (api/opn_api/duplicates.py)
+-------------------------------
+* `slot_matched(key, what)`: `details.matched` is `text` (an identical content fingerprint),
+  `subject` (the same gloss/explainer subject), `chain-head` (superseding the same version) or
+  `slot` (a hole's witness, a statement's proposal), with words to match: "an identical X for
+  <owner>", "another X for the same subject", "another X superseding the same version",
+  "another X for <owner>".
+* `slot_holder(ctx, key)`: the open record holding the slot, from the store alone (no host read):
+  by the recorded fingerprint for a subject/head/content key, by node and kind for a witness or
+  proposal slot; newest wins. When found, the refusal names it in the message ("as pull request
+  #N (url)") and in `details` (`pr_number`, `pr_url`, `submission_id`, via the existing
+  `refused`). When the holder is still opening (not recorded yet), the old advice stands.
+* `refused` takes `headers`, so the slot refusal keeps its `Retry-After`.
+
+Green run
+---------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_duplicate_subject_message.py
+2 passed
+$ uv run --frozen pytest -q -m "not lean and not docker" $(grep -rln "an identical\|duplicate-submission\|duplicates\." api/tests gate/tests | grep test_) api/tests/test_glosses_route.py
+227 passed
+make lint: exit 0. mypy api: Success.
+
+No existing test restated.
+
+Not done
+--------
+* Whether a request should be refused at all by the slot when the rival's gate has failed (the
+  one-writer rule would let it through after the window) is unchanged: the slot is a two-minute
+  race guard and the refusal carries Retry-After.
+* The guide is unchanged: its sentence ("naming the pull request or file it copies") is now true.

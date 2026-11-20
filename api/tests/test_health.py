@@ -70,6 +70,7 @@ def test_rate_limit_policy_shape() -> None:
         "proposals_per_day": 40,  # F08 §6: published, like every identity-layer limit
         "open_pull_requests_per_identity": 10,  # F07-T67, awaiting the owner's sign-off
         "open_pull_requests_global": 150,  # F07-T67, awaiting the owner's sign-off
+        "open_appends_per_identity": 10,  # F07-T84: appends counted apart
         "claim_ttl_hours": {"min": 1, "max": 168},
     }
 

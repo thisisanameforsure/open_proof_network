@@ -1,0 +1,101 @@
+F06-T20 — products-pending says its wait in the body; a merged partial waits on products until its holes render (bug B8, agent run 2026-11-19)
+==================================================================================================================================================
+
+Finding
+-------
+B8 (3 agents): `409 products-pending` carried `Retry-After: 240` as a header only, so an agent
+reading the JSON body (every MCP client, most HTTP ones) polled blindly. Agent 9: GET
+/submissions/<id> read `waiting_on: None` for a merged partial while its new holes still answered
+`products-pending` to a claim.
+
+How waiting_on is derived (read first): `pending.answer` -> `reconcile` (host state; a merged pull
+request's own `waiting_on` is null) -> `waiting_on_products`, which set `"products"` only for a
+proposal whose node is unrendered, a merged annex the products' commit lacks, and a merged witness
+whose node still reads witness-missing; plus `answer` itself sets it while an attesting kind has no
+attestation yet. A partial whose attestation had landed matched none of these, so it read null even
+though its hole children were not yet in graph.json.
+
+Every products-pending refusal (grep of api/opn_api): pending.unknown_node (merged proposal / hole
+child), precheck.awaits_render (merged witness, merged annex; called from precheck and claims),
+precheck.job_commit (F06-T18, nodes changed after the products commit), precheck.carried_commit
+(F06-T14, hole not in rendered_from). store.py has none.
+
+Red run
+-------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_products_pending_details.py
+test_a_hole_child_refusal_carries_the_wait_in_its_body           KeyError: 'retry_after_s'
+test_a_merged_witness_refusal_carries_the_wait_in_its_body       KeyError: 'retry_after_s'
+test_a_merged_partial_waits_on_products_until_its_holes_are_rendered
+                                                                 AssertionError: assert None == 'products'
+3 failed, 2 passed (the two "waits on nothing" guards, green before and after)
+
+Fix
+---
+* api/opn_api/pending.py: `products_pending(ctx, message, details)` builds every
+  `409 products-pending`: `Retry-After` header and `details.retry_after_s` (both
+  PRODUCTS_RETRY_AFTER_S), and `details.graph_commit` = `ctx.head`, main's commit the service
+  read the products at, null if it never learned one (not invented). A refusal that already names
+  the commit it was judged against keeps it (F06-T18's products commit, F06-T14's rendered_from).
+  All five sites use it (`awaits_render` now takes `ctx`; its two callers in precheck and one in
+  claims pass it).
+* `waiting_on_products`: a merged record with `expected_nodes` (a partial's new holes, F06-T15)
+  waits on `"products"` while any of them is missing from `precheck.graph_doc` (the products the
+  service reads) — `_holes_unrendered`. The service already used the same vocabulary
+  (`WAITING_ON_PRODUCTS = "products"`).
+* gate/agents/AGENTS.md: one paragraph after "never the 404 node-unknown a mistyped id gets" on
+  `details.retry_after_s`, `details.graph_commit`, and a partial's `waiting_on: products`.
+
+Green run
+---------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_products_pending_details.py
+6 passed (plus a sixth test: with no head ever read, graph_commit is null)
+$ uv run --frozen pytest -q -m "not lean and not docker" $(grep -rln "graph_commit\|nodes_commit\|awaits_render\|products-pending\|Retry-After" api/tests | grep test_)
+648 passed
+$ uv run --frozen pytest -q -m "not lean and not docker" gate/tests/test_finding_guide*.py
+198 passed
+make lint: exit 0. mypy api: Success.
+
+No existing test restated.
+
+Not done
+--------
+* (Superseded by the follow-up below: the Retry-After number now follows B2's measurement.)
+* The catalog's `products-pending` recovery text (gate/opn_gate/codes.py) still says "Retry
+  shortly."; not changed, to keep the errors catalog and its goldens out of this branch.
+
+Follow-up: the wait itself (lead, from B2's measurement, engineering/evidence/F07/task-87.txt)
+--------------------------------------------------------------------------------------------
+91 merges on 2026-11-19: products land a median of ~14 min after a merge (p75 16, p90 ~36), not
+the 240 s every products-pending told callers. Now (api/opn_api/pending.py, named constants with a
+comment citing task-87.txt): PRODUCTS_MEDIAN_S = 840, PRODUCTS_RETRY_MIN_S = 60,
+PRODUCTS_RETRY_MAX_S = 600, PRODUCTS_RETRY_FLAT_S = 300 (PRODUCTS_RETRY_AFTER_S = 240 is gone).
+`products_retry_after_s(ctx, merged_at)`: max(60, min(600, 840 - seconds since the merge)) when the
+merge time is known and parses, else 300. Header and details.retry_after_s are the same number.
+
+Which refusals know the merge time: `unknown_node`'s merged branch (a merged proposal or a
+merged partial's hole child): the live state's `merged_at`, or for a closed record its final
+state's `merged_at`, else `closed` (the host's close time since F05-T18). The others answer the
+flat 300: `awaits_render` (merged witness or annex, judged from the tree, no record consulted),
+`job_commit` and `carried_commit` (a render in flight, no merge named).
+NOT_RENDERED now says "usually about fourteen minutes after the merge and sometimes much longer";
+the guide's products-pending paragraph says how the wait is chosen.
+
+Red (seam `products_retry_after_s` returning the old flat 240 first):
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_products_pending_details.py
+test_a_merged_witness_refusal_carries_the_wait_in_its_body   assert 240 == 300   (flat branch)
+test_a_known_merge_time_sets_the_wait[2-600]                 assert 240 == 600
+test_a_known_merge_time_sets_the_wait[8-360]                 assert 240 == 360
+test_a_known_merge_time_sets_the_wait[13-60]                 assert 240 == 60
+test_a_known_merge_time_sets_the_wait[20-60]                 assert 240 == 60
+test_an_unknown_merge_time_is_the_flat_wait                  assert 240 == 300
+6 failed, 5 passed
+
+Green:
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_products_pending_details.py gate/tests/test_finding_guide*.py
+210 passed
+$ uv run --frozen pytest -q -m "not lean and not docker" $(grep -rln "graph_commit\|nodes_commit\|awaits_render\|products-pending\|Retry-After\|NOT_RENDERED" api/tests | grep test_)
+656 passed
+make lint: exit 0. mypy api: Success.
+
+Not done: other guide sentences that still say "three to six minutes" for the products (B2's
+docs) are left to the B2 task, to keep this branch off its passages.
