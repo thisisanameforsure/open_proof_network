@@ -270,8 +270,8 @@ RECORD_SCHEMAS: frozenset[str] = frozenset({"explainer/v1", "explainer/v2"})
 OUTLINES_DIR = "outlines"
 OUTLINE_SCHEMA = "outline/v1"
 #: F20-Q2: a section names steps at the end of its level-2 heading, ``{steps: s3 s4.1}``.
-_ANCHOR_RE = re.compile(r"\s*\{steps:(?P<ids>[^{}]*)\}\s*$")
-_HEADING_RE = re.compile(r"^## (?P<heading>.*)$")
+ANCHOR_RE = re.compile(r"\s*\{steps:(?P<ids>[^{}]*)\}\s*$")
+HEADING_RE = re.compile(r"^## (?P<heading>.*)$")
 #: A qualified Lean name in backticks: the cited names R5's warning reads (F20-T5).
 _CITED_RE = re.compile(r"`(?P<name>[A-Za-z_][\w']*(?:\.[A-Za-z_][\w']*)+)`")
 
@@ -300,7 +300,7 @@ def sections(body: str) -> list[Section]:
     heading: str | None = None
     lines: list[str] = []
     for line in body.splitlines():
-        m = _HEADING_RE.match(line)
+        m = HEADING_RE.match(line)
         if m is None:
             if heading is None and line.strip():
                 msg = "an explainer's body is sections under level-2 headings (## ...)"
@@ -318,7 +318,7 @@ def sections(body: str) -> list[Section]:
 
 
 def _section(heading: str, lines: list[str]) -> Section:
-    m = _ANCHOR_RE.search(heading)
+    m = ANCHOR_RE.search(heading)
     steps: tuple[str, ...] = ()
     if m is not None:
         steps = tuple(s for s in re.split(r"[\s,]+", m.group("ids")) if s)

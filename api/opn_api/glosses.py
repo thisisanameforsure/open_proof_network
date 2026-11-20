@@ -47,7 +47,7 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, duplicates, frontier, pending, sshsig, submissions
+from opn_api import appends, duplicates, frontier, pending, precheck, sshsig, submissions
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -390,6 +390,45 @@ def where(ctx: Context, subject: dict[str, Any]) -> tuple[str, str | None]:
             details={"node_id": node_id, "target_id": target_id},
         )
     return target_id, node_id
+
+
+def names_steps(text: str) -> bool:
+    """Whether a level-2 heading of ``text`` ends in a step anchor (``{steps: ...}``, F20-Q2):
+    the one mark only an explainer's words carry. Read line by line, so text that is not
+    sections at all (the gate's ``explainer-invalid``) answers false here."""
+    return any(
+        explainers.ANCHOR_RE.search(m.group("heading")) is not None
+        for line in text.splitlines()
+        if (m := explainers.HEADING_RE.match(line)) is not None
+    )
+
+
+def check_outline_rendered(
+    target_dir: Path, node_id: str | None, subject: dict[str, Any], text: str
+) -> None:
+    """F22-T28 (2026-11-19 run, B9): an explainer whose sections name steps of a merged artifact
+    the service holds no outline of waits for the outline, rather than being told its steps are
+    unknown. The outline is written by its own job after the post-merge job pushes (F19-T4), and
+    the service reads main at its own window, so for some minutes after a merge a correct
+    explainer has nothing to anchor on: ``409 products-pending`` with ``Retry-After``. A step
+    that an outline in hand lacks stays the gate's ``explainer-step-unknown``; a proof that is
+    not a merged artifact of the node, its ``explainer-proof-unknown``; an explainer naming no
+    step never waits."""
+    if subject["kind"] != PROOF_KIND or node_id is None or not names_steps(text):
+        return
+    proof = str(subject["proof"])
+    artifacts = explainers.merged_artifacts(target_dir / "nodes" / node_id)
+    if proof not in artifacts or explainers.outline_of(target_dir, proof) is not None:
+        return
+    outline = f"targets/{target_dir.name}/{explainers.OUTLINES_DIR}/{proof}.json"
+    raise precheck.awaits_render(
+        node_id,
+        f"{artifacts[proof]} of {node_id} has merged, and its outline ({outline}), whose steps "
+        "a {steps: ...} anchor names, is written after the merge by the outline job and is not "
+        "yet in the graph the service reads. The same words can be filed then; words that name "
+        "no step can be filed now",
+        {"proof": proof, "artifact": artifacts[proof], "outline": outline},
+    )
 
 
 def text_of(raw: Any) -> str:
@@ -805,6 +844,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
             label=label,
         )
         appends.validated(front, schema)
+        check_outline_rendered(target_dir, node_id, subject, text)  # F22-T28: before the gate's
         content = record_file(front, text)
         digest = schemas.content_hash(content.encode())
         parent = f"targets/{target_id}/" + (f"nodes/{node_id}/" if node_id else "")

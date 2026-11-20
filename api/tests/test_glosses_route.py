@@ -398,15 +398,22 @@ def test_a_stale_lean_hash_is_refused_naming_the_current_one(h: Harness, tree: P
 
 def test_an_explainer_of_an_unknown_proof_or_step_is_refused(h: Harness, tree: Path) -> None:
     """R4: a proof that is not a merged artifact of the node; a step its outline lacks; and,
-    with an outline in place, a step it has opens."""
+    with an outline in place, a step it has opens. F22-T28 (B9) restated the middle case: with
+    no outline yet the merged proof's anchors wait (``products-pending``); a step is unknown
+    only against an outline in hand."""
     token = h.token_for("code_bob", "bob")
     r = post(h, token, explainer_body("b" * 64))
     assert r.status_code == 400 and r.json()["error"] == "explainer-proof-unknown", r.text
     anchored = "## The idea\nRegroup.\n\n## The bound {steps: s9}\nIt holds.\n"
     r = post(h, token, explainer_body(proof_hash(tree), anchored))
-    assert r.status_code == 400 and r.json()["error"] == "explainer-step-unknown", r.text
+    assert r.status_code == 409 and r.json()["error"] == "products-pending", r.text
     r = post(h, token, explainer_body(proof_hash(tree), "Prose before any heading.\n"))
     assert r.status_code == 400 and r.json()["error"] == "explainer-invalid", r.text
+    nothing_opened(h)
+    write_outline(tree, [step("s1")])
+    serve(h, tree)
+    r = post(h, token, explainer_body(proof_hash(tree), anchored))
+    assert r.status_code == 400 and r.json()["error"] == "explainer-step-unknown", r.text
     nothing_opened(h)
     write_outline(tree, [step("s9")])
     serve(h, tree)
