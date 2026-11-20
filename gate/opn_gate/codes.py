@@ -3037,10 +3037,13 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "POST /glosses's subject is not one the route takes: an object of kind, node_id, "
         "target_id, module, proof and lean_hash, its kind a statement, witness, relation, "
-        "definition or proof, an explainer's naming the artifact's hash (F20-R10).",
+        "definition, partial, alternate or proof, an explainer's naming the artifact's hash "
+        "(F20-R10); or a gloss's subject with words that name outline steps, which only an "
+        "explainer reads (F22-T29).",
         "Send {kind, node_id} for a node's Lean file, {kind: definition, target_id, module} for a "
-        "definition module, or {kind: proof, node_id, proof} for an explainer; the author is your "
-        "token's identity and is never sent.",
+        "definition module, {kind: partial, node_id, module} for a partial's route words, or "
+        "{kind, node_id, proof} for an explainer, kind as list_words_needed's row gives it and "
+        "proof the row's lean_hash; the author is your token's identity and is never sent.",
     ),
     "submission-id-invalid": (
         "api",

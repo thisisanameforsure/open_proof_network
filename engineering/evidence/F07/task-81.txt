@@ -1,0 +1,105 @@
+F07-T81 — a target's words and reports do not make its building pull requests stale
+(2026-11-19 run, finding B1; the merge actor, graph .github/workflows/merge.yml, pick.py)
+
+THE FINDING
+  Six of nine agents on 2026-11-19 reported it: within one target's lane every merge put every
+  queued building pull request (proof, partial, alternate, proposal, witness) behind, so it was
+  updated and re-gated (3-5 min each). #1552 went green at least six times, #1557 three times.
+  Part of the cause: `gates_on` counted every path in the PR's own target, so a postmortem, an
+  explainer, a gloss or a literature record merged ahead of a proof made the proof stale, though
+  no check a proof runs opens any of those files. (The other part, appends queued behind building
+  pull requests, is F07-T82.)
+
+THE ROLES, EACH CHECKED BEFORE IT WAS ACCEPTED
+  Read for every candidate: gate/opn_gate/steps/*.py, modes.py (classification and the building
+  modes' checks), closure.py, graph.load_target and what it feeds (load_nodes, derive_statuses,
+  find_root, root_vouched, shelving.derive, so shelved_refusal), layout.load_node/validate_node,
+  steps/stage.py, steps/deps.py, and the graph's gate.yml (step 9 job, post-merge job).
+
+  accepted (no building verdict opens the file):
+    postmortem           nodes/<n>/attempts/<flat>.yaml|.yml. paths_step reads attempts/ only for
+                         *.lean assemblies, *-alternate.lean and carried .witness/.proof files;
+                         graph.proofs_of reads alternates only. records.load_attempts (the yaml)
+                         is called only by products.py, context.py (CONTEXT.json, a product) and
+                         curator.py.
+    precheck-record      nodes/<n>/attempts/precheck/<flat>.json. Nothing in the gate reads it
+                         (paths.py's grammar and the append-only rule only).
+    explainer, explainer-signature   nodes/<n>/explainer/<hash>.md, explainer/signed/<flat>.yaml.
+                         Read by modes' explainer/append checks (their own verdicts), explainers.py,
+                         outline.py, ledger.py (write-up credit, not a verdict), panel.py, products.
+                         No step, graph.py, closure.py, stage.py or deps.py reads explainer/.
+    gloss, gloss-signature   nodes/<n>/gloss/..., targets/<t>/gloss/... and signed/. Same readers
+                         as explainers (glosses.py, modes' gloss checks, products, ledger).
+    approach-record      targets/<t>/approaches/<flat>.yaml. No reader in the gate at all beyond
+                         paths.py and demarcate.py's field list (labels.approach_of reads the
+                         partial and its cited annex, not this directory).
+    literature           nodes/<n>/literature/<flat>.yaml. Read by modes.check_literature_record
+                         (its own verdict), literature.py, context.py and products.py; graph.py,
+                         shelving.py, closure.py and the steps do not read it.
+
+  dropped (a building verdict can read it):
+    annex                step 2 refuses a skeleton whose cited annex is not on the node
+                         (steps/paths_step.partial_refusal -> postmerge.check_annex_citation), and
+                         step 4's last word reads a stepped annex (steps/artifact._annex_steps_problem
+                         -> postmerge.check_annex_steps). Only additive (a new annex can turn a red
+                         skeleton green, never a green one red), but the brief's rule is "can read",
+                         so it keeps counting.
+  kept counting by the brief, and confirmed: shelving (shelved_refusal via load_target ->
+    shelving.derive), status (load_node_status), withdrawals (dispute_withdrawn), proposed-for
+    (proposed_for_of), revisions and defects (D-8/D-16, exhibits), review/* (root_vouched ->
+    review_step.standing), node files, Proof.lean, defs, gate-spec, target.yaml and the rest.
+
+THE RED TEST (written first; the tests read the actor from the committed graph branch, so the run
+below is the actor as it stood on graph origin/main ee5c6d100d)
+  command:
+    uv run --frozen pytest -q -m "not lean and not docker" \
+      gate/tests/test_finding_merge_actor_words.py -p no:cacheprovider \
+      -k "postmortem_merged_ahead or annex_merged or up_to_date_behind"
+  result: 2 failed, 1 passed
+    test_a_postmortem_merged_ahead_of_a_proof_does_not_re_gate_it   (B1's acceptance criterion)
+      E AssertionError: the proof was updated after the postmortem merged:
+        [(70, 'merge', '1'), (225, 'update', '2'), (445, 'merge', '2'), ...]
+      E assert 2 not in [2]
+    test_a_decision_leaves_a_proof_up_to_date_behind_a_postmortem
+      E assert 1 == 0   (stale_count over [[bot products], [a postmortem]] for lane t1)
+    test_an_annex_merged_ahead_of_a_proof_still_re_gates_it passed, as it must (the guard).
+  Before: the proof (#2, green at 225 s) was updated and re-gated, merging at 445 s.
+
+THE FIX (graph branch t1119-actor, .github/workflows/merge.yml)
+  - `inert_role(path)`: the actor's own small grammar for the eight accepted roles (pick.py cannot
+    import the gate), returning the gate's role name or None.
+  - `gates_on`: a path in the lane's own target whose `inert_role` is not None does not count.
+    Lane None (a pull request in no single target) is unchanged: everything but products counts.
+  - The narrating comment at the top of merge.yml is updated in F07-T82's commit with the rest.
+
+THE GREEN RUN
+  command:
+    uv run --frozen pytest -q -m "not lean and not docker" \
+      gate/tests/test_finding_merge_actor_*.py -p no:cacheprovider
+  result: 216 passed (132 before this task; the new file adds 82, the lanes test 2 rows)
+  After: the proof merges at its first green read, never updated (test asserts merged_at[2] <=
+  10 + SLOW_S + CHECK_LAG_S + 60).
+
+  parity: test_the_actors_words_grammar_agrees_with_the_gates runs pick.inert_role and
+  opn_gate.paths.locate over 69 sample paths (each inert role, near misses such as a partial,
+  an alternate, carried .witness/.proof files, precheck/*.yaml, nested and hidden files, .gitkeep,
+  defs/gloss, bad ids, and every role that keeps counting) and asserts they agree.
+  test_every_inert_role_is_an_append_role asserts every sample role is reached.
+
+  make lint: exit 0 ("All checks passed!", 959 files already formatted)
+  make types: exit 0 (gate 468, api 280, site 129 source files, no issues)
+
+EXISTING TESTS RESTATED (they pinned the defect)
+  gate/tests/test_finding_merge_actor_lanes.py
+    test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict: the row
+      ("targets/t1/nodes/n/attempts/x.yaml", "t1", True) was labelled "an annex a skeleton may
+      cite", but that path is a postmortem. Restated to the rule it meant: annex/<hash>.md counts,
+      attempts/x.lean (a partial) counts, attempts/x.yaml (a postmortem) does not.
+    test_stale_counts_only_the_commits_that_reach_the_lane: `own` was a postmortem; now an annex.
+  gate/tests/test_finding_merge_actor_workflow.py: REFS puts "t1119-actor" first, with a comment to
+    take it out once the branch is on graph main.
+
+LEFT UNDONE
+  - Annexes still count (see above). They could be argued inert to green verdicts (additive only);
+    that is a call for the owner, not taken here.
+  - Lane None pull requests still count words and reports; no benefit was found in changing it.

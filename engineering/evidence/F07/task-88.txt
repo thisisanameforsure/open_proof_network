@@ -1,0 +1,54 @@
+F07-T88 — guide sentences from the 2026-11-19 run (B12, B14, B16, B17a), gate/agents/AGENTS.md
+
+B12  Statements carry `open scoped Nat`, so `φ` is the totient and `set φ := …` fails with
+     "unexpected token 'φ'". Added in "Iterating fast: POST /check", after the lemma-names
+     advice: `open scoped Nat` makes `φ` the totient and `π` prime-counting, `ArithmeticFunction`
+     makes `σ` the divisor sum; do not name anything `φ`, `π` or `σ`.
+B14  /check times out (20 s, check-timeout) on ~90 kB computational partials that pass a
+     precheck. Added after the check-timeout sentence: for large computational proofs go straight
+     to `POST /precheck` (the gate's wall clock is 600 s on every live target's gate-spec).
+B16  The guide said a witness keeps the statement's imports "unchanged"; a /proposals/witness
+     file without `import Nodes.«…».Context` merged. The truth, read in the gate:
+     steps/witness.py checks only that each import the witness names is among the statement's
+     (`witness-elaboration`, "is not among the statement's imports"), then compiles it with
+     `judging.with_header(text, [statement_module])`, which blanks the witness's own import
+     lines and imports the statement's module, bringing every statement import (Context
+     included). The service route (api/opn_api/proposals.py post_witness) pushes the text as
+     given and its preflight (checks.py) strips import lines too. So import lines are optional,
+     a foreign one is refused, and `open` lines are not carried by an import. The guide's
+     "The witness, exactly" paragraph now says so.
+     Behaviour pinned by gate/tests/test_finding_witness_header_optional.py (green on the
+     current gate: it documents existing behaviour, so it has no red run; it fails if the gate
+     ever starts requiring the line or stops refusing a foreign import).
+B17a The walkthrough wrote Proof.lean into the graph clone (the tutorial's Proof.lean is
+     tracked and replaced upstream, so a later `git pull` aborted). It now writes
+     "$WORK/Proof.lean"; the precheck request, the /check request and the opn_prove `cmp` read
+     it there; the pregate block (tagged `lean`) copies it in for the run and restores the clone
+     (`git checkout -- <path>`, or `rm` if untracked); the git-path commit copies it in after
+     `checkout -b "$BRANCH"`, so it lives only on the proof branch.
+
+Red (the new guide test against the guide at the branch's base, gate/agents/AGENTS.md @ 7fc71c57):
+FAIL test_b12_scoped_greek_letters_are_named -- assert "open scoped Nat" in FLAT
+FAIL test_b14_large_computational_proofs_go_straight_to_precheck -- assert "go straight to `POST /precheck`" in FLAT
+FAIL test_b16_witness_imports_are_optional -- assert "The `import` lines are optional" in FLAT
+FAIL test_b17a_the_walkthrough_never_writes_its_proof_into_the_clone -- assert '(node / "Proof.lean").write_text' not in walk
+FAIL test_b2_the_post_merge_wait_is_the_measured_one -- assert "three to five for a proof or a partial" not in FLAT
+(b2 is F07-T87's sentence; its test lives in the same file.)
+
+Green:
+$ uv run --frozen pytest gate/tests/test_finding_guide_tester_1119.py gate/tests/test_finding_witness_header_optional.py gate/tests/test_walkthrough.py -m "not lean and not docker" --deselect gate/tests/test_walkthrough.py::test_graph_copy_is_identical
+13 passed, 2 deselected, 2 warnings in 16.32s
+(test_agents_md_executes is the docs test: every sh block of the guide run in order against a
+fixture clone and the fake service; it passes with the $WORK change. The lean-tier variant,
+test_agents_md_executes_with_toolchain, which runs the pregate block, was not run here.)
+Every test file that reads the guide (39 files found by grep for AGENTS.md/GUIDE across gate,
+api and site tests): 465 passed, 13 deselected (lean/docker).
+make lint: 0; make types: 0.
+
+Not done / for the lead:
+- test_walkthrough.py::test_graph_copy_is_identical fails, and failed before any edit here: the
+  guide must be byte-identical to the graph's copy (D-35), and the shared graph checkout is
+  stale. The graph's AGENTS.md copy must be updated with the merged guide (lead's step).
+- B12's optional /check lint for clashing identifiers was not built (the brief asked for the
+  guide line only).
+- The lean-tier walkthrough (pregate block) is unrun; its new cp/restore lines want one run.

@@ -1,0 +1,81 @@
+F22-T29 — an explainer of a merged partial is named the way list_words_needed names it; words
+with step anchors are never filed as a gloss (2026-11-19 run, finding B10; F14's first half)
+
+Finding
+-------
+list_words_needed's row of a merged partial says kind `partial`, with the artifact's hash as
+`lean_hash`. Agents sent that back:
+- {kind: partial, node_id, proof: <hash>} → 400 subject-invalid "a partial's subject names the
+  merged partial by its path under the node" (the partial-gloss rule of F29-T9 caught it, since
+  `partial` was a gloss kind and `proof` was ignored); the path in `proof` failed the same way.
+- {kind: partial, node_id, module: <path>} with an explainer's anchored text → 201, filed as a
+  *gloss* of the partial (route approach words), section `whole`, anchors printed as text.
+- kind `alternate` (also a row kind) → "subject.kind is one of statement, ..., proof".
+Only {kind: proof, node_id, proof: <hash>} worked, and nothing said so.
+
+Red run (before the fix)
+------------------------
+uv run --frozen pytest api/tests/test_finding_partial_explainer_subject.py -m "not lean and not docker" -q
+10 failed, 2 passed. The failing assertions, in order:
+  {kind: partial, proof} → 400 "a partial's subject names the merged partial by its path ..."  (want 201)
+  {kind: alternate, proof} → 400 "subject.kind is one of statement, ..., proof"                (want 201)
+  dry run of {kind: partial, proof} → 400 (want 200, record explainer)
+  {kind: partial, module} + anchored text → 201 gloss (want 400 subject-invalid)
+  {kind: statement} + anchored text → 201 gloss (want 400 subject-invalid)
+  proof = a path / a graph path / "not-a-hash" → message lacks "{kind, node_id, proof}" (x3)
+  {kind: partial} alone → message lacks "module"/"proof"/"explainer"
+  {kind: partial, module, proof} → 201 gloss (want 400)
+The two that passed pin what must not change: a partial gloss without anchors is still the
+route's words (F29-T9), and {kind: proof, proof} is unchanged.
+
+Fix
+---
+api/opn_api/glosses.py
+- `subject_of`: a subject of an artifact kind (proof, alternate, partial — the row kinds,
+  `glosses.ARTIFACT_KINDS`) that names `proof` is an explainer; it comes back with kind `proof`, so
+  everything downstream is the explainer path it always was. `alternate` without `proof`, `proof`
+  on a non-artifact kind, `module` and `proof` together, and a `proof` that is not a SHA-256 are
+  each `subject-invalid` with one sentence naming the accepted shape (EXPLAINER_SHAPE: kind as the
+  row gives it, proof the row's lean_hash or attempts.assemblies[].hash, never a path). The
+  partial-gloss refusal in `where` names both shapes.
+- `check_gloss_names_no_steps` (after the tree is materialised): words with a level-2 heading
+  ending in `{steps: ...}` sent with any gloss subject are refused `400 subject-invalid`, not
+  filed. For a partial named by `module`, `details.explainer_subject` is the exact subject to send,
+  `{kind: partial, node_id, proof: <hash of that file>}`. (The gate already warned on such a gloss
+  after merge, `gloss-step-anchors`, F-D7; the service now stops it before anything opens.)
+gate/opn_gate/codes.py: the `subject-invalid` catalog row says the new kinds, the anchor rule and
+the remedy.
+api/opn_api/mcp/writes.py: submit_gloss's subject.kind enum gains `alternate`; its description
+says an explainer's kind and proof are the row's. Kept within the tools/list budget (the first
+wording broke test_the_whole_tools_list_fits_its_budget by 31 characters; shortened).
+gate/agents/AGENTS.md ("Through the service" and the explainer paragraph): the explainer subject
+takes the row's kind; `{kind: partial, module}` is the route's words; a JSON example of a
+partial's explainer beside the existing explainer example (not an executed block, since the
+fixture has no merged partial). The paragraph and output block after it were also restated for
+F22-T28 (the fixture's anchored explainer now answers products-pending).
+
+list_words_needed was not given a per-row subject object: the brief preferred making the
+advertised kind work, which this does, and the HTTP twin of that tool is two committed product
+files, which could not carry one anyway.
+
+Green run
+---------
+uv run --frozen pytest api/tests/test_finding_partial_explainer_subject.py \
+  api/tests/test_finding_explainer_outline_pending.py api/tests/test_glosses_route.py \
+  api/tests/test_finding_gloss_dry_run.py api/tests/test_finding_gloss_amends.py \
+  api/tests/test_finding_gloss_warnings.py api/tests/test_mcp_glosses.py \
+  api/tests/test_glosses_one_writer.py api/tests/test_finding_route_gloss_service.py \
+  api/tests/test_finding_gloss_math_first.py api/tests/test_finding_mcp_context_budget.py \
+  api/tests/test_mcp_surface.py api/tests/test_mcp_bijection.py api/tests/test_mcp_equivalence.py \
+  api/tests/test_finding_words_needed_hash.py api/tests/test_mcp_words_needed.py \
+  api/tests/test_finding_error_catalog.py api/tests/test_mcp_errors.py gate/tests/test_catalog.py \
+  gate/tests/test_error_codes.py -m "not lean and not docker" -q
+177 passed (after the budget wording fix)
+uv run --frozen pytest gate/tests/test_walkthrough.py gate/tests/test_finding_guide_*.py \
+  -m "not lean and not docker" -q
+203 passed, 1 failed: test_graph_copy_is_identical — the sibling graph checkout's AGENTS.md
+already differs from origin/main's guide at line 209 (checked: `git show 7fc71c57:gate/agents/
+AGENTS.md | cmp - ../open_proof_network_graph/AGENTS.md` → differ at char 8828, line 209), so this
+is pre-existing; the graph copy needs recopying with this guide at the re-pin.
+test_agents_md_executes passed with the restated output block.
+make lint: exit 0. make types: exit 0.

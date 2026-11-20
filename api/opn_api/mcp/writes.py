@@ -793,10 +793,9 @@ TOOLS: tuple[Tool, ...] = (
                     "module}; {kind: partial, node_id, module} for a merged partial, where "
                     "module is its path under the node (attempts/<stamp>-<pseudonym>-"
                     "partial.lean): the words' first sentence is the route's approach on the "
-                    "problem page when the partial declared none (F29-R4); {kind: proof, "
-                    "node_id, proof} for an explainer, where proof is "
-                    "the artifact's hash: the row's lean_hash in list_words_needed, or "
-                    "attempts.assemblies[].hash in get_node",
+                    "problem page when the partial declared none (F29-R4); {kind, node_id, "
+                    "proof} for an explainer, kind and proof (lean_hash) as list_words_needed's "
+                    "row gives them, or attempts.assemblies[].hash in get_node",
                     "properties": {
                         "kind": {
                             "enum": [
@@ -805,6 +804,7 @@ TOOLS: tuple[Tool, ...] = (
                                 "relation",
                                 "definition",
                                 "partial",
+                                "alternate",
                                 "proof",
                             ]
                         },

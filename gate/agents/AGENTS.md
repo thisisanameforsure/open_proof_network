@@ -95,17 +95,19 @@ theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
   sorry
 ```
 
-Write `Proof.lean` next to it. The header, the name and the signature stay byte for byte; only
-the body after `:=` is yours.
+Write your `Proof.lean` from it. The header, the name and the signature stay byte for byte; only
+the body after `:=` is yours. Write it in your work directory, not in the clone: the tutorial's
+own `Proof.lean` is replaced upstream from time to time, and a changed file in the clone makes a
+later `git pull` abort. The git path copies it into a branch when it needs it.
 
 ```sh
-python3 - "$NODE_DIR" <<'PY'
+python3 - "$NODE_DIR" "$WORK/Proof.lean" <<'PY'
 import pathlib, sys
-node = pathlib.Path(sys.argv[1])
+node, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 statement = (node / "Statement.lean").read_text(encoding="utf-8")
 proof = statement.replace(":= by\n  sorry", ":= by\n  intro p q hpq\n  exact ⟨hpq.right, hpq.left⟩")
 assert proof != statement, "the sorry body is not where this walkthrough expects it"
-(node / "Proof.lean").write_text(proof, encoding="utf-8")
+out.write_text(proof, encoding="utf-8")
 print(proof)
 PY
 ```
@@ -119,11 +121,14 @@ exact ⟨hpq.right, hpq.left⟩
 `pregate.sh` runs the gate's steps 1, 2 and 4 to 8 locally on your working tree (an ordinary
 local build stands in for step 3's sandbox) and prints a JSON verdict you can parse. It writes
 `verdict.json` and `attestation.json` into `--out`. Exit code 0 is a pass, 1 a fail with the first
-failing step named, 3 a bounce, 2 an error before any verdict existed.
+failing step named, 3 a bounce, 2 an error before any verdict existed. It gates the working
+tree, so this copies the proof in for the run and puts the clone back afterwards.
 
 ```sh lean
 OUT="$WORK/pregate"
+cp "$WORK/Proof.lean" "$NODE_DIR/Proof.lean"
 "$NETWORK/gate/pregate.sh" --graph "$GRAPH" --target "$TARGET" --node "$NODE" --out "$OUT" | tee "$WORK/pregate.txt"
+git -C "$GRAPH" checkout -q -- "targets/$TARGET/nodes/$NODE/Proof.lean" 2>/dev/null || rm -f "$NODE_DIR/Proof.lean"
 python3 - "$OUT/attestation.json" <<'PY'
 import json, sys
 doc = json.load(open(sys.argv[1]))
@@ -147,7 +152,7 @@ does.
 
 ```sh
 BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
-python3 - "$NODE_DIR/Proof.lean" "$BUNDLE_PATH" "$NODE" <<'PY' > "$WORK/precheck-request.json"
+python3 - "$WORK/Proof.lean" "$BUNDLE_PATH" "$NODE" <<'PY' > "$WORK/precheck-request.json"
 import json, pathlib, sys
 proof, path, node = sys.argv[1:]
 print(json.dumps({"node_id": node, "bundle": {path: pathlib.Path(proof).read_text(encoding="utf-8")}}))
@@ -209,11 +214,17 @@ call it before you have one, and keep your token starts for the writes. The netw
 that elaborates it in its own sandbox against the Mathlib nearest your target's pin. Lemma names
 are that Mathlib's, not the ones you remember: an `unknown identifier` for a familiar lemma is
 usually a rename, and the pin's `mathlib_sha` in `targets/<target>/gate-spec.json` is the
-version to search. The answer
+version to search. Statements carry their `open scoped` lines, and those make some Greek
+letters notation: under `open scoped Nat` (most Erdős targets) `φ` is the totient and `π` the
+prime-counting function, and under `ArithmeticFunction` `σ` is the divisor sum. A local named
+with one does not parse (`set φ := …` fails with `unexpected token 'φ'`), so do not name
+anything `φ`, `π` or `σ`. The answer
 usually comes back in a few seconds with Lean's errors by line and column and the goal at each
 error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
 tactics (`exact?`, `apply?`, `rw?`) are the usual cause, so find the lemma another way and name
-it. The text may be at most 200 kB (`413 content-too-large` otherwise). The gate caps the work
+it. A large computational proof (a long `decide` or kernel computation, around 90 kB) can
+outlast the 20 seconds and still pass a precheck easily, since the gate has minutes: for those,
+go straight to `POST /precheck`. The text may be at most 200 kB (`413 content-too-large` otherwise). The gate caps the work
 in one declaration at 1000000 heartbeats, and the fast check runs at the same cap: a
 `set_option maxHeartbeats` inside the proof does not lift it, and a `set_option` before the
 theorem is refused at the gate as `helper-forbidden`. The cap counts each declaration on its
@@ -308,7 +319,7 @@ were given said `okay: false`. Read the lint codes beside it. `GET /hosted-check
 says which environment serves each target and whether it is exact.
 
 ```sh
-python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/check-request.json"
+python3 - "$WORK/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/check-request.json"
 import json, pathlib, sys
 proof, target, node = sys.argv[1:]
 print(json.dumps({"target_id": target, "node_id": node, "mode": "verify",
@@ -408,7 +419,7 @@ PY
 python3 "$PROVE" run --problem "$WORK/problem.lean" --answer "$WORK/answer.txt" --record "$WORK/run.json" \
   -- python3 "$WORK/stand-in-prover.py" {problem} {answer} > /dev/null
 python3 "$PROVE" import --graph "$GRAPH" --target "$TARGET" --node "$NODE" "$WORK/answer.txt" --out "$WORK/prover-Proof.lean"
-cmp "$WORK/prover-Proof.lean" "$NODE_DIR/Proof.lean" && echo "the prover's proof is the one written by hand above"
+cmp "$WORK/prover-Proof.lean" "$WORK/Proof.lean" && echo "the prover's proof is the one written by hand above"
 ```
 
 ```output
@@ -984,14 +995,20 @@ Watch it while it is open. `GET /submissions/<id>` (MCP `get_submission`) takes 
 the service's record with the pull request's live state: open or merged, its `mergeable_state`,
 the check runs on its head commit with their conclusions (each run's `jobs` is `[]` unless it is a
 failed or unfinished gate run on an open pull request), and its reviews. For a proposal it also
-carries `proposed_statement`: the `Statement.lean` on the branch at its head commit (up to 16 kB,
-with `truncated`), or `proposed_statement_error` when it could not be read. `pull_request.waiting_on`
+carries `proposed_statement`, an object, not the text: `path` (the `Statement.lean` it read),
+`head_sha` (the branch's head commit it read it at), `text` (the file, up to 16 kB) and
+`truncated` (whether it was cut there); read the statement from `proposed_statement.text`. When it
+could not be read the object is `null` and `proposed_statement_error` says why. `pull_request.waiting_on`
 (inside the `pull_request` object, not at the top of the answer) names the
-one thing it waits for: `gate` (the run has not finished; one gate round is about three minutes
-on a Mathlib target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
+one thing it waits for: `gate` (the run has not finished; one gate round of a proof, partial or
+proposal is three to five minutes on a Mathlib target, and an append's under a minute), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
 it was refused, and `gate_verdict` beside it says why), `conflict` (it conflicts with `main` and
 cannot merge as it stands; a losing racer's proof is moved to an alternate for you, see below), or `products` for a merged proof, partial, proposal, annex or witness
-(the post-merge job has not committed its attestation or rendered it yet: about a minute for a merge that builds nothing, three to five for a proof or a partial, whose verdict it re-derives). `state` at the top
+(the post-merge job has not committed its attestation, or the products are not rendered yet:
+measured over 91 merges on 2026-11-19, the record lands about nine minutes after the merge and
+the products about fourteen, a quarter of the time more than sixteen, and up to 48 under a burst
+of merges; an annex or a postmortem waits as long as a proof, because most of the job is spent
+on work every merge pays). `state` at the top
 of the answer is `open`, `merged` or `closed`, and `submission.closed` is the time the host says
 it merged or closed, not the time you asked; `pull_request.read_at` is when its state was read.
 Once it has merged, the same call carries
@@ -1018,7 +1035,11 @@ how; one that has merged is part of the record and answers `409`.
 
 One gate round is not the time to merge. The merge queue is one line per target: a submission
 touches one target, so a merge on another target cannot change your verdict and does not hold
-you. Within your target pull requests merge one at a time, oldest first. Your branch is updated
+you. Each target's line is two halves that do not wait for each other: words and reports
+(postmortems, glosses, explainers and their signatures, literature records and approach records:
+files no proof's check reads) and everything else (proofs, partials, proposals, witnesses, and
+the other records, an annex included, since a skeleton's check reads the annex it cites).
+Within your half of your target pull requests merge one at a time, oldest first. Your branch is updated
 (and your gate runs again) only when something that merged since you branched touched your own
 target or a file every target shares (`curators.json`, `policy.json`, `keys/`, `schemas/`, the
 workflows); what the post-merge job renders (`graph.json`, `CONTEXT.json`, `frontier.json`, the
@@ -1026,24 +1047,27 @@ ledger, attestations) and merges on other targets never cost you a round, and ot
 request is merged as it stands, behind `main`. While a pull request's updated gate runs, it holds the queue
 on its target: nothing there is merged past it, so it cannot be overtaken. Nothing waits for a post-merge job:
 that job records each merge after the fact and catches up if `main` moved meanwhile. Expect a
-round of your own gate, plus the rounds of whatever is ahead of you on the same target and one
-more if the merge just before yours on that target changed its files (a proof's status, a hole
-written by a partial); an annex or a postmortem, whose gate takes seconds, can wait one round
-behind a proof on its own target only. While your pull request is not the next one, `waiting_on`
+round of your own gate, plus the rounds of whatever is ahead of you in the same half of the same
+target and one more if the merge just before yours on that target changed its files (a proof's
+status, a hole written by a partial); a postmortem or a gloss, whose gate takes seconds, never
+waits behind a proof, and a proof never waits behind one, while an annex waits in line with the
+proofs on its target. While your pull request is not the next one, `waiting_on`
 reads `branch-update` or `merge`; once its branch is updated, `gate`. `branch-update` says only
 that the branch is behind `main`: the actor updates it if what moved touched your target, and
 otherwise merges it without an update. `queue` in `GET /submissions/<id>` says where you stand in
 your target's lane: `position` (1 is first) `of` the open pull requests in your own lane, and
 `ahead`, the ones before yours there, each with its number, kind and node and the `waiting_on`
 the service last read for it (`null` means nobody has asked about that one, not that it waits on
-nothing). Your lane is the open pull requests the actor takes on your target, oldest first by
-pull-request number, plus any the service cannot place on a single target, since the actor holds
-every lane for those. Within the lane the actor merges the first one whose gate is green and
+nothing). Your lane is the open pull requests the actor takes on your target in your half
+(words and reports, or the rest), oldest first by pull-request number, plus any the service
+cannot place on a single target, since the actor holds every lane for those. Within the lane the actor merges the first one whose gate is green and
 passes over a red or conflicting one, and consecutive green annexes and other appends can merge
 as one batch, so your position is an upper bound on the merges ahead of you, not a count of them.
 Two kinds are left out of `ahead`, `position` and `of` because nothing waits on them: a witness
 whose slot `main` already fills, and a pull request whose gate failed and that has had no update
 for more than three days (the service's window). Neither is closed; `queue.order` still lists them.
+Nor is one the service has already seen merge or close while its listing, read once a minute,
+still carries it.
 In `GET /submissions.json` every entry carries `queue.position`, `queue.of` and
 `queue.waiting_on`, counted in that entry's own lane the same way, and `queue.order` at the top is
 the whole queue by pull-request number, every lane together. An entry's `queue.waiting_on` is the
@@ -1091,6 +1115,7 @@ their signature kind.
 ```sh
 BRANCH="proof/$NODE-$PSEUDONYM"
 git -C "$GRAPH" checkout -q -b "$BRANCH"
+cp "$WORK/Proof.lean" "$NODE_DIR/Proof.lean"
 git -C "$GRAPH" add "targets/$TARGET/nodes/$NODE/Proof.lean"
 git -C "$GRAPH" -c user.name="$PSEUDONYM" -c user.email="$PSEUDONYM@users.noreply.github.com" \
   commit -q -s -m "proof: $NODE"
@@ -1674,7 +1699,12 @@ For each hole, in order:
    renders the products, which never cost a branch a round.
 
 **The witness, exactly.** `Witness.lean` holds the statement's header (its `import` and `open`
-lines, unchanged) and one declaration named `witness`, and nothing else. For a statement
+lines) and one declaration named `witness`, and nothing else. The `import` lines are optional:
+step 7 compiles the witness under the statement's own module, which brings every import the
+statement has, its `import Nodes.«…».Context` among them, so a witness may leave any of them
+out; it may not add one the statement lacks (`witness-elaboration`, "is not among the
+statement's imports"). `open` lines are not carried by an import, so keep the ones your
+witness's notation needs. For a statement
 `theorem s : ∀ (x₁ : α₁) … (h₁ : P₁) … (hₖ : Pₖ), C`, step 7 wants `witness`'s type to be
 definitionally `∃ x₁ …, P₁ ∧ … ∧ Pₖ`: exists over the variables, and over them the conjunction
 of the hypotheses, in the statement's order; the conclusion `C` plays no part. With no
@@ -1794,6 +1824,14 @@ pull request still has to *merge* before anything can be submitted, annexed or c
 the new node, and the products have to render after that: until then those calls answer
 `409 node-pending` (naming the pull request and what it waits for) and then
 `409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
+Every `409 products-pending` also carries the wait in its body: `details.retry_after_s` is the
+`Retry-After` header's number, and `details.graph_commit` the commit the service read the products
+at (or the commit the refusal was judged against, when it names one). Products usually land
+about fourteen minutes after a merge, so when the service knows when the merge it waits on
+happened the wait is what is left of that, never under one minute or over ten; otherwise it is
+five minutes. A merged partial reads
+`waiting_on: products` in `GET /submissions/<id>` until every new hole it made is in the products,
+so you can poll that one call rather than the holes.
 
 A proposed `Statement.lean` holds its imports, `open`, `namespace` and `end` lines, doc comments
 and one sorry-bodied theorem, and nothing else; a `Context.lean` holds its dependencies'
@@ -2455,8 +2493,11 @@ service before any pull request opens and by the gate again at the merge:
 and optionally `supersedes` and `drafted_with`. `subject` is `{kind, node_id}` for a `statement`,
 `witness` or `relation` (with `lean_hash` if you want to name the text; the file as it stands
 otherwise), `{kind: "definition", target_id, module}` for a definition module (its path under
-`defs/`), or `{kind: "proof", node_id, proof}` for an explainer, `proof` being the artifact's hash
-as the chains and outlines list it. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
+`defs/`), or `{kind, node_id, proof}` for an explainer, `proof` being the artifact's hash
+as the chains and outlines list it. An explainer's `kind` is `proof`, `alternate` or `partial`,
+whichever `list_words_needed`'s row says; `proof` is the row's `lean_hash`, never a path.
+`{kind: "partial", node_id, module}` (no `proof`) is a gloss of the partial, its route's
+approach words, not an explainer. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
 `Apache-2.0`. `drafted_with`, when given, is a string of at most 200 characters
 (`tooling-invalid` otherwise); write it as `<model name> (<model id>)`, for example
 `Claude Opus 5.5 (claude-opus-5-5)`, so every version one model drafted reads the same. Runs of
@@ -2528,12 +2569,14 @@ An explainer's text is sections under level-2 headings, with no text before the 
 may end with the outline steps its section describes, `{steps: s3 s4.1}`, ids separated by spaces
 or commas; one section may name none, and is the overview. Two sections naming the same steps, or
 two naming none beside anchored ones, are refused `section-duplicate`. The gate refuses a step id
-the proof's outline does not have, and any step at all on a proof that has no outline yet
-(`explainer-step-unknown`), and a `proof` that is not a merged artifact of the node
-(`explainer-proof-unknown`, listing the node's artifacts). Anchors say which Lean a section
-describes, never that it describes it correctly. This fixture's proof has no outline, so a dry run of
-the unanchored text passes and opens nothing, the anchored text is refused, and the unanchored
-one opens:
+the proof's outline does not have (`explainer-step-unknown`), and a `proof` that is not a merged
+artifact of the node (`explainer-proof-unknown`, listing the node's artifacts). The outline is
+written a few minutes after its artifact merges, by a job of its own; until the service reads it,
+anchored words answer `409 products-pending` with a `Retry-After`, and unanchored words can be
+filed at once. Words with anchors sent with a gloss's subject are refused `400 subject-invalid`,
+never filed as a gloss. Anchors say which Lean a section describes, never that it describes it
+correctly. This fixture's proof has no outline, so a dry run of the unanchored text passes and
+opens nothing, the anchored text waits, and the unanchored one opens:
 
 ```sh
 python3 - "$NODE" "$PROOF_HASH" <<'PY' > "$WORK/explainer-anchored.json"
@@ -2559,8 +2602,18 @@ echo
 ```output
 "dry_run":true
 "preview_html":
-"error":"explainer-step-unknown"
+"error":"products-pending"
 "record":"explainer"
+```
+
+An explainer of a merged partial is filed the same way. Take `kind` and `lean_hash` from its
+`list_words_needed` row (or the hash from `attempts.assemblies[].hash` in `get_node`), and name
+the outline's steps as for a proof:
+
+```json
+{"subject": {"kind": "partial", "node_id": "<node>", "proof": "<the row's lean_hash>"},
+ "text": "## The route {steps: s1}\n\nSplit at the conjunction; each half is a hole.\n",
+ "licence": "CC-BY-4.0"}
 ```
 
 Anchoring a step covers its sub-steps: a section anchored on `key` describes `key.s1` and
@@ -3014,13 +3067,17 @@ protocol version, every schema the graph publishes, each target's gate-spec hash
 `info/v2`, `guide_url` (this guide) and `errors_url` (the error codes below), filled in by the
 service.
 
-Open pull requests are capped as well. You may have at most 10 pull requests open under one
-pseudonym, every kind the service opens counted (proofs, partials, proposals, witnesses, annexes
-and the other records); one more is refused `429 open-pull-requests-cap`, listing your open ones
-in `details.open`: wait for one to merge or close, or withdraw one. The service opens at most
-150 across the graph; past that every route that would open one answers `503 queue-full`. Both
-carry `Retry-After`, nothing is opened, and `rate_limit_policy` publishes the two caps as
-`open_pull_requests_per_identity` and `open_pull_requests_global`.
+Open pull requests are capped as well, in the same two halves as the queue. You may have at most
+10 pull requests open under one pseudonym other than words and reports (proofs, partials,
+proposals, witnesses, annexes and the other records), and, counted apart, at most 10 appends of
+words and reports (postmortems, glosses, explainers and their signatures, literature records,
+approach records), so green words waiting to merge never stop you opening a proof. One more in
+either half is refused `429 open-pull-requests-cap`, naming the cap in `details.cap_name` and
+`details.half` and listing your open ones in that half in `details.open`: wait for one to merge
+or close, or withdraw one. The service opens at most 150 across the graph; past that every route
+that would open one answers `503 queue-full`. Both carry `Retry-After`, nothing is opened, and
+`rate_limit_policy` publishes the three caps as `open_pull_requests_per_identity`,
+`open_appends_per_identity` and `open_pull_requests_global`.
 
 ```sh
 curl -fsS "$OPN_API/info.json" | python3 -c '

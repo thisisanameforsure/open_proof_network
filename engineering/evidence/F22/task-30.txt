@@ -1,0 +1,37 @@
+F22-T30 — a dry run's preview_html shows an explainer's step anchors as the site does
+(2026-11-19 run, finding B17c)
+
+Finding
+-------
+POST /glosses with dry_run: true answered preview_html from prose.render over the whole text, so
+`## The bound {steps: s1}` came back as a heading reading "The bound {steps: s1}". The site never
+shows the anchor as written: Renderer.version_words prints each section's heading followed by
+`<span class="po-id">(s1)</span>`.
+
+Red run (before the fix)
+------------------------
+uv run --frozen pytest api/tests/test_finding_dry_run_anchor_heading.py -m "not lean and not docker" -q
+E       assert '{steps' not in '<h5>The ide...</span>.</p>'
+E           p$</span> {steps: s1 s2}</h5>
+1 failed, 1 passed   (the pass: a gloss's preview is unchanged)
+
+Fix
+---
+api/opn_api/glosses.py: `preview_html(text, explainer=...)`. For an explainer it renders section by
+section exactly as Renderer.version_words does (heading through prose.inline_math, the steps as
+`(ids)` in a po-id span, each section's text through prose.render with math); a gloss keeps
+prose.render. The site's renderer is mirrored rather than imported, because the function packages
+only opn_site's modules and render.py is the site generator; the test holds the two equal
+(`assert html == Renderer.version_words(VersionView(...))`).
+
+Green run
+---------
+uv run --frozen pytest api/tests/test_finding_dry_run_anchor_heading.py \
+  api/tests/test_finding_gloss_dry_run.py api/tests/test_mcp_glosses.py -m "not lean and not docker" -q
+22 passed
+make lint: exit 0. make types: exit 0.
+
+Not done
+--------
+The site shows a gloss with breakable_opening (F04-T51) around the prose; the gloss preview was
+left as prose.render, since only the explainer heading was reported.

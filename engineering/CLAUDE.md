@@ -1867,3 +1867,13 @@ The law of the project:
   guide-copy test was said to fail on `origin/main` too; `cmp` of the two committed blobs said identical, and the
   failure was this branch's own guide edits. Also: the ledger appends once per merge, so a fix to what a line
   says never reaches the lines already written (31 postmortem/v2 lines read `undeclared`).
+
+- 2026-11-20 — The run's throughput half (B1–B3, B8–B17) built by five worktree agents in one sitting, test first.
+  Three things worth keeping. **A replay runs the gate its merge pinned**, so a gate fix can never credit a merge
+  made before the re-pin: #1549's replay under 829fc8ac failed `pair-not-open` exactly as before, and the plan to
+  "dispatch it once more" had been wrong from the start; only a curator credit correction reaches it. **Measure the
+  slow thing before guessing its fix**: the post-merge wait was 14 minutes, not 3, and two-thirds of an append
+  batch's job was a closure sweep re-joining erdos-1050 on every merge, because the sweep ran on a `git archive`
+  copy where F08-T10's lift-by-ancestry cannot see history (the 2026-10-04 lesson about `check_products.py`, paid
+  again in a third command). **Two green branches met at a signature**: the service branch made `awaits_render`
+  take the context, the words branch added a caller without it; `make types` after the merge found it in seconds.

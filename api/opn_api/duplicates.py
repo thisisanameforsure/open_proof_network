@@ -112,11 +112,17 @@ def open_rivals(ctx: Context, node_id: str, kinds: frozenset[str]) -> list[Submi
     ]
 
 
-def refused(message: str, found: Submission | None = None, **extra: Any) -> ApiError:
+def refused(
+    message: str,
+    found: Submission | None = None,
+    *,
+    headers: dict[str, str] | None = None,
+    **extra: Any,
+) -> ApiError:
     details: dict[str, Any] = dict(extra)
     if found is not None:
         details |= {"pr_number": found.pr_number, "pr_url": found.pr_url, "submission_id": found.id}
-    return ApiError(409, ERROR, message, details=details)
+    return ApiError(409, ERROR, message, details=details, headers=headers)
 
 
 @contextmanager
@@ -138,18 +144,69 @@ def holding(ctx: Context, keys: list[str], what: str) -> Iterator[None]:
 
 
 def take(ctx: Context, keys: list[str], what: str) -> None:
-    """Refuse the second of two identical requests arriving together."""
+    """Refuse the second of two identical requests arriving together. F07-T85 (bug B11): the
+    refusal says which slot matched (``slot_matched``) rather than calling every match identical,
+    and names the open pull request holding it when the service has its record."""
     for key in keys:
         if claim_slot(ctx, key) > 1:
             wait = SLOT_WINDOW_S - int(ctx.clock.now().timestamp()) % SLOT_WINDOW_S
-            raise ApiError(
-                409,
-                ERROR,
-                f"an identical {what} for this node was submitted in the last "
-                f"{SLOT_WINDOW_S // 60} minutes; read GET /submissions.json, and if it is not "
-                "there (its pull request failed to open), submit again after Retry-After",
+            matched, said = slot_matched(key, what)
+            holder = slot_holder(ctx, key)
+            minutes = SLOT_WINDOW_S // 60
+            if holder is not None:
+                after = (
+                    f", as pull request #{holder.pr_number} ({holder.pr_url}); read "
+                    f"GET /submissions/{holder.pr_number}, and send this again after Retry-After "
+                    "if that pull request no longer stands in its way"
+                )
+            else:
+                after = (
+                    "; read GET /submissions.json, and if it is not there (its pull request "
+                    "failed to open), submit again after Retry-After"
+                )
+            raise refused(
+                f"{said} was submitted in the last {minutes} minutes{after}",
+                holder,
                 headers={"Retry-After": str(wait)},
+                matched=matched,
             )
+
+
+#: F07-T85: what a slot key held, for the refusal's ``details.matched``.
+MATCHED_TEXT = "text"  # the content's fingerprint: identical once comments and spaces are set aside
+MATCHED_SUBJECT = "subject"  # a gloss's or explainer's subject (F21-R5, ``words_key``)
+MATCHED_HEAD = "chain-head"  # the version a superseding one supersedes (F22-T1, ``supersedes_key``)
+MATCHED_SLOT = "slot"  # a node's one slot of a kind: a hole's witness, a statement's proposal
+
+
+def slot_matched(key: str, what: str) -> tuple[str, str]:
+    """``details.matched`` for a slot key, and the words that say it."""
+    if key.startswith("words:"):
+        return MATCHED_SUBJECT, f"another {what} for the same subject"
+    if key.startswith("supersedes:"):
+        return MATCHED_HEAD, f"another {what} superseding the same version"
+    _kind, owner, content = [*key.split("#", 2), "", ""][:3]
+    if content:
+        return MATCHED_TEXT, f"an identical {what} for {owner}"
+    return MATCHED_SLOT, f"another {what} for {owner}"
+
+
+def slot_holder(ctx: Context, key: str) -> Submission | None:
+    """The open record that holds ``key``, newest first, from the store alone (no host read):
+    a subject or chain head by the fingerprint it records, a content slot by the content's
+    fingerprint, a witness or proposal slot by its node. ``None`` while the holder's pull request
+    is still opening, before it is recorded."""
+    records = ctx.store.list_open_submissions()
+    if key.startswith(("words:", "supersedes:")):
+        found = [r for r in records if key in r.fingerprints]
+    else:
+        kind, owner, content = [*key.split("#", 2), "", ""][:3]
+        if content:
+            found = [r for r in records if content in r.fingerprints]
+        else:
+            kinds = {"witness"} if kind == "witness" else {"speculative", "variant"}
+            found = [r for r in records if r.node_id == owner and r.kind in kinds]
+    return max(found, key=lambda r: r.pr_number) if found else None
 
 
 # --- per kind -------------------------------------------------------------------------------------

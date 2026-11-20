@@ -1,0 +1,318 @@
+F07-T87 — post-merge products lag (B2, 2026-11-19 run): measured, explained, guide corrected
+
+FINDING. Agents saw products 6–16+ min after a merge (median ~9) while the guide said "about a
+minute for a merge that builds nothing, three to five for a proof or a partial".
+
+METHOD (read-only). Graph repo thisisanameforsure/open_proof_network_graph:
+  gh run list -w gate.yml --event push -L 200 --json ...   (189 push runs, 2026-11-19 12:30Z – 2026-11-20)
+  gh run view <id> --json jobs,displayTitle,createdAt,headSha,event   (step timings, every run)
+  gh run list -w render.yml; gh run view <id> --json jobs             (23 render runs, 13:00–16:30Z)
+  gh run view --job 135600953792 --log (#1516), --job 135692437467 --log (#1600)   (the sweep's own lines)
+  git log origin/main --first-parent (graph at ee5c6d100d)            (merge, gate and render commit times)
+For each "Merge pull request #N" on main: queue = postmerge job start − run created; each step's
+duration; credit = the first `gate: … #N …` commit after the merge; products = the first commit
+after the merge that carries the products (the gate commit if it touched frontier.json or a
+targets/*/graph.json, else the next `gate: render`). "build" = the job's re-derive step ran.
+No merges landed on 2026-11-20 before this measurement (only the re-pin and its render), so
+"today" adds no rows. Script: kept beside the evidence below.
+
+TABLE (minutes; merged in UTC):
+All times in minutes. merged = merge commit time (UTC). credit = the `gate: #N` commit after the merge;
+products = the first commit after the merge that carries this merge's products (its own gate commit
+when that touched frontier.json/graph.json, else the next `gate: render`).
+
+   PR kind    build merged      queue    setup classify rederive     join products     push      job   credit products    cache  credited by
+ 1504 propose False 13:28:18      0.1      0.5      0.1      0.0      6.0      1.8      0.1      8.5      8.4     11.5        -  gate: #1504 pass · cc @thisisanameforsure @riversupport
+ 1505 submit  True  13:31:27      0.1      0.7      0.1      1.9      2.7      1.2      0.1      6.9      6.8      8.4      2.5  gate: #1505 pass · cc @WilliamVerreault
+ 1508 submit  True  13:33:46      0.0      0.5      0.1      3.3      3.3      1.2      0.1      8.5      8.4     14.3      7.7  gate: #1508 pass · cc @thisisanameforsure
+ 1506 submit  True  13:36:15      0.0      0.5      0.1      2.9      3.1      0.9      0.1      7.8      7.7     11.8      2.5  gate: #1506 pass · cc @WilliamVerreault
+ 1509 append  False 13:40:22      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.3      7.9     14.7        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1510 append  False 13:40:26      0.1      0.1      0.0      0.0      0.0      0.0      0.0      0.2      7.8     14.6        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1511 append  False 13:40:29      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.3      7.8     14.6        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1512 append  False 13:40:32      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4      7.7     14.5        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1513 append  False 13:40:36      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4      7.6     14.4        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1514 append  False 13:40:39      0.0      0.3      0.0      0.0      0.0      0.0      0.0      0.3      7.6     14.4        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1515 append  False 13:40:42      0.0      0.2      0.0      0.0      0.0      0.0      0.0      0.2      7.5     14.3        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1516 append  False 13:40:46      0.1      0.6      0.1      0.0      5.2      1.2      0.2      7.6      7.5     14.3        -  gate: #1509 #1510 #1511 #1512 #1513 #1514 #1515 #1516 pass ·
+ 1507 submit  True  13:45:24      0.0      0.3      0.0      2.8      2.9      0.8      0.1      7.2      7.1      9.6      3.7  gate: #1507 pass · cc @WilliamVerreault
+ 1517 append  False 13:46:22      0.1      0.5      0.1      0.0      6.2      1.6      0.1      8.7     15.1     27.4        -  gate: #1517 pass (replayed) · cc @WilliamVerreault
+ 1521 append  False 13:48:38      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3     14.5     25.1        -  gate: #1521 pass (replayed) · cc @WilliamVerreault
+ 1522 append  False 13:48:41      0.1      0.6      0.1      0.0      4.6      1.2      0.1      6.7     13.6     25.1        -  gate: #1522 pass (replayed) · cc @WilliamVerreault
+ 1520 propose False 13:50:01      0.1      0.7      0.1      0.0      5.2      1.3      0.2      7.6     13.6     23.8        -  gate: #1520 pass (replayed) · cc @thisisanameforsure @rivers
+ 1523 append  False 13:55:21      0.1      0.6      0.1      0.0      5.7      1.2      0.2      8.0      7.8     18.4        -  gate: #1523 pass · cc @WilliamVerreault · cc @thisisanamefor
+ 1524 submit  True  13:59:22      0.1      0.5      0.0      2.1      2.6      1.2      0.1      6.8      6.8     14.4      3.7  gate: #1524 pass · cc @WilliamVerreault
+ 1525 append  False 14:00:27      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3     14.0     16.5        -  gate: #1525 pass (replayed) · cc @WilliamVerreault
+ 1527 append  False 14:00:31      0.0      0.5      0.0      0.0      5.5      1.2      0.1      7.5      7.3     13.3        -  gate: #1527 pass · cc @WilliamVerreault
+ 1530 append  False 14:01:37      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3     13.6     15.3        -  gate: #1530 pass (replayed) · cc @WilliamVerreault
+ 1531 append  False 14:01:40      0.1      0.5      0.0      0.0      6.3      1.2      0.2      8.5      8.3     12.1        -  gate: #1531 pass · cc @WilliamVerreault
+ 1526 propose False 14:02:40      0.1      0.6      0.1      0.0      4.2      1.3      0.2      6.5      6.3     11.1        -  gate: #1526 pass · cc @thisisanameforsure @riversupport
+ 1518 submit  True  14:04:06      0.1      0.6      0.0      2.5      2.9      1.5      0.2      8.0      7.8      9.7     10.3  gate: #1518 pass · cc @thisisanameforsure
+ 1532 submit  True  14:10:32      0.1      0.6      0.1      3.1      3.9      1.6      0.1      9.6      9.6     14.3      7.6  gate: #1532 pass · cc @thisisanameforsure
+ 1534 append  False 14:11:34      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      7.6     13.3        -  gate: #1534 #1535 #1536 pass · cc @WilliamVerreault · cc @th
+ 1535 append  False 14:11:38      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      7.5     13.2        -  gate: #1534 #1535 #1536 pass · cc @WilliamVerreault · cc @th
+ 1536 append  False 14:11:42      0.1      0.6      0.1      0.0      5.6      0.9      0.1      7.5      7.4     13.2        -  gate: #1534 #1535 #1536 pass · cc @WilliamVerreault · cc @th
+ 1537 append  False 14:19:36      0.1      0.7      0.0      0.0      5.0      1.2      0.1      7.3      7.2     11.2        -  gate: #1537 pass · cc @WilliamVerreault
+ 1538 append  False 14:20:46      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      8.0     10.1        -  gate: #1538 #1539 #1540 #1541 pass · cc @WilliamVerreault
+ 1539 append  False 14:20:50      0.0      0.2      0.0      0.0      0.0      0.0      0.0      0.2      7.9     10.0        -  gate: #1538 #1539 #1540 #1541 pass · cc @WilliamVerreault
+ 1540 append  False 14:20:53      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.2      7.8      9.9        -  gate: #1538 #1539 #1540 #1541 pass · cc @WilliamVerreault
+ 1541 append  False 14:20:58      0.0      0.4      0.1      0.0      5.5      1.6      0.1      7.8      7.8      9.8        -  gate: #1538 #1539 #1540 #1541 pass · cc @WilliamVerreault
+ 1544 append  False 14:22:25      0.0      0.5      0.1      0.0      5.3      1.8      0.1      8.7      8.7     10.9        -  gate: #1544 pass · cc @WilliamVerreault
+ 1533 submit  True  14:25:44      0.1      0.7      0.1      5.1      3.0      1.2      0.2     10.5     10.4     14.7      9.5  gate: #1533 pass · cc @thisisanameforsure @riversupport
+ 1546 append  False 14:26:56      0.0      0.5      0.1      0.0      5.9      1.8      0.1      9.8     16.2     24.7        -  gate: #1546 pass (replayed) · cc @WilliamVerreault
+ 1549 append  False 14:28:02      0.1      0.5      0.1      0.0      4.8      1.2      0.1      8.0        -        -        -  -
+ 1553 submit  True  14:36:03      0.1      0.5      0.1      3.4      3.6      1.8      0.2      9.8      9.6     15.6      2.7  gate: #1553 pass · cc @WilliamVerreault
+ 1543 submit  True  14:37:40      0.1      0.5      0.1      5.0      2.6      1.2      0.1      9.6      9.5     14.0     14.8  gate: #1543 pass · cc @thisisanameforsure @riversupport
+ 1542 submit  True  14:38:57      0.1      0.6      0.0      4.2      2.9      1.4      0.2      9.5      9.4     12.7      8.5  gate: #1542 pass · cc @thisisanameforsure
+ 1555 append  False 14:41:18      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.2     14.1     15.6        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1569 append  False 14:41:22      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4     14.0     15.6        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1572 append  False 14:41:26      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3     13.9     15.5        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1573 append  False 14:41:29      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4     13.9     15.4        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1575 append  False 14:41:34      0.0      0.2      0.0      0.0      0.0      0.0      0.0      0.2     13.8     15.4        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1577 append  False 14:41:38      0.0      0.2      0.0      0.0      0.0      0.0      0.0      0.3     13.8     15.3        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1579 append  False 14:41:43      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.2     13.7     15.2        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1580 append  False 14:41:47      0.0      0.7      0.1      0.0      5.7      1.2      0.3      9.4     13.6     15.2        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1564 submit  True  14:43:11      0.1      0.6      0.1      3.1      4.0      1.9      0.5     10.4     10.0     13.8      3.5  gate: #1564 pass · cc @WilliamVerreault
+ 1545 submit  True  14:45:01      0.1      0.7      0.0      2.9      3.1      1.4      0.4      8.8      8.4     11.9      7.8  gate: #1545 pass · cc @thisisanameforsure
+ 1582 append  False 14:45:05      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4     10.3     11.8        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1584 append  False 14:45:09      0.1      0.7      0.1      0.0      6.0      1.8      0.3     10.4     10.2     11.8        -  gate: #1555 #1569 #1572 #1573 #1575 #1577 #1579 #1580 #1582 
+ 1547 append  False 14:46:54      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4     25.0     48.1        -  gate: #1547 pass (replayed) · cc @thisisanameforsure
+ 1548 append  False 14:46:58      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4     25.2     48.0        -  gate: #1548 pass (replayed) · cc @thisisanameforsure
+ 1550 append  False 14:47:01      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4     24.6     48.0        -  gate: #1550 pass (replayed) · cc @thisisanameforsure
+ 1551 append  False 14:47:05      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4     26.6     47.9        -  gate: #1551 pass (replayed) · cc @thisisanameforsure
+ 1556 append  False 14:47:09      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3     26.4     47.8        -  gate: #1556 pass (replayed) · cc @thisisanameforsure
+ 1585 append  False 14:47:17      0.1      0.7      0.1      0.0      5.8      1.6      0.3     12.1     27.9     47.7        -  gate: #1585 pass (replayed) · cc @WilliamVerreault
+ 1583 append  False 14:49:44      0.1      0.7      0.1      0.0      5.5      1.9      0.3     13.6        -        -        -  -
+ 1558 append  False 14:52:23      1.3      0.3      0.0      0.0      0.0      0.0      0.0      0.4     27.5     42.6        -  gate: #1558 pass (replayed) · cc @thisisanameforsure
+ 1559 append  False 14:52:26      1.6      0.2      0.0      0.0      0.0      0.0      0.0      0.3     28.9     42.5        -  gate: #1559 pass (replayed) · cc @thisisanameforsure
+ 1581 append  False 14:52:30      2.0      0.7      0.1      0.0      4.2      1.3      0.3      9.9     28.7     42.5        -  gate: #1581 pass (replayed) · cc @thisisanameforsure @rivers
+ 1592 append  False 14:58:43      6.3      0.2      0.0      0.0      0.0      0.0      0.0      0.3     29.0     36.3        -  gate: #1592 #1591 #1595 pass · cc @WilliamVerreault · cc @th
+ 1552 submit  True  15:04:27     10.8      0.7      0.0      2.7      3.0      1.4      0.2      8.2     18.8     30.5     14.3  gate: #1552 pass · cc @thisisanameforsure @riversupport
+ 1557 submit  True  15:04:31     10.8      0.6      0.1      3.2      3.5      1.3      0.2      9.1     19.7     30.5      7.6  gate: #1557 pass · cc @thisisanameforsure
+ 1591 append  False 15:05:56     10.2      0.3      0.0      0.0      0.0      0.0      0.0      0.4     21.8     29.1        -  gate: #1592 #1591 #1595 pass · cc @WilliamVerreault · cc @th
+ 1598 submit  True  15:10:03      6.1      0.5      0.1      3.7      3.4      1.6      0.3      9.8     15.6     24.9      2.8  gate: #1598 pass · cc @WilliamVerreault
+ 1594 propose False 15:16:35      1.8      0.6      0.0      0.0      4.1      1.4      0.3      6.5      8.0     18.4        -  gate: #1594 pass · cc @thisisanameforsure @riversupport
+ 1595 append  False 15:18:57      0.2      0.6      0.1      0.0      5.6      2.0      0.2      8.7      8.8     16.0        -  gate: #1592 #1591 #1595 pass · cc @WilliamVerreault · cc @th
+ 1560 submit  True  15:20:52      0.1      0.7      0.0      3.3      2.9      1.5      0.2      8.8      8.6     14.1      7.6  gate: #1560 pass · cc @thisisanameforsure
+ 1561 append  False 15:22:49      0.0      0.2      0.0      0.0      0.0      0.0      0.0      0.2      9.3     12.2        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1562 append  False 15:22:53      0.0      0.2      0.0      0.0      0.0      0.0      0.0      0.3      9.3     12.1        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1563 append  False 15:22:57      0.0      0.3      0.0      0.0      0.0      0.0      0.0      0.4      9.2     12.0        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1565 append  False 15:23:01      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4      9.1     12.0        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1566 append  False 15:23:05      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      9.1     11.9        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1567 append  False 15:23:09      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.2      9.0     11.8        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1568 append  False 15:23:13      0.1      0.6      0.1      0.0      5.9      2.0      0.1      9.2      8.9     11.8        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1570 append  False 15:25:09      0.0      0.2      0.0      0.0      0.0      0.0      0.0      0.2      7.0      9.8        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1571 append  False 15:25:13      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4      6.9      9.8        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1574 append  False 15:25:17      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      6.9      9.7        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1576 append  False 15:25:21      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      6.8      9.6        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1578 append  False 15:25:26      0.1      0.7      0.1      0.0      4.1      1.3      0.3      6.9      6.7      9.6        -  gate: #1561 #1562 #1563 #1565 #1566 #1567 #1568 #1570 #1571 
+ 1587 append  False 15:30:11      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4      7.3      9.6        -  gate: #1587 #1588 #1589 #1590 #1593 pass · cc @WilliamVerrea
+ 1588 append  False 15:30:15      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.3      7.3      9.6        -  gate: #1587 #1588 #1589 #1590 #1593 pass · cc @WilliamVerrea
+ 1589 append  False 15:30:19      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      7.2      9.5        -  gate: #1587 #1588 #1589 #1590 #1593 pass · cc @WilliamVerrea
+ 1590 append  False 15:30:22      0.1      0.2      0.0      0.0      0.0      0.0      0.0      0.3      7.2      9.4        -  gate: #1587 #1588 #1589 #1590 #1593 pass · cc @WilliamVerrea
+ 1593 append  False 15:30:26      0.1      0.5      0.1      0.0      5.1      1.0      0.2      7.2      7.1      9.4        -  gate: #1587 #1588 #1589 #1590 #1593 pass · cc @WilliamVerrea
+ 1597 append  False 15:35:44      0.1      0.3      0.0      0.0      0.0      0.0      0.0      0.4      8.8     12.4        -  gate: #1597 #1599 pass · cc @WilliamVerreault · cc @thisisan
+ 1599 append  False 15:35:48      0.1      0.5      0.1      0.0      5.8      1.9      0.2      8.8      8.7     12.4        -  gate: #1597 #1599 pass · cc @WilliamVerreault · cc @thisisan
+ 1586 submit  True  15:43:01      0.1      0.7      0.0      3.1      3.8      1.4      0.2      9.5      9.3     11.4      8.1  gate: #1586 pass · cc @thisisanameforsure
+ 1596 submit  True  15:48:59      0.1      0.6      0.1      2.9      2.7      1.4      0.2      8.0      7.9      9.8      8.6  gate: #1596 pass · cc @thisisanameforsure
+ 1600 submit  True  16:03:06      0.0      0.5      0.1      3.2      3.3      1.6      0.2      8.9      8.8     10.7      8.4  gate: #1600 pass · cc @thisisanameforsure
+
+building merges: n=20
+  median queue_s      0.1 min   (min 0.0, max 10.8, n=20)
+  median setup        0.6 min   (min 0.3, max 0.7, n=20)
+  median classify     0.1 min   (min 0.0, max 0.1, n=20)
+  median rederive     3.1 min   (min 1.9, max 5.1, n=20)
+  median join         3.0 min   (min 2.6, max 4.0, n=20)
+  median products     1.4 min   (min 0.8, max 1.9, n=20)
+  median push         0.2 min   (min 0.1, max 0.5, n=20)
+  median job_s        8.9 min   (min 6.8, max 10.5, n=20)
+  median credit_s     9.1 min   (min 6.8, max 19.7, n=20)
+  median products_s  13.9 min   (min 8.4, max 30.5, n=20)
+  median cache_s      7.7 min   (min 2.5, max 14.8, n=20)
+non-building merges (appends etc.): n=73
+  median queue_s      0.1 min   (min 0.0, max 10.2, n=73)
+  median setup        0.3 min   (min 0.1, max 0.7, n=73)
+  median classify     0.0 min   (min 0.0, max 0.1, n=73)
+  median rederive     0.0 min   (min 0.0, max 0.0, n=73)
+  median join         0.0 min   (min 0.0, max 6.3, n=73)
+  median products     0.0 min   (min 0.0, max 2.0, n=73)
+  median push         0.0 min   (min 0.0, max 0.3, n=73)
+  median job_s        0.4 min   (min 0.2, max 13.6, n=73)
+  median credit_s     8.8 min   (min 6.3, max 29.0, n=71)
+  median products_s  14.3 min   (min 9.4, max 48.1, n=71)
+
+Percentiles (minutes from the merge commit):
+  building      record (gate: #N)  n=20 p25 7.9  median  9.1  p75  9.6  p90 15.6  max 19.7
+  building      products           n=20 p25 11.4 median 13.9  p75 14.4  p90 24.9  max 30.5
+  non-building  record             n=71 p25 7.6  median  8.8  p75 13.9  p90 25.2  max 29.0
+  non-building  products           n=71 p25 11.8 median 14.3  p75 16.5  p90 42.5  max 48.1
+  all           products           n=91 p25 11.4 median 14.1  p75 16.0  p90 36.3  max 48.1
+Gate rounds on pull requests (pull_request runs 13:00–16:30Z): append n=74 median 0.6 min
+(p75 0.7); submit/propose n=60 median 3.7 (p25 3.1, p75 4.5, max 7.6).
+
+WHERE THE TIME GOES
+1. Queue wait before the job: ~0.1 min, except a burst at 14:52–15:10Z (1–11 min, runner
+   availability). Not a lever.
+2. The post-merge job: building merges 8.9 min median = setup 0.6 + classify 0.1 + re-derive 3.1
+   (image pull ~2 min inside it) + JOIN 3.0 + products 1.4 + push 0.2. Non-building: the batch's
+   head run (26 runs) 8.25 min median, of which JOIN is 5.5 min and products 1.3; the other runs
+   of a batch end in 0.3 min and leave their merges to the head (F07-T45), which is why an append
+   waits as long as a proof.
+3. JOIN is the closure sweep (F28-T9, `opn-gate close --all --no-build`), run on every merge.
+   Both logs read show the same two joins attempted and failing, every run:
+     erdos-1050  erdos-1050@1 join-failed "hole borwein: no child closes it: erdos-1050--h1-v2:
+                 erdos_1050__h1 is not declared"
+     tutorial    variant-93e79cb5@2 join-failed "hole h₁: no child closes it: variant-93e79cb5--h3:
+                 variant_93e79cb5__h3 is not declared"
+   In #1516's run (an append batch head) the sweep pulled the Mathlib image (118 s) and the core
+   image (43 s) only for these, and spent ~2.4 min composing the erdos-1050 join; nothing was
+   recorded. So an append merge DOES pull the 3.8 GB Mathlib image — not for a replay (the
+   re-derive step is skipped) but for the sweep's dead joins.
+4. The products never ride in the job's own commit: all 52 `gate: #N` commits of 2026-11-19
+   carry the record only (none touches frontier.json). The job runs ~9 min, main always moves
+   meanwhile, so publish (F07-T55) takes the catch-up path: record only, then dispatches
+   render.yml. Merge→record median 8.8–9.1 min; record→products median 3.7 (non-building) / 4.2
+   (building) min, max 23.
+5. render.yml: concurrency group `render` (one running, one pending): median queue 120 s (max
+   300); job median 264 s (max 744) = render 81 s + commit-and-push 157 s median (max 617),
+   because a refused push renders again on main as it is (F07-T60), and main moves under an
+   81 s render during a burst.
+6. The cache job (building merges only) runs after the record is pushed: median 7.7 min
+   (2.5–14.8). It does not delay the products. The outline job likewise (~11 min on #1600).
+
+WHAT WAS CHANGED: nothing in the workflow. Every lever found touches what the brief excludes:
+ a. Fix the two dead joins (F28's closer cannot find a revised child's declaration under its
+    original theorem name, `erdos_1050__h1` for `-h1-v2`, and the same for a tutorial-variant
+    hole). Fixing them makes each join succeed once and record a closure, i.e. it changes what
+    is attested; it is a closure bug for the lead to file (F28), not a speed-up to make here.
+    Expected saving once fixed: ~3 min of every building merge's job and ~5 of an append batch
+    head's (no image pull, nothing to compose), which should also let more first pushes land
+    with their products and skip the render.yml round (point 4).
+ b. Memoise failed joins keyed by (node, link, every input's file hashes, render pin): a join
+    that failed on identical inputs fails again, and a failed join records nothing, so skipping
+    it changes no record. Needs a store across runs (actions/cache on main) and a network change
+    behind a re-pin; a new mechanism, so described, not built.
+ c. Skip the sweep on a merge that builds nothing: NOT safe as is. F32-Q11 relies on the next
+    sweep (whatever merges next) to close a parent completed by the previous run's born-proved
+    holes, so skipping on appends defers closures (changes when they are attested).
+ d. Run the sweep after the record push (like cache/outline): changes which commit carries the
+    closure records and what the merge's products show. Excluded.
+ e. Pre-pull the image in the background at job start: same digest, no semantic change, but the
+    pull already starts ~35 s into the job; under a minute to gain. Not worth a change.
+
+THE HONEST FIGURE (for the guide and the lead): a merge's record lands about 9 minutes after it,
+its products about 14 (p75 16, p90 ~36 under bursts, max 48). Appends and building merges wait
+the same, because the sweep, not the re-derivation, dominates and an append batch's head pays it.
+
+GUIDE (gate/agents/AGENTS.md): the `products` wait sentence now gives the measured figures and
+says an annex or postmortem waits as long as a proof; the `gate` round sentence now says three
+to five minutes for a proof, partial or proposal on a Mathlib target and under a minute for an
+append (measured above). Test: gate/tests/test_finding_guide_tester_1119.py
+::test_b2_the_post_merge_wait_is_the_measured_one (red on the old guide, green now; see
+task-88.txt for the red run of that file).
+
+RETRY-AFTER for 409 products-pending (pending.py is another agent's; not edited): today a flat
+240 s. Recommended: when the service knows the merge time, Retry-After = clamp(840 − seconds since
+the merge, 60, 600) — 840 s is the measured median merge→products, so a caller refused right
+after a merge is told to come back when half of merges are rendered, and one refused late is
+told to retry within a minute; otherwise a flat 300 s (a third of the median wait, so a caller
+polls about three times at the median and five at p75).
+
+ANALYSIS SCRIPT (run: python3 analyse.py <dir with job_*.json, log.txt> <graph checkout>):
+"""B2: the post-merge timing of the 2026-11-19 run, from gh run JSON and the graph's first-parent log."""
+import glob, json, re, subprocess, sys, statistics
+from datetime import datetime, timezone
+
+D = sys.argv[1]
+GRAPH = sys.argv[2]
+
+def t(s):
+    return datetime.fromisoformat(s.replace("Z", "+00:00"))
+
+log = []
+for line in open(f"{D}/log.txt"):
+    h, c, a, s = line.rstrip("\n").split("|", 3)
+    log.append((h, t(c), s))
+log.reverse()  # oldest first
+
+def touches_products(sha):
+    out = subprocess.run(["git", "-C", GRAPH, "show", "--name-only", "--format=", sha], capture_output=True, text=True).stdout
+    return any(p == "frontier.json" or re.match(r"targets/[^/]+/graph\.json$", p) for p in out.split())
+
+runs = {}
+for f in glob.glob(f"{D}/job_*.json"):
+    d = json.load(open(f))
+    m = re.match(r"Merge pull request #(\d+) from \S+?/(\S+)", d["displayTitle"])
+    if m:
+        runs[int(m.group(1))] = (d, m.group(2))
+
+GROUPS = [
+    ("setup", lambda n: n in ("Set up job",) or n.startswith("Run actions/checkout") or n.startswith("Check out") or n.startswith("Run astral") or n.startswith("Find the merged")),
+    ("classify", lambda n: n.startswith("Classify")),
+    ("rederive", lambda n: n.startswith("Re-derive")),
+    ("join", lambda n: n.startswith("Join")),
+    ("products", lambda n: n.startswith("Regenerate")),
+    ("push", lambda n: n.startswith("Commit the attestation")),
+]
+rows = []
+for i, (h, tm, s) in enumerate(log):
+    m = re.match(r"Merge pull request #(\d+) from \S+?/(\S+)", s)
+    if not m or tm < t("2026-11-19T12:30:00Z"):
+        continue
+    n = int(m.group(1))
+    branch = m.group(2)
+    credit = rendered = None
+    for h2, t2, s2 in log[i + 1:]:
+        cm = re.match(r"^gate:((?: #[0-9]+)+)", s2)
+        if credit is None and cm and f"#{n}" in cm.group(1).split():
+            credit = (h2, t2, s2)
+            if touches_products(h2):
+                rendered = t2
+                break
+            continue
+        if credit is not None and s2.startswith("gate: render"):
+            rendered = t2
+            break
+    row = {"pr": n, "kind": branch.split("/")[0], "merged": tm}
+    row["credit_s"] = (credit[1] - tm).total_seconds() if credit else None
+    row["credited_by"] = credit[2][:60] if credit else None
+    row["products_s"] = (rendered - tm).total_seconds() if rendered else None
+    if n in runs:
+        d, _ = runs[n]
+        pm = next((j for j in d["jobs"] if j["name"].startswith("postmerge")), None)
+        cache = next((j for j in d["jobs"] if j["name"].startswith("olean cache")), None)
+        if pm and pm.get("startedAt"):
+            row["queue_s"] = (t(pm["startedAt"]) - t(d["createdAt"])).total_seconds()
+            row["job_s"] = (t(pm["completedAt"]) - t(pm["startedAt"])).total_seconds() if pm.get("completedAt") else None
+            row["conclusion"] = pm["conclusion"]
+            for g, pred in GROUPS:
+                tot = 0.0
+                for st in pm["steps"]:
+                    if pred(st["name"]) and st["conclusion"] not in ("skipped",) and st.get("completedAt") and st.get("startedAt"):
+                        tot += (t(st["completedAt"]) - t(st["startedAt"])).total_seconds()
+                row[g] = tot
+            rd = [st for st in pm["steps"] if st["name"].startswith("Re-derive")]
+            row["builds"] = bool(rd and rd[0]["conclusion"] == "success")
+        if cache and cache.get("startedAt") and cache.get("completedAt") and cache["conclusion"] != "skipped":
+            row["cache_s"] = (t(cache["completedAt"]) - t(cache["startedAt"])).total_seconds()
+    rows.append(row)
+
+def fmt(x):
+    return "-" if x is None else f"{x/60:5.1f}"
+
+cols = ["queue_s", "setup", "classify", "rederive", "join", "products", "push", "job_s", "credit_s", "products_s", "cache_s"]
+print("All times in minutes. merged = merge commit time (UTC). credit = the `gate: #N` commit after the merge;")
+print("products = the first commit after the merge that carries this merge's products (its own gate commit")
+print("when that touched frontier.json/graph.json, else the next `gate: render`).")
+print()
+print(f"{'PR':>5} {'kind':7} {'build':5} {'merged':8} " + " ".join(f"{c[:-2] if c.endswith('_s') else c:>8}" for c in cols) + "  credited by")
+for r in rows:
+    print(f"{r['pr']:>5} {r['kind']:7} {str(r.get('builds','?'))[:5]:5} {r['merged'].astimezone(timezone.utc).strftime('%H:%M:%S'):8} " + " ".join(f"{fmt(r.get(c)):>8}" for c in cols) + "  " + (r["credited_by"] or "-"))
+print()
+for label, sel in (("building merges", lambda r: r.get("builds") is True), ("non-building merges (appends etc.)", lambda r: r.get("builds") is False)):
+    sub = [r for r in rows if sel(r)]
+    print(f"{label}: n={len(sub)}")
+    for c in cols:
+        vals = [r[c] for r in sub if r.get(c) is not None]
+        if vals:
+            print(f"  median {c:10} {statistics.median(vals)/60:5.1f} min   (min {min(vals)/60:.1f}, max {max(vals)/60:.1f}, n={len(vals)})")
+json.dump([{k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in r.items()} for r in rows], open(f"{D}/rows.json", "w"), indent=1)

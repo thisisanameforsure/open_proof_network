@@ -519,15 +519,15 @@ def witness_awaits_render(ctx: Context, node_id: str, facts: dict[str, Any]) -> 
     return raw is not None and not layout.mentions_sorry(raw.decode("utf-8", "replace"))
 
 
-def awaits_render(node_id: str, what: str, details: dict[str, Any] | None = None) -> ApiError:
+def awaits_render(
+    ctx: Context, node_id: str, what: str, details: dict[str, Any] | None = None
+) -> ApiError:
     """The ``409 products-pending`` of F05-T13, for something merged that the products a job is
     pinned to do not carry yet."""
-    return ApiError(
-        409,
-        "products-pending",
+    return pending.products_pending(
+        ctx,
         f"{what}; {pending.NOT_RENDERED}. Retry shortly.",
-        details={"node_id": node_id, **(details or {})},
-        headers={"Retry-After": str(pending.PRODUCTS_RETRY_AFTER_S)},
+        {"node_id": node_id, **(details or {})},
     )
 
 
@@ -566,7 +566,7 @@ def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
         raise shelved_error(node_id, facts)
     if facts.get("status") == "blocked":
         if witness_awaits_render(ctx, node_id, facts):
-            raise awaits_render(node_id, f"{node_id}'s witness has merged")
+            raise awaits_render(ctx, node_id, f"{node_id}'s witness has merged")
         waiting = (
             open_witness(ctx, node_id)
             if facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
@@ -690,15 +690,13 @@ def job_commit(
     if found is not None:
         products, nodes = found
         if nodes != products and makes_holes:
-            raise ApiError(
-                409,
-                "products-pending",
+            raise pending.products_pending(
+                ctx,
                 f"graph commit {nodes[:12]}… changed {target_id}'s nodes after {products[:12]}…, "
                 "the commit that wrote its products, so the holes this bundle would make cannot "
                 "yet be planned against every node they might restate. It waits for that "
                 "merge's products. Retry shortly.",
-                details={"node_id": node_id, "graph_commit": products, "nodes_commit": nodes},
-                headers={"Retry-After": str(pending.PRODUCTS_RETRY_AFTER_S)},
+                {"node_id": node_id, "graph_commit": products, "nodes_commit": nodes},
             )
         if carries_node(ctx, products, target_id, node_id) is not False:
             return products
@@ -720,16 +718,14 @@ def carried_commit(ctx: Context, node_id: str, target_id: str, rendered: str) ->
     read_at = ctx.head
     if read_at and read_at != rendered and carries_node(ctx, read_at, target_id, node_id):
         return read_at
-    raise ApiError(
-        409,
-        "products-pending",
+    raise pending.products_pending(
+        ctx,
         f"{node_id} is not in graph commit {rendered[:12]}…, the commit its products were "
         "rendered from (a hole is written after the render, in the commit that carries the "
         "products), and the service has not yet read a commit of main that carries it, so a "
         "precheck job would fail step 2 layout-missing. It waits for the service's next read of "
         "main. Retry shortly.",
-        details={"node_id": node_id, "graph_commit": rendered},
-        headers={"Retry-After": str(pending.PRODUCTS_RETRY_AFTER_S)},
+        {"node_id": node_id, "graph_commit": rendered},
     )
 
 
@@ -837,7 +833,7 @@ def check_cited_annex(
             continue
         details = {"annex": digest}
         if on_main:
-            raise awaits_render(claim.node_id, f"annex {digest[:12]}… has merged", details)
+            raise awaits_render(ctx, claim.node_id, f"annex {digest[:12]}… has merged", details)
         for found in ctx.store.list_open_submissions():
             if found.kind == "annex" and found.node_id == claim.node_id:
                 raise ApiError(

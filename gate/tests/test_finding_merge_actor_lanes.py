@@ -111,7 +111,11 @@ def sha(pulls: list[dict[str, Any]], number: int) -> str:
         ("targets/t1/nodes/n/Proof.lean", "t1", True),  # its own target's sources
         ("targets/t1/nodes/n/META.yaml", "t1", True),  # a status the bot wrote is still an input
         ("targets/t1/nodes/n/Context.lean", "t1", True),  # imported by every proof of the node
-        ("targets/t1/nodes/n/attempts/x.yaml", "t1", True),  # an annex a skeleton may cite
+        # restated by F07-T81: this row was attempts/x.yaml, a postmortem, labelled as the annex a
+        # skeleton may cite; an annex is annex/<hash>.md and still counts, a postmortem no longer
+        ("targets/t1/nodes/n/annex/" + "a" * 64 + ".md", "t1", True),  # a skeleton may cite it
+        ("targets/t1/nodes/n/attempts/x.lean", "t1", True),  # a partial
+        ("targets/t1/nodes/n/attempts/x.yaml", "t1", False),  # a postmortem (F07-T81)
         ("targets/t1/gate-spec.json", "t1", True),  # its pin
         ("targets/t2/nodes/n/Proof.lean", "t1", False),  # another target cannot change its verdict
         ("targets/t2/gate-spec.json", "t1", False),
@@ -162,7 +166,7 @@ def test_stale_counts_only_the_commits_that_reach_the_lane(pick: dict[str, Any])
     count = pick["stale_count"]
     bot = ["frontier.json", "targets/t1/graph.json", "targets/t2/graph.json", "ledger/a.json"]
     other = ["targets/t2/nodes/m/Proof.lean"]
-    own = ["targets/t1/nodes/n/attempts/x.yaml"]
+    own = ["targets/t1/nodes/n/annex/" + "a" * 64 + ".md"]  # restated by F07-T81: was a postmortem
     assert count([bot, other, bot], "t1") == 0
     assert count([bot, own, other, own], "t1") == 2
     assert count([["curators.json"], other], "t1") == 1

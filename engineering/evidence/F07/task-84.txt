@@ -1,0 +1,109 @@
+F07-T84 — appends count against a per-identity cap of their own (bug B3, agent run 2026-11-19)
+==============================================================================================
+
+Finding
+-------
+B3 (agent 6): green postmortems and literature proposals waiting on the queue (B1) kept the agent
+at `429 open-pull-requests-cap` (10 open) until ~14:48Z, so it could open nothing, proofs
+included.
+
+Red run (api/tests/test_finding_open_pr_cap.py, the five new tests)
+--------------------------------------------------------------------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_open_pr_cap.py
+test_an_identity_with_ten_open_appends_can_still_open_a_proof
+    AssertionError: {"error":"open-pull-requests-cap","message":"alice has 10 pull requests open on
+    the graph and the cap is 10: ..."}   assert 429 == 201
+test_an_identity_with_ten_open_proofs_can_still_open_an_append
+    AssertionError: {"error":"open-pull-requests-cap", ...}   assert 429 == 201
+test_a_building_refusal_names_the_building_cap      KeyError: 'cap_name'
+test_the_append_cap_is_its_own_setting              assert 201 == 429 (OPN_API_OPEN_APPENDS_PER_IDENTITY ignored)
+test_the_append_cap_is_published                    KeyError: 'open_appends_per_identity'
+5 failed, 5 passed
+
+Fix
+---
+* api/opn_api/config.py: `open_appends_per_identity`, env `OPN_API_OPEN_APPENDS_PER_IDENTITY`,
+  default `DEFAULT_OPEN_PRS_PER_IDENTITY` (10); published in `rate_limit_policy` (info.json) as
+  `open_appends_per_identity`, beside the two existing caps. The global cap is unchanged.
+* api/opn_api/submissions.py: `check_open_caps(ctx, identity, branch)` (called from `open_pr`,
+  which knows the branch). The new pull request's half is `pending.branch_sub_lane(branch)`; the
+  caller's open records are counted in that half only, classified by the one helper the queue uses
+  (`pending.sub_lane`: the cached open listing's head_ref, else the record's kind; no host read
+  of its own). Appends against `open_appends_per_identity`, building pull requests against the
+  existing `open_prs_per_identity`. The refusal keeps the code `open-pull-requests-cap` and names
+  which cap: the message says "appends open ... the cap for appends is N
+  (open_appends_per_identity)" or "building pull requests open ... (open_pull_requests_per_identity)",
+  and `details` carries `cap_name` and `half` beside `cap` and `open`.
+* gate/agents/AGENTS.md: the caps paragraph describes the two halves and the three published caps.
+
+Existing tests restated (each pinned the old "every kind in one cap" rule)
+-------------------------------------------------------------------------
+* test_finding_open_pr_cap.py::test_the_cap_holds_at_the_one_place_every_route_opens — a
+  postmortem used to fill the proof's slot, which is the defect; now a seeded open proof fills
+  it. Still asserts: the proof is refused at open_pr, and the precheck job is not spent.
+* test_finding_open_pr_cap.py::test_an_identity_at_its_cap_is_refused_with_its_open_pull_requests
+  and ::test_a_merged_pull_request_frees_the_slot_without_anyone_asking_about_it — they open
+  postmortems, so they now set OPN_API_OPEN_APPENDS_PER_IDENTITY=2 instead of ..._OPEN_PRS_...
+* test_finding_queue_position.py::test_the_queue_costs_no_read_per_record (25 annexes) and
+  test_finding_submissions_mine.py::test_recent_is_capped_newest_first (22 annexes) raised the
+  cap to open many annexes; they now raise the append cap.
+* test_health.py::test_rate_limit_policy_shape gains `open_appends_per_identity: 10`.
+* gate/tests/test_finding_guide_names_exist.py::test_the_open_pull_request_caps_are_the_services
+  also asserts the guide names the append cap and the policy publishes it.
+
+Green run
+---------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_open_pr_cap.py \
+    api/tests/test_health.py api/tests/test_finding_queue_position.py \
+    api/tests/test_finding_submissions_mine.py api/tests/test_finding_queue_sub_lanes.py \
+    api/tests/test_submissions.py api/tests/test_appends.py api/tests/test_proposals.py \
+    gate/tests/test_finding_guide_names_exist.py
+89 passed
+make lint: exit 0. mypy api: Success: no issues found in 281 source files.
+
+Not done
+--------
+* A steward record under reviewed admission (curate/) and a review (review/) are not in the
+  actor's queue; they count as appends here (not building), as `branch_sub_lane` reads any branch
+  that is not propose/ or submit/.
+* Deploy: the new env var needs no stack parameter (it has a default); set one only to change it.
+
+Rework: the cap split follows the actor's words sub-lane (lead, after F07-T81/T82)
+-------------------------------------------------------------------------------
+The split is now words and reports vs everything else, by the same helper as the queue
+(`pending.is_words_kind` / `pending.sub_lane`, see task-83.txt's rework): postmortems, glosses,
+explainers, their signatures (approval), literature and its confirmation, approach records count
+against `open_appends_per_identity`; everything else, annexes and the other `append/` records
+included, against `open_pull_requests_per_identity`. The env var keeps the committed name
+OPN_API_OPEN_APPENDS_PER_IDENTITY and the published key `open_appends_per_identity` (the lead's
+suggested OPN_API_OPEN_WORDS_PER_IDENTITY arrived after the commit; renaming is the lead's call).
+
+`open_pr` takes `words: bool = False` (it knows the branch, not the kind); `appends.append_pr`
+passes `words = branch_prefix == append/ and is_words_kind(kind, node_id)`; every other caller
+(proposals, submissions, reviews) opens building pull requests and passes nothing.
+`check_open_caps(ctx, identity, *, words=False)`. The refusal's `details.half` is "words" or
+"build"; the message says "words and reports open (...)" or "pull requests open other than words
+and reports (...)", and names the cap (`details.cap_name`).
+
+Tests: test_finding_open_pr_cap.py's new tests renamed to postmortems (they were already
+postmortems), `half == "words"`, plus test_annexes_count_with_the_building_pull_requests (an
+annex at OPN_API_OPEN_PRS_PER_IDENTITY=1 is refused with half "build", and a postmortem still
+opens). The earlier restatements of test_finding_queue_position.py::test_the_queue_costs_no_read_per_record
+and test_finding_submissions_mine.py::test_recent_is_capped_newest_first are REVERTED: they open
+annexes, which are building again, so they keep OPN_API_OPEN_PRS_PER_IDENTITY as on origin/main.
+The guide's caps paragraph names the two halves; the guide test asserts
+"at most 10 appends of words".
+
+Green (after rework)
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_queue_sub_lanes.py \
+    api/tests/test_finding_open_pr_cap.py api/tests/test_finding_queue_lanes.py \
+    api/tests/test_finding_queue_position.py api/tests/test_finding_queue_ahead_stale.py \
+    api/tests/test_pending_submissions.py api/tests/test_finding_submissions_mine.py \
+    api/tests/test_health.py api/tests/test_appends.py api/tests/test_submissions.py \
+    api/tests/test_proposals.py api/tests/test_glosses_route.py api/tests/test_glosses_one_writer.py \
+    api/tests/test_literature_route.py gate/tests/test_finding_queue_order_is_the_actors.py \
+    gate/tests/test_finding_guide*.py
+393 passed
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_*{review,steward,panel,approval,shelving,request,name,registration,pair,literature,witness,annex}*.py
+527 passed
+make lint: exit 0. mypy api: Success: no issues found in 283 source files.

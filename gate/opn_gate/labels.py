@@ -31,6 +31,10 @@ APPROACH_MAX = 300
 CLAIM_MAX = 4000
 
 _COMMENT_RE = re.compile(r"^\s*--\s?(?P<text>.*)$")
+#: A comment on a focusing bullet's own line (``· -- label: …``) with the hole's ``have`` below,
+#: inside the bullet (F29-T12): the first line of that hole's block, and the last one read, since
+#: anything above the bullet belongs to the enclosing proof.
+_BULLET_COMMENT_RE = re.compile(r"^\s*·\s*--\s?(?P<text>.*)$")
 _KEY_RE = re.compile(r"^(?P<key>approach|licence|label|claim|annex):\s*(?P<value>.*)$", re.S)
 #: A hole's ``have``, at the start of its line or after a focusing bullet (``· have …``): the
 #: extractor reports a bulleted hole like any other (F07's carried-witness fixtures and the live
@@ -76,12 +80,16 @@ class Problem:
 
 
 def _comment_lines(lines: Sequence[str], end: int) -> list[tuple[int, str]]:
-    """The contiguous comment lines directly above ``lines[end]``, in order, as (index, text)."""
+    """The contiguous comment lines directly above ``lines[end]``, in order, as (index, text). A
+    focusing bullet's own comment line (``· -- …``) is the block's first line, and closes it."""
     out: list[tuple[int, str]] = []
     i = end - 1
     while i >= 0:
         m = _COMMENT_RE.match(lines[i])
         if m is None:
+            b = _BULLET_COMMENT_RE.match(lines[i])
+            if b is not None:
+                out.append((i, b.group("text").rstrip()))
             break
         out.append((i, m.group("text").rstrip()))
         i -= 1
@@ -172,7 +180,7 @@ def declarations(partial_text: str) -> Declarations:
         )
     stray: list[int] = []
     for i, line in enumerate(lines):
-        m = _COMMENT_RE.match(line)
+        m = _COMMENT_RE.match(line) or _BULLET_COMMENT_RE.match(line)
         if m is None:
             continue
         k = _KEY_RE.match(m.group("text").strip())

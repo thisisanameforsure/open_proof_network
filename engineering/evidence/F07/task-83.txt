@@ -1,0 +1,106 @@
+F07-T83 — a queue position counts its own sub-lane (bug B1's service half, agent run 2026-11-19)
+================================================================================================
+
+Finding
+-------
+B1 (6 of 9 agents): green appends sat 20-50 min behind proofs and partials on their target. The
+merge actor now splits each target's lane into two halves that do not wait for each other
+(F07-T81/T82, another agent, the graph's merge.yml): appends (append/ branches) and building pull
+requests (propose/, submit/). A pull request the service cannot place in one target still waits
+for every lane. The service's `queue` block (GET /submissions/<id>) and each entry's `queue` in
+GET /submissions.json counted the whole target lane, so an append was told it stood behind
+proofs that can no longer delay it.
+
+Red run (seam first: pending.sub_lane / branch_sub_lane / SUB_* / APPEND_PREFIX added at no
+behaviour change, so each test fails on the count, not on a missing name)
+------------------------------------------------------------------------------------------------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_queue_sub_lanes.py
+test_an_append_is_not_counted_behind_a_proof_on_its_target       assert ([1, 2], 3, 3) == ([2], 2, 2)
+test_a_proof_is_not_counted_behind_an_append_on_its_target       assert ([1, 2], 3, 3) == ([], 1, 1)
+test_the_listing_counts_each_entry_in_its_own_sub_lane           {1: (1, 3), 2: (2, 3), 3: (3, 3)}
+                                                                  != {1: (1, 2), 2: (1, 1), 3: (2, 2)}
+test_an_unplaced_pull_request_is_ahead_in_both_halves            assert (1, 4) == (1, 3)
+test_the_text_describes_the_two_halves                           'append' / 'propose/' not in QUEUE_ORDER
+test_a_merged_pull_request_the_listing_still_carries_...         (F07-T86 b; see task-86.txt)
+6 failed, 1 passed (test_the_branch_decides_and_the_kind_is_the_fallback: the seam itself)
+
+Fix (api/opn_api/pending.py)
+----------------------------
+* `Lane = (target_id, "append" | "build")`; `UNPLACED = ("*", "*")`.
+* `sub_lane(record, entry)`: the open listing's `head_ref` decides (the actor decides by the
+  branch: build on propose/ or submit/, append otherwise). Fallback, with no listing entry: the
+  record's `kind` (`BUILD_KINDS` = POST /submissions' artifact types + speculative, variant,
+  witness). Justification: the record's kind decided the branch when the route opened it —
+  POST /submissions opens on submit/ (racers' conversion keeps submit/), proposals.open_proposal
+  (speculative, variant, witness) on propose/, every other route through appends.append_pr or
+  reviews on append/ (or review/, curate/, which the actor does not take). With neither, build
+  (the stricter half). `branch_sub_lane(branch)` is the same rule for a branch about to be opened
+  (used by F07-T84's caps).
+* `place(ctx, listed, records, order)` gives every pull request of the actor's order its Lane;
+  `lane_queue` keeps the same (target, half) plus every UNPLACED one; an UNPLACED pull request
+  itself still counts the whole order. `queue_block`, `entry_queue` and `snapshot` all go through
+  `place`, so the per-id answer and the listing agree.
+* QUEUE_ORDER and QUEUE_NOTE describe the two halves; the guide's queue passage
+  (gate/agents/AGENTS.md, "One gate round is not the time to merge") says so and drops "an annex
+  or a postmortem ... can wait one round behind a proof", which is no longer true.
+
+Green run
+---------
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_queue_sub_lanes.py \
+    api/tests/test_finding_queue_lanes.py api/tests/test_finding_queue_position.py \
+    api/tests/test_finding_queue_ahead_stale.py api/tests/test_pending_submissions.py \
+    api/tests/test_finding_submissions_mine.py gate/tests/test_finding_queue_order_is_the_actors.py \
+    gate/tests/test_finding_guide_names_exist.py gate/tests/test_finding_guide_tester_1008.py
+118 passed
+make lint: exit 0. mypy api: Success: no issues found in 281 source files.
+
+No existing test restated: the older lane tests use annexes only (one half), and the unplaced test
+(test_an_unplaced_pull_request_is_ahead_in_every_lane) holds unchanged under the new rule.
+
+Not done
+--------
+* The service does not model the actor's EMPTY_LANE (F07-T62, an empty diff): such a pull request
+  is placed by its record's target, as before.
+* The order of `queue.order` at the top of GET /submissions.json is unchanged (the actor's whole
+  order across every lane).
+
+Rework: the actor's rule is narrower (lead, after F07-T81/T82 landed)
+--------------------------------------------------------------------
+The actor's words sub-lane holds only `append/` pull requests whose every path has an inert role
+(merge.yml `inert_role`: postmortem, precheck-record, explainer, explainer-signature, gloss,
+gloss-signature, approach-record, literature). Annexes, shelvings, review records, steward and
+panel records, display names, defect claims and revision requests are on `append/` but stay in
+the target's building sub-lane.
+
+Service side, keyed on the record's kind (cheaper than paths), one named constant:
+`pending.WORDS_KINDS_ON_NODE` = postmortem, gloss, explainer, approval (a steward's signature of a
+gloss or explainer: approvals.signature_path writes under gloss/ or explainer/), literature,
+literature-confirmation (literature.record_path: literature/<ts>-<login>.yaml); and
+`WORDS_KINDS_ON_TARGET` = approach-record (approaches/<name>.yaml). Kinds recorded by the routes
+(grep of `append_pr(`/`kind=` across api/opn_api) and their mapping:
+  words:    postmortem, gloss, explainer, approval, literature, literature-confirmation (on a node);
+            approach-record (on the target)
+  building: annex, shelving, steward, panel kinds, display-name, registration, revision-request,
+            defect-claim, gloss-withdrawal (writes withdrawals/, not inert), review, candidate,
+            review-answer, review-signature, pair-proof, proof/partial/... (submit/),
+            speculative/variant/witness (propose/), and any kind not named.
+A gloss or explainer with no node (a target's or a definition module's) is building: inert_role
+only takes paths under targets/<t>/nodes/<n>/ (or approaches/). The precheck-record role has no
+service record kind (no route records one). `sub_lane(record, entry)`: words only if the kind is
+words AND, where the listing carries the pull request, its head_ref is append/; else building.
+No record: building (it is UNPLACED anyway). `branch_sub_lane`, `BUILD_KINDS`, `BUILD_PREFIXES`
+and `SUB_APPEND` are gone; `SUB_WORDS = "words"`.
+
+Red run (tests restated to the narrower rule first; seam SUB_WORDS = SUB_APPEND alias):
+$ uv run --frozen pytest -q -m "not lean and not docker" api/tests/test_finding_queue_sub_lanes.py
+test_a_words_append_is_not_counted_behind_a_building_one     assert ([1, 2], 3, 3) == ([], 1, 1)
+test_a_building_one_is_not_counted_behind_a_words_append     assert ([1, 2], 3, 3) == ([2], 2, 2)
+test_the_listing_counts_each_entry_in_its_own_sub_lane       {1: (1, 3), 2: (2, 3), 3: (3, 3)} != ...
+test_an_unplaced_pull_request_is_ahead_in_both_halves        assert (1, 4) == (1, 3)
+test_a_words_kind_off_an_append_branch_is_building           assert ([], 1, 1) == ([1, 2], 3, 3)
+test_the_kind_decides_and_the_branch_checks                  AssertionError: annex  'append' == 'build'
+6 failed, 3 passed (test_an_annex_stays_in_the_building_half passed before and after: a guard)
+
+Green: see the combined run below (task-84's rework section).
+QUEUE_ORDER / QUEUE_NOTE and the guide's queue passage now describe "words and reports" vs
+"everything else", and say an annex waits in line with the proofs on its target.

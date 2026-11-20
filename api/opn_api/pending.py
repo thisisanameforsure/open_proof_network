@@ -145,15 +145,59 @@ def document(submission: Submission) -> dict[str, Any]:
 
 # --- a node that is not in the products yet (F08-T11) --------------------------------------------
 
-#: How long a merged proposal usually waits for the post-merge job's products commit.
-#: Measured 2026-09-20: three to six minutes from a merge to the post-merge job's products commit
-#: (a Mathlib re-derivation is most of it). 120 s sent agents back three times too early.
-PRODUCTS_RETRY_AFTER_S = 240
+#: F06-T20: how long to wait before asking again for something the post-merge job has not
+#: rendered yet. Measured over 91 merges on 2026-11-19 (engineering/evidence/F07/task-87.txt):
+#: the products land a median of about 14 minutes after a merge (p75 16, p90 about 36), not the
+#: three to six minutes of 2026-09-20 that the old flat 240 s was set from. When the service knows
+#: when the merge it waits on happened, the wait is what is left of the median, between a floor
+#: and a ceiling; otherwise one flat wait. Retune these when the median moves.
+PRODUCTS_MEDIAN_S = 840
+PRODUCTS_RETRY_MIN_S = 60
+PRODUCTS_RETRY_MAX_S = 600
+PRODUCTS_RETRY_FLAT_S = 300
 NOT_RENDERED = (
     "a node merged in the last few minutes appears once the post-merge job has rendered the "
-    "products, usually three to six minutes after the merge"
+    "products, usually about fourteen minutes after the merge and sometimes much longer"
 )
 WAITING_ON_PRODUCTS = "products"
+
+
+def products_retry_after_s(ctx: Context, merged_at: str | None) -> int:
+    """The ``Retry-After`` of a ``products-pending``: ``max(60, min(600, 840 - seconds since the
+    merge))`` when the merge time is known and readable, else the flat 300."""
+    if merged_at:
+        try:
+            merged = clockmod.parse(merged_at)
+        except ValueError:
+            merged = None
+        if merged is not None:
+            since = (ctx.clock.now() - merged).total_seconds()
+            left = int(PRODUCTS_MEDIAN_S - since)
+            return max(PRODUCTS_RETRY_MIN_S, min(PRODUCTS_RETRY_MAX_S, left))
+    return PRODUCTS_RETRY_FLAT_S
+
+
+def products_pending(
+    ctx: Context,
+    message: str,
+    details: dict[str, Any] | None = None,
+    *,
+    merged_at: str | None = None,
+) -> ApiError:
+    """F06-T20 (bug B8): every ``409 products-pending``, built in one place. ``Retry-After`` was a
+    header only, and an agent reading the JSON body polled blindly, so the body carries the same
+    number as ``details.retry_after_s`` (``products_retry_after_s``: from ``merged_at``, the merge
+    being waited on, when the caller knows it), and ``details.graph_commit``: the commit the
+    service's products were read at (``ctx.head``; ``null`` before the first read), unless the
+    refusal names the commit it was judged against itself (F06-T14, F06-T18)."""
+    wait = products_retry_after_s(ctx, merged_at)
+    return ApiError(
+        409,
+        "products-pending",
+        message,
+        details={"graph_commit": ctx.head, **(details or {}), "retry_after_s": wait},
+        headers={"Retry-After": str(wait)},
+    )
 
 
 def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
@@ -192,12 +236,13 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
             if hole is not None
             else f"{node_id} merged as pull request #{found.pr_number}"
         )
-        return ApiError(
-            409,
-            "products-pending",
-            f"{became}; {NOT_RENDERED}. Retry shortly.",
-            details=details,
-            headers={"Retry-After": str(PRODUCTS_RETRY_AFTER_S)},
+        merged_at = (
+            state.merged_at
+            if state is not None
+            else (found.final_state or {}).get("merged_at") or found.closed
+        )
+        return products_pending(
+            ctx, f"{became}; {NOT_RENDERED}. Retry shortly.", details, merged_at=merged_at
         )
     if found.closed is not None or (state is not None and state.finished):
         return unknown  # closed unmerged: the node never entered the graph
@@ -497,25 +542,76 @@ QUEUE_BASE = "main"
 QUEUE_ORDER = (
     "pull-request number, oldest first, over the open pull requests the merge actor takes "
     "(non-draft, on a branch the service opened, against main), counted in the pull request's "
-    "own lane: the merge actor runs one lane per target in parallel (F07-T56), so only the "
-    "pull requests on the same target, and any whose target the service does not know (the "
-    "actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor "
-    "merges the first one whose gate is green and passes over a red, conflicting or "
+    "own lane: the merge actor runs one lane per target in parallel (F07-T56), and each target's "
+    "lane in two halves that do not wait for each other (F07-T81): words and reports (an append/ "
+    "pull request whose every file is one no building verdict reads: postmortems, glosses, "
+    "explainers and their signatures, literature records, approach records) and everything else "
+    "on the target (proofs, partials, proposals, witnesses, and appends such as an annex, which a "
+    "skeleton cites, a shelving or a review record). So only the pull requests on the same "
+    "target in the same half, and any whose target the service does not know (the actor holds "
+    "every lane for one it cannot place), are ahead of it. Within a lane the actor merges the "
+    "first one whose gate is green and passes over a red, conflicting or "
     "behind-and-still-running one, so a position is an upper bound on the merges ahead, not a "
     "count of them; consecutive green appends may merge as one batch. Left out of ahead, "
     "position and of (F07-T80), though the actor still lists them: a witness whose slot main "
     "already fills, and one whose gate failed and that has been idle longer than the service's "
-    "window (OPN_API_QUEUE_IDLE_RED_DAYS)"
+    "window (OPN_API_QUEUE_IDLE_RED_DAYS); and one the service has already seen merge or close "
+    "while the listing, read once a window, still carries it (F07-T86)"
 )
 QUEUE_NOTE = (
     "each entry's queue.waiting_on is what the service last read for that pull request, with "
     "when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing. "
     "queue.order is the actor's order across every lane; each entry's position counts its own "
-    "lane: its target's (the record's target_id), or every lane for one the service cannot place"
+    "lane: its target's (the record's target_id) and, within it, its half (words and reports, "
+    "by the record's kind, on an append/ branch; or everything else), or every lane for one the "
+    "service cannot place"
 )
 #: The lane of a pull request the service cannot place in one target: every lane, as the merge
 #: actor's ``EVERY_LANE`` (the graph's ``merge.yml``, F07-T56).
 EVERY_LANE = "*"
+#: F07-T83: the two halves of a target's lane in the merge actor (F07-T81/T82, the graph's
+#: ``merge.yml``): words and reports, an ``append/`` pull request whose every path has an inert
+#: role (``inert_role``: one no building verdict reads), and everything else on the target, the
+#: building pull requests and every other append. Neither half holds the other back.
+APPEND_PREFIX = "append/"  # ``submissions.APPEND_BRANCH_PREFIX``, asserted equal in the tests
+SUB_WORDS = "words"
+SUB_BUILD = "build"
+#: F07-T83: the record kinds whose route writes only files ``merge.yml``'s ``inert_role`` calls
+#: inert (F07-T81), on a node: a postmortem (``attempts/<name>.yaml``), a gloss or explainer
+#: (``gloss/``, ``explainer/``) and a steward's signature of one (``approval``, under the same
+#: directories), a literature record and its confirmation (``literature/``). A gloss or explainer
+#: with no node (a target's or a definition module's) is outside every node, which ``inert_role``
+#: does not take. Every other kind is building: an annex (a skeleton's step 2 reads the annex it
+#: cites), a shelving, review records, steward and panel records, a display name, a defect claim,
+#: a revision request, a gloss withdrawal (``withdrawals/``), and any kind not named here.
+WORDS_KINDS_ON_NODE: frozenset[str] = frozenset(
+    {"postmortem", "gloss", "explainer", "approval", "literature", "literature-confirmation"}
+)
+#: ... and on a target: an approach record (``approaches/<name>.yaml``).
+WORDS_KINDS_ON_TARGET: frozenset[str] = frozenset({"approach-record"})
+
+
+def is_words_kind(kind: str, node_id: str | None) -> bool:
+    """F07-T83, T84: whether a record of ``kind`` (on ``node_id``, or on the target when
+    ``None``) is words and reports in the actor's sense (``WORDS_KINDS_ON_NODE``). Keyed on the
+    record's kind, which decided its route and so its files, rather than on the paths."""
+    if node_id is None:
+        return kind in WORDS_KINDS_ON_TARGET
+    return kind in WORDS_KINDS_ON_NODE
+
+
+def sub_lane(record: Submission | None, entry: OpenPullRequest | None) -> str:
+    """F07-T83, T84: the half of its target's lane a pull request is in. Words only for a record
+    whose kind is words (``is_words_kind``) and, where the open listing carries the pull request,
+    whose branch the host says is ``append/`` (the actor's other half of the rule); building for
+    anything else, a pull request with no record included (it is unplaced anyway)."""
+    if record is None or not is_words_kind(record.kind, record.node_id):
+        return SUB_BUILD
+    if entry is not None and entry.head_ref and not entry.head_ref.startswith(APPEND_PREFIX):
+        return SUB_BUILD
+    return SUB_WORDS
+
+
 #: The most pull requests an answer names as ahead; ``position`` says how many there are.
 MAX_AHEAD = 50
 #: F07-T70: the most finished submissions ``GET /submissions/mine`` names, newest first.
@@ -546,15 +642,49 @@ def last_read(ctx: Context, number: int) -> tuple[str | None, str | None]:
     return cached.state.waiting_on, cached.read_at
 
 
-def lane_queue(order: list[int], lanes: dict[int, str], number: int) -> list[int]:
-    """F07-T69: the part of the actor's ``order`` that shares ``number``'s lane —
-    the pull requests on its target and every one the service cannot place, which the actor
-    lets hold every lane. A pull request that cannot itself be placed waits for the whole
-    queue, as the actor's does (``merge.yml``: "waits until it is first")."""
-    lane = lanes.get(number, EVERY_LANE)
-    if lane == EVERY_LANE:
+#: F07-T83: a pull request's place in the merge actor's lanes: its target and its half of it
+#: (``SUB_APPEND`` or ``SUB_BUILD``); ``UNPLACED`` for one the service cannot place in one target.
+Lane = tuple[str, str]
+UNPLACED: Lane = (EVERY_LANE, EVERY_LANE)
+
+
+def lane_queue(order: list[int], lanes: dict[int, Lane], number: int) -> list[int]:
+    """F07-T69, T83: the part of the actor's ``order`` that shares ``number``'s lane — the pull
+    requests on its target in the same half (words and reports, or the rest), and every one the
+    service cannot place, which the actor lets hold every lane. A pull request that cannot itself
+    be placed waits for the whole queue, as the actor's does (``merge.yml``: "waits until it is
+    first")."""
+    lane = lanes.get(number, UNPLACED)
+    if lane == UNPLACED:
         return list(order)
-    return [n for n in order if lanes.get(n, EVERY_LANE) in (lane, EVERY_LANE)]
+    return [n for n in order if lanes.get(n, UNPLACED) in (lane, UNPLACED)]
+
+
+def place(
+    ctx: Context, listed: Listing, records: dict[int, Submission], order: list[int]
+) -> tuple[dict[int, Lane], set[int]]:
+    """F07-T83, T86: each pull request of ``order`` in its lane, and the ones that have finished.
+
+    The lane is the record's target and its half (``sub_lane``: the record's kind, checked
+    against the listing's branch). A pull request with no open record is looked up once in the
+    store: a record there that is closed means a per-id read has already seen it merge or
+    close while the listing, read up to a window ago, still carries it, so it is ahead of
+    nobody (B17 b: counted in every lane until the next listing, it moved positions 8, 9, 8).
+    One with no record at all is one the service cannot place, ``UNPLACED``."""
+    lanes: dict[int, Lane] = {}
+    finished: set[int] = set()
+    for number in order:
+        record = records.get(number)
+        if record is None:
+            record = ctx.store.get_submission_by_pr(number)
+            if record is not None and record.closed is not None:
+                finished.add(number)
+                continue
+        if record is None:
+            lanes[number] = UNPLACED
+        else:
+            lanes[number] = (record.target_id, sub_lane(record, listed.get(number)))
+    return lanes, finished
 
 
 #: F07-T80: the ``waiting_on`` of a pull request whose own submission the gate refused.
@@ -617,11 +747,11 @@ def entry_queue(
     ctx: Context,
     number: int,
     order: list[int] | None,
-    lanes: dict[int, str],
+    lanes: dict[int, Lane],
     aside: set[int] | frozenset[int] = frozenset(),
 ) -> dict[str, Any]:
     """One open submission's place: ``position`` from 1 in its own lane, ``of`` how many share
-    that lane (F07-T69), and what it was last read to be waiting on.
+    that lane (F07-T69; its target's half, F07-T83), and what it was last read to be waiting on.
     ``position`` is null for a pull request the actor does not take, and both are null when the
     host has never been listed."""
     waiting, read_at = last_read(ctx, number)
@@ -656,10 +786,11 @@ def queue_block(
             "stale": True,
         }
     records = {s.pr_number: s for s in ctx.store.list_open_submissions()}
-    lanes = {n: s.target_id for n, s in records.items()}
     number = found.pr_number
-    lanes[number] = found.target_id  # its own record, whatever the open index says
-    order = lane_queue(queue_order(listed), lanes, number)
+    records[number] = found  # its own record, whatever the open index says
+    whole = queue_order(listed)
+    lanes, finished = place(ctx, listed, records, whole)
+    order = lane_queue([n for n in whole if n not in finished], lanes, number)
     aside = passed_over(ctx, listed, records, [n for n in order if n != number])
     order = [n for n in order if n not in aside]
     position = order.index(number) + 1 if number in order else None
@@ -964,8 +1095,10 @@ def waiting_on_products(
     post-merge job, and says so, instead of reading as finished while every call on the node
     answers ``products-pending``. F05-T15: so is a merged annex the products' commit lacks, and a
     merged witness whose node still reads ``witness-missing``, the two other things precheck
-    answers ``products-pending`` for. A merged postmortem or approach record waits on nothing.
-    A graph that cannot be read changes nothing (C7)."""
+    answers ``products-pending`` for. F06-T20 (bug B8): so is a merged partial while a node its
+    record expects (``Submission.expected_nodes``, the holes it makes) is not in the products,
+    since every call on that hole answers ``products-pending`` until it is. A merged postmortem
+    or approach record waits on nothing. A graph that cannot be read changes nothing (C7)."""
     from opn_api.store import proposes  # noqa: PLC0415
 
     if pull is None or not pull.get("merged"):
@@ -976,6 +1109,8 @@ def waiting_on_products(
         waits = _annex_unrendered
     elif found.kind == "witness" and found.node_id is not None:
         waits = _witness_unrendered
+    elif found.expected_nodes:
+        waits = _holes_unrendered
     else:
         return pull
     try:
@@ -994,6 +1129,14 @@ def _node_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> b
         for nodes in precheck.graph_doc(ctx).values()
         for node in nodes
     )
+
+
+def _holes_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    """F06-T20: a node the partial's holes are expected to become is not in the products yet."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    rendered = {node.get("node_id") for nodes in precheck.graph_doc(ctx).values() for node in nodes}
+    return any(node_id not in rendered for node_id in found.expected_nodes)
 
 
 def _annex_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
@@ -1329,9 +1472,14 @@ def snapshot(ctx: Context) -> dict[str, Any]:
     order = queue_order(listed) if listed is not None else None
     rank = {number: index for index, number in enumerate(order or [])}
     still_open.sort(key=lambda s: (rank.get(s.pr_number, len(rank)), s.pr_number))
-    lanes = {s.pr_number: s.target_id for s in still_open}
     by_number = {s.pr_number: s for s in still_open}
-    aside = passed_over(ctx, listed, by_number, order) if listed is not None and order else set()
+    lanes: dict[int, Lane] = {}
+    aside: set[int] = set()
+    if listed is not None and order:
+        lanes, aside = place(ctx, listed, by_number, order)
+        aside |= passed_over(ctx, listed, by_number, [n for n in order if n not in aside])
+    for s in still_open:  # one the actor does not take still names its own lane's count
+        lanes.setdefault(s.pr_number, (s.target_id, sub_lane(s, (listed or {}).get(s.pr_number))))
     open_now = [
         {**document(s), "queue": entry_queue(ctx, s.pr_number, order, lanes, aside)}
         for s in still_open
