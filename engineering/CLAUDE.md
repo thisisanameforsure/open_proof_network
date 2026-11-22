@@ -1891,3 +1891,16 @@ The law of the project:
   the branch's META, not the log's "ok". Also: zsh's `$b:t` ate five pull-request titles (brace it), and
   Playwright for the site's browser tests is `uv run --with 'playwright==1.58.0' python -m pytest`
   (`--frozen --with` does not reach pytest; 1.58 matches the cached chromium 1248).
+- 2026-11-13 — "Work on branch #9" was Set 9 of erdos-257's problem page: a six-hole skeleton on
+  the repair-walk variant claiming 2^-20 is an infinite subset sum. Five holes proved through the
+  service in one sitting, the sixth (a calm point in every dyadic interval) is a prime-constellation
+  statement left with an annex (`engineering/session-notes/2026-11-13-e257-repair-walk-set9.md`).
+  Three things worth keeping. **Read the numerics before the Lean, and read them against the
+  hole's own index convention**: the stall check and the witness table were each off by one at
+  first (the hole writes r(k+1) for the remainder after term k), and norm_num's `False` at exactly
+  the take steps is what said so. **A "finite computation" hole over the reals is a kernel decide
+  plus one invariant**: a fixed-point interval walk in ℕ at 2400 bits decides 1092 steps in three
+  seconds when the loop is a structural recursion in chunks of 100 (a `List.foldl` or a single
+  1092-step loop hits a recursion limit), and the bridge is "while `ok`, the brackets hold 2^P times
+  the real remainder and no stall has happened". **The fast checker's line numbers are offset by the
+  inlined Context** (three lines here); map them before guessing which tactic failed.
