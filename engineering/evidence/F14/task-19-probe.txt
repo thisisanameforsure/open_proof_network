@@ -1,0 +1,120 @@
+== probe 1
+check-timeout c14-le-20                                the check did not finish within the fast check's 20 s budget. Search tactics such as exact?, apply? and rw? rarely fit it: find the lemma an
+error      c6a-lower-bound-improved                 -:836:4-836:11: error: unexpected token 'import'; expected 'lemma' 
+compiled   class-number-problem                     111 ms
+compiled   conjecture                               2961 ms
+error      convex-mosers-worm-problem               -:529:22-529:23: error: unexpected token '²'; expected ')', ',' or ':' 
+error      distinct-prop-lt                         -:531:0-531:50: error: Unknown option `linter.style.formal_proof_palomar` 
+error      erdos-10                                 -:811:0-811:50: error: Unknown option `linter.style.formal_proof_palomar` 
+error      erdos-1038                               -:818:4-818:29: error(lean.unknownIdentifier): Unknown identifier `erdos_1038.parts.i.answer` 
+compiled   erdos-1053                               132 ms
+compiled   erdos-1059                               85 ms
+error      erdos-1162                               incomplete: ['Erdos1162.erdos_1162.answer']
+compiled   erdos-159                                258 ms
+error      erdos-385                                -:493:14-493:31: error: invalid declaration name `F`, there is a section variable with the same name 
+error      erdos-420                                -:943:14-943:43: error: invalid declaration name `F`, there is a section variable with the same name 
+compiled   erdos-472                                2659 ms
+check-timeout erdos-789                                the check did not finish within the fast check's 20 s budget. Search tactics such as exact?, apply? and rw? rarely fit it: find the lemma an
+compiled   erdos-911                                92 ms
+error      erdos-ulam-problem                       -:836:4-836:11: error: unexpected token 'import'; expected 'lemma' 
+compiled   exp-exp-transcendental                   240 ms
+check-timeout extended-sierpinski-problem              the check did not finish within the fast check's 20 s budget. Search tactics such as exact?, apply? and rw? rarely fit it: find the lemma an
+compiled   gilbreath-conjecture                     32 ms
+error      has-s-i-c-p-o-v-m-70                     -:369:4-369:11: error: unexpected token 'import'; expected 'lemma' 
+compiled   infinitely-many-pierpont-primes          2668 ms
+error      is-accumulation-point-three-halves-pow   incomplete: ['Equidistribution.isAccumulationPoint_three_halves_pow.answer']
+compiled   is-ten-solitary                          2596 ms
+error      least-eleven-square-packing-in-square    -:1022:29-1022:30: error: unexpected token '²'; expected ':=', 'where' or '|' 
+error      least-twenty-one-circle-packing-in-square -:1022:29-1022:30: error: unexpected token '²'; expected ':=', 'where' or '|' 
+error      num-transversals-zn                      -:810:4-810:11: error: unexpected token 'import'; expected 'lemma' 
+compiled   opposite-parity-amicable                 57 ms
+error      problem-10-6-variant-1                   -:419:0-419:50: error: Unknown option `linter.style.formal_proof_palomar` 
+SUMMARY 30 probed: 12 compiled, 15 errors, 3 over the 20 s budget, 0 other
+== probe 2
+error      c6a-lower-bound-improved                 -:855:4-855:11: error: unexpected token 'import'; expected 'lemma' 
+compiled   class-number-problem                     71 ms
+compiled   conjecture                               2923 ms
+compiled   distinct-prop-lt                         2678 ms
+compiled   erdos-10                                 3019 ms
+compiled   erdos-1053                               113 ms
+compiled   erdos-1059                               48 ms
+compiled   erdos-159                                98 ms
+compiled   erdos-385                                2588 ms
+compiled   erdos-420                                3338 ms
+compiled   erdos-472                                2618 ms
+compiled   erdos-911                                44 ms
+error      erdos-ulam-problem                       -:855:4-855:11: error: unexpected token 'import'; expected 'lemma' 
+compiled   exp-exp-transcendental                   235 ms
+compiled   extended-sierpinski-problem              7500 ms
+compiled   gilbreath-conjecture                     32 ms
+compiled   infinitely-many-pierpont-primes          2585 ms
+compiled   is-ten-solitary                          2588 ms
+compiled   opposite-parity-amicable                 33 ms
+error      problem-10-6-variant-1                   -:454:4-454:5: error: unexpected token ';'; expected 'private', 'scoped' or identifier 
+SUMMARY 20 probed: 17 compiled, 3 errors, 0 over the 20 s budget, 0 other
+== probe 3
+error      c6a-lower-bound-improved                 -:1109:0-1109:11: error: ❌️ Docstring on `#guard_msgs` does not match generated message:  - info: fun a b ↦ + info: fun a b =>     match a, b with     | State2.A, 0 => none     | State2.A, 1 => some (
+compiled   class-number-problem                     71 ms
+compiled   conjecture                               2923 ms
+compiled   distinct-prop-lt                         2678 ms
+compiled   erdos-10                                 3019 ms
+compiled   erdos-1053                               113 ms
+compiled   erdos-1059                               48 ms
+compiled   erdos-159                                98 ms
+compiled   erdos-385                                2588 ms
+compiled   erdos-420                                3338 ms
+compiled   erdos-472                                2618 ms
+compiled   erdos-911                                44 ms
+error      erdos-ulam-problem                       -:1109:0-1109:11: error: ❌️ Docstring on `#guard_msgs` does not match generated message:  - info: fun a b ↦ + info: fun a b =>     match a, b with     | State2.A, 0 => none     | State2.A, 1 => some (
+compiled   exp-exp-transcendental                   235 ms
+compiled   extended-sierpinski-problem              7500 ms
+compiled   gilbreath-conjecture                     32 ms
+compiled   infinitely-many-pierpont-primes          2585 ms
+compiled   is-ten-solitary                          2588 ms
+compiled   opposite-parity-amicable                 33 ms
+compiled   problem-10-6-variant-1                   502 ms
+SUMMARY 20 probed: 18 compiled, 2 errors, 0 over the 20 s budget, 0 other
+== probe 4
+error      c6a-lower-bound-improved                 -:1527:23-1527:28: error: unexpected token; expected ']' 
+compiled   class-number-problem                     70 ms
+compiled   conjecture                               2912 ms
+compiled   distinct-prop-lt                         2669 ms
+compiled   erdos-10                                 3013 ms
+compiled   erdos-1053                               114 ms
+compiled   erdos-1059                               50 ms
+compiled   erdos-159                                92 ms
+compiled   erdos-385                                2615 ms
+compiled   erdos-420                                3322 ms
+compiled   erdos-472                                2589 ms
+compiled   erdos-911                                45 ms
+compiled   erdos-ulam-problem                       5225 ms
+compiled   exp-exp-transcendental                   233 ms
+compiled   extended-sierpinski-problem              563 ms
+compiled   gilbreath-conjecture                     32 ms
+compiled   infinitely-many-pierpont-primes          2588 ms
+compiled   is-ten-solitary                          2577 ms
+compiled   opposite-parity-amicable                 33 ms
+compiled   problem-10-6-variant-1                   527 ms
+SUMMARY 20 probed: 19 compiled, 1 errors, 0 over the 20 s budget, 0 other
+== probe 5
+compiled   c6a-lower-bound-improved                 5295 ms
+compiled   class-number-problem                     70 ms
+compiled   conjecture                               2912 ms
+compiled   distinct-prop-lt                         2669 ms
+compiled   erdos-10                                 3013 ms
+compiled   erdos-1053                               114 ms
+compiled   erdos-1059                               50 ms
+compiled   erdos-159                                92 ms
+compiled   erdos-385                                2615 ms
+compiled   erdos-420                                3322 ms
+compiled   erdos-472                                2589 ms
+compiled   erdos-911                                45 ms
+compiled   erdos-ulam-problem                       5225 ms
+compiled   exp-exp-transcendental                   233 ms
+compiled   extended-sierpinski-problem              563 ms
+compiled   gilbreath-conjecture                     32 ms
+compiled   infinitely-many-pierpont-primes          2588 ms
+compiled   is-ten-solitary                          2577 ms
+compiled   opposite-parity-amicable                 33 ms
+compiled   problem-10-6-variant-1                   527 ms
+SUMMARY 20 probed: 20 compiled, 0 errors, 0 over the 20 s budget, 0 other

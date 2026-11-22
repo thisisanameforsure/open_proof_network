@@ -263,7 +263,7 @@ def draft(  # noqa: PLR0911 — one return per refusal, the driver's shape
     header = intake.copyright_header(text)
     if header is None:
         return None, ["the registry file carries no copyright header to keep"]
-    prop, how = wave.extract(text, choice.decl)
+    prop, how, _binders = wave.extract(text, choice.decl)  # F14-T18: binders before the colon
     if prop is None and choice.hand_statement is not None:
         prop, how = choice.hand_statement, f"restated by hand ({how})"
     if prop is None:

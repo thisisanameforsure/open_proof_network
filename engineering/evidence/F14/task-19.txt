@@ -1,0 +1,98 @@
+F14-T19 — the driver ports definitions itself; plain binders before the colon close into the witness (Q17)
+=========================================================================================================
+
+Why. The owner's ruling (2026-11-21): load every open statement of the registry regardless of grade.
+A dry run of the T18 driver over every scored catalog row (1023 rows at --min-score 0, registry
+d8d031d) drafted 97 and refused 926, and the two largest refusals were porting work the curator had
+done by hand for Reed and Green 58 in T18:
+
+  560  uses file-local definitions (port into defs/)
+  226  uses names FormalConjecturesForMathlib declares (port first)
+  198  leading ∀ binders carry hypotheses
+  178  binders before the colon
+   85  the open statement is a variant
+   30  leading ∀ binders the driver cannot close
+    7  uses file-local notation · 7 let/have opening · 10 no graph domain · 5 no theorem found
+
+What changed (gate/tools/wave.py)
+  port_body(text, keep_theorems)   the mechanical port of a registry file: definitions, instances,
+                                   `variable`s and scope lines as written; theorems, lemmas and
+                                   examples gone with their docstrings, attributes and `open … in` /
+                                   `set_option … in` prefixes (kept for a library module: its
+                                   lemmas are proved); every `#` command gone; the module syntax
+                                   stripped (`module`, `public`/`meta` modifiers in any order,
+                                   `public import` → recorded import, `@[expose] public
+                                   [noncomputable] section` → a plain section so its `end` still
+                                   matches); the registry's own attributes (`category`, `AMS`,
+                                   `optimization_constant`, `question`, `expose`) dropped from
+                                   their lists; `set_option linter.*` dropped.
+  port_library_module()            a helper-library module copied with its own Apache header, named
+                                   by its path inside the library (`CombinatoricsSimpleGraphClique`;
+                                   ten `Basic.lean`s), `Mathlib.*` and `FormalConjecturesUtil`
+                                   imports collapsed into `import Mathlib`, `Batteries.*` kept, library
+                                   imports ported recursively and imported as `Defs.*`.
+  port_local()                     the registry file's own definitions as `defs/Local.lean`, importing
+                                   the library ports it or the statement uses; the statement opens
+                                   the namespaces the theorem was stated in (`enclosing_namespaces`).
+  _scan_library()                  names → modules, and notation literals → modules (`ℝ²` is
+                                   Geometry/2d.lean's and no token scan sees it).
+  a row whose local definitions rest on `sorry` (`def erdos_n.answer : T := sorry`, 180 rows) is
+                                   refused as a question in disguise (F11-Q24), before any port.
+  leading_binders()                a binder whose type states a hypothesis (a relation or connective,
+                                   a predicate on an earlier binder, a name written `h…`) is not data;
+                                   binders before the colon are closed exactly as leading ∀s
+                                   (closed_prop), so `(n : ℕ) : P n` gets `∃ (n : ℕ), True` and
+                                   `(n : ℕ) (hn : 0 < n) : P n` stays the curator's.
+  target_id_for()                  a subscript in the declaration name becomes the plain letter
+                                   (`moment_is_equiv₃` → `moment-is-equiv3`; three live rows).
+  The curator's hand defs/ (--overrides) win over the mechanical port; the report says
+  `(port: Local CombinatoricsAP …)` per draft and import.sh passes --defs as before.
+  docs/calibration_pool.py         `wave.extract` has returned three values since T18; the caller read
+                                   two (latent, untested).
+
+Red first (gate/tests/test_wave.py; 20 → 30 tests)
+  First red run, 9 failed: the counts (Drafted 13, refused 10), the port tests and the colon-binder
+  test failed on the defect; two (`port_body`, `test_an_attribute_list…`) failed on the missing name,
+  which proves nothing, and were watched red again after the seam existed.
+  Then the live probe found five defects in the port, each written as a test before the fix and seen
+  red: a `set_option linter.style.formal_proof_palomar false in` prefix left dangling before a
+  dropped theorem (1096 such lines in the registry); `public meta import` (both modifiers); a
+  library notation never indexed (`ℝ²`); a definition resting on `sorry`; `@[expose] public
+  noncomputable section` losing its `noncomputable`; `#guard_msgs` tests whose expected text is the
+  pretty-printer's; `@[optimization_constant "6a"]`, an attribute only the registry defines; an
+  attribute on the declaration's own line (`@[expose] instance … := ⟨0⟩`) being dropped as pending;
+  and a prose line of a module doc beginning "open; [Kat16, …]" taken for an `open` command.
+  (Two of those — the hash commands and the inline attribute — were fixed in the same run as their
+  tests were written, so the tests were not watched red; the probe had shown each defect live.)
+Green: uv run --frozen python -m pytest gate/tests/test_wave.py → 30 passed.
+  gate/tests/test_catalog_build.py test_intake.py test_finding_statement_commands.py
+  test_postmerge_review.py → 84 passed. make lint clean (ruff check, ruff format), make types clean.
+
+Measured on the live catalog (every scored row, registry d8d031d; task-19-report.md is the run)
+  before (T18 driver)   Drafted  97, refused 926
+  after  (T19 driver)   Drafted 365, refused 658   (167 Erdős, 198 other collections; 269 with ports;
+                                                    1258 ported defs files, 16 MB)
+  refusals left:  198 leading ∀ binders carry hypotheses · 180 definitions rest on `sorry` (answers)
+                  160 binders before the colon carry a hypothesis · 85 variants · 33 binders the
+                  driver cannot close · 25 record refused (D-6 excluded domains) · 9 cannot port
+                  (imports the port cannot supply) · 7 file-local notation · 7 let/have · 7 no domain
+
+Hosted check (POST /check, mode check, each draft as one Lean file: `import Mathlib`, every ported
+module in its own `section … end`, then the statement; the checker reads no committed defs/ and has a
+20 s budget). The same 30-draft sample throughout (sample30.txt; rows the final driver refuses as
+answers or notation leave the sample):
+  probe 1 (first port)   30 probed: 12 compiled, 15 errors, 3 over the 20 s budget
+  probe 2                20 probed: 17 compiled, 3 errors
+  probe 3                20 probed: 18 compiled, 2 errors
+  probe 4                20 probed: 19 compiled, 1 error
+  probe 5 (final)        20 probed: 20 compiled, 0 errors   (task-19-probe.txt)
+  The three "over budget" drafts of probe 1 compile in probe 5 (the dangling linter options were the
+  cost). The mechanical port of Green 58's `Nat.Composite` is the hand port of T18 definition for
+  definition (diff of the bodies: identical).
+
+Not done here
+  The 20 s fast-check budget makes the hosted route a sample instrument, not a gate: the gate's
+  sandbox at intake is the verdict for every draft (T20: check every draft before any pull request
+  opens, in the sandbox image). 180 answer-shaped rows and 391 rows with hypothesis binders need
+  witnesses written by a person or an agent. A statement a probe compiles may still not be the
+  problem (R13: every draft is read before import).

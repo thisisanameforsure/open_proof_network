@@ -1,0 +1,1033 @@
+# Wave drafts (F14-T11, T18)
+
+Catalog at registry commit d8d031d4998c78575159ccab9a7a9e95ce043883, rows scoring 0 or more.
+Drafted 365, refused 658. Read every draft before import (F14-R13).
+
+## Drafted
+
+- `erdos:10` → `erdos-10/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:100` → `erdos-100/` (port: AlgebraWeylAlgebra DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `erdos:1002` → `erdos-1002/`
+- `erdos:1003` → `erdos-1003/`
+- `erdos:101` → `erdos-101/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsStableMarriage DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `erdos:1029` → `erdos-1029/` (port: CombinatoricsSimpleGraphEdgeColouring CombinatoricsSimpleGraphRamsey)
+- `erdos:103` → `erdos-103/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsStableMarriage DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate TopologyMetricSpaceMetricSeparated)
+- `erdos:1035` → `erdos-1035/` (port: CombinatoricsSimpleGraphHypercube)
+- `erdos:104` → `erdos-104/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphIndependence DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `erdos:1052` → `erdos-1052/` (port: AlgebraWeylAlgebra DataNatPrimeFinset FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1053` → `erdos-1053/` (port: NumberTheoryPerfectNumber)
+- `erdos:1057` → `erdos-1057/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity DataNatPrimeComposite FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryCarmichael)
+- `erdos:1059` → `erdos-1059/` (port: DataNatPrimeComposite Local)
+- `erdos:1060` → `erdos-1060/`
+- `erdos:1061` → `erdos-1061/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1062` → `erdos-1062/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphInduced FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1065` → `erdos-1065/`
+- `erdos:1072` → `erdos-1072/` (port: Local)
+- `erdos:1073` → `erdos-1073/` (port: AlgebraWeylAlgebra DataNatPrimeComposite FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1093` → `erdos-1093/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1094` → `erdos-1094/`
+- `erdos:11` → `erdos-11/`
+- `erdos:1101` → `erdos-1101/` (port: AlgebraWeylAlgebra DataNatPrimeFinset FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1106` → `erdos-1106/` (port: CombinatoricsEnumerativePartitionBasic)
+- `erdos:1113` → `erdos-1113/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphResidue CombinatoricsStableMarriage DataNatPrimeComposite FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryCoveringSystem NumberTheorySierpinskiNumber)
+- `erdos:1135` → `erdos-1135/`
+- `erdos:1137` → `erdos-1137/` (port: NumberTheoryPrimeGap)
+- `erdos:1142` → `erdos-1142/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1145` → `erdos-1145/` (port: AlgebraGroupIndicator AlgebraWeylAlgebra CombinatoricsAdditiveConvolution CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1146` → `erdos-1146/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphInduced FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `erdos:1159` → `erdos-1159/`
+- `erdos:1168` → `erdos-1168/` (port: SetTheoryCardinalSimpleGraph SetTheoryOrdinalPartitionRelation)
+- `erdos:1199` → `erdos-1199/`
+- `erdos:1203` → `erdos-1203/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:1206` → `erdos-1206/` (port: CombinatoricsAPBasic CombinatoricsBasic)
+- `erdos:1209` → `erdos-1209/`
+- `erdos:1210` → `erdos-1210/` (port: DataNatPrimeFinset)
+- `erdos:1221` → `erdos-1221/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCircumference CombinatoricsSimpleGraphCycle CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:137` → `erdos-137/` (port: DataNatFull)
+- `erdos:15` → `erdos-15/`
+- `erdos:153` → `erdos-153/` (port: AlgebraWeylAlgebra CombinatoricsAPBasic CombinatoricsBasic CombinatoricsSimpleGraphDegrees CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:156` → `erdos-156/` (port: AlgebraWeylAlgebra CombinatoricsAPBasic CombinatoricsBasic CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:159` → `erdos-159/` (port: CombinatoricsSimpleGraphEdgeColouring CombinatoricsSimpleGraphRamsey)
+- `erdos:17` → `erdos-17/` (port: Local)
+- `erdos:197` → `erdos-197/` (port: CombinatoricsAPBasic)
+- `erdos:20` → `erdos-20/` (port: AlgebraWeylAlgebra CombinatoricsSetFamilySunflower FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:200` → `erdos-200/` (port: AlgebraWeylAlgebra CombinatoricsAPBasic CombinatoricsSimpleGraphCycle FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:203` → `erdos-203/` (port: DataNatPrimeFinset)
+- `erdos:212` → `erdos-212/`
+- `erdos:233` → `erdos-233/` (port: NumberTheoryPrimeGap)
+- `erdos:234` → `erdos-234/` (port: AlgebraOrderGroupPointwiseInterval DataSetDensity DataSetInterval NumberTheoryPrimeGap OrderIntervalFinsetBasic OrderIntervalFinsetNat)
+- `erdos:236` → `erdos-236/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:241` → `erdos-241/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsSimpleGraphInduced CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:249` → `erdos-249/`
+- `erdos:251` → `erdos-251/`
+- `erdos:263` → `erdos-263/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:264` → `erdos-264/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:273` → `erdos-273/` (port: NumberTheoryCoveringSystem)
+- `erdos:274` → `erdos-274/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:276` → `erdos-276/` (port: AlgebraWeylAlgebra DataNatPrimeComposite FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:288` → `erdos-288/`
+- `erdos:291` → `erdos-291/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:295` → `erdos-295/` (port: Local)
+- `erdos:311` → `erdos-311/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:312` → `erdos-312/`
+- `erdos:313` → `erdos-313/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:317` → `erdos-317/`
+- `erdos:32` → `erdos-32/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:324` → `erdos-324/` (port: AlgebraicGeometryProjectiveSpace)
+- `erdos:326` → `erdos-326/`
+- `erdos:345` → `erdos-345/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryAdditivelyComplete)
+- `erdos:352` → `erdos-352/` (port: DataSetTriplewise DataSymSym2 Geometry2d GeometryMetric LogicEquivFinRotate)
+- `erdos:365` → `erdos-365/` (port: DataNatFull)
+- `erdos:368` → `erdos-368/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity DataNatMaxPrimeFac FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:373` → `erdos-373/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:376` → `erdos-376/` (port: DataNatPrimeFinset)
+- `erdos:377` → `erdos-377/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:385` → `erdos-385/` (port: AlgebraWeylAlgebra DataNatPrimeComposite FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:386` → `erdos-386/`
+- `erdos:388` → `erdos-388/`
+- `erdos:39` → `erdos-39/` (port: CombinatoricsAPBasic CombinatoricsBasic)
+- `erdos:396` → `erdos-396/`
+- `erdos:406` → `erdos-406/`
+- `erdos:408` → `erdos-408/` (port: AlgebraOrderGroupPointwiseInterval AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity DataSetDensity DataSetInterval FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes OrderIntervalFinsetBasic OrderIntervalFinsetNat)
+- `erdos:413` → `erdos-413/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:417` → `erdos-417/`
+- `erdos:420` → `erdos-420/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:428` → `erdos-428/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `erdos:430` → `erdos-430/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:454` → `erdos-454/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:456` → `erdos-456/` (port: Local)
+- `erdos:461` → `erdos-461/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:462` → `erdos-462/`
+- `erdos:463` → `erdos-463/` (port: DataNatPrimeComposite)
+- `erdos:467` → `erdos-467/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphResidue FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:470` → `erdos-470/`
+- `erdos:472` → `erdos-472/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:478` → `erdos-478/`
+- `erdos:483` → `erdos-483/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:51` → `erdos-51/`
+- `erdos:510` → `erdos-510/`
+- `erdos:544` → `erdos-544/` (port: CombinatoricsSimpleGraphEdgeColouring CombinatoricsSimpleGraphRamsey)
+- `erdos:545` → `erdos-545/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphEdgeColouring CombinatoricsSimpleGraphRamsey ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:564` → `erdos-564/` (port: CombinatoricsRamsey)
+- `erdos:567` → `erdos-567/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsSimpleGraphEdgeColouring CombinatoricsSimpleGraphHypercube CombinatoricsSimpleGraphRamsey FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:573` → `erdos-573/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `erdos:595` → `erdos-595/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `erdos:60` → `erdos-60/` (port: CombinatoricsHypergraphBasic CombinatoricsHypergraphFinite CombinatoricsSetFamilyPropertyB)
+- `erdos:624` → `erdos-624/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:627` → `erdos-627/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:642` → `erdos-642/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `erdos:644` → `erdos-644/` (port: CombinatoricsHypergraphBasic CombinatoricsHypergraphExtremal CombinatoricsHypergraphFinite CombinatoricsSetFamilyPropertyB)
+- `erdos:653` → `erdos-653/` (port: DataSetTriplewise DataSymSym2 Geometry2d GeometryMetric LogicEquivFinRotate)
+- `erdos:657` → `erdos-657/` (port: DataSetTriplewise DataSymSym2 Geometry2d GeometryMetric LogicEquivFinRotate)
+- `erdos:66` → `erdos-66/` (port: AlgebraGroupIndicator CombinatoricsAdditiveConvolution)
+- `erdos:665` → `erdos-665/` (port: CombinatoricsHypergraphBasic CombinatoricsHypergraphFinite CombinatoricsSetFamilyPropertyB)
+- `erdos:667` → `erdos-667/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `erdos:676` → `erdos-676/`
+- `erdos:68` → `erdos-68/`
+- `erdos:680` → `erdos-680/`
+- `erdos:681` → `erdos-681/` (port: AlgebraWeylAlgebra DataNatPrimeComposite FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:683` → `erdos-683/` (port: AlgebraMvPolynomialRegularFunction AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:704` → `erdos-704/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:706` → `erdos-706/` (port: CombinatoricsSimpleGraphUnitDistancePlaneGraph DataSetTriplewise DataSymSym2 Geometry2d GeometryEuclidean GeometryMetric LogicEquivFinRotate)
+- `erdos:711` → `erdos-711/` (port: AlgebraWeylAlgebra CombinatoricsRoommates CombinatoricsSimpleGraphCycle CombinatoricsStableMarriage CombinatoricsStableMarriageUnbalanced ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:726` → `erdos-726/`
+- `erdos:734` → `erdos-734/` (port: CombinatoricsHypergraphBasic CombinatoricsHypergraphFinite CombinatoricsSetFamilyPropertyB)
+- `erdos:75` → `erdos-75/`
+- `erdos:78` → `erdos-78/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `erdos:782` → `erdos-782/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsSimpleGraphInduced CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:81` → `erdos-81/` (port: CombinatoricsSimpleGraphChordal)
+- `erdos:810` → `erdos-810/` (port: CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity Local NumberTheoryWallSunSunPrimes)
+- `erdos:813` → `erdos-813/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:82` → `erdos-82/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `erdos:820` → `erdos-820/` (port: CombinatoricsSimpleGraphIndependence ComputabilityBitstringEncoding ComputabilityComplexity DataNatPrimeFinset Local)
+- `erdos:826` → `erdos-826/`
+- `erdos:828` → `erdos-828/`
+- `erdos:829` → `erdos-829/` (port: AlgebraGroupIndicator AlgebraWeylAlgebra CombinatoricsAdditiveConvolution ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `erdos:830` → `erdos-830/` (port: NumberTheoryAmicable)
+- `erdos:85` → `erdos-85/` (port: Local)
+- `erdos:850` → `erdos-850/`
+- `erdos:853` → `erdos-853/` (port: Local NumberTheoryPrimeGap)
+- `erdos:855` → `erdos-855/`
+- `erdos:859` → `erdos-859/` (port: AlgebraOrderGroupPointwiseInterval AlgebraWeylAlgebra DataSetDensity DataSetInterval FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local OrderIntervalFinsetBasic OrderIntervalFinsetNat TopologyCardinalInvariants)
+- `erdos:889` → `erdos-889/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphIndependence CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:89` → `erdos-89/` (port: DataSetTriplewise DataSymSym2 Geometry2d GeometryMetric LogicEquivFinRotate)
+- `erdos:893` → `erdos-893/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `erdos:9` → `erdos-9/` (port: AlgebraOrderGroupPointwiseInterval AlgebraWeylAlgebra DataSetDensity DataSetInterval FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local OrderIntervalFinsetBasic OrderIntervalFinsetNat)
+- `erdos:906` → `erdos-906/`
+- `erdos:91` → `erdos-91/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `erdos:911` → `erdos-911/` (port: CombinatoricsSimpleGraphSizeRamsey)
+- `erdos:912` → `erdos-912/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:913` → `erdos-913/`
+- `erdos:918` → `erdos-918/`
+- `erdos:932` → `erdos-932/` (port: DataNatMaxPrimeFac)
+- `erdos:933` → `erdos-933/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:938` → `erdos-938/` (port: CombinatoricsAPBasic ComputabilityBitstringEncoding ComputabilityComplexity DataNatFull)
+- `erdos:942` → `erdos-942/` (port: AlgebraWeylAlgebra DataNatFull FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:943` → `erdos-943/` (port: AlgebraGroupIndicator CombinatoricsAdditiveConvolution DataNatFull)
+- `erdos:945` → `erdos-945/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:96` → `erdos-96/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `erdos:961` → `erdos-961/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:962` → `erdos-962/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `erdos:971` → `erdos-971/` (port: DataNatPrimeFinset Local)
+- `erdos:98` → `erdos-98/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `erdos:99` → `erdos-99/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsStableMarriage DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `erdos:996` → `erdos-996/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryLacunary)
+- `fc:FormalConjectures/Arxiv/1701.08900/SecondMoment.lean#second_moment_one_extra_worker` → `second-moment-one-extra-worker/` (port: CombinatoricsStableMarriage CombinatoricsStableMarriageUnbalanced)
+- `fc:FormalConjectures/Arxiv/2209.04540/SpectralSetsAndWeakTiling.lean#exists_nowhereDense_spectralSet` → `exists-nowhere-dense-spectral-set/` (port: AnalysisFourierSpectralSets)
+- `fc:FormalConjectures/Arxiv/2406.10319/StableMatchingHyperbola.lean#pittel_hyperbola_threshold` → `pittel-hyperbola-threshold/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage CombinatoricsStableMarriageUnbalanced FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryAdditivelyComplete)
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#problem_10_1` → `problem-10-1/` (port: DataRealNearestInt)
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#problem_10_2` → `problem-10-2/` (port: DataRealNearestInt)
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#problem_10_3` → `problem-10-3/` (port: DataRealNearestInt)
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#waldschmidt` → `waldschmidt/` (port: DataRealNearestInt)
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_6.lean#problem_10_6_variant_1` → `problem-10-6-variant-1/` (port: Local ModelTheoryEncoding ModelTheoryReal TopologyCardinalInvariants)
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_9.lean#problem_10_9` → `problem-10-9/`
+- `fc:FormalConjectures/Books/UniformDistributionOfSequences/Equidistribution.lean#isEquidistributedModuloOne_three_halves_pow` → `is-equidistributed-modulo-one-three-halves-pow/` (port: AnalysisEquidistributionModOne)
+- `fc:FormalConjectures/GreensOpenProblems/15.lean#green_15` → `green-15/` (port: CombinatoricsAPBasic)
+- `fc:FormalConjectures/GreensOpenProblems/2.lean#green_2` → `green-2/` (port: AlgebraWeylAlgebra CombinatoricsAdditiveRestrictedSumset ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/GreensOpenProblems/29.lean#green_29` → `green-29/`
+- `fc:FormalConjectures/GreensOpenProblems/32.lean#green_32` → `green-32/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryCoveringSystem)
+- `fc:FormalConjectures/GreensOpenProblems/39.lean#green_39` → `green-39/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/GreensOpenProblems/39.lean#green_39.variant_101` → `variant-101/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/GreensOpenProblems/40.lean#green_40` → `green-40/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes TopologyCardinalInvariants)
+- `fc:FormalConjectures/GreensOpenProblems/40.lean#green_40.f_two_eq_one` → `f-two-eq-one/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes TopologyCardinalInvariants)
+- `fc:FormalConjectures/GreensOpenProblems/45.lean#green_45` → `green-45/`
+- `fc:FormalConjectures/GreensOpenProblems/50.lean#green_50` → `green-50/`
+- `fc:FormalConjectures/GreensOpenProblems/52.lean#green_52` → `green-52/` (port: CombinatoricsSimpleGraphDegrees)
+- `fc:FormalConjectures/GreensOpenProblems/53.lean#green_53` → `green-53/`
+- `fc:FormalConjectures/GreensOpenProblems/58.lean#green_58` → `green-58/` (port: DataNatPrimeComposite)
+- `fc:FormalConjectures/GreensOpenProblems/60.lean#green_60` → `green-60/`
+- `fc:FormalConjectures/GreensOpenProblems/61.lean#green_61` → `green-61/`
+- `fc:FormalConjectures/GreensOpenProblems/62.lean#green_62` → `green-62/`
+- `fc:FormalConjectures/GreensOpenProblems/64.lean#green_64` → `green-64/`
+- `fc:FormalConjectures/GreensOpenProblems/66.lean#green_66` → `green-66/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/GreensOpenProblems/76.lean#green_76` → `green-76/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/GreensOpenProblems/77.lean#green_77` → `green-77/`
+- `fc:FormalConjectures/GreensOpenProblems/85.lean#green_85` → `green-85/`
+- `fc:FormalConjectures/GreensOpenProblems/88.lean#green_88` → `green-88/`
+- `fc:FormalConjectures/GreensOpenProblems/9.lean#green_9_ii` → `green-9-ii/` (port: AlgebraWeylAlgebra CombinatoricsAPBasic FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/GreensOpenProblems/9.lean#green_9_iii` → `green-9-iii/` (port: CombinatoricsAPBasic)
+- `fc:FormalConjectures/Kourovka/1_35c.lean#kourovka_1_35c` → `kourovka-1-35c/` (port: Local)
+- `fc:FormalConjectures/Kourovka/8_8.lean#kourovka_8_8b` → `kourovka-8-8b/`
+- `fc:FormalConjectures/Mathoverflow/21003.lean#mathoverflow_21003` → `mathoverflow-21003/`
+- `fc:FormalConjectures/Mathoverflow/34145.lean#rectangles_cover_unit_square` → `rectangles-cover-unit-square/` (port: AlgebraWeylAlgebra DataSetTriplewise DataSymSym2 FieldTheoryAbsoluteGaloisGroup FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `fc:FormalConjectures/Mathoverflow/34145.lean#rectangles_pack_unit_square` → `rectangles-pack-unit-square/` (port: AlgebraWeylAlgebra DataSetTriplewise DataSymSym2 FieldTheoryAbsoluteGaloisGroup FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `fc:FormalConjectures/Mathoverflow/434111.lean#restricted_prime_number_theorem` → `restricted-prime-number-theorem/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Millennium/PvsNP.lean#NP_ne_coNP` → `n-p-ne-co-n-p/` (port: ComputabilityBitstringEncoding ComputabilityComplexity)
+- `fc:FormalConjectures/Millennium/PvsNP.lean#P_eq_BPP` → `p-eq--b-p-p/` (port: ComputabilityBitstringEncoding ComputabilityComplexity)
+- `fc:FormalConjectures/Millennium/PvsNP.lean#P_ne_NP` → `p-ne--n-p/` (port: ComputabilityBitstringEncoding ComputabilityComplexity)
+- `fc:FormalConjectures/Millennium/RiemannHypothesis.lean#riemannHypothesis` → `riemann-hypothesis/`
+- `fc:FormalConjectures/OptimizationConstants/6a.lean#c6a_eq_half` → `c6a-eq-half/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity ComputabilityTuringMachineBusyBeavers ComputabilityTuringMachineNotation ComputabilityTuringMachinePostTuringMachine FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/OptimizationConstants/6a.lean#c6a_lower_bound_improved` → `c6a-lower-bound-improved/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity ComputabilityTuringMachineBusyBeavers ComputabilityTuringMachineNotation ComputabilityTuringMachinePostTuringMachine FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/OptimizationConstants/6a.lean#c6a_upper_bound_improved` → `c6a-upper-bound-improved/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity ComputabilityTuringMachineBusyBeavers ComputabilityTuringMachineNotation ComputabilityTuringMachinePostTuringMachine FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/OptimizationConstants/7b.lean#c7b_lower_bound_improved` → `c7b-lower-bound-improved/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsSimpleGraphInduced ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/OptimizationConstants/7b.lean#c7b_upper_bound_improved` → `c7b-upper-bound-improved/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsSimpleGraphInduced ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Other/Rule30.lean#centerColumn_frequency_half` → `center-column-frequency-half/` (port: AlgebraOrderGroupPointwiseInterval AlgebraWeylAlgebra CombinatoricsRoommates CombinatoricsSimpleGraphIndependence DataSetDensity DataSetInterval FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local OrderIntervalFinsetBasic OrderIntervalFinsetNat)
+- `fc:FormalConjectures/Other/Rule30.lean#centerColumn_not_eventually_periodic` → `center-column-not-eventually-periodic/` (port: AlgebraWeylAlgebra CombinatoricsRoommates CombinatoricsSimpleGraphIndependence FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Other/SmarandacheWellinPrime.lean#conjecture` → `conjecture/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/ApproximatelyStableMatching.lean#stability_threshold_tight` → `stability-threshold-tight/` (port: CombinatoricsRoommates)
+- `fc:FormalConjectures/Paper/CardinalityLindelof.lean#HasGδSingletons.lindelof_card` → `lindelof-card/` (port: TopologyGDelta)
+- `fc:FormalConjectures/Paper/DisjointNPPairs.lean#no_complete_disjoint_NP_pair` → `no-complete-disjoint--n-p-pair/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryAbsoluteGaloisGroup FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/DisjointNPPairs.lean#no_complete_disjoint_coNP_pair` → `no-complete-disjoint-co-n-p-pair/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryAbsoluteGaloisGroup FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/IrvingLeatherStableMatchings.lean#irving_leather_growth_rate` → `irving-leather-growth-rate/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage CombinatoricsStableMarriageUnbalanced FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/IrvingLeatherStableMatchings.lean#irving_leather_pow_two` → `irving-leather-pow-two/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage CombinatoricsStableMarriageUnbalanced FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/LatinSquare.lean#latinSquareNearTransversal` → `latin-square-near-transversal/` (port: CombinatoricsLatinSquare)
+- `fc:FormalConjectures/Paper/LatinSquare.lean#latinSquareOrder11Transversal` → `latin-square-order11-transversal/` (port: CombinatoricsLatinSquare)
+- `fc:FormalConjectures/Paper/PartitionParity.lean#parkin_shanks` → `parkin-shanks/` (port: AlgebraOrderGroupPointwiseInterval CombinatoricsEnumerativePartitionBasic DataSetDensity DataSetInterval OrderIntervalFinsetBasic OrderIntervalFinsetNat)
+- `fc:FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean#np_inter_conp_no_complete_language` → `np-inter-conp-no-complete-language/` (port: CombinatoricsSimpleGraphCycle ComputabilityBitstringEncoding ComputabilityComplexity Local)
+- `fc:FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean#tfnp_no_complete_problem` → `tfnp-no-complete-problem/` (port: CombinatoricsSimpleGraphCycle ComputabilityBitstringEncoding ComputabilityComplexity Local)
+- `fc:FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean#up_no_complete_language` → `up-no-complete-language/` (port: CombinatoricsSimpleGraphCycle ComputabilityBitstringEncoding ComputabilityComplexity Local)
+- `fc:FormalConjectures/Paper/RiemannHypothesisEquivalents.lean#beurling_nyman_criterion_rhs` → `beurling-nyman-criterion-rhs/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Paper/RiemannZetaMoments.lean#moment_isEquiv` → `moment-is-equiv/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/RiemannZetaMoments.lean#moment_isEquiv₃` → `moment-is-equiv3/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/RiemannZetaMoments.lean#moment_isEquiv₄` → `moment-is-equiv4/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/RiemannZetaMoments.lean#moment_isEquivₖ` → `moment-is-equivk/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Paper/RiemannZetaZeros.lean#DirichletCharacter.distinct_prop_lt` → `distinct-prop-lt/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryLegendreSymbolBasic)
+- `fc:FormalConjectures/Paper/RiemannZetaZeros.lean#DirichletCharacter.simple_prop_lt` → `simple-prop-lt/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryLegendreSymbolBasic)
+- `fc:FormalConjectures/Paper/RiemannZetaZeros.lean#riemannZeta.distinct_prop_lt` → `distinct-prop-lt/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryLegendreSymbolBasic)
+- `fc:FormalConjectures/Paper/RiemannZetaZeros.lean#riemannZeta.simple_prop_lt` → `simple-prop-lt/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryLegendreSymbolBasic)
+- `fc:FormalConjectures/Paper/WeaklyFirstCountable.lean#existsWeaklyFirstCountableCompactBig` → `exists-weakly-first-countable-compact-big/`
+- `fc:FormalConjectures/Paper/WeaklyFirstCountable.lean#existsWeaklyFirstCountableCompactNotFirstCountable` → `exists-weakly-first-countable-compact-not-first-countable/`
+- `fc:FormalConjectures/Paper/ZagierMZV.lean#zagier_conjecture` → `zagier-conjecture/` (port: CombinatoricsAPBasic CombinatoricsBasic CombinatoricsStableMarriage ComputabilityBitstringEncoding ComputabilityComplexity Local)
+- `fc:FormalConjectures/Wikipedia/AgohGiuga.lean#agoh_giuga` → `agoh-giuga/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity DataNatPrimeComposite FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Wikipedia/AlmostPerfectNumbers.lean#exists_almost_perfect_not_power_of_two` → `exists-almost-perfect-not-power-of-two/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/AmicableNumbers.lean#infinitely_many_amicable` → `infinitely-many-amicable/`
+- `fc:FormalConjectures/Wikipedia/AmicableNumbers.lean#opposite_parity_amicable` → `opposite-parity-amicable/` (port: NumberTheoryAmicable)
+- `fc:FormalConjectures/Wikipedia/AmicableNumbers.lean#relatively_prime_amicable` → `relatively-prime-amicable/` (port: DataNatPrimeFinset NumberTheoryAmicable)
+- `fc:FormalConjectures/Wikipedia/Andrica.lean#andrica_conjecture` → `andrica-conjecture/`
+- `fc:FormalConjectures/Wikipedia/BalancedPrimes.lean#balanced_primes` → `balanced-primes/`
+- `fc:FormalConjectures/Wikipedia/BealConjecture.lean#beal_conjecture` → `beal-conjecture/` (port: AlgebraMvPolynomialRegularFunction Local)
+- `fc:FormalConjectures/Wikipedia/BeckFialaConjecture.lean#beck_fiala_conjecture` → `beck-fiala-conjecture/`
+- `fc:FormalConjectures/Wikipedia/BetrothedNumbers.lean#infinitely_many_betrothed` → `infinitely-many-betrothed/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/BetrothedNumbers.lean#same_parity_betrothed` → `same-parity-betrothed/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Bloch.lean#blochConstant_exact_value` → `bloch-constant-exact-value/` (port: ComputabilityBitstringEncoding ComputabilityComplexity Local NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Wikipedia/Bloch.lean#landauConstant_exact_value` → `landau-constant-exact-value/` (port: ComputabilityBitstringEncoding ComputabilityComplexity Local NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Wikipedia/BorsukConjecture.lean#borsuk_conjecture.four` → `four/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsStableMarriage FieldTheoryMilnorKTheory GeometryEuclidean GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Wikipedia/Brennanconjecture.lean#brennan_universalSpectrumBounded` → `brennan-universal-spectrum-bounded/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Wikipedia/Buchi.lean#buchi_problem` → `buchi-problem/` (port: CombinatoricsStableMarriage Local)
+- `fc:FormalConjectures/Wikipedia/Buchi.lean#buchi_problem_M5` → `buchi-problem--m5/` (port: CombinatoricsStableMarriage Local)
+- `fc:FormalConjectures/Wikipedia/ClassNumberProblem.lean#class_number_problem` → `class-number-problem/` (port: Local)
+- `fc:FormalConjectures/Wikipedia/Conway99Graph.lean#conway99Graph` → `conway99-graph/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Wikipedia/DiameterSimpleFiniteGroups.lean#babai_seress_conjecture` → `babai-seress-conjecture/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/DiameterSimpleFiniteGroups.lean#babai_seress_conjecture_alternating` → `babai-seress-conjecture-alternating/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Dickson.lean#infinite_cousin_primes` → `infinite-cousin-primes/`
+- `fc:FormalConjectures/Wikipedia/Dickson.lean#infinite_safe_primes` → `infinite-safe-primes/`
+- `fc:FormalConjectures/Wikipedia/Dickson.lean#infinite_sexy_primes` → `infinite-sexy-primes/`
+- `fc:FormalConjectures/Wikipedia/DiophantineTuple.lean#hasUniqueExtension_of_forall` → `has-unique-extension-of-forall/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/DiophantineTuple.lean#rational_7_tuple` → `rational-7-tuple/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Emirp.lean#infinitude_question` → `infinitude-question/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/ErdosUlamProblem.lean#erdos_ulam_problem` → `erdos-ulam-problem/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees ComputabilityBitstringEncoding ComputabilityComplexity ComputabilityTuringMachineBusyBeavers ComputabilityTuringMachineNotation ComputabilityTuringMachinePostTuringMachine FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Euclid.lean#euclid_numbers_are_square_free` → `euclid-numbers-are-square-free/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Euclid.lean#infinite_prime_euclid_numbers` → `infinite-prime-euclid-numbers/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/FactorialPrime.lean#infinitely_many_factorial_primes` → `infinitely-many-factorial-primes/` (port: Local)
+- `fc:FormalConjectures/Wikipedia/Fermat.lean#exists_fermat_not_squarefree` → `exists-fermat-not-squarefree/`
+- `fc:FormalConjectures/Wikipedia/Fermat.lean#infinite_fermat_composite` → `infinite-fermat-composite/`
+- `fc:FormalConjectures/Wikipedia/Fermat.lean#infinite_fermat_primes` → `infinite-fermat-primes/`
+- `fc:FormalConjectures/Wikipedia/FermatCatalanConjecture.lean#fermat_catalan` → `fermat-catalan/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphInduced DataNatPrimeFinset FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/FibonacciPrimes.lean#fib_primes_infinite` → `fib-primes-infinite/`
+- `fc:FormalConjectures/Wikipedia/FibonacciPrimes.lean#fib_primes_infinite.variant` → `variant/`
+- `fc:FormalConjectures/Wikipedia/Firoozbakht.lean#firoozbakht_conjecture` → `firoozbakht-conjecture/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/FlintCooksonHills.lean#cookson_hills_series_converges` → `cookson-hills-series-converges/`
+- `fc:FormalConjectures/Wikipedia/FlintCooksonHills.lean#flint_hills_series_converges` → `flint-hills-series-converges/`
+- `fc:FormalConjectures/Wikipedia/FortuneConjecture.lean#fortune_conjecture` → `fortune-conjecture/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/GaussCircleProblem.lean#error_isBigO` → `error-is-big-o/` (port: AlgebraWeylAlgebra DataSetTriplewise DataSymSym2 FieldTheoryMilnorKTheory Geometry2d GeometryMetric GroupTheoryRationalClasses Local LogicEquivFinRotate)
+- `fc:FormalConjectures/Wikipedia/Gilbreath.lean#gilbreath_conjecture` → `gilbreath-conjecture/` (port: Local)
+- `fc:FormalConjectures/Wikipedia/Hadamard.lean#HadamardConjecture` → `hadamard-conjecture/` (port: AlgebraWeylAlgebra CombinatoricsAPBasic CombinatoricsBasic CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Hall.lean#hall_conjecture` → `hall-conjecture/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/IntegerFactorization.lean#isPolyTime_primeFactorsList` → `is-poly-time-prime-factors-list/` (port: ComputabilityBitstringEncoding ComputabilityComplexity)
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_eulerMascheroniConstant` → `irrational-euler-mascheroni-constant/`
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_ln_pi` → `irrational-ln-pi/`
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_pi_to_pi` → `irrational-pi-to-pi/`
+- `fc:FormalConjectures/Wikipedia/LehmerMahlerMeasureProblem.lean#lehmer_mahler_measure_problem` → `lehmer-mahler-measure-problem/` (port: AlgebraWeylAlgebra AlgebraicGeometryProjectiveSpace CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/LehmerTotient.lean#lehmer_totient` → `lehmer-totient/`
+- `fc:FormalConjectures/Wikipedia/LeinsterGroup.lean#infinitely_many_leinster_groups` → `infinitely-many-leinster-groups/` (port: AlgebraWeylAlgebra CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/LychrelNumbers.lean#isLychrel10_196` → `is-lychrel10-196/` (port: AlgebraWeylAlgebra ComputabilityTuringMachineBusyBeavers ComputabilityTuringMachinePostTuringMachine FieldTheoryAbsoluteGaloisGroup FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/MagicSquares.lean#exists_magic_square_squares` → `exists-magic-square-squares/`
+- `fc:FormalConjectures/Wikipedia/MagicSquares.lean#exists_semi_magic_square_cubes` → `exists-semi-magic-square-cubes/`
+- `fc:FormalConjectures/Wikipedia/Mandelbrot.lean#MLC` → `m-l-c/` (port: AlgebraWeylAlgebra AlgebraicGeometryEllipticCurveGlobalPeriod AlgebraicGeometryEllipticCurveMinimalDiscriminant CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `fc:FormalConjectures/Wikipedia/Mandelbrot.lean#MLC_general_exponent` → `m-l-c-general-exponent/` (port: AlgebraWeylAlgebra AlgebraicGeometryEllipticCurveGlobalPeriod AlgebraicGeometryEllipticCurveMinimalDiscriminant CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `fc:FormalConjectures/Wikipedia/Mandelbrot.lean#density_of_hyperbolicity` → `density-of-hyperbolicity/` (port: AlgebraWeylAlgebra AlgebraicGeometryEllipticCurveGlobalPeriod AlgebraicGeometryEllipticCurveMinimalDiscriminant CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `fc:FormalConjectures/Wikipedia/Mandelbrot.lean#volume_frontier_mandelbrotSet_eq_zero` → `volume-frontier-mandelbrot-set-eq-zero/` (port: AlgebraWeylAlgebra AlgebraicGeometryEllipticCurveGlobalPeriod AlgebraicGeometryEllipticCurveMinimalDiscriminant CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `fc:FormalConjectures/Wikipedia/Mersenne.lean#infinitely_many_mersenne_primes` → `infinitely-many-mersenne-primes/`
+- `fc:FormalConjectures/Wikipedia/NormalityOfPi.lean#pi_normal_base_ten` → `pi-normal-base-ten/` (port: NumberTheoryNormalNumber)
+- `fc:FormalConjectures/Wikipedia/Pell.lean#infinite_pellNumber_primes` → `infinite-pell-number-primes/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/PerfectNumbers.lean#infinitely_many_even_perfect` → `infinitely-many-even-perfect/`
+- `fc:FormalConjectures/Wikipedia/PerfectNumbers.lean#infinitely_many_perfect` → `infinitely-many-perfect/`
+- `fc:FormalConjectures/Wikipedia/PierpontPrime.lean#infinitely_many_pierpont_primes` → `infinitely-many-pierpont-primes/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/PollocksConjecture.lean#pollock_tetrahedral.salzer_levine` → `salzer-levine/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/PowerfulNumbersDensity.lean#error_term_improvement` → `error-term-improvement/` (port: AlgebraWeylAlgebra ComputabilityBitstringEncoding ComputabilityComplexity DataNatFull FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local TopologyCardinalInvariants)
+- `fc:FormalConjectures/Wikipedia/PrimeTriplets.lean#prime_triplets` → `prime-triplets/`
+- `fc:FormalConjectures/Wikipedia/PrimesAndPerfectSquares.lean#infinite_prime_sq_add_one` → `infinite-prime-sq-add-one/`
+- `fc:FormalConjectures/Wikipedia/ProthPrime.lean#infinitely_many_proth_primes` → `infinitely-many-proth-primes/` (port: Local)
+- `fc:FormalConjectures/Wikipedia/ProthPrime.lean#infinitely_many_proth_primes_multiplier_three` → `infinitely-many-proth-primes-multiplier-three/`
+- `fc:FormalConjectures/Wikipedia/QuasiperfectNumbers.lean#exists_quasiperfect` → `exists-quasiperfect/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/RationalDistanceProblem.lean#rational_distance_problem` → `rational-distance-problem/` (port: DataSetTriplewise DataSymSym2 Geometry2d GeometryMetric Local LogicEquivFinRotate)
+- `fc:FormalConjectures/Wikipedia/RegularPrimes.lean#regularprime_conjecture` → `regularprime-conjecture/` (port: AlgebraWeylAlgebra DataNatPrimeFinset FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/RepunitPrime.lean#infinitely_many_repunit_primes` → `infinitely-many-repunit-primes/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_eleven` → `irrational-eleven/`
+- `fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_nine` → `irrational-nine/`
+- `fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_seven` → `irrational-seven/`
+- `fc:FormalConjectures/Wikipedia/RudinsConjecture.lean#rudins_conjecture` → `rudins-conjecture/` (port: AlgebraWeylAlgebra DataNatPrimeFinset FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Selfridge.lean#selfridge_seq_conjecture` → `selfridge-seq-conjecture/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/SierpinskiNumber.lean#extended_sierpinski_problem` → `extended-sierpinski-problem/` (port: DataNatPrimeComposite NumberTheorySierpinskiNumber)
+- `fc:FormalConjectures/Wikipedia/SierpinskiNumber.lean#prime_sierpinski_problem` → `prime-sierpinski-problem/` (port: DataNatPrimeComposite NumberTheorySierpinskiNumber)
+- `fc:FormalConjectures/Wikipedia/SierpinskiNumber.lean#selfridge_conjecture` → `selfridge-conjecture/` (port: DataNatPrimeComposite NumberTheorySierpinskiNumber)
+- `fc:FormalConjectures/Wikipedia/Singmaster.lean#singmaster` → `singmaster/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/SolitaryNumber.lean#infinite_club_exists` → `infinite-club-exists/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/SolitaryNumber.lean#is_ten_solitary` → `is-ten-solitary/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/SparseRuler.lean#wichmann_conjecture` → `wichmann-conjecture/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsSimpleGraphIndependence CombinatoricsSimpleGraphInduced ComputabilityTuringMachineBusyBeavers ComputabilityTuringMachineNotation ComputabilityTuringMachinePostTuringMachine FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/SquareRootSum.lean#isPolyTime_squareRootSum` → `is-poly-time-square-root-sum/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsSimpleGraphIndependence ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryAdditivelyComplete)
+- `fc:FormalConjectures/Wikipedia/SquareRootSum.lean#isPolyTime_squareRootSumTwoSided` → `is-poly-time-square-root-sum-two-sided/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphCycle CombinatoricsSimpleGraphIndependence ComputabilityBitstringEncoding ComputabilityComplexity FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryAdditivelyComplete)
+- `fc:FormalConjectures/Wikipedia/SteinerSystem.lean#large_steiner_systems` → `large-steiner-systems/` (port: AlgebraWeylAlgebra CombinatoricsSimpleGraphDegrees CombinatoricsStableMarriage FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/SumOfThreeCubes.lean#isSumOfThreeCubes_iff_mod_9` → `is-sum-of-three-cubes-iff-mod-9/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Superperfectnumbers.lean#twoFivePerfect` → `two-five-perfect/` (port: NumberTheoryPerfectNumber)
+- `fc:FormalConjectures/Wikipedia/TarskiExponentialFunctionProblem.lean#tarski_exponential_function_problem` → `tarski-exponential-function-problem/`
+- `fc:FormalConjectures/Wikipedia/Taxicab.lean#taxicab_for_5_2_2` → `taxicab-for-5-2-2/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/Taxicab.lean#taxicab_for_5_2_n` → `taxicab-for-5-2-n/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local)
+- `fc:FormalConjectures/Wikipedia/ThabitNumber.lean#exists_thabit_amicable_exponent_gt_seven` → `exists-thabit-amicable-exponent-gt-seven/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryAmicable)
+- `fc:FormalConjectures/Wikipedia/ThabitNumber.lean#infinitely_many_thabit_primes` → `infinitely-many-thabit-primes/` (port: AlgebraWeylAlgebra FieldTheoryMilnorKTheory GroupTheoryRationalClasses Local NumberTheoryAmicable)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_add_pi_transcendental` → `exp-add-pi-transcendental/` (port: ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_exp_transcendental` → `exp-exp-transcendental/` (port: ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_mul_pi_transcendental` → `exp-mul-pi-transcendental/` (port: ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_pow_pi_sq_transcendental` → `exp-pow-pi-sq-transcendental/` (port: ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_exp_transcendental` → `pi-pow-exp-transcendental/` (port: ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_pow_pi_pow_pi_not_integer` → `pi-pow-pi-pow-pi-pow-pi-not-integer/`
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_pow_pi_pow_pi_transcendental` → `pi-pow-pi-pow-pi-pow-pi-transcendental/`
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_pow_pi_transcendental` → `pi-pow-pi-pow-pi-transcendental/`
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_transcendental` → `pi-pow-pi-transcendental/`
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_sqrt_two_transcendental` → `pi-pow-sqrt-two-transcendental/`
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#rlog_pi_transcendental` → `rlog-pi-transcendental/`
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#rlog_rlog_two_transcendental` → `rlog-rlog-two-transcendental/`
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#sin_exp_transcendental` → `sin-exp-transcendental/` (port: ModelTheoryEncoding ModelTheoryReal)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#transcendental_catalanConstant` → `transcendental-catalan-constant/` (port: DataRealConstants)
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#transcendental_gompertzConstant` → `transcendental-gompertz-constant/` (port: DataRealConstants)
+- `fc:FormalConjectures/Wikipedia/TwinPrimes.lean#twin_primes` → `twin-primes/`
+- `fc:FormalConjectures/Wikipedia/WallSunSun.lean#exists_isWallSunSunPrime` → `exists-is-wall-sun-sun-prime/` (port: NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Wikipedia/WallSunSun.lean#infinite_isWallSunSunPrime` → `infinite-is-wall-sun-sun-prime/` (port: NumberTheoryWallSunSunPrimes)
+- `fc:FormalConjectures/Wikipedia/WieferichMirimanoffPrime.lean#exists_isWieferichPrime_and_isMirimanoffPrime` → `exists-is-wieferich-prime-and-is-mirimanoff-prime/` (port: NumberTheoryWieferichPrime)
+- `fc:FormalConjectures/Wikipedia/WieferichPrime.lean#exists_isWieferichPrimeBase_47` → `exists-is-wieferich-prime-base-47/` (port: NumberTheoryWieferichPrime)
+- `fc:FormalConjectures/Wikipedia/WieferichPrime.lean#infinite_isWieferichPrime` → `infinite-is-wieferich-prime/` (port: NumberTheoryWieferichPrime)
+- `fc:FormalConjectures/Wikipedia/WieferichPrime.lean#infinite_isWieferichPrimeBase` → `infinite-is-wieferich-prime-base/` (port: NumberTheoryWieferichPrime)
+- `fc:FormalConjectures/Wikipedia/WilsonPrime.lean#infinitely_many_wilson_primes` → `infinitely-many-wilson-primes/` (port: Local)
+- `fc:FormalConjectures/Wikipedia/WolstenholmePrime.lean#wolstenholme_prime_infinite` → `wolstenholme-prime-infinite/` (port: Local)
+- `fc:FormalConjectures/Wikipedia/WoodalPrimes.lean#infinitely_many_woodall_primes` → `infinitely-many-woodall-primes/`
+
+## Refused (a later wave, or a port by hand; F14-Q11)
+
+- `erdos:1004`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1013`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1013.parts.i.answer
+- `erdos:1017`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1017.lower_bound.answer, erdos_1017.upper_bound.answer
+- `erdos:1038`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1038.parts.i.answer
+- `erdos:1049`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1055`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:1056`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1063`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1063.better_upper.answer
+- `erdos:1066`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1066.answer
+- `erdos:1068`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1074`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1074.parts.ii.answer, erdos_1074.parts.iv.answer
+- `erdos:1075`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:108`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1083`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1085`: the open statement is a variant (erdos_1085.variants.upper_d3), not the problem itself: curate by hand
+- `erdos:1086`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1086.answer
+- `erdos:1087`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1088`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1095`: the open statement is a variant (erdos_1095.variants.lower_conjecture), not the problem itself: curate by hand
+- `erdos:1107`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1108`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1109`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1111`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1122`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1139`: the statement opens with a `let`/`have` binding spanning lines: restate it by hand
+- `erdos:1152`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; no graph domain for AMS 41
+- `erdos:1157`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1157.answer
+- `erdos:1158`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1162`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1162.answer
+- `erdos:1175`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1178`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1186`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1186.answer
+- `erdos:1189`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1189.parts.i.answer, erdos_1189.parts.ii.answer, erdos_1189.parts.iii.answer
+- `erdos:1191`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1194`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1194.answer
+- `erdos:12`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:120`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1201`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:1204`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_1204.parts.ii.answer
+- `erdos:138`: the open statement is a variant (erdos_138.variants.quotient), not the problem itself: curate by hand
+- `erdos:14`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:141`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:142`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_142.answer, erdos_142.variants.isTheta.answer, erdos_142.variants.three.answer
+- `erdos:143`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:145`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:148`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_148.answer
+- `erdos:151`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `erdos:155`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:158`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:160`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_160.better_lower.answer, erdos_160.better_upper.answer
+- `erdos:161`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_161.parts.i.answer
+- `erdos:162`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:165`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_165.answer
+- `erdos:168`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_168.parts.i.answer
+- `erdos:170`: no `theorem erdos170 ... := by sorry` in the registry file
+- `erdos:173`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:174`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_174.answer
+- `erdos:188`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_188.answer
+- `erdos:195`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_195.answer
+- `erdos:208`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:213`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:217`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_217.answer
+- `erdos:218`: the open statement is a variant (erdos_218.variants.le), not the problem itself: curate by hand
+- `erdos:238`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:243`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:244`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:247`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:25`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:252`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; cannot port its definitions mechanically: imports FormalConjectures.Wikipedia.Schinzel, which the port cannot supply
+- `erdos:257`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:267`: the open statement is a variant (erdos_267.variants.generalisation_ratio_limit_to_infinity), not the problem itself: curate by hand
+- `erdos:269`: the open statement is a variant (erdos_269.variants.rational), not the problem itself: curate by hand
+- `erdos:272`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_272.answer
+- `erdos:279`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:28`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:282`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_282.variants.general.answer
+- `erdos:30`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:322`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:323`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:325`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:329`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_329.answer
+- `erdos:332`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_332.answer
+- `erdos:338`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_338.answer, erdos_338.variants.eq_order.answer
+- `erdos:340`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:342`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:359`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:361`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_361.answer
+- `erdos:383`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `erdos:389`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:393`: cannot port its definitions mechanically: imports FormalConjectures.Wikipedia.ABC, which the port cannot supply
+- `erdos:394`: the open statement is a variant (erdos_394.variants.hall_conjecture), not the problem itself: curate by hand
+- `erdos:40`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_40.answer
+- `erdos:400`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:409`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_409.parts.i.answer, erdos_409.parts.i.isBigO.answer, erdos_409.parts.i.isLittleO.answer, erdos_409.parts.i.isTheta.answer, erdos_409.parts.iii.answer, erdos_409.variants.sigma.answer, erdos_409.variants.sigma_isBigO.answer, erdos_409.variants.sigma_isLittleO.answer, erdos_409.variants.sigma_isTheta.answer
+- `erdos:41`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:410`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:412`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:414`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:416`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_416.parts.ii.answer, erdos_416.variants.Ford.answer, erdos_416.variants.Maier_Pomerance.answer
+- `erdos:422`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_422.variants.growth_rate.answer
+- `erdos:436`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:44`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:445`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:452`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_452.answer
+- `erdos:455`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:479`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:495`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `erdos:5`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:50`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `erdos:500`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_500.answer, erdos_500.variants.asymptotic.answer
+- `erdos:503`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_503.answer
+- `erdos:507`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_507.equivalent.answer, erdos_507.lower.answer, erdos_507.upper.answer
+- `erdos:508`: the file's definitions rest on `sorry` (an answer the registry leaves open): HadwigerNelsonProblem.answer
+- `erdos:509`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:513`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_513.answer
+- `erdos:517`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:52`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:535`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:536`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:539`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_539.answer, erdos_539.variants.limit.answer
+- `erdos:554`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:555`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_555.answer
+- `erdos:560`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_560.answer
+- `erdos:561`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:562`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:563`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:566`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:568`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:569`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_569.answer
+- `erdos:572`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `erdos:588`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:592`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_592.answer
+- `erdos:593`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_593.answer
+- `erdos:598`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:600`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:602`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `erdos:609`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_609.answer
+- `erdos:61`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `erdos:611`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_611.parts.ii.answer
+- `erdos:614`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_614.answer
+- `erdos:616`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_616.answer
+- `erdos:623`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:626`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:629`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_629.answer
+- `erdos:640`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:643`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_643.parts.i.answer
+- `erdos:65`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:655`: the open statement is a variant (erdos_655.variants.general_position), not the problem itself: curate by hand
+- `erdos:663`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:668`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:669`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_669.parts.i.answer, erdos_669.parts.ii.answer
+- `erdos:677`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:685`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:686`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:688`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_688.parts.i.answer
+- `erdos:691`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_691.answer
+- `erdos:695`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:701`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:709`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_709.answer
+- `erdos:710`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_710.answer
+- `erdos:712`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_712.answer
+- `erdos:713`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:714`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:719`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:725`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `erdos:727`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:740`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:749`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:757`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_757.answer
+- `erdos:761`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:766`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_766.variants.minExtremalNumber_estimate.answer
+- `erdos:77`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_77.answer
+- `erdos:770`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:773`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:774`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:787`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_787.answer
+- `erdos:789`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_789.answer
+- `erdos:802`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:812`: uses file-local notation (port into defs/): R
+- `erdos:819`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_819.answer
+- `erdos:827`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_827.answer
+- `erdos:831`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_831.answer
+- `erdos:837`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_837.answer
+- `erdos:838`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_838.parts.i.answer
+- `erdos:839`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:840`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_840.answer
+- `erdos:849`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:857`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_857.answer
+- `erdos:86`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:860`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_860.answer
+- `erdos:864`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:87`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:873`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:881`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:883`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:885`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:886`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:887`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_887.parts.i.answer
+- `erdos:890`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:891`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:901`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_901.answer
+- `erdos:902`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_902.answer
+- `erdos:930`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:931`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:934`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_934.answer
+- `erdos:935`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:936`: the open statement is a variant (erdos_936.variants.two_pow_add_one), not the problem itself: curate by hand
+- `erdos:939`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:940`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:944`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:949`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:951`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:963`: the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_963.parts.i.answer
+- `erdos:972`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:975`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_975.variants.quadratic.answer
+- `erdos:976`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): erdos_976.answer
+- `erdos:979`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `erdos:985`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/0805.3777/TensorRank.lean#isGenericRank_of_le_critical`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): isMaxRank_cube.answer, isMaxRank_three_three_five.answer
+- `fc:FormalConjectures/Arxiv/0805.3777/TensorRank.lean#isMaxRank_cube`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): isMaxRank_cube.answer, isMaxRank_three_three_five.answer
+- `fc:FormalConjectures/Arxiv/0912.2382/CurlingNumberConjecture.lean#curling_number_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/1102.4662/AtiyahSutcliffe.lean#conjecture_one`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/1104.1579/CunninghamChain.lean#infinitely_many_firstKind_chains`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/1104.1579/CunninghamChain.lean#infinitely_many_secondKind_chains`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/1207.5099/SubprimeFibonacci.lean#conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/1601.03081/UniqueCrystalComponents.lean#crystals_components_unique`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/1609.08688/sIncreasingrTuples.lean#maximalLength_le_strong`: uses file-local notation (port into defs/): F
+- `fc:FormalConjectures/Arxiv/1701.08900/SecondMoment.lean#second_moment`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2104.00502/BarkerSequence.lean#barker_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2107.12475/CollatzLike.lean#CollatzLike`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2209.04540/SpectralSetsAndWeakTiling.lean#isSpectral_right_of_product_of_convexBody`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2303.01089/FurstenbergTimesPTimesQ.lean#conjecture_1_3`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean#conjecture_1_1`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean#conjecture_4_1`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean#conjecture_4_2`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean#conjecture_4_3`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean#conjecture_4_4`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2504.17644/Margulis.lean#conjecture_1_1`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2507.17780/3.lean#tx_graffiti_conjecture_3`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2605.02731/DeanCycles.lean#dean_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2605.02731/DeanCycles.lean#dean_conjecture.variants.five`: the open statement is a variant (dean_conjecture.variants.five), not the problem itself: curate by hand
+- `fc:FormalConjectures/Arxiv/2606.03696/BondyLongestCycles.lean#bondy_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2607.05739/TanArctanSum.lean#tan_arctan_sum_not_integer`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2607.06396/AlonTarsi.lean#alon_tarsi_short_cycle_cover`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2607.08366/MinModulus.lean#min_modulus`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2607.08630/BalisterGyoriSchelp.lean#balister_gyori_schelp_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/2607.27197/MaxwellConjecture.lean#maxwell_conjecture.variants.polynomial_bound`: the open statement is a variant (maxwell_conjecture.variants.polynomial_bound), not the problem itself: curate by hand
+- `fc:FormalConjectures/Arxiv/2607.27197/MaxwellConjecture.lean#maxwell_conjecture.variants.three_charges`: the open statement is a variant (maxwell_conjecture.variants.three_charges), not the problem itself: curate by hand
+- `fc:FormalConjectures/Arxiv/math.0110202/BanachMazurRotation.lean#banach_mazur_rotation_problem`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/math.0301027/FiniteGenerationOfCohomology.lean#cohomologyRing_finiteType`: no graph domain for AMS 16, 18
+- `fc:FormalConjectures/Arxiv/math.0301027/FiniteGenerationOfCohomology.lean#cohomology_finite`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; no graph domain for AMS 16, 18
+- `fc:FormalConjectures/Arxiv/math.0608009/DixmierConjecture.lean#dixmier_conjecture.variants.dimension_one`: the open statement is a variant (dixmier_conjecture.variants.dimension_one), not the problem itself: curate by hand
+- `fc:FormalConjectures/Arxiv/math.0608009/DixmierConjecture.lean#dixmier_conjecture.variants.dimension_two`: the open statement is a variant (dixmier_conjecture.variants.dimension_two), not the problem itself: curate by hand
+- `fc:FormalConjectures/Arxiv/math.0608009/PoissonConjecture.lean#poisson_conjecture.variants.dimension_one`: the open statement is a variant (poisson_conjecture.variants.dimension_one), not the problem itself: curate by hand
+- `fc:FormalConjectures/Arxiv/math.0703548/FarrellJonesConsequences.lean#bass_conjecture_integral_domain`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Arxiv/math.0703548/FarrellJonesConsequences.lean#projective_module_isStablyFree`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_61.lean#problem_10_61`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_7.lean#problem_10_7`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_8.lean#problem_10_8`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Books/UniformDistributionOfSequences/Equidistribution.lean#isAccumulationPoint_three_halves_pow`: the file's definitions rest on `sorry` (an answer the registry leaves open): isAccumulationPoint_three_halves_pow.answer
+- `fc:FormalConjectures/GreensOpenProblems/100.lean#green_100.variants.higman_isHyperlinear`: the open statement is a variant (green_100.variants.higman_isHyperlinear), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/100.lean#green_100.variants.higman_isSofic`: the open statement is a variant (green_100.variants.higman_isSofic), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/12.lean#green_12`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_21_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_22_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_23_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_24_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_25_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_26_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_27_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#W_3_28_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/14.lean#green_14_variant_2r2`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_14_variant_2r2.answer
+- `fc:FormalConjectures/GreensOpenProblems/16.lean#green_16`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_16.answer
+- `fc:FormalConjectures/GreensOpenProblems/16.lean#zhao_question`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_16.answer
+- `fc:FormalConjectures/GreensOpenProblems/18.lean#green_18`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/21.lean#green_21`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_21.variants.fox_kleitman_sharp.answer
+- `fc:FormalConjectures/GreensOpenProblems/21.lean#green_21.variants.fox_kleitman_modular`: the open statement is a variant (green_21.variants.fox_kleitman_modular), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/21.lean#green_21.variants.fox_kleitman_sharp`: the open statement is a variant (green_21.variants.fox_kleitman_sharp), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/21.lean#green_21.variants.milicevic`: the open statement is a variant (green_21.variants.milicevic), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/22.lean#green_22`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_22.answer
+- `fc:FormalConjectures/GreensOpenProblems/24.lean#conjecture`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_24.answer
+- `fc:FormalConjectures/GreensOpenProblems/24.lean#green_24`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): green_24.answer
+- `fc:FormalConjectures/GreensOpenProblems/25.lean#green_25`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_25.answer, green_25.lower.answer, green_25.upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/25.lean#green_25.lower`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_25.answer, green_25.lower.answer, green_25.upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/25.lean#green_25.upper`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_25.answer, green_25.lower.answer, green_25.upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/26.lean#green_26.variants.open`: the open statement is a variant (green_26.variants.open), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/27.lean#green_27.equivalent`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_27.equivalent.answer, green_27.lower.answer, green_27.upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/27.lean#green_27.upper`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_27.equivalent.answer, green_27.lower.answer, green_27.upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/28.lean#green_28`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/31.lean#green_31.lower`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_31.lower.answer, green_31.upper.answer, green_31.variants.lower_eventually.answer, green_31.variants.upper_eventually.answer
+- `fc:FormalConjectures/GreensOpenProblems/31.lean#green_31.upper`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_31.lower.answer, green_31.upper.answer, green_31.variants.lower_eventually.answer, green_31.variants.upper_eventually.answer
+- `fc:FormalConjectures/GreensOpenProblems/31.lean#green_31.variants.abelian`: the open statement is a variant (green_31.variants.abelian), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/31.lean#green_31.variants.lower_eventually`: the open statement is a variant (green_31.variants.lower_eventually), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/31.lean#green_31.variants.sidon_01n`: the open statement is a variant (green_31.variants.sidon_01n), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/31.lean#green_31.variants.upper_eventually`: the open statement is a variant (green_31.variants.upper_eventually), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/31.lean#green_31.variants.zmod_p`: the open statement is a variant (green_31.variants.zmod_p), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/32.lean#green_32.variants.log_regime`: the open statement is a variant (green_32.variants.log_regime), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/33.lean#green_33`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/35.lean#green_35.lower`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_35.lower.answer, green_35.upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/36.lean#green_36`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/36.lean#green_36.variants.cks05`: the open statement is a variant (green_36.variants.cks05), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/37.lean#green_37`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_37.answer, green_37_asymptotic.answer, green_37_theta.answer
+- `fc:FormalConjectures/GreensOpenProblems/37.lean#green_37_asymptotic`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_37.answer, green_37_asymptotic.answer, green_37_theta.answer
+- `fc:FormalConjectures/GreensOpenProblems/37.lean#green_37_lower_bound`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_37.answer, green_37_asymptotic.answer, green_37_theta.answer
+- `fc:FormalConjectures/GreensOpenProblems/37.lean#green_37_theta`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_37.answer, green_37_asymptotic.answer, green_37_theta.answer
+- `fc:FormalConjectures/GreensOpenProblems/38.lean#green_38.upper`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_38.lower.answer, green_38.upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/39.lean#green_39.variant_theta`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/4.lean#green_4`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_4.answer
+- `fc:FormalConjectures/GreensOpenProblems/40.lean#green_40.f_eq_one_for_all`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/40.lean#green_40.variants.all_n`: the open statement is a variant (green_40.variants.all_n), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/40.lean#green_40.variants.arbitrary_subsets`: the open statement is a variant (green_40.variants.arbitrary_subsets), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/41.lean#green_41`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): green_41.answer
+- `fc:FormalConjectures/GreensOpenProblems/41.lean#green_41.variants.double_exponential_bound`: the open statement is a variant (green_41.variants.double_exponential_bound), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/41.lean#green_41.variants.polynomial_bound`: the open statement is a variant (green_41.variants.polynomial_bound), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/43.lean#green_43.variants.range_N051_N052_linear`: the open statement is a variant (green_43.variants.range_N051_N052_linear), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/44.lean#green_44`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/46.lean#green_46.improve_lower`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_46.improve_lower.answer, green_46.improve_upper.answer
+- `fc:FormalConjectures/GreensOpenProblems/47.lean#green_47.variants.finite_exceptions`: the open statement is a variant (green_47.variants.finite_exceptions), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/5.lean#green_5`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_5.answer, green_5.variants.sl_two.answer
+- `fc:FormalConjectures/GreensOpenProblems/5.lean#green_5.variants.sl_two`: the open statement is a variant (green_5.variants.sl_two), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/51.lean#green_51`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_51.answer
+- `fc:FormalConjectures/GreensOpenProblems/51.lean#green_51.one_half`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): green_51.answer
+- `fc:FormalConjectures/GreensOpenProblems/55.lean#green_55`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/64.lean#green_64.variants.p_sub_one`: the open statement is a variant (green_64.variants.p_sub_one), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/68.lean#green_68.variants.blocking_set`: the open statement is a variant (green_68.variants.blocking_set), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/69.lean#green_69.variants.elekes_szabo`: the open statement is a variant (green_69.variants.elekes_szabo), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/7.lean#green_7.variants.positive_density`: the open statement is a variant (green_7.variants.positive_density), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/70.lean#green_70`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/72.lean#NoKInLine`: the file's definitions rest on `sorry` (an answer the registry leaves open): NoKInLine.answer
+- `fc:FormalConjectures/GreensOpenProblems/72.lean#green_72.variants.eventually`: the open statement is a variant (green_72.variants.eventually), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/74.lean#green_74`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_74.answer, green_74.variants.order.answer
+- `fc:FormalConjectures/GreensOpenProblems/74.lean#green_74.variants.order`: the open statement is a variant (green_74.variants.order), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/75.lean#green_75`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/75.lean#green_75.variants.exists_constant`: the open statement is a variant (green_75.variants.exists_constant), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/76.lean#green_76.variants.exists_constant`: the open statement is a variant (green_76.variants.exists_constant), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/82.lean#green_82`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_82.answer
+- `fc:FormalConjectures/GreensOpenProblems/86.lean#green_86`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/87.lean#green_87.decreasing`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/GreensOpenProblems/92.lean#green_92`: the file's definitions rest on `sorry` (an answer the registry leaves open): green_92.answer
+- `fc:FormalConjectures/GreensOpenProblems/93.lean#green_93`: cannot port its definitions mechanically: imports FormalConjectures.Wikipedia.ArtinPrimitiveRootsConjecture, which the port cannot supply
+- `fc:FormalConjectures/GreensOpenProblems/97.lean#green_97.variants.alpha`: the open statement is a variant (green_97.variants.alpha), not the problem itself: curate by hand
+- `fc:FormalConjectures/GreensOpenProblems/97.lean#green_97.variants.toroidal`: the open statement is a variant (green_97.variants.toroidal), not the problem itself: curate by hand
+- `fc:FormalConjectures/HilbertProblems/5.lean#hilbert_smith_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; no graph domain for AMS 22, 57, 58
+- `fc:FormalConjectures/HilbertProblems/5.lean#hilbert_smith_padic_formulation`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; no graph domain for AMS 22, 57, 58
+- `fc:FormalConjectures/Kourovka/1_40.lean#kourovka_1_40`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Kourovka/1_74.lean#kourovka_1_74`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): kourovka_1_74.answer
+- `fc:FormalConjectures/Kourovka/20_51.lean#kourovka_20_51`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/LittProblems/1.lean#lam_litt.variants.integrality_implies_algebraicity`: the open statement is a variant (lam_litt.variants.integrality_implies_algebraicity), not the problem itself: curate by hand
+- `fc:FormalConjectures/LittProblems/1.lean#lam_litt.variants.omega_integrality_implies_algebraicity`: the open statement is a variant (lam_litt.variants.omega_integrality_implies_algebraicity), not the problem itself: curate by hand
+- `fc:FormalConjectures/Mathoverflow/17560.lean#mathoverflow_17560`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Mathoverflow/235893.lean#mathoverflow_235893`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Mathoverflow/339137.lean#mathoverflow_339137`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Mathoverflow/434111.lean#restricted_prime_number_theorem.variants.even_subsequence`: the open statement is a variant (restricted_prime_number_theorem.variants.even_subsequence), not the problem itself: curate by hand
+- `fc:FormalConjectures/Mathoverflow/75792.lean#complexity_two_pow`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Millennium/BSD.lean#WeierstrassCurve.Affine.NumberField.strongBSD`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; cannot port its definitions mechanically: imports FormalConjectures.Wikipedia.EllipticCurveRank, which the port cannot supply
+- `fc:FormalConjectures/Millennium/BSD.lean#WeierstrassCurve.Affine.NumberField.weakBSD`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; cannot port its definitions mechanically: imports FormalConjectures.Wikipedia.EllipticCurveRank, which the port cannot supply
+- `fc:FormalConjectures/Millennium/BSD.lean#WeierstrassCurve.Affine.Rat.strongBSD`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; cannot port its definitions mechanically: imports FormalConjectures.Wikipedia.EllipticCurveRank, which the port cannot supply
+- `fc:FormalConjectures/Millennium/BSD.lean#WeierstrassCurve.Affine.Rat.weakBSD`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; cannot port its definitions mechanically: imports FormalConjectures.Wikipedia.EllipticCurveRank, which the port cannot supply
+- `fc:FormalConjectures/Millennium/NavierStokes.lean#navier_stokes_existence_and_smoothness_R3`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Millennium/NavierStokes.lean#navier_stokes_existence_and_smoothness_periodic`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Millennium/Poincare.lean#poincare_conjecture.variants.smooth_dimension_four`: the open statement is a variant (poincare_conjecture.variants.smooth_dimension_four), not the problem itself: curate by hand
+- `fc:FormalConjectures/Millennium/Poincare.lean#poincare_conjecture.variants.smooth_other_cases`: the open statement is a variant (poincare_conjecture.variants.smooth_other_cases), not the problem itself: curate by hand
+- `fc:FormalConjectures/Millennium/RiemannHypothesis.lean#generalized_riemann_hypothesis`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/OEIS/34693.lean#exists_k`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/OEIS/34693.lean#exists_k_stronger`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/OEIS/41.lean#noPowerPartitionNumber`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/OpenQuantumProblems/13.lean#mutuallyUnbiasedBases`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): mutuallyUnbiasedBases.answer, mutuallyUnbiasedBases_dim10.answer, mutuallyUnbiasedBases_dim12.answer, mutuallyUnbiasedBases_dim14.answer, mutuallyUnbiasedBases_dim15.answer, mutuallyUnbiasedBases_dim6.answer
+- `fc:FormalConjectures/OpenQuantumProblems/13.lean#mutuallyUnbiasedBases_dim10`: the file's definitions rest on `sorry` (an answer the registry leaves open): mutuallyUnbiasedBases.answer, mutuallyUnbiasedBases_dim10.answer, mutuallyUnbiasedBases_dim12.answer, mutuallyUnbiasedBases_dim14.answer, mutuallyUnbiasedBases_dim15.answer, mutuallyUnbiasedBases_dim6.answer
+- `fc:FormalConjectures/OpenQuantumProblems/13.lean#mutuallyUnbiasedBases_dim12`: the file's definitions rest on `sorry` (an answer the registry leaves open): mutuallyUnbiasedBases.answer, mutuallyUnbiasedBases_dim10.answer, mutuallyUnbiasedBases_dim12.answer, mutuallyUnbiasedBases_dim14.answer, mutuallyUnbiasedBases_dim15.answer, mutuallyUnbiasedBases_dim6.answer
+- `fc:FormalConjectures/OpenQuantumProblems/13.lean#mutuallyUnbiasedBases_dim14`: the file's definitions rest on `sorry` (an answer the registry leaves open): mutuallyUnbiasedBases.answer, mutuallyUnbiasedBases_dim10.answer, mutuallyUnbiasedBases_dim12.answer, mutuallyUnbiasedBases_dim14.answer, mutuallyUnbiasedBases_dim15.answer, mutuallyUnbiasedBases_dim6.answer
+- `fc:FormalConjectures/OpenQuantumProblems/13.lean#mutuallyUnbiasedBases_dim15`: the file's definitions rest on `sorry` (an answer the registry leaves open): mutuallyUnbiasedBases.answer, mutuallyUnbiasedBases_dim10.answer, mutuallyUnbiasedBases_dim12.answer, mutuallyUnbiasedBases_dim14.answer, mutuallyUnbiasedBases_dim15.answer, mutuallyUnbiasedBases_dim6.answer
+- `fc:FormalConjectures/OpenQuantumProblems/13.lean#mutuallyUnbiasedBases_dim6`: the file's definitions rest on `sorry` (an answer the registry leaves open): mutuallyUnbiasedBases.answer, mutuallyUnbiasedBases_dim10.answer, mutuallyUnbiasedBases_dim12.answer, mutuallyUnbiasedBases_dim14.answer, mutuallyUnbiasedBases_dim15.answer, mutuallyUnbiasedBases_dim6.answer
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_56`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_58`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_59`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_60`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_64`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_68`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_69`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_70`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_71`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_72`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#hasSICPOVM_75`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/23.lean#sicPOVMs`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_10_10_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_10_6_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_11_3_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_11_6_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_12_10_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_12_6_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_8_10_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_8_4_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#ame_8_6_open`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OpenQuantumProblems/35.lean#oqp_35`: the file's definitions rest on `sorry` (an answer the registry leaves open): oqp_35.answer
+- `fc:FormalConjectures/OptimizationConstants/14.lean#c14_le_20`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OptimizationConstants/14.lean#c14_lower_bound_improved`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OptimizationConstants/14.lean#c14_upper_bound_improved`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/OptimizationConstants/1a.lean#c1a_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): c1a_eq.answer, mem_Ico_c1a.answer, mem_Ioc_c1a.answer
+- `fc:FormalConjectures/OptimizationConstants/1a.lean#mem_Ico_c1a`: the file's definitions rest on `sorry` (an answer the registry leaves open): c1a_eq.answer, mem_Ico_c1a.answer, mem_Ioc_c1a.answer
+- `fc:FormalConjectures/OptimizationConstants/1a.lean#mem_Ioc_c1a`: the file's definitions rest on `sorry` (an answer the registry leaves open): c1a_eq.answer, mem_Ico_c1a.answer, mem_Ioc_c1a.answer
+- `fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_1`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_2_antihydra`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_2_antihydra.variants.set`: the open statement is a variant (beaver_math_olympiad_problem_2_antihydra.variants.set), not the problem itself: curate by hand
+- `fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_5`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_8`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Other/EquationalTheories_677_255.lean#Finite.Equation677_implies_Equation255`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; no graph domain for AMS 8
+- `fc:FormalConjectures/Other/GerstenhaberThreeMatrices.lean#finrank_adjoin_triple_le`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Other/SymbolLengthMilnorKTheory.lean#symbol_length_problem`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): symbol_length_problem.answer
+- `fc:FormalConjectures/Other/SymbolLengthMilnorKTheory.lean#symbol_length_problem.variants.bounded`: the open statement is a variant (symbol_length_problem.variants.bounded), not the problem itself: curate by hand
+- `fc:FormalConjectures/Other/SymbolLengthMilnorKTheory.lean#symbol_length_problem.variants.degree_two_isLeast`: the open statement is a variant (symbol_length_problem.variants.degree_two_isLeast), not the problem itself: curate by hand
+- `fc:FormalConjectures/Other/SymbolLengthMilnorKTheory.lean#symbol_length_problem.variants.uniform`: the open statement is a variant (symbol_length_problem.variants.uniform), not the problem itself: curate by hand
+- `fc:FormalConjectures/Other/VCDimConvex.lean#exists_exponential_bound_hasAddVCNDimAtMost_n_of_convex_rn_add_one`: no `theorem exists_exponential_bound_hasAddVCNDimAtMost_n_of_convex_rn_add_one ... := by sorry` in the registry file
+- `fc:FormalConjectures/Other/VCDimConvex.lean#hasAddVCNDimAtMost_n_two_of_convex_rn_add_one`: no `theorem hasAddVCNDimAtMost_n_two_of_convex_rn_add_one ... := by sorry` in the registry file
+- `fc:FormalConjectures/Other/VCDimConvex.lean#hasAddVCNDimAtMost_two_two_of_convex_r3`: no `theorem hasAddVCNDimAtMost_two_two_of_convex_r3 ... := by sorry` in the registry file
+- `fc:FormalConjectures/Paper/AuslanderReiten.lean#auslander_reiten.variants.commutative`: the open statement is a variant (auslander_reiten.variants.commutative), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/AuslanderReiten.lean#auslander_reiten.variants.local_free`: the open statement is a variant (auslander_reiten.variants.local_free), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/BollobasEldridgeCatlinConjecture.lean#bollobas_eldridge_catlin_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/BurningNumberConjecture.lean#burning_number_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/CasasAlvero.lean#casas_alvero_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/CatchUpConjecture.lean#value_of_even_mul_succ_self_div_two`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/ConjugacyClassSizes.lean#conjClassSizes_iff_sym_three`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/DeGiorgi.lean#DeGiorgi_eight`: the drafted record is refused: pde is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/DeGiorgi.lean#DeGiorgi_five`: the drafted record is refused: pde is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/DeGiorgi.lean#DeGiorgi_four`: the drafted record is refused: pde is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/DeGiorgi.lean#DeGiorgi_le_eight`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/DeGiorgi.lean#DeGiorgi_seven`: the drafted record is refused: pde is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/DeGiorgi.lean#DeGiorgi_six`: the drafted record is refused: pde is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/Dubner.lean#dubner_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/EisenbudGreenHarris.lean#eisenbud_green_harris`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/FiniteLocallyFreeGroupSchemeExponent.lean#optimal_exponent`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): optimal_exponent.answer
+- `fc:FormalConjectures/Paper/FusibleNumber.lean#conj_7_1`: the statement opens with a `let`/`have` binding spanning lines: restate it by hand; binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/HartshorneConjecture.lean#harthshorne_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/Homogenous.lean#countablyMonolithicSpace_card_lt`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/Homogenous.lean#firstCountableTopology_of_countablyMonolithicSpace`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/Homogenous.lean#homogeneousSpace_exists_inj_tendsto`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/Homogenous.lean#homogeneousSpace_exists_surjective`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/Homogenous.lean#monolithicSpace_exists_nhds_generated_countable`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/KaplanskyUInvariant.lean#u_invariant_values`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): u_invariant_values.answer
+- `fc:FormalConjectures/Paper/KaplanskyUInvariant.lean#u_invariant_values.variants.fifteen`: the open statement is a variant (u_invariant_values.variants.fifteen), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/KaplanskyUInvariant.lean#u_invariant_values.variants.odd`: the open statement is a variant (u_invariant_values.variants.odd), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/KaplanskyUInvariant.lean#u_invariant_values.variants.thirteen`: the open statement is a variant (u_invariant_values.variants.thirteen), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/KotzigConjecture.lean#kotzig_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/Kurepa.lean#kurepa_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/Kurepa.lean#kurepa_conjecture.variants.gcd`: the open statement is a variant (kurepa_conjecture.variants.gcd), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/Kurepa.lean#kurepa_conjecture.variants.prime`: the open statement is a variant (kurepa_conjecture.variants.prime), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/LatinSquare.lean#growthRateZn`: the file's definitions rest on `sorry` (an answer the registry leaves open): molsExistenceProblem.answer
+- `fc:FormalConjectures/Paper/LatinSquare.lean#molsExistenceProblem`: the file's definitions rest on `sorry` (an answer the registry leaves open): molsExistenceProblem.answer
+- `fc:FormalConjectures/Paper/LatinSquare.lean#molsOrder12`: the file's definitions rest on `sorry` (an answer the registry leaves open): molsExistenceProblem.answer
+- `fc:FormalConjectures/Paper/LatinSquare.lean#numTransversalsZn`: the file's definitions rest on `sorry` (an answer the registry leaves open): molsExistenceProblem.answer
+- `fc:FormalConjectures/Paper/LatinSquare.lean#oddOrderLatinSquareTransversal`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/LatinTableau.lean#LatinTableauConjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/LennonPittelStableMatchings.lean#lennon_pittel_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/ManickamMiklosSinghiConjecture.lean#manickam_miklos_singhi_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem10_no_solution_d3`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem10_no_solution_d3_real`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem10_no_solution_d4`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem10_no_solution_d5`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem10_no_solution_d6`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem10_no_solution_d7`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem12_no_solution_d3`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem14_no_solution_d3`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem16_no_solution_d3`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem6_no_solution_d3_real`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem6_no_solution_ge3`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem6_no_solution_ge3_real`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem8_no_solution_d3`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem8_no_solution_d3_real`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem_no_solution_ge6_ge3`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/MonochromaticQuantumGraph.lean#eqSystem_no_solution_ge6_ge3_real`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/PartitionParity.lean#ono.polynomial`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/PfisterPythagorasNumber.lean#pfister_problem`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): pfister_problem.answer
+- `fc:FormalConjectures/Paper/PfisterPythagorasNumber.lean#pfister_problem.variants.eq_two_pow`: the open statement is a variant (pfister_problem.variants.eq_two_pow), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/PrimeTuples.lean#prime_tuples_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean#sat_no_p_optimal_proof_system`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/ReedOmegaDeltaChi.lean#reed_conjecture_Δ_6_ω_2`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Paper/ReedOmegaDeltaChi.lean#reed_omega_delta_chi_conjecture`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/ReedOmegaDeltaChi.lean#reed_omega_delta_chi_conjecture_for_finite_graphs`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/RiemannHypothesisEquivalents.lean#lagarias_criterion_rhs`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/RiemannHypothesisEquivalents.lean#li_criterion_rhs`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/RiemannHypothesisEquivalents.lean#robin_criterion_rhs`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/RiemannHypothesisEquivalents.lean#weil_positivity_criterion_rhs`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/RingelConjecture.lean#ringel_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/SerreUniformity.lean#serre_uniformity`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Paper/SerreUniformity.lean#serre_uniformity.variants.bound_37`: the open statement is a variant (serre_uniformity.variants.bound_37), not the problem itself: curate by hand
+- `fc:FormalConjectures/Paper/WeakTiling.lean#problem_4_2`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Paper/WeaklyFirstCountable.lean#cardinalMk_le_continuum_of_weaklyFirstCountable_of_countableSouslinNumber`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/ABC.lean#abc`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/ABC.lean#abc.variants.lt_constant_mul`: the open statement is a variant (abc.variants.lt_constant_mul), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/ABC.lean#abc.variants.quality`: the open statement is a variant (abc.variants.quality), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/AgohGiuga.lean#agoh_giuga.variants.giuga`: the open statement is a variant (agoh_giuga.variants.giuga), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/Agrawal.lean#agrawal_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Agrawal.lean#agrawal_conjecture.variants.popovych`: the open statement is a variant (agrawal_conjecture.variants.popovych), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/AlgebraicNormality.lean#irrational_algebraic_absolutely_normal`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/AlgebraicNormality.lean#irrational_algebraic_normal_in_some_base`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/AndrewsCurtis.lean#andrews_curtis_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/ArtinPrimitiveRootsConjecture.lean#artin_primitive_roots.parts.i`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; cannot port its definitions mechanically: imports FormalConjectures.Millennium.RiemannHypothesis, which the port cannot supply
+- `fc:FormalConjectures/Wikipedia/ArtinPrimitiveRootsConjecture.lean#artin_primitive_roots.parts.ii`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; cannot port its definitions mechanically: imports FormalConjectures.Millennium.RiemannHypothesis, which the port cannot supply
+- `fc:FormalConjectures/Wikipedia/ArtinPrimitiveRootsConjecture.lean#artin_primitive_roots.variants.part_ii_power_squarefreePart_modeq_one`: the open statement is a variant (artin_primitive_roots.variants.part_ii_power_squarefreePart_modeq_one), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/ArtinPrimitiveRootsConjecture.lean#artin_primitive_roots.variants.part_ii_power_squarefreePart_not_modeq_one`: the open statement is a variant (artin_primitive_roots.variants.part_ii_power_squarefreePart_not_modeq_one), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/BalancedPrimes.lean#balanced_primes_order`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/BatemanHornConjecture.lean#bateman_horn_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/BergeFulkersonConjecture.lean#berge_fulkerson_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/BergeFulkersonConjecture.lean#berge_fulkerson_conjecture.variants.berge`: the open statement is a variant (berge_fulkerson_conjecture.variants.berge), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/BergeFulkersonConjecture.lean#berge_fulkerson_conjecture.variants.fan_raspaud`: the open statement is a variant (berge_fulkerson_conjecture.variants.fan_raspaud), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/BingBorsuk.lean#bing_borsuk_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/BrocardConjecture.lean#brocard_conjecture`: the statement opens with a `let`/`have` binding spanning lines: restate it by hand; binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Bunyakovsky.lean#bunyakovsky_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/BusyBeaver.lean#BB_6`: the file's definitions rest on `sorry` (an answer the registry leaves open): BB_6.answer
+- `fc:FormalConjectures/Wikipedia/ButsonHadamardMatrix.lean#butson_hadamard_fourth_roots_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/CarmichaelTotient.lean#charmichaelTotient`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Catalan.lean#lebesgue_nagell`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Catalan.lean#pillais_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/CernyConjecture.lean#cerny_conjecture`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/CollatzConjecture.lean#collatz_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/CongruentNumber.lean#Tunnell_even_converse`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/CongruentNumber.lean#Tunnell_odd_converse`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/DedekindNumber.lean#Dedekind_10`: the file's definitions rest on `sorry` (an answer the registry leaves open): Dedekind_10.answer, M_eq.answer
+- `fc:FormalConjectures/Wikipedia/DedekindNumber.lean#M_eq`: the file's definitions rest on `sorry` (an answer the registry leaves open): Dedekind_10.answer, M_eq.answer
+- `fc:FormalConjectures/Wikipedia/DeterminantalConjecture.lean#determinantal_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Dickson.lean#dickson_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Dickson.lean#generalized_twin_primes`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/DirichletDivisorProblem.lean#dirichlet_divisor_problem`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/ElliottHalberstamConjecture.lean#elliott_halberstam`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#exists_rank_ge_thirtytwo`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#finite_twentyone_lt_finrank`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#goldfeld_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#goldfeld_conjecture.variants.squarefree`: the open statement is a variant (goldfeld_conjecture.variants.squarefree), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#half_rank_zero_and_half_rank_one`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#rank_claudeAlpogeHowell31`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#rank_elkies28`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#rank_elkiesKlagsbrun29`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#rank_ranksunbounded30`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Wikipedia/EllipticCurveRank.lean#unbounded_rank_conjecture`: the drafted record is refused: algebraic-geometry is outside Stage 0 intake (D-6 excludes algebraic-geometry, algebraic-number-theory, differential-geometry, pde)
+- `fc:FormalConjectures/Wikipedia/ErdosMoser.lean#erdos_moser_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/EulerBrick.lean#cuboidThree`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/Wikipedia/EulerBrick.lean#cuboidTwo`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/Wikipedia/EulerBrick.lean#four_dim_euler_brick_existence`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/Wikipedia/EulerBrick.lean#n_dim_euler_brick_existence`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand; the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/Wikipedia/EulerBrick.lean#perfect_euler_brick_existence`: the file's definitions rest on `sorry` (an answer the registry leaves open): see the file
+- `fc:FormalConjectures/Wikipedia/EulerSumOfPowers.lean#eulers_sum_of_powers_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Exponentials.lean#four_exponentials_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Exponentials.lean#two_pow_three_pow_transcendental`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/FeitThompsonPrimeConjecture.lean#feit_thompson_primes`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Fermat.lean#fermat_number_are_composite`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Fuglede.lean#FugledeConjecture.variants.dim_1`: the open statement is a variant (FugledeConjecture.variants.dim_1), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/Fuglede.lean#FugledeConjecture.variants.dim_2`: the open statement is a variant (FugledeConjecture.variants.dim_2), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/GapConjecture.lean#gap_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/GoldbachConjecture.lean#goldbach`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/GoodmanConjecture.lean#goodman_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Goormaghtigh.lean#goormaghtigh_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/GracefulLabeling.lean#graceful_tree_conjecture`: the statement opens with a `let`/`have` binding spanning lines: restate it by hand; binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Grimm.lean#grimm_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Grimm.lean#grimm_conjecture_weak`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/GyarfasSumnerConjecture.lean#gyarfas_sumner_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Hadamard.lean#HadamardConjecture.variants.«167»`: the open statement is a variant (HadamardConjecture.variants.«167»), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/HajosConjecture.lean#hajos_conjecture.variants.five_six`: the open statement is a variant (hajos_conjecture.variants.five_six), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/Hall.lean#weak_hall_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/HasseWeil.lean#exists_hasAnalyticContinuation`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/HasseWeil.lean#exists_hasMeromorphicContinuation`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/IdonealCompleteness.lean#idoneal_numbers_completeness`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/InscribedSquare.lean#inscribed_rectangle_problem`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/InscribedSquare.lean#inscribed_square_problem`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/InvariantSubspaceProblem.lean#Invariant_subspace_problem`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; no graph domain for AMS 47
+- `fc:FormalConjectures/Wikipedia/InverseGalois.lean#inverse_galois_problem`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#algebraicIndependent_e_pi`: uses file-local notation (port into defs/): e
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_e_plus_pi`: uses file-local notation (port into defs/): e
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_e_times_pi`: uses file-local notation (port into defs/): e
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_e_to_e`: uses file-local notation (port into defs/): e
+- `fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_pi_to_e`: uses file-local notation (port into defs/): e
+- `fc:FormalConjectures/Wikipedia/JacobianConjecture.lean#jacobian_conjecture_two_variables`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Jacobson.lean#jacobson_conjecture`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand; no graph domain for AMS 16
+- `fc:FormalConjectures/Wikipedia/JugglerConjecture.lean#juggler_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Kakeya.lean#kakeya_set_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Kaplansky.lean#idempotent_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Koethe.lean#KotheConjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand; no graph domain for AMS 16
+- `fc:FormalConjectures/Wikipedia/Koethe.lean#KotherConjecture.variants.general_matrix`: the open statement is a variant (KotherConjecture.variants.general_matrix), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/Koethe.lean#KotherConjecture.variants.le_KotherRadical`: the open statement is a variant (KotherConjecture.variants.le_KotherRadical), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/Koethe.lean#KotherConjecture.variants.matrixOver_KotherRadical`: the open statement is a variant (KotherConjecture.variants.matrixOver_KotherRadical), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/Koethe.lean#KotherConjecture.variants.two_by_two_matrix`: the open statement is a variant (KotherConjecture.variants.two_by_two_matrix), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/KummerVandiver.lean#kummer_vandiver`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LanderParkinAndSelfridgeConjecture.lean#lander_parkin_selfridge`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LanderParkinAndSelfridgeConjecture.lean#lander_parkin_selfridge.variants.five_three`: the open statement is a variant (lander_parkin_selfridge.variants.five_three), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/LegendreConjecture.lean#legendre_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LehmerMahlerMeasureProblem.lean#lehmer_mahler_measure_problem.variants.best`: the open statement is a variant (lehmer_mahler_measure_problem.variants.best), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/Lemoine.lean#lemoine_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Lemoine.lean#lemoine_conjecture_extension`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LinearArboricityConjecture.lean#linear_arboricity_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LinearArboricityConjecture.lean#linear_arboricity_conjecture.variants.regular`: the open statement is a variant (linear_arboricity_conjecture.variants.regular), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/LittlewoodConjecture.lean#littlewood_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LittlewoodConjecture.lean#padic_littlewood_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LocalUniformization.lean#local_uniformization`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LonelyRunnerConjecture.lean#lonely_runner_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LovaszConjecture.lean#lovasz_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LovaszPlummerConjecture.lean#sheehan_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/LychrelNumbers.lean#no_lychrel_numbers_base10`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Mahler32.lean#mahler_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Mandelbrot.lean#density_of_hyperbolicity_general_exponent`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Mandelbrot.lean#volume_frontier_multibrotSet_eq_zero`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/MeanValueProblem.lean#mean_value_problem`: no `theorem mean_value_problem ... := by sorry` in the registry file
+- `fc:FormalConjectures/Wikipedia/Mersenne.lean#catalans_mersenne_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Mersenne.lean#new_mersenne_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Mersenne.lean#new_mersenne_conjecture.variants.prime`: the open statement is a variant (new_mersenne_conjecture.variants.prime), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/MoserWorm.lean#convex_mosers_worm_problem`: the file's definitions rest on `sorry` (an answer the registry leaves open): convex_mosers_worm_problem.answer, mosers_worm_problem.answer
+- `fc:FormalConjectures/Wikipedia/MoserWorm.lean#mosers_worm_problem`: the file's definitions rest on `sorry` (an answer the registry leaves open): convex_mosers_worm_problem.answer, mosers_worm_problem.answer
+- `fc:FormalConjectures/Wikipedia/MovingSofa.lean#ambidextrousSofaConstant_eq_romiksSofa_area`: no graph domain for AMS 49
+- `fc:FormalConjectures/Wikipedia/Oppermann.lean#oppermann_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Oppermann.lean#oppermann_conjecture.parts.i`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Oppermann.lean#oppermann_conjecture.parts.ii`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/PebblingNumberConjecture.lean#pebbling_number_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/PerfectNumbers.lean#odd_perfect_number_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/PetersenColoringConjecture.lean#petersen_coloring_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/PierceBirkhoff.lean#pierce_birkhoff_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/PollocksConjecture.lean#pollock_tetrahedral`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/RamanujanTau.lean#lehmer_ramanujan_tau`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/RamseyNumbers.lean#ramsey_number_five_five`: the file's definitions rest on `sorry` (an answer the registry leaves open): ramsey_number_five_five.answer, ramsey_number_six_six.answer
+- `fc:FormalConjectures/Wikipedia/RamseyNumbers.lean#ramsey_number_six_six`: the file's definitions rest on `sorry` (an answer the registry leaves open): ramsey_number_five_five.answer, ramsey_number_six_six.answer
+- `fc:FormalConjectures/Wikipedia/ReconstructionConjecture.lean#edge_reconstruction_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/ReconstructionConjecture.lean#reconstruction_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/ResolutionOfSingularities.lean#resolution_of_singularities`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_odd`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/RudinsConjecture.lean#rudins_conjecture_strong`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/RudinsConjecture.lean#rudins_conjecture_unique`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Schanuel.lean#schanuel_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Schinzel.lean#schinzel_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/ScholzConjecture.lean#scholz_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Selfridge.lean#selfridge_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/SerreMultiplicityConjectures.lean#intersectionMultiplicity_pos`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/SerreMultiplicityConjectures.lean#intersectionMultiplicity_pos_quotient`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/SidorenkoConjecture.lean#tournament_anti_sidorenko_trees_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/SidorenkoConjecture.lean#tournament_anti_sidorenko_trees_conjecture_tournamenton`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/SmallCohenMacaulayModules.lean#exists_isSmallCohenMacaulay`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/SnakeInTheBox.lean#snake_dim_nine`: the file's definitions rest on `sorry` (an answer the registry leaves open): snake_dim_nine.answer
+- `fc:FormalConjectures/Wikipedia/SquarePacking.lean#least_eleven_square_packing_in_square`: the file's definitions rest on `sorry` (an answer the registry leaves open): least_eleven_square_packing_in_square.answer, least_fifteen_circle_packing_in_circle.answer, least_seventeen_square_packing_in_square.answer, least_three_square_packing_in_circle.answer, least_twenty_one_circle_packing_in_square.answer
+- `fc:FormalConjectures/Wikipedia/SquarePacking.lean#least_fifteen_circle_packing_in_circle`: the file's definitions rest on `sorry` (an answer the registry leaves open): least_eleven_square_packing_in_square.answer, least_fifteen_circle_packing_in_circle.answer, least_seventeen_square_packing_in_square.answer, least_three_square_packing_in_circle.answer, least_twenty_one_circle_packing_in_square.answer
+- `fc:FormalConjectures/Wikipedia/SquarePacking.lean#least_seventeen_square_packing_in_square`: the file's definitions rest on `sorry` (an answer the registry leaves open): least_eleven_square_packing_in_square.answer, least_fifteen_circle_packing_in_circle.answer, least_seventeen_square_packing_in_square.answer, least_three_square_packing_in_circle.answer, least_twenty_one_circle_packing_in_square.answer
+- `fc:FormalConjectures/Wikipedia/SquarePacking.lean#least_twenty_one_circle_packing_in_square`: the file's definitions rest on `sorry` (an answer the registry leaves open): least_eleven_square_packing_in_square.answer, least_fifteen_circle_packing_in_circle.answer, least_seventeen_square_packing_in_square.answer, least_three_square_packing_in_circle.answer, least_twenty_one_circle_packing_in_square.answer
+- `fc:FormalConjectures/Wikipedia/SumnerUniversalTournamentConjecture.lean#sumner_conjecture`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Toronto.lean#DiscreteTopology.of_t2_of_torontoSpace`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/TotalColoringConjecture.lean#total_coloring_conjecture`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/Transcendental.lean#transcendental_gamma_one_div`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/TuzaConjecture.lean#tuza_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/UnionClosed.lean#union_closed`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/UnionClosed.lean#union_closed.variants.cardinality_even_of_union_closed_tight`: the open statement is a variant (union_closed.variants.cardinality_even_of_union_closed_tight), not the problem itself: curate by hand
+- `fc:FormalConjectures/Wikipedia/VaughtConjecture.lean#vaught_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/VizingConjecture.lean#vizing_conjecture`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/WallSunSun.lean#infinite_isWallSunSunPrime_of_disc_eq`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/WeighingMatrix.lean#weighing_matrix_conjecture`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/WieferichMirimanoffPrime.lean#isMirimanoffPrime_iff`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/WieferichPrime.lean#isWieferichPrime_iff`: leading ∀ binders the driver cannot close (implicit, instance or untyped): the witness is their closure over `True`, write it by hand
+- `fc:FormalConjectures/Wikipedia/conjecture_1_3_to_2_3.lean#conjecture_1_3_to_2_3`: leading ∀ binders carry hypotheses (a bounded binder or an implication): the witness is not `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture133.lean#conjecture133`: the statement opens with a `let`/`have` binding spanning lines: restate it by hand; binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture189.lean#conjecture189`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture199.lean#conjecture199`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture40.lean#conjecture40`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture61.lean#conjecture61`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture72.lean#conjecture72`: the statement opens with a `let`/`have` binding spanning lines: restate it by hand; binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture84.lean#conjecture84`: binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand
+- `fc:FormalConjectures/WrittenOnTheWallII/GraphConjecture96.lean#conjecture96`: the statement opens with a `let`/`have` binding spanning lines: restate it by hand; binders before the colon carry a hypothesis (or cannot be closed): the witness is not their closure over `True`, write it by hand

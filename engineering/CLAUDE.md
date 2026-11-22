@@ -1904,3 +1904,20 @@ The law of the project:
   1092-step loop hits a recursion limit), and the bridge is "while `ok`, the brackets hold 2^P times
   the real remainder and no stall has happened". **The fast checker's line numbers are offset by the
   inlined Context** (three lines here); map them before guessing which tactic failed.
+- 2026-11-22 (later) — F14-T19, the bulk load's port, on the owner's three calls (claimable stays as
+  it is; link, never copy, Wikipedia and OEIS prose; "all" means every research-open statement, the
+  Erdős rows included). Three things worth keeping. **A probe against the live toolchain is the
+  test the fixtures cannot write**: the first mechanical port passed every fixture and compiled 12
+  of 30 live drafts; five rounds of "read the first error, write the test, fix" took the same
+  sample to 20 of 20, and every defect was registry syntax no fixture had imagined — `set_option
+  linter.… in` prefixes left dangling (1096 in the registry), `public meta import`, a notation
+  (`ℝ²`) no name scan sees, `@[optimization_constant "6a"]`, an exposed `noncomputable section`
+  losing its modifier, `#guard_msgs` expecting the pretty-printer's text, a prose line beginning
+  "open; [Kat16]" taken for a command. **Inline modules in their own sections when a probe must
+  concatenate them**: two "section variable `F`" errors were the probe's own leak between modules,
+  not the port's. **A `def … := sorry` in a problem file is a question wearing a definition**:
+  180 registry files define an `answer` as `sorry` and conjecture about it; the driver refuses
+  them by name now, where the first port would have shipped a `defs/` the gate refuses. Also:
+  a batch of asserted `str.replace` edits aborts on the first miss and writes nothing — the
+  formatter had rewrapped a docstring — so check each replacement's count before trusting the
+  run (2026-09-09's rule, paid again).

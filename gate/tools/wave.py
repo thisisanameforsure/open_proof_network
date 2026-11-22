@@ -12,12 +12,18 @@ F11-Q24) and ``Witness.lean``; the upstream file under ``<out>/upstream/``; an `
 that runs ``intake import-fc`` once per draft with the row's evidence (F14-R4); and
 ``REPORT.md``.
 
-It refuses, naming why, what it cannot draft honestly (F14-Q11): a statement that uses a name the
-registry's own helper library declares (``FormalConjecturesForMathlib``) or a file-local definition,
-both of which need a port into ``defs/``; a value-typed statement (``= answer(sorry)``), which is a
-question and not a conjecture; a theorem with binders before its colon, whose witness is not
-``True`` and must be written by hand, and for the same reason one whose leading ``∀`` binders
-carry hypotheses (F14-T15); a use of a file-local ``notation``; a ``let``/``have`` opening spanning
+A statement that uses a name the registry's own helper library declares
+(``FormalConjecturesForMathlib``) or a file-local definition is drafted with the port under
+``defs/`` (F14-R12, T19): the library module that declares the name, and the modules it imports,
+copied verbatim and named by their path inside the library; the registry file's own definitions as
+``Local.lean``, its theorems gone. Both lose the module syntax (``module``, ``public import``, the
+exposed public section, ``public``, ``@[expose]``) so the gate elaborates them under ``import
+Mathlib``. A curator's hand ``defs/`` (``--overrides``) wins over the mechanical port.
+
+It refuses, naming why, what it cannot draft honestly (F14-Q11): a value-typed statement
+(``= answer(sorry)``), which is a question and not a conjecture; a theorem whose binders, before or
+after its colon, carry a hypothesis, so the witness is not their closure over ``True`` and must be
+written by hand (F14-T15); a use of a file-local ``notation``; a ``let``/``have`` opening spanning
 lines; a file with no copyright header to keep. Every draft is a
 curator's to read before the import runs (R13): the driver writes files, never the graph.
 """
@@ -25,6 +31,7 @@ curator's to read before the import runs (R13): the driver writes files, never t
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 import shutil
@@ -125,7 +132,9 @@ _DECL_NAME_RE = re.compile(
     re.M,
 )
 _TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_']*")
-_OPEN_RE = re.compile(r"^open\b.*$", re.M)
+#: An `open` command names a namespace (or `scoped`); a prose line "open; [Kat16] gives …" in a
+#: module doc does not (F14-T19).
+_OPEN_RE = re.compile(r"^open\s+(?:scoped\s+)?[A-Z].*$", re.M)
 
 
 @dataclass
@@ -137,10 +146,15 @@ class Draft:
     hand: str = ""  # which hand files the draft used, for the report (F14-T18)
     defs: tuple[str, ...] = ()  # the ported modules, for import.sh --defs
     hazards: bool = False  # a hazards.yaml travels with the draft, for import.sh --hazards
+    ports: tuple[str, ...] = ()  # the modules the driver ported itself, for the report (F14-T19)
 
     @property
     def drafted(self) -> bool:
         return self.directory is not None
+
+    @property
+    def notes(self) -> str:
+        return self.hand + (f" (port: {' '.join(self.ports)})" if self.ports else "")
 
 
 #: The Mathlib namespaces the helper library extends with new definitions: a dotted use such as
@@ -153,17 +167,31 @@ MATHLIB_NAMESPACES: frozenset[str] = frozenset(
     }
 )  # fmt: skip
 _DEFINITION_RE = re.compile(
-    r"^\s*(?:@\[[^\]]*\]\s*)?(?:noncomputable\s+|protected\s+|private\s+)*"
+    r"^\s*(?:@\[[^\]]*\]\s*)?(?:noncomputable\s+|protected\s+|private\s+|public\s+)*"
     r"(?:def|abbrev|structure|class|inductive)\s+(?P<name>[A-Za-z_][A-Za-z0-9_.']*)"
 )
 _NAMESPACE_RE = re.compile(r"^\s*(?P<kind>namespace|section|end)\b\s*(?P<name>[A-Za-z0-9_.']*)")
 
 
-def helper_names(fc: Path) -> dict[str, set[str]]:
-    """Every definition the registry's helper library declares, by short name, with the namespace
-    it lives in (theorems are not vocabulary a statement can use without the library)."""
-    index: dict[str, set[str]] = {}
+_LIBRARY_NOTATION_RE = re.compile(
+    r"^\s*(?:scoped(?:\[[^\]]*\])?\s+|local\s+)?(?:notation3?|infixl?|infixr|prefix|postfix)"
+    r'(?::\d+)?\s*(?:\(.*?\)\s*)?"([^"]+)"'
+)
+
+
+@functools.lru_cache(maxsize=4)
+def _scan_library(
+    fc: Path,
+) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
+    """Every definition the registry's helper library declares, by short name: the namespaces it
+    lives in, and the library modules that declare it (F14-T19, for the port); and every notation
+    literal the library declares, by the modules declaring it (a notation is not a name the token
+    scan sees: `ℝ²` is Geometry/2d.lean's)."""
+    names: dict[str, set[str]] = {}
+    modules: dict[str, set[str]] = {}
+    notations: dict[str, set[str]] = {}
     for path in sorted((fc / HELPER_LIBRARY).rglob("*.lean")):
+        module = ".".join(path.relative_to(fc).with_suffix("").parts)
         stack: list[tuple[str, str]] = []
         for line in path.read_text(encoding="utf-8").splitlines():
             scope = _NAMESPACE_RE.match(line)
@@ -174,12 +202,356 @@ def helper_names(fc: Path) -> dict[str, set[str]]:
                 elif stack:
                     stack.pop()
                 continue
+            n = _LIBRARY_NOTATION_RE.match(line)
+            if n is not None:
+                literal = n.group(1).strip()
+                if literal and not _TOKEN_RE.fullmatch(literal):
+                    notations.setdefault(literal, set()).add(module)
+                continue
             m = _DEFINITION_RE.match(line)
             if m is None:
                 continue
             parts = [n for k, n in stack if k == "namespace" and n] + m.group("name").split(".")
-            index.setdefault(parts[-1], set()).add(".".join(parts[:-1]))
-    return index
+            names.setdefault(parts[-1], set()).add(".".join(parts[:-1]))
+            modules.setdefault(parts[-1], set()).add(module)
+    return names, modules, notations
+
+
+def helper_names(fc: Path) -> dict[str, set[str]]:
+    """Every definition the registry's helper library declares, by short name, with the namespace
+    it lives in (theorems are not vocabulary a statement can use without the library)."""
+    return _scan_library(fc)[0]
+
+
+def helper_modules(fc: Path) -> dict[str, set[str]]:
+    """The library modules declaring each short name (F14-T19)."""
+    return _scan_library(fc)[1]
+
+
+def helper_notations(fc: Path) -> dict[str, set[str]]:
+    """The library modules declaring each notation literal (F14-T19)."""
+    return _scan_library(fc)[2]
+
+
+def notations_used(text: str, notations: dict[str, set[str]]) -> list[str]:
+    """The library notation literals that occur in ``text``."""
+    return sorted(lit for lit in notations if lit in text)
+
+
+# --- F14-T19: the mechanical port of a registry file into defs/ --------------------------------
+
+_IMPORT_RE = re.compile(r"^(?:public\s+)?import\s+(?P<module>[A-Za-z0-9_.']+)\s*$")
+#: The exposed public section becomes a plain (or `noncomputable`) section: its `end`, if any,
+#: still closes it, and a `noncomputable` on it still covers every definition under it.
+_PUBLIC_SECTION_RE = re.compile(
+    r"^@\[expose\]\s*public\s+(?P<kind>(?:noncomputable\s+)?section)\s*$"
+)
+_HASH_COMMAND_RE = re.compile(r"^#[a-z_]+\b")
+_PROOF_DECL_RE = re.compile(
+    r"^(?:(?:noncomputable|private|protected|public|meta|partial|unsafe|nonrec)\s+)*"
+    r"(?:theorem|lemma|example)\b"
+)
+_ANY_DECL_RE = re.compile(
+    r"^(?:(?:noncomputable|private|protected|public|meta|partial|unsafe|nonrec)\s+)*"
+    r"(?:theorem|lemma|example|def|abbrev|structure|class|inductive|instance|opaque|axiom|"
+    r"notation|macro|syntax|elab|macro_rules|declare_syntax_cat|initialize)\b"
+)
+#: `public`, `meta` and `public meta` are module-system modifiers on imports, sections and
+#: declarations alike.
+_MODIFIER_PREFIX_RE = re.compile(r"^(?:(?:public|meta)\s+)+")
+_LINTER_OPTION_RE = re.compile(r"^set_option\s+linter\.")
+_IN_PREFIX_RE = re.compile(r"^(?:open|set_option|variable|omit|include)\b.*\bin$")
+#: Attributes only the registry's own util library defines (`category research open`, `AMS 11`,
+#: `optimization_constant "6a"`, `question`) and `expose`: none exists under Mathlib alone, and
+#: none changes a definition's meaning, so each goes from its list and an emptied list goes whole.
+_REGISTRY_ATTRIBUTE_RE = re.compile(
+    r"(?:expose|category\b[^,\]]*|AMS\b[^,\]]*|optimization_constant\b[^,\]]*|question\b[^,\]]*)"
+)
+_ATTRIBUTE_LIST_RE = re.compile(r"@\[([^\]]*)\]([ \t]*)")
+PORT_NOTE = (
+    "/-! Ported mechanically from `{rel}` at registry commit {pin} ({repo}, Apache-2.0) by "
+    "gate/tools/wave.py (F14-T19): {what}. The module syntax is stripped so the gate elaborates it "
+    "under `import Mathlib`; nothing else is changed. -/\n"
+)
+
+
+class PortError(Exception):
+    """A registry file the driver cannot port mechanically, and why."""
+
+
+def _strip_attributes(m: re.Match[str]) -> str:
+    kept = [
+        a.strip()
+        for a in m.group(1).split(",")
+        if a.strip() and not _REGISTRY_ATTRIBUTE_RE.fullmatch(a.strip())
+    ]
+    return f"@[{', '.join(kept)}]{m.group(2)}" if kept else ""
+
+
+def _strip_module_syntax(line: str) -> str:
+    line = _ATTRIBUTE_LIST_RE.sub(
+        _strip_attributes, line
+    )  # before the modifiers: `@[expose] public`
+    return _MODIFIER_PREFIX_RE.sub("", line)
+
+
+def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
+    text: str, *, keep_theorems: bool = False
+) -> tuple[str, list[str]]:
+    """The mechanical port of a registry file: its definitions, instances, `variable`s and scope
+    lines as written; every theorem, lemma and example gone with its docstring, its attributes and
+    an `open ... in` prefix (a problem file's are the stated conjectures and their tests; a library
+    module's are its proved lemmas and stay, ``keep_theorems``); every `#` command gone; the
+    module syntax stripped, the exposed public section kept as a plain section.
+    Returns the body (without the copyright header, which the caller writes) and the modules the
+    file imported, in order."""
+    header = intake.copyright_header(text)
+    if header is not None and text.startswith(header):
+        text = text[len(header) :]
+    imports: list[str] = []
+    out: list[str] = []
+    pending: list[str] = []  # docstring, attribute, `open ... in` and blank lines awaiting a decl
+    lines = text.splitlines()
+    i = 0
+
+    def block_end(start: int) -> int:
+        """The index after a declaration: its continuation lines are indented or blank."""
+        j = start + 1
+        while j < len(lines) and (not lines[j].strip() or lines[j][0] in " \t"):
+            j += 1
+        return j
+
+    while i < len(lines):
+        line = _MODIFIER_PREFIX_RE.sub("", lines[i])  # `public meta import`, `meta section`
+        stripped = line.strip()
+        if stripped == "module" or _LINTER_OPTION_RE.match(line):
+            # A linter option the registry defines (`linter.style.formal_proof_palomar`) does not
+            # exist under Mathlib alone and changes no meaning; with its `in`, it goes.
+            i += 1
+            continue
+        m = _IMPORT_RE.match(line)
+        if m is not None:
+            imports.append(m.group("module"))
+            i += 1
+            continue
+        section = _PUBLIC_SECTION_RE.match(line)
+        if section is not None:
+            out.extend(pending)
+            pending.clear()
+            out.append(section.group("kind"))
+            i += 1
+            continue
+        if _HASH_COMMAND_RE.match(line):
+            # `#guard_msgs in`, `#eval`, `#check`: the registry's own tests, declaring nothing;
+            # a `#guard_msgs` docstring is the pretty-printer's text and changes with it.
+            pending.clear()
+            i = block_end(i)
+            continue
+        if line.startswith("/--") or line.startswith("@[") or _IN_PREFIX_RE.match(line):
+            # A docstring or attribute may span lines; with an `open … in` or `set_option … in`
+            # prefix it belongs to the declaration that follows.
+            j = i
+            if line.startswith("/--"):
+                while j < len(lines) and "-/" not in lines[j]:
+                    j += 1
+            elif line.startswith("@["):
+                while j < len(lines) and lines[j].count("[") > lines[j].count("]"):
+                    j += 1
+                while j < len(lines) and "]" not in lines[j]:
+                    j += 1
+            tail = _strip_module_syntax(lines[j])
+            inline = re.sub(r"^@\[[^\]]*\]\s*", "", tail)  # `@[simp] instance … := …` on one line
+            if _PROOF_DECL_RE.match(inline) and not keep_theorems:
+                pending.clear()
+                i = block_end(j)
+                continue
+            if _ANY_DECL_RE.match(inline):
+                end = block_end(j)
+                out.extend(pending)
+                pending.clear()
+                out.extend(_strip_module_syntax(ln) for ln in lines[i:j])
+                out.append(tail)
+                out.extend(_strip_module_syntax(ln) for ln in lines[j + 1 : end])
+                i = end
+                continue
+            pending.extend(_strip_module_syntax(ln) for ln in lines[i : j + 1])
+            i = j + 1
+            continue
+        if not stripped:
+            (pending if pending else out).append(line)
+            i += 1
+            continue
+        if _PROOF_DECL_RE.match(line) and not keep_theorems:
+            pending.clear()
+            i = block_end(i)
+            continue
+        if _ANY_DECL_RE.match(line):
+            end = block_end(i)
+            out.extend(pending)
+            pending.clear()
+            out.extend(_strip_module_syntax(ln) for ln in lines[i:end])
+            i = end
+            continue
+        # A scope or other command line (`open`, `namespace`, `end`, `variable`, `section`,
+        # `set_option`, `universe`, `attribute`, a module doc `/-! ... -/`, a comment).
+        if line.startswith("/-"):
+            j = i
+            while j < len(lines) and "-/" not in lines[j]:
+                j += 1
+            out.extend(pending)
+            pending.clear()
+            out.extend(lines[i : j + 1])
+            i = j + 1
+            continue
+        out.extend(pending)
+        pending.clear()
+        out.append(_strip_module_syntax(line))
+        i += 1
+    out.extend(p for p in pending if not p.strip())  # trailing blanks only: a docstring with no
+    # declaration left to document is dropped
+    body = "\n".join(out).strip("\n") + "\n"
+    body = re.sub(r"\n{3,}", "\n\n", body)
+    return body, imports
+
+
+def _port_imports(
+    imports: list[str], fc: Path, out_defs: dict[str, str], catalog: dict[str, Any]
+) -> tuple[list[str], list[str]]:
+    """Resolve a ported file's imports: Mathlib and the registry's util hub collapse into
+    `import Mathlib`; another library module the gate's toolchain carries (`Batteries.*`, the
+    layout's library prefixes) is kept as written; a helper-library module is ported too and
+    imported as `Defs.<stem>`; anything else is a refusal. Returns the `Defs.*` stems and the
+    library modules this file imports."""
+    stems: list[str] = []
+    kept: list[str] = []
+    for module in imports:
+        if (
+            module == "Mathlib"
+            or module.startswith("Mathlib.")
+            or module == "FormalConjecturesUtil"
+        ):
+            continue
+        if module.startswith(HELPER_LIBRARY + "."):
+            stems.append(port_library_module(fc, module, out_defs, catalog))
+            continue
+        if layout.module_origin(module)[0] == "library":
+            kept.append(module)
+            continue
+        msg = f"imports {module}, which the port cannot supply"
+        raise PortError(msg)
+    return stems, kept
+
+
+def library_stem(module: str) -> str:
+    """`FormalConjecturesForMathlib.Combinatorics.SimpleGraph.Clique` becomes
+    `CombinatoricsSimpleGraphClique`:
+    a `Defs.*` name unique within the library (its file stems repeat: ten `Basic.lean`s)."""
+    return "".join(module.split(".")[1:])
+
+
+def _port_file(  # noqa: PLR0913, PLR0917 — one input per fact about the file
+    rel: str,
+    text: str,
+    fc: Path,
+    out_defs: dict[str, str],
+    catalog: dict[str, Any],
+    what: str,
+    *,
+    keep_theorems: bool,
+) -> tuple[str, list[str]]:
+    header = intake.copyright_header(text)
+    if header is None:
+        msg = f"{rel} carries no copyright header to keep"
+        raise PortError(msg)
+    body, imports = port_body(text, keep_theorems=keep_theorems)
+    stems, kept = _port_imports(imports, fc, out_defs, catalog)
+    note = PORT_NOTE.format(rel=rel, pin=catalog["fc_commit"], repo=FC_REPO, what=what)
+    ported = (
+        f"{header}\n\nimport Mathlib\n"
+        + "".join(f"import {m}\n" for m in kept)
+        + "".join(f"import Defs.{s}\n" for s in sorted(set(stems)))
+        + f"\n{note}\n{body}"
+    )
+    return ported, stems
+
+
+def port_library_module(
+    fc: Path, module: str, out_defs: dict[str, str], catalog: dict[str, Any]
+) -> str:
+    """Port one helper-library module (and, recursively, the library modules it imports) into
+    ``out_defs`` (stem → file text); returns its stem."""
+    stem = library_stem(module)
+    if stem in out_defs:
+        return stem
+    rel = module.replace(".", "/") + ".lean"
+    path = fc / rel
+    if not path.is_file():
+        msg = f"{rel} is not in the checkout"
+        raise PortError(msg)
+    out_defs[stem] = ""  # claim the name first: the library's import graph may have cycles
+    text, _stems = _port_file(
+        rel,
+        path.read_text(encoding="utf-8"),
+        fc,
+        out_defs,
+        catalog,
+        f"the module `{module}`, lemmas included",
+        keep_theorems=True,
+    )
+    out_defs[stem] = text
+    return stem
+
+
+def port_local(  # noqa: PLR0913, PLR0917 — one input per fact about the file
+    rel: str,
+    text: str,
+    fc: Path,
+    out_defs: dict[str, str],
+    catalog: dict[str, Any],
+    extra: list[str],
+) -> None:
+    """Port the registry file's own definitions as ``Local.lean``, importing the helper modules
+    it or the statement uses (``extra``: stems already ported for the statement)."""
+    out_defs[LOCAL_STEM] = ""
+    ported, stems = _port_file(
+        rel,
+        text,
+        fc,
+        out_defs,
+        catalog,
+        "the file's own definitions, without the conjectures it states and their tests",
+        keep_theorems=False,
+    )
+    missing = sorted(set(extra) - set(stems))
+    if missing:
+        head, sep, tail = ported.partition("\n/-! Ported mechanically")
+        ported = head + "".join(f"import Defs.{s}\n" for s in missing) + sep + tail
+    out_defs[LOCAL_STEM] = ported
+
+
+LOCAL_STEM = "Local"
+
+
+def enclosing_namespaces(text: str, decl: str) -> list[str]:
+    """The `namespace` lines open where the registry states ``decl`` (the statement is lifted out
+    of them, so the draft opens each)."""
+    names: list[str] = []
+    stack: list[tuple[str, str]] = []
+    for line in text.splitlines():
+        if re.match(rf"^theorem\s+{re.escape(decl)}(?![\w.'])", line) or re.match(
+            rf"^theorem\s+{re.escape(decl.rsplit('.', 1)[-1])}(?![\w.'])", line
+        ):
+            names = [n for k, n in stack if k == "namespace" and n]
+            break
+        scope = _NAMESPACE_RE.match(line)
+        if scope is None:
+            continue
+        kind, name = scope.group("kind"), scope.group("name")
+        if kind in ("namespace", "section"):
+            stack.append((kind, name))
+        elif stack:
+            stack.pop()
+    return names
 
 
 def bound_names(prop: str) -> set[str]:
@@ -224,10 +596,16 @@ def helpers_used(prop: str, index: dict[str, set[str]]) -> list[str]:
     return sorted(used)
 
 
+_SUBSCRIPTS = str.maketrans("₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₖₗₘₙₚₛₜ", "0123456789aeoxklmnpst")
+
+
 def target_id_for(row: dict[str, Any]) -> str:
+    """The target id: `erdos-<n>`, or the declaration's short name in kebab case; a subscript in
+    the registry's name (`moment_is_equiv₃`) becomes the plain letter the id grammar allows
+    (F14-T19)."""
     if row["kind"] == "erdos":
         return f"erdos-{row['key'].split(':', 1)[1]}"
-    decl = str(row["decl"]).rsplit(".", 1)[-1]
+    decl = str(row["decl"]).rsplit(".", 1)[-1].translate(_SUBSCRIPTS)
     return re.sub(r"(?<!^)(?=[A-Z])", "-", decl).replace("_", "-").lower()
 
 
@@ -237,7 +615,10 @@ def theorem_name(row: dict[str, Any]) -> str:
     return "Opn." + re.sub(r"[^A-Za-z0-9_]", "_", str(row["decl"]).rsplit(".", 1)[-1])
 
 
-BINDERS_BEFORE_COLON = "binders before the colon: the witness is not `True`, write it by hand"
+BINDERS_BEFORE_COLON = (
+    "binders before the colon carry a hypothesis (or cannot be closed): the witness is not their "
+    "closure over `True`, write it by hand"
+)
 
 
 def extract(text: str, decl: str) -> tuple[str | None, str, str]:
@@ -327,7 +708,7 @@ _NOTATION_RE = re.compile(r'^\s*(?:local\s+|scoped\s+)?notation\s*"([^"]+)"', re
 _GROUP_RE = re.compile(r"\(([^()]*)\)")
 
 
-def leading_binders(prop: str) -> tuple[str, int] | None:
+def leading_binders(prop: str) -> tuple[str, int] | None:  # noqa: PLR0911 — one exit per shape
     """The leading ``∀`` binders as one ``∃`` binder list and the number of names they bind, or
     ``None`` when the driver cannot close them: none at all, an implicit, strict-implicit or
     instance binder, an untyped name, or a binder the hypotheses rule owns. Each group is
@@ -336,6 +717,7 @@ def leading_binders(prop: str) -> tuple[str, int] | None:
     body = prop.strip()
     groups: list[str] = []
     names = 0
+    seen: set[str] = set()
     while (m := _LEADING_FORALL_RE.match(body)) is not None:
         rest = body[m.end() :]
         comma = _top_level(rest, ",")
@@ -348,10 +730,13 @@ def leading_binders(prop: str) -> tuple[str, int] | None:
         if segment.startswith("(") and _GROUP_RE.sub("", segment).strip():
             return None  # something beside parenthesised groups
         for part in parts:
-            head, colon, _typ = part.partition(":")
+            head, colon, typ = part.partition(":")
             bound = head.split()
             if not colon or not bound or any(not _TOKEN_RE.fullmatch(n) for n in bound):
                 return None
+            if _type_is_hypothesis(bound, typ, seen):
+                return None
+            seen.update(bound)
             groups.append(f"({part.strip()})")
             names += len(bound)
         body = rest[comma + 1 :].strip()
@@ -360,10 +745,35 @@ def leading_binders(prop: str) -> tuple[str, int] | None:
     return " ".join(groups), names
 
 
-def witness_for(prop: str) -> str:
+_HYPOTHESIS_NAME_RE = re.compile(r"^h(?:[A-Z0-9_'].*|[a-z]{0,2})$")
+
+
+def _type_is_hypothesis(bound: list[str], typ: str, earlier: set[str]) -> bool:
+    """Whether a binder ``(bound : typ)`` states a hypothesis rather than binding data (F14-T19:
+    `default` inhabits no proposition). Read off the text: a relation or connective in the type,
+    a predicate applied to an earlier binder (`n.Prime`, `A.Infinite`), or a name written as a
+    hypothesis is (`h`, `hn`, `hA`, `h1`). A function type (naturals to reals) is data."""
+    typ = typ.strip()
+    if _RELATION_RE.search(typ) or re.search(
+        "[=\u2227\u2228\u00ac\u2194\u2203\u2200\u2223]|\\bIs[A-Z]", typ
+    ):
+        return True
+    if any(re.search(rf"(?<![\w.']){re.escape(n)}\.[A-Z]", typ) for n in earlier):
+        return True
+    return any(_HYPOTHESIS_NAME_RE.match(n) for n in bound)
+
+
+def closed_prop(prop: str, binders: str) -> str:
+    """The proposition with the theorem's binders before the colon as leading ``∀``s: the same
+    binders to step 7, which closes every leading one (F14-T19)."""
+    return f"∀ {binders}, {prop}" if binders else prop
+
+
+def witness_for(prop: str, binders: str = "") -> str:
     """``Witness.lean`` for a proposition the driver drafts: ``True`` when nothing is bound,
-    the closure over ``True`` when leading binders bind data (``leading_binders``)."""
-    closed = leading_binders(prop)
+    the closure over ``True`` when leading binders (before or after the colon) bind data
+    (``leading_binders``)."""
+    closed = leading_binders(closed_prop(prop, binders))
     if closed is None:
         return WITNESS
     binders, names = closed
@@ -546,13 +956,16 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     shape = parse_refusal(prop)
     if shape is not None:
         draft.reasons.append(shape)
-    # The witness: the driver's where it can write one, the curator's hand file otherwise
-    # (F14-T18); without either the row is refused by the reason the driver cannot.
-    witness = witness_refusal(prop) or (BINDERS_BEFORE_COLON if binders else None)
+    # The witness: the driver's where it can write one (binders before the colon are leading
+    # binders to step 7, F14-T19), the curator's hand file otherwise (F14-T18); without either
+    # the row is refused by the reason the driver cannot.
+    witness = witness_refusal(prop)
+    if witness is None and binders and leading_binders(closed_prop(prop, binders)) is None:
+        witness = BINDERS_BEFORE_COLON
     if witness is not None and hand.witness is None:
         draft.reasons.append(witness)
-    # Names the statement takes from its file or the helper library: a port under defs/ (R12)
-    # lifts the refusal; the curator supplies it by hand, the driver only imports it.
+    # Names the statement takes from its file or the helper library: a port under defs/ (R12).
+    # The curator's hand port wins; otherwise the driver ports mechanically (F14-T19).
     tokens = set(_TOKEN_RE.findall(prop))
     notations = sorted(n for n in _NOTATION_RE.findall(text) if n in tokens)
     if notations and not hand.defs:
@@ -560,14 +973,50 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
         # helper-library declaration, and it does not survive the statement leaving its file.
         draft.reasons.append("uses file-local notation (port into defs/): " + ", ".join(notations))
     local = sorted(n for n in row.get("local_defs") or [] if n.rsplit(".", 1)[-1] in tokens)
-    if local and not hand.defs:
-        draft.reasons.append("uses file-local definitions (port into defs/): " + ", ".join(local))
     locals_short = {n.rsplit(".", 1)[-1] for n in row.get("local_defs") or []}
     used = [n for n in helpers_used(prop, helpers) if n not in locals_short]
-    if used and not hand.defs:
-        draft.reasons.append(
-            f"uses names {HELPER_LIBRARY} declares (port first): " + ", ".join(used)
-        )
+    ports: dict[str, str] = {}
+    opens_namespaces: list[str] = []
+    lib_notations = helper_notations(fc)
+    literals = notations_used(prop, lib_notations)
+    if (local or used or literals) and not hand.defs:
+        modules = helper_modules(fc)
+        try:
+            body = ""
+            if local:
+                # The file's own definitions may use the library too: port what they use.
+                body, _imports = port_body(text)
+                used = sorted(
+                    set(used) | {n for n in helpers_used(body, helpers) if n not in locals_short}
+                )
+                literals = sorted(set(literals) | set(notations_used(body, lib_notations)))
+            wanted = [m for name in used for m in sorted(modules.get(name, ()))] + [
+                m for lit in literals for m in sorted(lib_notations[lit])
+            ]
+            for module in dict.fromkeys(wanted):
+                port_library_module(fc, module, ports, catalog)
+            if local:
+                resting = sorted(
+                    n
+                    for n in row.get("local_defs") or []
+                    if re.search(
+                        rf"(?:def|abbrev)\s+(?:[\w.']*\.)?{re.escape(n.rsplit('.', 1)[-1])}\b"
+                        r"[^\n]*:=\s*(?:by\s+)?"
+                        r"(?:answer\(sorry\)|sorry)\s*$",
+                        body,
+                        re.M,
+                    )
+                )
+                if resting or re.search(r"\bsorry\b", body):
+                    draft.reasons.append(
+                        "the file's definitions rest on `sorry` (an answer the registry leaves "
+                        "open): " + (", ".join(resting) or "see the file")
+                    )
+                else:
+                    port_local(row["file"], text, fc, ports, catalog, sorted(ports))
+                    opens_namespaces = enclosing_namespaces(text, str(row["decl"]))
+        except PortError as exc:
+            draft.reasons.append(f"cannot port its definitions mechanically: {exc}")
     domains = {DOMAINS.get(a) for a in row.get("ams") or []}
     if not (domains - {None}):
         draft.reasons.append(f"no graph domain for AMS {', '.join(row.get('ams') or []) or 'none'}")
@@ -583,16 +1032,22 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     except (schemas.SchemaError, intake.IntakeError) as exc:
         draft.reasons.append(f"the drafted record is refused: {exc}")
         return draft
-    opens = "\n".join(_OPEN_RE.findall(text))
+    opens = "\n".join([*_OPEN_RE.findall(text), *(f"open {ns}" for ns in opens_namespaces)])
     note = (
         "the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its "
         "affirmative reading (F11-Q24)"
         if how == "adapted"
         else "stated as the registry states it"
     )
+    stems = [p.stem for p in hand.defs] if hand.defs else sorted(ports)
     if hand.defs:
         note += "; the names it takes from the registry's library are ported under defs/ (R12)"
-    imports = "import Mathlib\n" + "".join(f"import Defs.{p.stem}\n" for p in hand.defs)
+    elif ports:
+        note += (
+            "; the names it takes from its file or the registry's library are ported "
+            "mechanically under defs/ (R12, F14-T19)"
+        )
+    imports = "import Mathlib\n" + "".join(f"import Defs.{s}\n" for s in stems)
     head = f"theorem {theorem_name(row)}" + (f" {binders} :" if binders else " :")
     statement = (
         f"{header}\n\n{imports}\n/-! {doc['title']} — imported from {FC_REPO} "
@@ -614,12 +1069,17 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     if hand.witness is not None:
         shutil.copyfile(hand.witness, directory / "Witness.lean")
     else:
-        (directory / "Witness.lean").write_text(witness_for(prop), encoding="utf-8")
+        (directory / "Witness.lean").write_text(witness_for(prop, binders), encoding="utf-8")
     if hand.defs:
         (directory / "defs").mkdir(exist_ok=True)
         for port in hand.defs:
             shutil.copyfile(port, directory / "defs" / port.name)
         draft.defs = tuple(p.stem for p in hand.defs)
+    elif ports:
+        (directory / "defs").mkdir(exist_ok=True)
+        for stem, ported in ports.items():
+            (directory / "defs" / f"{stem}.lean").write_text(ported, encoding="utf-8")
+        draft.defs = draft.ports = tuple(sorted(ports))
     if hand.hazards is not None:
         shutil.copyfile(hand.hazards, directory / "hazards.yaml")
         draft.hazards = True
@@ -692,7 +1152,7 @@ def report(
         "",
         "## Drafted",
         "",
-        *[f"- `{d.key}` → `{d.target_id}/`{d.hand}" for d in done],
+        *[f"- `{d.key}` → `{d.target_id}/`{d.notes}" for d in done],
         "",
         "## Refused (a later wave, or a port by hand; F14-Q11)",
         "",
