@@ -1,0 +1,4 @@
+- checker: off-by-one-range
+  location: Finset.Icc 1 N
+  justification: 'The informal statement''s $\{1, \dots, N\}$ is inclusive at both ends, which is
+    exactly Finset.Icc 1 N; the registry states it the same way.'

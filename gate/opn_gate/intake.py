@@ -903,6 +903,7 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
     evidence_catalog: dict[str, Any] | None = None,
     evidence_key: str | None = None,
     network_commit: str | None = None,
+    acknowledged_hazards: list[dict[str, Any]] | None = None,
 ) -> Import:
     """R9: copy one Formal Conjectures statement in as a listed open target.
 
@@ -968,7 +969,13 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
         attribution=attribution,
         accessed=date[:10],
     )
-    staged = _stage_root(graph_root, target_id, statement=text, witness=witness)
+    staged = _stage_root(
+        graph_root,
+        target_id,
+        statement=text,
+        witness=witness,
+        acknowledged_hazards=acknowledged_hazards,
+    )
     result = new(
         graph_root,
         target_id,
@@ -1018,21 +1025,41 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
     )
 
 
-def _stage_root(graph_root: Path, target_id: str, *, statement: str, witness: str) -> Path:
+def _stage_root(
+    graph_root: Path,
+    target_id: str,
+    *,
+    statement: str,
+    witness: str,
+    acknowledged_hazards: list[dict[str, Any]] | None = None,
+) -> Path:
     """The root node directory an import scaffolds, built outside the graph so a refusal in
     ``new`` leaves nothing behind (C7). Its id is the target's, which is what a single-node
-    imported target wants: there is one statement and it is the target."""
+    imported target wants: there is one statement and it is the target. The curator's step-6
+    acknowledgements (F02-R4; F14-T18) go into its META, validated as META is, so an intended
+    literal or total division is admitted on the record the curator wrote."""
     from opn_gate import scaffold  # noqa: PLC0415 — only the import path builds a node
 
     staging = graph_root.parent / f".opn-import-{target_id}"
     if staging.exists():
         shutil.rmtree(staging)
+    extra: dict[str, Any] = (
+        {"acknowledged_hazards": list(acknowledged_hazards)} if acknowledged_hazards else {}
+    )
     proposal = scaffold.Proposal(
         node_id=target_id,
         target_id=target_id,
         statement=statement,
         witness=witness,
         author="upstream",
+        extra_meta=extra,
     )
+    if extra:
+        meta = scaffold.meta_for(proposal, "0" * 64)
+        try:
+            schemas.validate(meta, str(meta["schema"]))
+        except schemas.SchemaError as exc:
+            msg = f"acknowledged_hazards: {exc}"
+            raise IntakeError(msg) from exc
     scaffold.write(staging, proposal)
     return staging / target_id

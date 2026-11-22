@@ -1,0 +1,6 @@
+- checker: div-zero
+  location: 1 / ((↑n + 1) ^ 3 * Real.sin (↑n + 1) ^ 2)
+  justification: 'Real division is total, but this divisor is never zero: n + 1 is a positive
+    integer and sin k = 0 only when k is an integer multiple of π, which no non-zero integer is
+    (π is irrational). So the junk value at 0 is never taken and the term is csc(n+1)^2 / (n+1)^3,
+    as the informal series has it (0-indexed).'

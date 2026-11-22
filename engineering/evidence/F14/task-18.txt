@@ -1,0 +1,131 @@
+F14-T18 — wave two, the first five: the driver takes the curator's hand files, and the five are drafted, imported and opened
+=========================================================================================================================
+
+The owner's ruling (2026-11-21): "load all of them regardless of their grade, and then go through the process of
+validating their statements when they have a steward. I agree on the 5." The five: Goldbach's conjecture, Ben Green's
+Open Problem 58, Reed's ω Δ χ conjecture, the Flint Hills series converges, Schanuel's conjecture — chosen one per
+source collection and topic (Wikipedia ×3, GreensOpenProblems, Paper; number theory, additive combinatorics, graph
+theory, series, transcendence). Every one scores 3 (C) at the default grading, so none is drafted by `--min-score 5`
+and a proof of any root asks a non-author reviewer at step 9 (F14-R5).
+
+What wave one's driver could not do with them (gate/tools/wave.py at 0419f2c0, dry run):
+  goldbach      refused: leading ∀ binders carry hypotheses (2 < n → Even n → …): witness by hand
+  green_58      refused: leading ∀ binders the driver cannot close — `∀ᶠ N in atTop` read as a binder (a defect);
+                        uses names FormalConjecturesForMathlib declares: Composite
+  reed_…        refused: implicit binder `{V : Type}`; uses helper names ecliqueNum, emaxDegree
+  flint_hills   drafted (True witness)
+  schanuel      refused: binders before the colon
+  and every row below five points was not chosen at all.
+
+Red first (gate/tests/test_wave.py, 7 red → 20 passed; the first red run failed on the defects, not on a missing name,
+except `--overrides`, which argparse refused as unknown, the seam going in at today's behaviour):
+  test_the_clean_rows_are_drafted_and_the_rest_refused_by_name   7021 (`∀ᶠ`) refused "cannot close"; 7023 (AMS 14)
+                                                                 said "no graph domain" instead of D-6's words;
+                                                                 a non-Erdős title was the docstring's first sentence
+  test_hand_files_lift_the_witness_and_definition_refusals       --overrides unknown
+  test_a_hand_drafted_row_imports_with_its_defs_and_classifies_as_an_intake
+  test_a_named_key_is_drafted_whatever_its_score                 7007 (score 4) not chosen; report said "scoring 5 or more"
+  test_the_record_carries_the_classification_its_ams_classes_give  no classification block; AMS 33 had no domain
+  test_eventually_is_not_a_binder ×2                             `∀ᶠ` refused
+
+The driver now (gate/tools/wave.py):
+  - `--key K` drafts K whatever its score (an Erdős key still needs the site to say open); `--overrides DIR` reads
+    DIR/<target-id>/Witness.lean and DIR/<target-id>/defs/*.lean. A hand witness lifts the three witness refusals
+    (hypotheses, uncloseable binder, binders before the colon — the binders then stay before the colon in the drafted
+    theorem); hand defs lift the helper-name, file-local-definition and notation refusals, are copied verbatim into
+    <draft>/defs/, imported by the statement (`import Defs.<Module>` after `import Mathlib`) and passed by import.sh
+    as `--defs`. The report names which drafts used which ("(hand: Witness.lean; defs Clique Degrees)").
+  - `_LEADING_FORALL_RE` no longer matches `∀ᶠ` (Filter.Eventually is a proposition; step 7 expects `True`).
+  - A non-Erdős target is titled by its file's `# heading`; the Erdős title rule is unchanged.
+  - DOMAINS covers 27 AMS classes (was 10), the four D-6 excludes mapped to the excluded tags so `check_domains`
+    refuses them in D-6's words; ARXIV maps classes to arXiv categories and the record carries F25-R4's
+    `classification` {arxiv: first two, msc2020: "NN-xx" per class} through `intake.with_classification`.
+  - `extract` returns the binders before the colon as a third value; `shape_refusal` is `parse_refusal or
+    witness_refusal` so the two can be lifted separately.
+  ruff, ruff format, mypy --strict clean on both files.
+
+The hand files (engineering/onramp/open/wave2/<id>/, copied from the overrides directory by the driver):
+  goldbach/Witness.lean           ∃ n : ℕ, 2 < n ∧ Even n := ⟨4, by norm_num, ⟨2, by norm_num⟩⟩
+  schanuel-conjecture/Witness.lean ∃ (n : ℕ) (z : Fin n → ℂ), LinearIndependent ℚ z := ⟨0, Fin.elim0, linearIndependent_empty_type⟩
+  reed-…/Witness.lean             ∃ (V : Type) (G : SimpleGraph V), True := ⟨Unit, ⊥, trivial⟩
+  reed-…/defs/Degrees.lean        SimpleGraph.edegree, SimpleGraph.emaxDegree, verbatim from
+                                  FormalConjecturesForMathlib/Combinatorics/SimpleGraph/Degrees.lean (2026 header)
+  reed-…/defs/Clique.lean         SimpleGraph.ecliqueNum, verbatim from …/SimpleGraph/Clique.lean (2025 header)
+  green-58/defs/Composite.lean    Nat.Composite, verbatim from FormalConjecturesForMathlib/Data/Nat/Prime/Composite.lean
+  Each port keeps the registry's Apache-2.0 header and names its source file and commit. `import Mathlib` replaces the
+  registry's `public import` lines (the graph has no module system; the defs are whole-Mathlib modules like the roots).
+
+Checked on the hosted checker before import (POST https://api.openproofnetwork.org/check, mode witness, target
+erdos-1094 for the environment; requests and responses in the session scratchpad five/*.json; re-run 2026-11-22):
+  goldbach    okay matches  expected ∃ (n : ℕ), (2 : ℕ) < n ∧ Even n
+  schanuel    okay matches  expected ∃ (n : ℕ) (z : Fin n → ℂ), LinearIndependent ℚ z
+  flint       okay matches  expected True
+  green-58    okay matches  expected True   (statement with Nat.Composite inlined, since /check reads only committed defs)
+  reed        okay matches  expected ∃ (V : Type) (G : SimpleGraph V), True   (statement with the three defs inlined)
+  The ported defs also compiled alone in mode check (req-defs_composite, req-defs_graph).
+
+The run (worktree at 0419f2c0, registry checkout at d8d031d4998c78575159ccab9a7a9e95ce043883):
+  uv run python gate/tools/wave.py --fc <fc> --out engineering/onramp/open/wave2 --overrides <overrides> --key … ×5
+  → drafted 5, refused 0 (REPORT.md). Every draft read: titles are the files' headings (Goldbach's conjecture; Ben
+  Green's Open Problem 58; Reed's omega, delta, and chi conjecture; Convergence of the Flint Hills and Cookson Hills
+  series; Schanuel's Conjecture); informal = the docstring; domains and classification as the AMS classes give
+  (green-58: combinatorics + number-theory, math.CO math.NT, 05-xx 11-xx; schanuel: number-theory + special-functions,
+  math.NT math.CA, 11-xx 33-xx); every statement states the registry's proposition as it stands, Reed's and
+  Schanuel's with their binders where the registry has them.
+
+Import (graph worktree detached at origin/main 96168c762e; one branch per target, cut from that commit; --no-toolchain,
+admission is the graph CI's; `--network-commit 0419f2c0`, recorded in each evidence record, never fetched):
+  intake/green-58 cf8a2ae72d · intake/reed-omega-delta-chi-conjecture a169c511b7 · intake/flint-hills-series-converges
+  74aac0f634 · intake/goldbach 975f09fa7b · intake/schanuel-conjecture cca3955a45
+  Each writes only targets/<id>/ (12–16 files: target.yaml, gate-spec.json identical to the live pin's but for graph_id,
+  the root node, fidelity/root-1.yaml plus one per ported def, evidence/root-1.yaml, a `listed` status record).
+  Pinned gate (network 9080756, a detached worktree) `classify --base origin/main --author thisisanameforsure` on each:
+  mode intake, problems [], ok true (classify-wave2.txt below).
+
+Graph pull requests #1601 goldbach, #1602 green-58, #1603 reed-omega-delta-chi-conjecture, #1604
+flint-hills-series-converges, #1605 schanuel-conjecture; gate runs 44998266666 … 44998287921. (zsh read `$b:t` as a
+path modifier in the first `gh pr create` loop — the log's rule, paid again — so the titles were set with `gh pr edit`.)
+Their outcome, and the merges, are appended below when the runs finish.
+
+classify-wave2.txt
+------------------
+== goldbach
+{'mode': 'intake', 'target': 'goldbach', 'problems': [], 'ok': True}
+== green-58
+{'mode': 'intake', 'target': 'green-58', 'problems': [], 'ok': True}
+== reed-omega-delta-chi-conjecture
+{'mode': 'intake', 'target': 'reed-omega-delta-chi-conjecture', 'problems': [], 'ok': True}
+== flint-hills-series-converges
+{'mode': 'intake', 'target': 'flint-hills-series-converges', 'problems': [], 'ok': True}
+== schanuel-conjecture
+{'mode': 'intake', 'target': 'schanuel-conjecture', 'problems': [], 'ok': True}
+
+Round one of the gate (runs 44998266666 … 44998287921)
+------------------------------------------------------
+  reed-omega-delta-chi-conjecture  pass  (the ported Degrees and Clique admitted with the root; the hand witness matched)
+  schanuel-conjecture              pass  (binders before the colon; the hand witness matched)
+  goldbach                         fail  hazard-unacknowledged: off-by-one-range at `2 < n`
+  green-58                         fail  hazard-unacknowledged: off-by-one-range at `Finset.Icc 1 N`
+  flint-hills-series-converges     fail  hazard-unacknowledged: div-zero at `1 / ((↑n + 1) ^ 3 * Real.sin (↑n + 1) ^ 2)`
+Each refusal is right (step 6 asks the author to say the literal, the bound, the total division is intended), and wave
+one cured the same refusals by editing META.yaml on the branch after the fact. This time the acknowledgement is an
+input: `intake import-fc --hazards FILE` (a YAML list of {checker, location, justification}, validated against META's
+schema before anything is staged; a malformed entry is refused as `acknowledged_hazards: …`) puts it in the root's
+META at import, and the driver's hand files gain `hazards.yaml`, copied with the draft and passed by import.sh.
+Red first: test_import_carries_the_curators_hazard_acknowledgements (gate/tests/test_intake.py) and the hazards
+assertions in test_hand_files_lift_the_witness_and_definition_refusals; 58 passed across the two files after.
+
+The three acknowledgements (engineering/onramp/open/wave2/<id>/hazards.yaml), the curator's words:
+  goldbach   2 < n is strict as the words are ("every even integer greater than 2"); 2 is not a sum of two primes; the first case is 4 = 2 + 2.
+  green-58   {1, …, N} is inclusive at both ends, which is exactly Finset.Icc 1 N.
+  flint      the divisor (n+1)^3 · sin(n+1)^2 is never zero: sin k = 0 only at integer multiples of π, which no non-zero integer is (π irrational); the junk value at 0 is never taken.
+Re-imported on fresh branches from origin/main (goldbach 49198a89e6, green-58 dfdf1244a9, flint d590fc7465), each META
+carrying its acknowledgement, classify at the pin: intake, no problems (classify-wave2-round2.txt); force-pushed, runs
+44998993705, 44998995726, 44998998878. A trap on the way: a runner script generated from the earlier import.sh had no
+`--hazards`, so the first re-import wrote the same META as before — read the branch's META, not the log's "ok".
+
+Merges (one at a time; the merge actor takes only the service's branches, so a curator branch is merged by hand after
+its gate, and the next branch is updated only after the previous merge's bot commit):
+  #1603 reed-omega-delta-chi-conjecture merged 2026-11-22T07:36:53Z
+  #1603's bot commit landed; #1605, #1601, #1602, #1604 are being updated and merged one at a time as this
+  commit is made, and their outcome is appended with the next commit (the two-commit shape of a pin).

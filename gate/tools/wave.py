@@ -44,18 +44,68 @@ FC_REPO = "google-deepmind/formal-conjectures"
 FC_AUTHOR = "The Formal Conjectures Authors"
 ATTRIBUTION = f"{FC_AUTHOR} ({FC_REPO}), Apache-2.0"
 HELPER_LIBRARY = "FormalConjecturesForMathlib"
-#: AMS subject classes to the graph's domain tags (D-6); an unmapped class drafts nothing.
+#: AMS subject classes to the graph's domain tags (D-6); an unmapped class drafts nothing. The
+#: four classes D-6 excludes map to the excluded tags themselves, so ``intake.check_domains``
+#: refuses the record in D-6's own words (F14-T18).
 DOMAINS: dict[str, str] = {
     "3": "logic",
     "5": "combinatorics",
+    "6": "order-theory",
     "11": "number-theory",
+    "12": "field-theory",
+    "13": "commutative-algebra",
+    "14": "algebraic-geometry",
+    "15": "linear-algebra",
+    "20": "group-theory",
     "26": "real-analysis",
     "28": "measure-theory",
     "30": "complex-analysis",
+    "33": "special-functions",
+    "35": "pde",
+    "37": "dynamical-systems",
     "40": "sequences-and-series",
+    "42": "harmonic-analysis",
+    "46": "functional-analysis",
     "51": "geometry",
     "52": "discrete-geometry",
+    "53": "differential-geometry",
+    "54": "topology",
+    "55": "algebraic-topology",
     "60": "probability",
+    "68": "computer-science",
+    "81": "quantum-theory",
+    "90": "optimization",
+}
+#: AMS subject classes to arXiv categories, for the record's F25-R4 classification; a class with
+#: no arXiv home (quantum physics is `quant-ph`, outside the schema's `archive.XX` grammar)
+#: contributes its MSC range only.
+ARXIV: dict[str, str] = {
+    "3": "math.LO",
+    "5": "math.CO",
+    "6": "math.CO",
+    "11": "math.NT",
+    "12": "math.RA",
+    "13": "math.AC",
+    "14": "math.AG",
+    "15": "math.RA",
+    "20": "math.GR",
+    "26": "math.CA",
+    "28": "math.CA",
+    "30": "math.CV",
+    "33": "math.CA",
+    "35": "math.AP",
+    "37": "math.DS",
+    "40": "math.CA",
+    "42": "math.CA",
+    "46": "math.FA",
+    "51": "math.MG",
+    "52": "math.MG",
+    "53": "math.DG",
+    "54": "math.GN",
+    "55": "math.AT",
+    "60": "math.PR",
+    "68": "cs.CC",
+    "90": "math.OC",
 }
 WITNESS = (
     "/-! Non-vacuity witness (D-4 step 7): the statement has no hypotheses, so the expected\n"
@@ -84,6 +134,9 @@ class Draft:
     target_id: str
     reasons: list[str] = field(default_factory=list)
     directory: Path | None = None
+    hand: str = ""  # which hand files the draft used, for the report (F14-T18)
+    defs: tuple[str, ...] = ()  # the ported modules, for import.sh --defs
+    hazards: bool = False  # a hazards.yaml travels with the draft, for import.sh --hazards
 
     @property
     def drafted(self) -> bool:
@@ -184,8 +237,14 @@ def theorem_name(row: dict[str, Any]) -> str:
     return "Opn." + re.sub(r"[^A-Za-z0-9_]", "_", str(row["decl"]).rsplit(".", 1)[-1])
 
 
-def extract(text: str, decl: str) -> tuple[str | None, str]:
-    """The main statement's proposition, or ``None`` and why it cannot be taken as it stands."""
+BINDERS_BEFORE_COLON = "binders before the colon: the witness is not `True`, write it by hand"
+
+
+def extract(text: str, decl: str) -> tuple[str | None, str, str]:
+    """The main statement's proposition, how it was taken (``as stated`` / ``adapted``) and the
+    binders before its colon (empty for none), or ``None`` and why it cannot be taken as it
+    stands. Binders before the colon are kept as the registry writes them: the draft is refused
+    unless the curator supplies the witness by hand (F14-T18)."""
     # The catalog names a declaration as the file writes it (``erdos_1065.parts.i``), so the full
     # name is the one to find; the short name is only the fallback for a namespaced file.
     m = None
@@ -198,26 +257,30 @@ def extract(text: str, decl: str) -> tuple[str | None, str]:
         if m is not None:
             break
     if m is None:
-        return None, f"no `theorem {decl} ... := by sorry` in the registry file"
+        return None, f"no `theorem {decl} ... := by sorry` in the registry file", ""
     rest = m.group("rest")
-    head = rest.lstrip()
-    if not head.startswith(":"):
-        return None, "binders before the colon: the witness is not `True`, write it by hand"
-    prop = head[1:].strip()
+    colon = _top_level(rest, ":")
+    if colon < 0:
+        return None, "no colon after the theorem's binders", ""
+    binders = " ".join(rest[:colon].split())
+    prop = rest[colon + 1 :].strip()
+    value_typed = "value-typed (`answer(sorry)` as a value): a question, not a conjecture"
     if prop.startswith("answer(sorry)"):
         stripped = prop[len("answer(sorry)") :].lstrip()
         if not stripped.startswith("↔"):
-            return None, "value-typed (`answer(sorry)` as a value): a question, not a conjecture"
-        return stripped[1:].strip(), "adapted"
+            return None, value_typed, ""
+        return stripped[1:].strip(), "adapted", binders
     if "answer(sorry)" in prop:
-        return None, "value-typed (`answer(sorry)` as a value): a question, not a conjecture"
-    return prop, "as stated"
+        return None, value_typed, ""
+    return prop, "as stated", binders
 
 
 _OPENERS = {"(": ")", "[": "]", "{": "}", "⦃": "⦄", "⟨": "⟩"}
 _CLOSERS = frozenset(_OPENERS.values())
 _RELATION_RE = re.compile(r"[<>≤≥∈∉⊆⊂≠]")
-_LEADING_FORALL_RE = re.compile(r"^(?:∀ᵉ|∀)\s*")
+#: ``∀ᶠ x in l, P`` is ``Filter.Eventually``, a proposition and not a binder (Green's problem 58
+#: read as an uncloseable binder until F14-T18).
+_LEADING_FORALL_RE = re.compile(r"^(?:∀ᵉ|∀(?!ᶠ))\s*")
 
 
 def _top_level(text: str, target: str) -> int:
@@ -309,12 +372,18 @@ def witness_for(prop: str) -> str:
     )
 
 
-def shape_refusal(prop: str) -> str | None:
-    """Why a proposition's shape needs a hand-written draft, or ``None``."""
+def parse_refusal(prop: str) -> str | None:
+    """Why a proposition cannot be re-stated under the drafted theorem at all, or ``None``."""
     if re.match(r"(?:letI|haveI|let|have)\b", prop) and "\n" in prop:
         # erdos-1139, live: a `letI` binding followed by the body on the next line does not parse
         # once re-indented under the drafted theorem (Lean 4.33, "expected ';' or line break").
         return "the statement opens with a `let`/`have` binding spanning lines: restate it by hand"
+    return None
+
+
+def witness_refusal(prop: str) -> str | None:
+    """Why the driver cannot write the proposition's witness, or ``None``. A curator's hand
+    `Witness.lean` lifts this refusal (F14-T18)."""
     if leading_hypotheses(prop):
         return (
             "leading ∀ binders carry hypotheses (a bounded binder or an implication): the "
@@ -328,14 +397,73 @@ def shape_refusal(prop: str) -> str | None:
     return None
 
 
-def record_for(row: dict[str, Any], catalog: dict[str, Any], curator: str) -> dict[str, Any]:
+def shape_refusal(prop: str) -> str | None:
+    """Why a proposition's shape needs a hand-written draft, or ``None``."""
+    return parse_refusal(prop) or witness_refusal(prop)
+
+
+@dataclass(frozen=True)
+class Hand:
+    """The curator's hand files for one target (``--overrides DIR/<target-id>/``): a
+    ``Witness.lean`` where the driver cannot write the witness, and ``defs/*.lean`` ports where
+    the statement uses a name the registry's helper library or its own file defines."""
+
+    witness: Path | None = None
+    defs: tuple[Path, ...] = ()
+    hazards: Path | None = None  # the curator's step-6 acknowledgements (F02-R4), a YAML list
+
+    @classmethod
+    def read(cls, overrides: Path | None, target_id: str) -> Hand:
+        if overrides is None or not (overrides / target_id).is_dir():
+            return cls()
+        here = overrides / target_id
+        witness = here / "Witness.lean"
+        hazards = here / "hazards.yaml"
+        return cls(
+            witness if witness.is_file() else None,
+            tuple(sorted((here / "defs").glob("*.lean"))),
+            hazards if hazards.is_file() else None,
+        )
+
+    @property
+    def note(self) -> str:
+        parts = (
+            (["Witness.lean"] if self.witness else [])
+            + (["defs " + " ".join(p.stem for p in self.defs)] if self.defs else [])
+            + (["hazards.yaml"] if self.hazards else [])
+        )
+        return f" (hand: {'; '.join(parts)})" if parts else ""
+
+
+def classification_for(ams: list[str]) -> tuple[list[str], list[str]]:
+    """F25-R4's block from the registry's AMS classes: the arXiv categories they map to (the
+    first two, in the registry's order) and every class as an MSC 2020 range."""
+    arxiv = list(dict.fromkeys(ARXIV[a] for a in ams if a in ARXIV))[:2]
+    msc = [f"{a.zfill(2)}-xx" for a in ams][:8]
+    return arxiv, msc
+
+
+_HEADING_RE = re.compile(r"^#\s+(.+?)\s*$", re.M)
+
+
+def heading_of(text: str) -> str | None:
+    """The `# heading` of the registry file's module doc, which names the problem."""
+    m = _HEADING_RE.search(text)
+    return m.group(1) if m else None
+
+
+def record_for(
+    row: dict[str, Any], catalog: dict[str, Any], curator: str, heading: str | None = None
+) -> dict[str, Any]:
     number = row["key"].split(":", 1)[1] if row["kind"] == "erdos" else None
     site = f"https://www.erdosproblems.com/{number}" if number else None
     docstring = " ".join(str(row.get("docstring") or "").split())
     first = re.split(r"(?<=[.?])\s", docstring, maxsplit=1)[0] if docstring else ""
     part = re.search(r"\.parts\.([A-Za-z0-9_]+)$", str(row["decl"]))
     label = f"Erdős problem {number}" + (f", part {part.group(1)}" if part else "")
-    title = (f"{label}: " if number else "") + (first or str(row["decl"]))
+    # An Erdős row is titled by its number and the docstring's first sentence; any other row by
+    # its file's heading (F14-T18: a docstring opens with context, "Suppose $A, B ⊆ ...").
+    title = f"{label}: " + (first or str(row["decl"])) if number else heading or str(row["decl"])
     reasons = "; ".join(str(r) for r in row["reasons"])
     attempts = ", ".join(row.get("nexus_attempted") or []) or "none on record"
     history = row.get("history") or {}
@@ -375,18 +503,24 @@ def record_for(row: dict[str, Any], catalog: dict[str, Any], curator: str) -> di
         doc["source"]["url"] = (
             f"https://github.com/{FC_REPO}/blob/{catalog['fc_commit']}/{row['file']}"
         )
+    arxiv, msc = classification_for([str(a) for a in row.get("ams") or []])
+    if arxiv and msc:
+        doc = intake.with_classification(doc, arxiv=arxiv, msc=msc)
     return doc
 
 
-def draft_row(  # noqa: PLR0911, PLR0913, PLR0915, PLR0917 — a check per refusal, an input per fact
+def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check per refusal, an input per fact
     row: dict[str, Any],
     catalog: dict[str, Any],
     fc: Path,
     out: Path,
     helpers: dict[str, set[str]],
     curator: str,
+    overrides: Path | None = None,
 ) -> Draft:
     draft = Draft(row["key"], target_id_for(row))
+    hand = Hand.read(overrides, draft.target_id)
+    draft.hand = hand.note
     if ".variants." in str(row["decl"]):
         # R13, found reading the first real run: erdos_267 is resolved upstream, and its only open
         # declaration is a generalisation. Listing that as the problem misstates the target, so it
@@ -405,25 +539,32 @@ def draft_row(  # noqa: PLR0911, PLR0913, PLR0915, PLR0917 — a check per refus
     if header is None:
         draft.reasons.append("the registry file carries no copyright header to keep")
         return draft
-    prop, how = extract(text, str(row["decl"]))
+    prop, how, binders = extract(text, str(row["decl"]))
     if prop is None:
         draft.reasons.append(how)
         return draft
-    shape = shape_refusal(prop)
+    shape = parse_refusal(prop)
     if shape is not None:
         draft.reasons.append(shape)
+    # The witness: the driver's where it can write one, the curator's hand file otherwise
+    # (F14-T18); without either the row is refused by the reason the driver cannot.
+    witness = witness_refusal(prop) or (BINDERS_BEFORE_COLON if binders else None)
+    if witness is not None and hand.witness is None:
+        draft.reasons.append(witness)
+    # Names the statement takes from its file or the helper library: a port under defs/ (R12)
+    # lifts the refusal; the curator supplies it by hand, the driver only imports it.
     tokens = set(_TOKEN_RE.findall(prop))
     notations = sorted(n for n in _NOTATION_RE.findall(text) if n in tokens)
-    if notations:
+    if notations and not hand.defs:
         # erdos-812, live: `local notation "R" => hypergraphRamsey 2` is neither a def nor a
         # helper-library declaration, and it does not survive the statement leaving its file.
         draft.reasons.append("uses file-local notation (port into defs/): " + ", ".join(notations))
     local = sorted(n for n in row.get("local_defs") or [] if n.rsplit(".", 1)[-1] in tokens)
-    if local:
+    if local and not hand.defs:
         draft.reasons.append("uses file-local definitions (port into defs/): " + ", ".join(local))
     locals_short = {n.rsplit(".", 1)[-1] for n in row.get("local_defs") or []}
     used = [n for n in helpers_used(prop, helpers) if n not in locals_short]
-    if used:
+    if used and not hand.defs:
         draft.reasons.append(
             f"uses names {HELPER_LIBRARY} declares (port first): " + ", ".join(used)
         )
@@ -433,7 +574,7 @@ def draft_row(  # noqa: PLR0911, PLR0913, PLR0915, PLR0917 — a check per refus
     if draft.reasons:
         return draft
 
-    doc = record_for(row, catalog, curator)
+    doc = record_for(row, catalog, curator, heading_of(text))
     try:
         schemas.validate(doc, intake.SCHEMA)
         intake.check_artifacts(doc)
@@ -449,12 +590,16 @@ def draft_row(  # noqa: PLR0911, PLR0913, PLR0915, PLR0917 — a check per refus
         if how == "adapted"
         else "stated as the registry states it"
     )
+    if hand.defs:
+        note += "; the names it takes from the registry's library are ported under defs/ (R12)"
+    imports = "import Mathlib\n" + "".join(f"import Defs.{p.stem}\n" for p in hand.defs)
+    head = f"theorem {theorem_name(row)}" + (f" {binders} :" if binders else " :")
     statement = (
-        f"{header}\n\nimport Mathlib\n\n/-! {doc['title']} — imported from {FC_REPO} "
+        f"{header}\n\n{imports}\n/-! {doc['title']} — imported from {FC_REPO} "
         f"({row['file']} at {catalog['fc_commit']}, Apache-2.0); {note}. Drafted by "
         "gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/\n\n"
         + (f"{opens}\n\n" if opens else "")
-        + f"theorem {theorem_name(row)} :\n    {prop} := by\n  sorry\n"
+        + f"{head}\n    {prop} := by\n  sorry\n"
     )
     parsed = layout.parse_statement(statement)
     if not isinstance(parsed, layout.Statement):
@@ -466,7 +611,18 @@ def draft_row(  # noqa: PLR0911, PLR0913, PLR0915, PLR0917 — a check per refus
         yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8"
     )
     (directory / "Statement.lean").write_text(statement, encoding="utf-8")
-    (directory / "Witness.lean").write_text(witness_for(prop), encoding="utf-8")
+    if hand.witness is not None:
+        shutil.copyfile(hand.witness, directory / "Witness.lean")
+    else:
+        (directory / "Witness.lean").write_text(witness_for(prop), encoding="utf-8")
+    if hand.defs:
+        (directory / "defs").mkdir(exist_ok=True)
+        for port in hand.defs:
+            shutil.copyfile(port, directory / "defs" / port.name)
+        draft.defs = tuple(p.stem for p in hand.defs)
+    if hand.hazards is not None:
+        shutil.copyfile(hand.hazards, directory / "hazards.yaml")
+        draft.hazards = True
     upstream = out / "upstream" / row["file"]
     upstream.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, upstream)
@@ -504,7 +660,10 @@ def import_script(
             f'"$HERE/upstream/{row["file"]}" --at "$PIN" --graph "$GRAPH" --target {d.target_id} '
             f'--from "$HERE/{d.target_id}/record.yaml" '
             f'--witness "$HERE/{d.target_id}/Witness.lean" '
-            f'--statement "$HERE/{d.target_id}/Statement.lean" --path {row["file"]} '
+            f'--statement "$HERE/{d.target_id}/Statement.lean" '
+            + (f'--defs "$HERE/{d.target_id}/defs" ' if d.defs else "")
+            + (f'--hazards "$HERE/{d.target_id}/hazards.yaml" ' if d.hazards else "")
+            + f"--path {row['file']} "
             f"--repo {FC_REPO} "
             f'--url "https://github.com/{FC_REPO}/blob/$PIN/{row["file"]}" --licence Apache-2.0 '
             f'--attribution "{ATTRIBUTION}" --upstream-author "{FC_AUTHOR}" --author "$AUTHOR" '
@@ -515,18 +674,25 @@ def import_script(
     return "\n".join(lines) + "\n"
 
 
-def report(drafts: list[Draft], catalog: dict[str, Any], min_score: int) -> str:
+def report(
+    drafts: list[Draft], catalog: dict[str, Any], min_score: int, keys: list[str] | None = None
+) -> str:
     done = [d for d in drafts if d.drafted]
     held = [d for d in drafts if not d.drafted]
+    which = (
+        f"the rows named with --key: {', '.join(keys)}"
+        if keys
+        else f"rows scoring {min_score} or more"
+    )
     out = [
-        "# Wave one drafts (F14-T11)",
+        "# Wave drafts (F14-T11, T18)",
         "",
-        f"Catalog at registry commit {catalog['fc_commit']}, rows scoring {min_score} or more.",
+        f"Catalog at registry commit {catalog['fc_commit']}, {which}.",
         f"Drafted {len(done)}, refused {len(held)}. Read every draft before import (F14-R13).",
         "",
         "## Drafted",
         "",
-        *[f"- `{d.key}` → `{d.target_id}/`" for d in done],
+        *[f"- `{d.key}` → `{d.target_id}/`{d.hand}" for d in done],
         "",
         "## Refused (a later wave, or a port by hand; F14-Q11)",
         "",
@@ -545,7 +711,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--min-score", type=int, default=5)
     parser.add_argument("--skip", action="append", default=[], help="a key already listed")
-    parser.add_argument("--key", action="append", default=[], help="draft only these keys")
+    parser.add_argument(
+        "--key",
+        action="append",
+        default=[],
+        help="draft only these keys, whatever their score (wave two loads every open statement)",
+    )
+    parser.add_argument(
+        "--overrides",
+        type=Path,
+        help="the curator's hand files: <dir>/<target-id>/Witness.lean and defs/*.lean (F14-T18)",
+    )
     parser.add_argument("--curator", default="thisisanameforsure")
     args = parser.parse_args(argv)
 
@@ -555,19 +731,22 @@ def main(argv: list[str] | None = None) -> int:
         r
         for r in catalog["rows"]
         if r["score"] is not None
-        and r["score"] >= args.min_score
+        and (r["key"] in args.key if args.key else r["score"] >= args.min_score)
         and r["key"] not in args.skip
-        and (not args.key or r["key"] in args.key)
         and (r["kind"] != "erdos" or str(r.get("site_status") or "").upper() == "OPEN")
     ]
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     helpers = helper_names(args.fc)
-    drafts = [draft_row(r, catalog, args.fc, out, helpers, args.curator) for r in chosen]
+    drafts = [
+        draft_row(r, catalog, args.fc, out, helpers, args.curator, args.overrides) for r in chosen
+    ]
     script = out / "import.sh"
     script.write_text(import_script(drafts, rows, catalog), encoding="utf-8")
     script.chmod(0o755)
-    (out / "REPORT.md").write_text(report(drafts, catalog, args.min_score), encoding="utf-8")
+    (out / "REPORT.md").write_text(
+        report(drafts, catalog, args.min_score, args.key), encoding="utf-8"
+    )
     print(
         json.dumps(
             {

@@ -94,7 +94,24 @@ EXTRA: dict[int, str] = {
     7018: registry_file(7018, " : ∃ c > 0, R 1 = c", before='local notation "R" => Nat.succ\n\n'),
     # erdos-1139's shape: a `letI` opening whose body is on the next line.
     7019: registry_file(7019, " :\n    letI u := (3 : ℕ)\n    u = 3"),
+    # F14-T18 (Green's problem 58): `∀ᶠ` is a filter quantifier, not a binder the witness closes;
+    # step 7 expects `True` of it.
+    7021: registry_file(7021, " : ∀ᶠ n in Filter.atTop, n ≤ n + 1"),
+    # F14-T18: a second AMS class beside number theory, and a class D-6 excludes.
+    7022: registry_file(7022, " : ∃ n : ℕ, n = 7022"),
+    7023: registry_file(7023, " : ∃ n : ℕ, n = 7023"),
+    # Below the default minimum score; drafted only when named with --key (F14-T18).
+    7007: registry_file(7007, " : ∃ n : ℕ, n = 7007"),
 }
+#: A non-Erdős registry file (F14-T18): its module doc carries the `# heading` that names the
+#: problem, where the theorem's docstring opens with a sentence of context.
+WIKI_FILE = (
+    f"{HEADER}import FormalConjecturesUtil\n\n/-!\n# The Seven Conjecture\n\n*Reference:* "
+    "[Wikipedia](https://en.wikipedia.org/wiki/Seven)\n-/\n\nnamespace Seven\n\n/--\n"
+    "Suppose $n$ is a number. Is it seven?\n-/\n@[category research open, AMS 11]\n"
+    "theorem seven_conjecture : "
+    "∃ n : ℕ, n = 7 := by\n  sorry\n\nend Seven\n"
+)
 
 
 def catalog_doc() -> dict[str, Any]:
@@ -151,19 +168,35 @@ def catalog_doc() -> dict[str, Any]:
             row(7018),
             row(7019),
             row(7020),
+            row(7021),
+            row(7022, ams=["11", "33"]),
+            row(7023, ams=["14"]),
+            row(
+                7024,
+                key="fc:FormalConjectures/Wikipedia/Seven.lean#seven_conjecture",
+                kind="fc",
+                srcdir="Wikipedia",
+                file="FormalConjectures/Wikipedia/Seven.lean",
+                decl="seven_conjecture",
+                docstring="Suppose $n$ is a number. Is it seven?",
+                site_status=None,
+            ),
             row(7007, score=4, letter="B"),  # below the minimum: not chosen at all
             row(7008, site_status="PROVED (LEAN)"),  # closed: not chosen
         ],
     }
 
 
-@pytest.fixture
-def wave(tmp_path: Path) -> tuple[Path, dict[str, Any], dict[str, Any]]:
+def write_registry(tmp_path: Path) -> tuple[Path, Path, dict[str, Any]]:
+    """The miniature registry, its helper library and the catalog describing it."""
     fc = tmp_path / "fc"
     for n, text in {**FILES, **EXTRA}.items():
         path = fc / "FormalConjectures" / "ErdosProblems" / f"{n}.lean"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
+    wiki = fc / "FormalConjectures" / "Wikipedia" / "Seven.lean"
+    wiki.parent.mkdir(parents=True)
+    wiki.write_text(WIKI_FILE, encoding="utf-8")
     helpers = fc / "FormalConjecturesForMathlib" / "Combinatorics" / "AP.lean"
     helpers.parent.mkdir(parents=True)
     helpers.write_text(
@@ -178,11 +211,21 @@ def wave(tmp_path: Path) -> tuple[Path, dict[str, Any], dict[str, Any]]:
     catalog = tmp_path / "catalog.json"
     doc = catalog_doc()
     catalog.write_text(json.dumps(doc), encoding="utf-8")
+    return fc, catalog, doc
+
+
+def run_wave(tmp_path: Path, *extra: str) -> tuple[Path, dict[str, Any], dict[str, Any]]:
+    fc, catalog, doc = write_registry(tmp_path)
     out = tmp_path / "wave1"
     tool = load_tool()
-    assert tool.main(["--catalog", str(catalog), "--fc", str(fc), "--out", str(out)]) == 0
-    result = {"out": out, "fc": fc}
-    return out, result, doc
+    argv = ["--catalog", str(catalog), "--fc", str(fc), "--out", str(out), *extra]
+    assert tool.main(argv) == 0
+    return out, {"out": out, "fc": fc}, doc
+
+
+@pytest.fixture
+def wave(tmp_path: Path) -> tuple[Path, dict[str, Any], dict[str, Any]]:
+    return run_wave(tmp_path)
 
 
 def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
@@ -190,7 +233,15 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
 ) -> None:
     out, _result, _doc = wave
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 4, refused 14." in report
+    assert "Drafted 7, refused 15." in report
+    # F14-T18: `∀ᶠ` is not a binder; the witness is `True` and nothing is refused.
+    assert (
+        (out / "erdos-7021" / "Witness.lean")
+        .read_text(encoding="utf-8")
+        .endswith("theorem witness : True := trivial\n")
+    )
+    # F14-T18: an AMS class D-6 excludes is refused with D-6's own words, not "no graph domain".
+    assert "`erdos:7023`: the drafted record is refused: algebraic-geometry is outside" in report
     hypotheses = "leading ∀ binders carry hypotheses (a bounded binder or an implication)"
     for key in (7010, 7015, 7016, 7020):
         assert f"`erdos:{key}`: {hypotheses}" in report, key
@@ -235,8 +286,19 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
         "erdos-7006",
         "erdos-7009",
         "erdos-7017",
+        "erdos-7021",
+        "erdos-7022",
+        "seven-conjecture",
         "upstream",
     ]
+    # F14-T18: a non-Erdős target is titled by its file's heading, not the docstring's first
+    # sentence (which opens with context: "Suppose $A, B ⊆ ...", "For a graph $G$, we define ...").
+    record = yaml.safe_load((out / "seven-conjecture" / "record.yaml").read_text(encoding="utf-8"))
+    assert record["title"] == "The Seven Conjecture"
+    assert record["informal"] == "Suppose $n$ is a number. Is it seven?"
+    assert "/-! The Seven Conjecture — imported from" in (
+        out / "seven-conjecture" / "Statement.lean"
+    ).read_text(encoding="utf-8")
     # The bound `S` and the dotted Mathlib member `card` in erdos_7009 are not helper uses.
     theorem = (out / "erdos-7009" / "Statement.lean").read_text(encoding="utf-8")
     assert "∀ S : Finset ℕ, S.card ≤ S.card + 1 := by" in theorem
@@ -306,6 +368,178 @@ def test_the_drafts_import_with_their_evidence_and_classify_as_intakes(
         c = modes.classify(changes, author="curator", curators=CURATORS)
         assert c.mode == "intake", (target_id, c.as_dict())
         assert modes.check(root, c) == [], target_id
+
+
+# --- F14-T18: wave two drafts every chosen row, with the curator's hand files where needed --------
+
+
+def write_overrides(tmp_path: Path) -> Path:
+    """The curator's hand files, one directory per target id: a `Witness.lean` where the driver
+    cannot write the witness, and `defs/*.lean` ports where the statement uses a name the
+    registry's helper library or the file itself defines."""
+    overrides = tmp_path / "overrides"
+    (overrides / "erdos-7005").mkdir(parents=True)
+    (overrides / "erdos-7005" / "Witness.lean").write_text(
+        "/-! By hand. -/\n\ntheorem witness : ∃ n : ℕ, 0 < n := ⟨1, Nat.one_pos⟩\n",
+        encoding="utf-8",
+    )
+    (overrides / "erdos-7016").mkdir()
+    (overrides / "erdos-7016" / "Witness.lean").write_text(
+        "theorem witness : ∃ A : Set ℕ, A.Infinite := ⟨Set.univ, Set.infinite_univ⟩\n",
+        encoding="utf-8",
+    )
+    (overrides / "erdos-7003" / "defs").mkdir(parents=True)
+    (overrides / "erdos-7003" / "defs" / "Good.lean").write_text(
+        f"{HEADER}import Mathlib\n\n/-! Ported from 7003.lean. -/\n\n"
+        "def Good (n : ℕ) : Prop := n = n\n",
+        encoding="utf-8",
+    )
+    (overrides / "erdos-7005" / "hazards.yaml").write_text(
+        "- checker: off-by-one-range\n  location: 0 < n\n  justification: positive, as stated\n",
+        encoding="utf-8",
+    )
+    (overrides / "erdos-7002" / "defs").mkdir(parents=True)
+    (overrides / "erdos-7002" / "defs" / "AP.lean").write_text(
+        f"{HEADER}import Mathlib\n\nnamespace Set\ndef IsAPOfLength (s : Set ℕ) (k : ℕ) : Prop := "
+        "True\nend Set\n",
+        encoding="utf-8",
+    )
+    return overrides
+
+
+def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> None:
+    """With `--overrides`, a row the driver refused for its witness is drafted with the curator's
+    `Witness.lean` verbatim, and a row refused for a helper or file-local name is drafted with the
+    ported `defs/`, its statement importing them and `import.sh` passing them; the report says
+    which drafts used hand files; a row with no hand file is refused as before."""
+    overrides = write_overrides(tmp_path)
+    out, _result, _doc = run_wave(tmp_path, "--overrides", str(overrides))
+    report = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert "Drafted 11, refused 11." in report
+    # Binders before the colon stay before the colon; the witness is the curator's.
+    statement = (out / "erdos-7005" / "Statement.lean").read_text(encoding="utf-8")
+    assert "theorem Opn.erdos_7005 (n : ℕ) (h : 0 < n) :\n    n ≤ n + 1 := by\n  sorry" in statement
+    parsed = layout.parse_statement(statement)
+    assert isinstance(parsed, layout.Statement) and parsed.decl_name == "Opn.erdos_7005"
+    witness = (out / "erdos-7005" / "Witness.lean").read_text(encoding="utf-8")
+    assert witness == (overrides / "erdos-7005" / "Witness.lean").read_text(encoding="utf-8")
+    assert (
+        (out / "erdos-7016" / "Witness.lean")
+        .read_text(encoding="utf-8")
+        .startswith("theorem witness : ∃ A : Set ℕ, A.Infinite")
+    )
+    # A ported definition: the statement imports it after Mathlib, the port is copied verbatim,
+    # and the import passes --defs.
+    statement = (out / "erdos-7003" / "Statement.lean").read_text(encoding="utf-8")
+    assert "import Mathlib\nimport Defs.Good\n" in statement
+    assert (out / "erdos-7003" / "defs" / "Good.lean").read_text(encoding="utf-8") == (
+        overrides / "erdos-7003" / "defs" / "Good.lean"
+    ).read_text(encoding="utf-8")
+    assert "import Defs.AP\n" in (out / "erdos-7002" / "Statement.lean").read_text(encoding="utf-8")
+    script = (out / "import.sh").read_text(encoding="utf-8")
+    assert "--target erdos-7003 " in script and '--defs "$HERE/erdos-7003/defs"' in script
+    assert "--target erdos-7001 " in script and script.count("--defs") == 2
+    assert "`erdos:7003` → `erdos-7003/` (hand: defs Good)" in report
+    assert "`erdos:7005` → `erdos-7005/` (hand: Witness.lean; hazards.yaml)" in report
+    # The curator's step-6 acknowledgements travel with the draft and reach the import (F02-R4).
+    assert (out / "erdos-7005" / "hazards.yaml").read_text(encoding="utf-8") == (
+        overrides / "erdos-7005" / "hazards.yaml"
+    ).read_text(encoding="utf-8")
+    assert (
+        "--target erdos-7005 " in script and '--hazards "$HERE/erdos-7005/hazards.yaml"' in script
+    )
+    assert script.count("--hazards") == 1
+    # Still refused: the value-typed row, and the helper user with no port.
+    assert "`erdos:7004`: value-typed" in report
+    assert "`erdos:7012`: uses names FormalConjecturesForMathlib declares" in report
+
+
+def test_a_hand_drafted_row_imports_with_its_defs_and_classifies_as_an_intake(
+    tmp_path: Path,
+) -> None:
+    overrides = write_overrides(tmp_path)
+    out, _result, doc = run_wave(tmp_path, "--overrides", str(overrides))
+    root = copy_graph(tmp_path / "graph-parent", publish=True)
+    target_id = "erdos-7003"
+    directory = out / target_id
+    rel = "FormalConjectures/ErdosProblems/7003.lean"
+    imported = import_fc(
+        root,
+        target_id=target_id,
+        source=out / "upstream" / rel,
+        rel_path=rel,
+        commit=PIN,
+        base=yaml.safe_load((directory / "record.yaml").read_text(encoding="utf-8")),
+        witness=(directory / "Witness.lean").read_text(encoding="utf-8"),
+        statement=(directory / "Statement.lean").read_text(encoding="utf-8"),
+        defs_dir=directory / "defs",
+        acknowledged_hazards=yaml.safe_load(
+            (out / "erdos-7005" / "hazards.yaml").read_text(encoding="utf-8")
+        ),
+        evidence_catalog=doc,
+        evidence_key="erdos:7003",
+        network_commit=NETWORK,
+    )
+    assert imported.evidence
+    target = root / "targets" / target_id
+    assert (target / "defs" / "Good.lean").is_file()
+    meta = yaml.safe_load((target / "nodes" / target_id / "META.yaml").read_text(encoding="utf-8"))
+    assert meta["acknowledged_hazards"][0]["checker"] == "off-by-one-range"
+    changes = [
+        Change("A", p.relative_to(root).as_posix())
+        for p in sorted(target.rglob("*"))
+        if p.is_file()
+    ]
+    c = modes.classify(changes, author="curator", curators=CURATORS)
+    assert c.mode == "intake", c.as_dict()
+    assert modes.check(root, c) == []
+
+
+def test_a_named_key_is_drafted_whatever_its_score(tmp_path: Path) -> None:
+    """The owner's ruling (2026-11-21): wave two loads every open statement regardless of grade,
+    so a row named with `--key` is drafted below `--min-score`; a closed row is still not."""
+    out, _result, _doc = run_wave(tmp_path, "--key", "erdos:7007", "--key", "erdos:7008")
+    report = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert "Drafted 1, refused 0." in report
+    assert "the rows named with --key: erdos:7007, erdos:7008" in report
+    assert "scoring 5 or more" not in report
+    assert (out / "erdos-7007").is_dir() and not (out / "erdos-7008").exists()
+    record = yaml.safe_load((out / "erdos-7007" / "record.yaml").read_text(encoding="utf-8"))
+    assert "Catalog score 4 (B)" in record["prior_art"]["summary"]
+
+
+def test_the_record_carries_the_classification_its_ams_classes_give(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    """F25-R4's block from the registry's AMS classes: every class as an MSC 2020 range, the
+    arXiv categories they map to (at most two), and the graph's domain tag per class."""
+    out, _result, _doc = wave
+    record = yaml.safe_load((out / "erdos-7022" / "record.yaml").read_text(encoding="utf-8"))
+    schemas.validate(record, intake.SCHEMA)
+    assert record["classification"] == {
+        "arxiv": ["math.NT", "math.CA"],
+        "msc2020": ["11-xx", "33-xx"],
+    }
+    assert record["domains"] == ["number-theory", "special-functions"]
+    assert intake.check_classification(record) == []
+    one = yaml.safe_load((out / "erdos-7001" / "record.yaml").read_text(encoding="utf-8"))
+    assert one["classification"] == {"arxiv": ["math.NT"], "msc2020": ["11-xx"]}
+
+
+@pytest.mark.parametrize(
+    ("prop", "closed"),
+    [
+        ("∀ᶠ n in Filter.atTop, n ≤ n + 1", None),
+        ("∀ᶠ (N : ℕ) in Filter.atTop, ∀ᵉ (A ⊆ Finset.Icc 1 N), A.card ≤ N", None),
+    ],
+)
+def test_eventually_is_not_a_binder(prop: str, closed: None) -> None:
+    """`∀ᶠ x in l, P x` is `Filter.Eventually`, a proposition with no leading binder: step 7
+    expects `True`, and the driver neither closes nor refuses it (Green's problem 58)."""
+    tool = load_tool()
+    assert tool.leading_binders(prop) is closed
+    assert tool.shape_refusal(prop) is None
+    assert tool.witness_for(prop) == tool.WITNESS
 
 
 # --- the witness the driver writes follows step 7's closure rule ---------------------------------

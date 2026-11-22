@@ -1,0 +1,5 @@
+- checker: off-by-one-range
+  location: 2 < n
+  justification: 'Strict, as the words say: "every even integer greater than 2". 2 itself is not
+    a sum of two primes (0 is not prime), so the bound is the conjecture''s own; the first case
+    is 4 = 2 + 2.'
