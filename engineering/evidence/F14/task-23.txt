@@ -1,0 +1,49 @@
+F14-T23 — the witness pass over every refused row, and the four draft defects it found
+=====================================================================================
+
+The pass. 282 rows refused for their witness alone (T21's `--write-refused` wrote their statements),
+eight agents, one hour each, the hosted checker as the pre-flight. The checker's anonymous budget
+(200 calls a day, shared by every lane and the pilot) ran out eleven calls into the pass, so the lanes
+were told to write every remaining witness against the statement's binders unchecked; the gate's
+admission (T20) is the judge, as it was always going to be. Result: 281 Witness.lean files written
+(the pilot's 19 among them), none with `sorry`; 12 rows the agents declined with a reason — the
+hypothesis is itself a theorem or an open question (the Ulam sequence, Mahler's Z-numbers, a
+nontrivial zero of an L-function, Schoenberg's density theorem, an NP-complete problem), or a
+construction too large to write blind (a 2-colouring of the plane with no monochromatic copy of two
+triangles, Bondy's cycle, Sylvester's sequence summable in ℚ). Reports: task-23-pass/lane-{0..7}.md.
+The witnesses are the curator's inputs to the driver, committed under
+engineering/onramp/open/bulk/overrides/<id>/Witness.lean (281) so the admission workflow reads them.
+
+Four draft defects the lanes read off the statements, each a test before its fix (test_wave.py):
+  section variables    the registry states theorems over `variable {α : Type*} [Fintype α] …`; the
+                       draft carried the theorem's own binders only, so `α` auto-bound and `minDegree`
+                       lacked its `Fintype` (conjecture84, conjecture40, eisenbud-green-harris, …).
+                       The variables the statement uses, and the instances over them, are now its
+                       binders before the colon, in the file's order; the unused ones are not.
+  local notations      `local notation "F(" s ", " n ")"`, `𝔽₂`, `(!n)`, `≪`: not names, so the token
+                       scan never saw them and the statement did not parse (erdos-561, -749, kurepa,
+                       balister-gyori-schelp). A notation the statement uses is ported into Local.lean
+                       as a plain notation (a `local` one reaches nothing outside its module); T11's
+                       refusal is gone.
+  Greek identifiers    the identifier scan was ASCII (`[A-Za-z_]`), so `α`, `ε`, `κ` were never names:
+                       no variable over them was found. `\w`, Unicode-aware, with no leading digit.
+  the file's own names the catalog's `local_defs` missed some (`IsGoormaghtighNumber` was in a
+                       binder; T21 fixed the binder scan), and the driver now reads the file's own
+                       declarations too, so a name the catalog missed is still ported.
+Red first: 4 of 40 tests (the two count tests, the variables test, the notation test); the Unicode
+fix was found by the variables test staying red after the code (`α` was not a token). Green: 40
+passed; ruff, ruff format, mypy --strict clean; the workflow passes the action-pin and concurrency
+rules and parses.
+
+Measured on the live catalog with the witnesses as --overrides (all-drafts8):
+  Drafted 652, refused 371   (T19: 365 / 658; 283 drafts carry a hand witness)
+  refusals: 180 answer-shaped (sorry) · 85 variants · 54 + 43 + 13 witness (31 of them written under
+  refused/, the 12 declined plus live targets and new hits) · 43 D-6 excluded domains · 9 imports the
+  port cannot supply · 7 let/have openings
+  `open Arxiv.` truncations: 0 (T21). conjecture84 now reads
+  `theorem Opn.conjecture84 {α : Type*} [Fintype α] [DecidableEq α] [Nontrivial α] (G : SimpleGraph α)
+   [DecidableRel G.Adj] (h : G.Connected) (hδ : 0 < G.minDegree) : …`.
+
+The workflow (wave-admit.yml) takes `overrides` (default: the committed directory) and skips the
+catalog rows of every live target (read from the graph's targets/index.json). Its second run, over the
+652 drafts, is the next act; the first run (365 drafts, eight shards) is still in the sandbox.

@@ -131,7 +131,8 @@ _DECL_NAME_RE = re.compile(
     r"(?P<name>[A-Za-z_][A-Za-z0-9_.']*)",
     re.M,
 )
-_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_']*")
+#: A Lean identifier, Greek letters included: `\w` is Unicode-aware, a digit cannot lead.
+_TOKEN_RE = re.compile(r"[^\W\d][\w']*")
 #: An `open` command names a namespace (or `scoped`); a prose line "open; [Kat16] gives …" in a
 #: module doc does not (F14-T19).
 _OPEN_RE = re.compile(r"^open\s+(?:scoped\s+)?[A-Z].*$", re.M)
@@ -207,7 +208,7 @@ def _scan_library(
             n = _LIBRARY_NOTATION_RE.match(line)
             if n is not None:
                 literal = n.group(1).strip()
-                if literal and not _TOKEN_RE.fullmatch(literal):
+                if literal and literal not in names:
                     notations.setdefault(literal, set()).add(module)
                 continue
             m = _DEFINITION_RE.match(line)
@@ -407,7 +408,11 @@ def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
             continue
         out.extend(pending)
         pending.clear()
-        out.append(_strip_module_syntax(line))
+        # A `local notation` is the file's; in its own module it would reach nothing, so the port
+        # makes it plain (the statement and its proofs import the module).
+        out.append(
+            re.sub(r"^local\s+(notation|infix|prefix|postfix)", r"\1", _strip_module_syntax(line))
+        )
         i += 1
     out.extend(p for p in pending if not p.strip())  # trailing blanks only: a docstring with no
     # declaration left to document is dropped
@@ -532,6 +537,63 @@ def port_local(  # noqa: PLR0913, PLR0917 — one input per fact about the file
 
 
 LOCAL_STEM = "Local"
+
+
+_VARIABLE_RE = re.compile(r"^variable\s+(?P<groups>.+?)\s*$")
+_GROUP_SPLIT_RE = re.compile(r"[({\[⦃][^(){}\[\]⦃⦄]*[)}\]⦄]")
+
+
+def _theorem_line(text: str, decl: str) -> int:
+    """The line index where the registry states ``decl``, or -1."""
+    short = decl.rsplit(".", 1)[-1]
+    for i, line in enumerate(text.splitlines()):
+        if re.match(rf"^theorem\s+(?:{re.escape(decl)}|{re.escape(short)})(?![\w.'])", line):
+            return i
+    return -1
+
+
+def section_variables(text: str, decl: str) -> list[str]:
+    """The binder groups of every `variable` line in scope where the registry states ``decl``, in
+    the file's order (a `section`'s or `namespace`'s variables end with it)."""
+    stop = _theorem_line(text, decl)
+    if stop < 0:
+        return []
+    stack: list[list[str]] = [[]]
+    for line in text.splitlines()[:stop]:
+        scope = _NAMESPACE_RE.match(line)
+        if scope is not None:
+            if scope.group("kind") in ("namespace", "section"):
+                stack.append([])
+            elif len(stack) > 1:
+                stack.pop()
+            continue
+        m = _VARIABLE_RE.match(line)
+        if m is not None:
+            stack[-1].extend(g.strip() for g in _GROUP_SPLIT_RE.findall(m.group("groups")))
+    return [g for frame in stack for g in frame]
+
+
+def used_variables(groups: list[str], statement_text: str) -> str:
+    """The section variables a statement uses, as binders before its colon: a named group whose
+    name occurs in the statement, and an instance group over a name so chosen (F14-T23: the
+    registry states `minDegree` over `variable {alpha : Type*} [Fintype alpha]`, and a draft
+    that drops the instance does not elaborate; an unused variable would be an unused binder,
+    F02)."""
+    tokens = set(_TOKEN_RE.findall(statement_text))
+    chosen: list[str] = []
+    names: set[str] = set()
+    for group in groups:
+        inner = group[1:-1]
+        if group.startswith("["):
+            if any(n in names for n in _TOKEN_RE.findall(inner)):
+                chosen.append(group)
+            continue
+        head = inner.split(":", 1)[0]
+        bound = [n for n in head.split() if _TOKEN_RE.fullmatch(n)]
+        if any(n in tokens for n in bound):
+            chosen.append(group)
+            names.update(bound)
+    return " ".join(chosen)
 
 
 def enclosing_namespaces(text: str, decl: str) -> list[str]:
@@ -988,6 +1050,10 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     if prop is None:
         draft.reasons.append(how)
         return draft
+    # The section's `variable`s the statement uses come first among its binders (F14-T23).
+    section = used_variables(section_variables(text, str(row["decl"])), f"{binders} {prop}")
+    if section:
+        binders = f"{section} {binders}".strip()
     shape = parse_refusal(prop)
     if shape is not None:
         draft.reasons.append(shape)
@@ -1005,19 +1071,24 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     # (crystals-components-unique on the pilot: the local definition sat in a hypothesis binder).
     whole = closed_prop(prop, binders)
     tokens = set(_TOKEN_RE.findall(whole))
-    notations = sorted(n for n in _NOTATION_RE.findall(text) if n in tokens)
-    if notations and not hand.defs:
-        # erdos-812, live: `local notation "R" => hypergraphRamsey 2` is neither a def nor a
-        # helper-library declaration, and it does not survive the statement leaving its file.
-        draft.reasons.append("uses file-local notation (port into defs/): " + ", ".join(notations))
-    local = sorted(n for n in row.get("local_defs") or [] if n.rsplit(".", 1)[-1] in tokens)
+    # A file-local notation the statement uses (`local notation "R" => …`, `"F(" s ", " n ")"`) is
+    # ported into Local.lean as a plain notation (F14-T23; T11 refused it, T19 ported names only).
+    notations = sorted(n for n in _NOTATION_RE.findall(text) if n in whole)
+    # The file's own definitions the statement uses: the catalog's list, and the file's own
+    # declarations read here (the catalog missed `IsGoormaghtighNumber` on the witness pass).
+    declared = {m.group("name").rsplit(".", 1)[-1] for m in _DEFINITION_RE.finditer(text)}
+    local = sorted(
+        {n for n in row.get("local_defs") or [] if n.rsplit(".", 1)[-1] in tokens}
+        | {n for n in declared if n in tokens}
+        | set(notations)
+    )
     locals_short = {n.rsplit(".", 1)[-1] for n in row.get("local_defs") or []}
     used = [n for n in helpers_used(whole, helpers) if n not in locals_short]
     ports: dict[str, str] = {}
     opens_namespaces: list[str] = []
     lib_notations = helper_notations(fc)
     literals = notations_used(whole, lib_notations)
-    if (local or used or literals) and not hand.defs:
+    if (local or used or literals) and not hand.defs:  # local: names and notations
         modules = helper_modules(fc)
         try:
             body = ""

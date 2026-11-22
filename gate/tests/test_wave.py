@@ -144,6 +144,21 @@ EXTRA: dict[int, str] = {
     ),
     # F14-T21 (the pilot's `conjecture`): the registry names an arXiv paper's namespace in
     # guillemets, `Arxiv.«1601.03081»`; the statement opens it whole, not `open Arxiv.`.
+    # F14-T23 (lane 0's conjecture84): the registry states theorems over section `variable`s, which
+    # the theorem's own binders never mention; the statement carries the ones it uses (and the
+    # instances on them) as binders before the colon, in the file's order.
+    7032: registry_file(
+        7032,
+        " (G : SimpleGraph α) : G.minDegree ≤ Fintype.card α",
+        before="variable {α : Type*} [Fintype α] [DecidableEq α] {β : Type*} [Fintype β]\n\n",
+    ),
+    # F14-T23 (lane 0's erdos-561): a multi-token `local notation "F(" s ", " n ")"` is not a name;
+    # it is ported into Local.lean as a plain notation, and the statement imports it.
+    7033: registry_file(
+        7033,
+        " : F(2, 3) = 6",
+        before='local notation "F(" s ", " n ")" => (s : ℕ) * n\n\n',
+    ),
     7031: (
         f"{MODULE_HEAD}namespace Arxiv.«1601.03081»\n\ndef Good31 (n : ℕ) : Prop := 0 < n\n\n"
         "@[category research open, AMS 11]\n"
@@ -231,6 +246,8 @@ def catalog_doc() -> dict[str, Any]:
             row(7029, local_defs=["Big"]),
             row(7030, local_defs=["Good30"]),
             row(7031, local_defs=["Good31"]),
+            row(7032),
+            row(7033),
             row(
                 7009, decl="erdos_7009.parts.i"
             ),  # a dotted declaration name, as the file writes it
@@ -311,7 +328,7 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
 ) -> None:
     out, _result, _doc = wave
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 16, refused 13." in report
+    assert "Drafted 18, refused 13." in report
     # F14-T18: `∀ᶠ` is not a binder; the witness is `True` and nothing is refused.
     assert (
         (out / "erdos-7021" / "Witness.lean")
@@ -323,7 +340,8 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
     hypotheses = "leading ∀ binders carry hypotheses (a bounded binder or an implication)"
     for key in (7010, 7015, 7016, 7020):
         assert f"`erdos:{key}`: {hypotheses}" in report, key
-    assert "`erdos:7018`: uses file-local notation (port into defs/): R" in report
+    # F14-T23: a file-local notation is ported into Local.lean as a plain notation (7018, 7033).
+    assert "`erdos:7018` → `erdos-7018/` (port: Local)" in report
     assert "`erdos:7019`: the statement opens with a `let`/`have` binding spanning lines" in report
     assert (
         (out / "erdos-7017" / "Witness.lean")
@@ -362,12 +380,14 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
         "erdos-7013",
         "erdos-7014",
         "erdos-7017",
+        "erdos-7018",
         "erdos-7021",
         "erdos-7022",
         "erdos-7025",
         "erdos-7026",
         "erdos-7028",
         "erdos-7029",
+        "erdos-7033",
         "seven-conjecture",
         "upstream",
     ]
@@ -495,7 +515,7 @@ def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> 
     overrides = write_overrides(tmp_path)
     out, _result, _doc = run_wave(tmp_path, "--overrides", str(overrides))
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 18, refused 11." in report
+    assert "Drafted 20, refused 11." in report
     # Binders before the colon stay before the colon; the witness is the curator's.
     statement = (out / "erdos-7005" / "Statement.lean").read_text(encoding="utf-8")
     assert "theorem Opn.erdos_7005 (n : ℕ) (h : 0 < n) :\n    n ≤ n + 1 := by\n  sorry" in statement
@@ -519,7 +539,7 @@ def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> 
     script = (out / "import.sh").read_text(encoding="utf-8")
     assert "--target erdos-7003 " in script and '--defs "$HERE/erdos-7003/defs"' in script
     # F14-T19: the hand ports for 7002 and 7003, and the driver's own for 7012, 7013, 7014.
-    assert "--target erdos-7001 " in script and script.count("--defs") == 7
+    assert "--target erdos-7001 " in script and script.count("--defs") == 9
     assert "`erdos:7003` → `erdos-7003/` (hand: defs Good)" in report
     # The curator's port wins over the mechanical one: no `Local.lean` beside `Good.lean`.
     assert sorted(p.name for p in (out / "erdos-7003" / "defs").iterdir()) == ["Good.lean"]
@@ -953,6 +973,7 @@ def test_write_refused_drafts_the_statement_for_a_hand_witness(tmp_path: Path) -
         "erdos-7020",
         "erdos-7030",
         "erdos-7031",
+        "erdos-7032",
     ]
     # A local definition used only in a binder before the colon is ported (crystals on the pilot),
     # and a guillemet namespace is opened whole (`conjecture` on the pilot: `open Arxiv.`).
@@ -1013,3 +1034,40 @@ def test_a_local_definitions_own_names_port_no_unrelated_module(
     port = (out / "erdos-7029" / "defs" / "Local.lean").read_text(encoding="utf-8")
     assert "import Defs.CombinatoricsAP\n" in port and "def Big" in port
     assert "open Ramsey in\ndef Big" in port  # the `open … in` prefix stays the definition's
+
+
+def test_section_variables_the_statement_uses_become_its_binders(tmp_path: Path) -> None:
+    """`variable {alpha : Type*} [Fintype alpha] [DecidableEq alpha] {β : Type*} [Fintype β]` in
+    the file:
+    the theorem over `G : SimpleGraph alpha` uses `alpha`, so `alpha`, `[Fintype alpha]` and
+    `[DecidableEq alpha]` are
+    its binders, in the file's order and before its own; `β` and its instance are not (an unused
+    binder is a hazard, F02). Found on the witness pass: `minDegree` needs `[Fintype alpha]`, which
+    the draft had dropped, so the statement auto-bound `alpha` and did not elaborate."""
+    out, _result, _doc = run_wave(tmp_path, "--write-refused")
+    # An implicit binder is one the driver cannot close, so the row is the curator's witness.
+    statement = (out / "refused" / "erdos-7032" / "Statement.lean").read_text(encoding="utf-8")
+    assert (
+        "theorem Opn.erdos_7032 {α : Type*} [Fintype α] [DecidableEq α] (G : SimpleGraph α) :\n"
+        "    G.minDegree ≤ Fintype.card α := by\n  sorry" in statement
+    )
+    assert "β" not in statement.split("theorem Opn.")[1]
+    parsed = layout.parse_statement(statement)
+    assert isinstance(parsed, layout.Statement)
+
+
+def test_a_local_notation_is_ported_and_the_statement_imports_it(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    """A multi-token `local notation "F(" s ", " n ")"` used by the statement: the token scan saw
+    no name, the statement did not parse on the witness pass (erdos-561). The notation is ported
+    into Local.lean as a plain `notation` (a `local` one would not leave its module) and the
+    statement imports it."""
+    out, _result, _doc = wave
+    manifest = json.loads((out / "erdos-7033" / "draft.json").read_text(encoding="utf-8"))
+    assert manifest["defs"] == ["Local"]
+    port = (out / "erdos-7033" / "defs" / "Local.lean").read_text(encoding="utf-8")
+    assert 'notation "F(" s ", " n ")" => (s : ℕ) * n\n' in port and "local notation" not in port
+    statement = (out / "erdos-7033" / "Statement.lean").read_text(encoding="utf-8")
+    assert "import Defs.Local\n" in statement and "open Erdos7033\n" in statement
+    assert "F(2, 3) = 6 := by" in statement

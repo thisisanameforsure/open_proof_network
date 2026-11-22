@@ -30,6 +30,11 @@ on:
         required: false
         default: "goldbach"
         type: string
+      overrides:
+        description: "the curator's hand files, <dir>/<target-id>/Witness.lean (F14-T18, T23); empty for none"
+        required: false
+        default: "engineering/onramp/open/bulk/overrides"
+        type: string
 
 permissions:
   contents: read
@@ -62,11 +67,25 @@ jobs:
         env:
           MIN_SCORE: ${{ inputs.min_score }}
           KEYS: ${{ inputs.keys }}
+          OVERRIDES: ${{ inputs.overrides }}
           PYTHONPATH: gate
         run: |
           set -euo pipefail
           args=(--catalog docs/lean_conjecture_catalog.json --fc fc --out drafts --min-score "$MIN_SCORE")
           for k in $KEYS; do args+=(--key "$k"); done
+          if [ -n "$OVERRIDES" ] && [ -d "$OVERRIDES" ]; then args+=(--overrides "$OVERRIDES"); fi
+          # The live targets are already on the graph: their catalog rows are never drafted again.
+          curl -fsSL "https://raw.githubusercontent.com/thisisanameforsure/open_proof_network_graph/main/targets/index.json" > live-index.json
+          while read -r key; do args+=(--skip "$key"); done < <(uv run --frozen python - <<'PY'
+          import importlib.util, json, sys
+          spec = importlib.util.spec_from_file_location("wave", "gate/tools/wave.py")
+          wave = importlib.util.module_from_spec(spec); sys.modules["wave"] = wave; spec.loader.exec_module(wave)
+          live = {t["id"] for t in json.load(open("live-index.json"))["targets"]}
+          for row in json.load(open("docs/lean_conjecture_catalog.json"))["rows"]:
+              if wave.target_id_for(row) in live:
+                  print(row["key"])
+          PY
+          )
           uv run --frozen python gate/tools/wave.py "${args[@]}" > drafts.json
           sed -n 1,6p drafts/REPORT.md
       - name: Plan the shards

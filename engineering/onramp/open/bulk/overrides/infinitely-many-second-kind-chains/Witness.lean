@@ -1,0 +1,3 @@
+/-! Non-vacuity witness (D-4 step 7): the chain length k = 1 is positive. -/
+
+theorem witness : ∃ (k : ℕ), (0 : ℕ) < k := ⟨1, Nat.one_pos⟩
