@@ -129,3 +129,17 @@ its gate, and the next branch is updated only after the previous merge's bot com
   #1603 reed-omega-delta-chi-conjecture merged 2026-11-22T07:36:53Z
   #1603's bot commit landed; #1605, #1601, #1602, #1604 are being updated and merged one at a time as this
   commit is made, and their outcome is appended with the next commit (the two-commit shape of a pin).
+
+Outcome (appended with the F04-T63 commit)
+------------------------------------------
+  #1603 reed-omega-delta-chi-conjecture  merged 07:36:53Z  bot commit bba16f4f7d → render
+  #1605 schanuel-conjecture              merged            bot commit d0f81d5cf6 07:51:00Z
+  #1601 goldbach                         merged            bot commit f7c422b035 07:59:11Z
+  #1602 green-58                         merged            bot commit (next)     08:08Z
+  #1604 flint-hills-series-converges     merged            bot commit a800165023 08:16:03Z
+Each branch was updated only after the previous merge's bot commit, and merged only with its gate green
+and the pull request CLEAN; about eight minutes a merge, the gate and the post-merge render.
+Live products at graph a800165023: 32 targets; the five are `listed`, `claimable: true`, `step9: review`,
+statement evidence score 3; frontier 188 entries, 185 claimable. The site deploys from the graph merge,
+so the five are on openproofnetwork.org/problems/ (three of five seen within minutes of the last merge,
+the rest at the next deploy); the topic grouping (F04-T63) reaches it when this branch is merged.

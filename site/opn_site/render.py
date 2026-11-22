@@ -1043,6 +1043,56 @@ NAV = (
 NAV_ACTION = ("/problems/?filter=open", "Work on a statement")
 #: Where the merged Problems page lives, and the old paths that now redirect to it (Q14).
 PROBLEMS_PATH = "/problems/"
+#: F04-T63 (Q61): the registry's collections, by the second segment of a record's upstream path.
+#: A segment not listed is split on its capitals ("WrittenOnTheWallII" → "Written On The Wall II").
+COLLECTIONS: dict[str, str] = {
+    "ErdosProblems": "Erdős Problems",
+    "Wikipedia": "Wikipedia",
+    "GreensOpenProblems": "Green's open problems",
+    "Paper": "Papers",
+    "Millennium": "Millennium problems",
+    "Millenium": "Millennium problems",
+    "OEIS": "OEIS",
+    "Arxiv": "arXiv",
+    "Books": "Books",
+    "Mathoverflow": "MathOverflow",
+    "HilbertProblems": "Hilbert's problems",
+    "Kourovka": "Kourovka notebook",
+    "LittProblems": "Litt's problems",
+    "OptimizationConstants": "Optimization constants",
+    "Other": "Other collections",
+}
+#: Domain tags whose words are not the tag with its hyphens replaced and its first letter raised.
+TOPIC_WORDS: dict[str, str] = {"pde": "PDE", "oeis": "OEIS"}
+
+
+def collection_label(record: dict[str, Any] | None) -> str:
+    """F04-T63: which of the registry's collections a problem's statement came from, from the
+    record's ``provenance.upstream_path``; empty for a statement with no upstream path."""
+    path = str(((record or {}).get("provenance") or {}).get("upstream_path") or "")
+    parts = path.split("/")
+    if len(parts) < 3:
+        return ""
+    segment = parts[1]
+    if segment in COLLECTIONS:
+        return COLLECTIONS[segment]
+    return re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", segment)
+
+
+def topic_words(tag: str) -> str:
+    """A domain tag as a heading: ``number-theory`` → ``Number theory``."""
+    if tag in TOPIC_WORDS:
+        return TOPIC_WORDS[tag]
+    words = tag.replace("-", " ")
+    return words[:1].upper() + words[1:]
+
+
+def topic_of(record: dict[str, Any] | None) -> str:
+    """The problem's first domain tag, or ``other`` for a problem with no curated record."""
+    domains = (record or {}).get("domains") or []
+    return str(domains[0]) if domains else "other"
+
+
 STEWARD_PATH = "/steward/"
 REDIRECTS = (("targets/index.html", PROBLEMS_PATH), ("frontier/index.html", PROBLEMS_PATH))
 #: F24-R9 (D-32 v3.34): the rules page, every panel setting with its value, day and reason.
@@ -2069,7 +2119,18 @@ class Renderer:
 
     def problems(self) -> str:
         targets = [tv for _tid, tv in sorted(self.site.targets.items())]
-        cards = "".join(self.problem_card(tv) for tv in targets)
+        # F04-T63 (Q61): grouped by topic — each problem once, under its first domain tag — with
+        # the topics in the order of their words; a filter that empties a topic hides its heading.
+        groups: dict[str, list[TargetView]] = {}
+        for tv in targets:
+            groups.setdefault(topic_of(tv.record), []).append(tv)
+        cards = "".join(
+            f'<section class="topic" data-topic="{esc(tag)}" id="topic-{esc(tag)}">'
+            f'<h2 class="topic-head">{esc(topic_words(tag))} <span class="n">{len(tvs)}</span></h2>'
+            + "".join(self.problem_card(tv) for tv in tvs)
+            + "</section>"
+            for tag, tvs in sorted(groups.items(), key=lambda kv: topic_words(kv[0]))
+        )
         if not cards:
             cards = '<p class="cue">No problems are listed yet.</p>'
         legend = "".join(self.term(k, dot=k in DOTTED_KEYS) for k in LEGEND_KEYS)
@@ -2109,10 +2170,13 @@ class Renderer:
         rows = self.statement_rows(tv)
         resolved = str(tv.index_entry["status"]) == "resolved"
         action = "View the graph →" if resolved else "View problem →"
+        collection = collection_label(tv.record)
         return _template("problem-card.html").substitute(
             target_id=esc(tid),
             href=esc(self.target_path(tid)),
             status=esc(status),
+            topic=esc(topic_of(tv.record)),
+            collection=f'<span class="collection">{esc(collection)}</span>' if collection else "",
             open_count=self.open_count(tv),
             status_tag=self.status_tag(tv),
             fidelity_tag=self.fidelity_tag(tv),

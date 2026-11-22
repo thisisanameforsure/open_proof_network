@@ -66,6 +66,11 @@
         }
       }
     });
+    // F04-T63 (Q61): a topic whose every card is hidden hides its heading too.
+    Array.prototype.forEach.call(list.querySelectorAll(".topic"), function (topic) {
+      var left = Array.prototype.filter.call(topic.querySelectorAll(".card.problem"), function (c) { return !c.hidden; });
+      topic.hidden = left.length === 0;
+    });
     opts.forEach(function (o) {
       if (o.getAttribute("data-filter") === filter) { o.setAttribute("aria-current", "true"); }
       else { o.removeAttribute("aria-current"); }
