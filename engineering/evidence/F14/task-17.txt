@@ -1,0 +1,91 @@
+F14-T17 — the catalog rebuilt at registry d8d031d (2026-11-19), scored as of 2026-11-21
+======================================================================================
+
+Why. The owner asked (2026-11-21) to digest Formal Conjectures' open problems beyond the Erdős
+list, five to start, graded by the catalog's default scoring. The catalog on main was built on
+2026-09-08 at registry c7f31d5 (1456 rows). Rebuilding it with the committed scripts found three
+inputs that had rotted, each of which silently changed every grade:
+
+1. docs/seed_conjecture_sources_build.py had `TODAY = dt.date(2026, 9, 8)`. Run in November, every
+   file touched after 8 September read as "modified in the last 30 days" (the days count was
+   negative), so all 1062 non-Erdős rows lost a point: a first rebuild graded 322 of them D/C with
+   none at 3, where 103 reach 3 once the date is the run date. Now `dt.date.today()`, with
+   `--as-of YYYY-MM-DD` to pin it; the catalog records `scored_as_of`.
+2. erdosproblems.com became a client-rendered page. `parse_site` found no status markup on any of
+   the 1021 fetched pages, so every Erdős row read "site status is ?, not a seed candidate" and
+   the build reported "0 open on site, 0 scoreable". The build already clones the site's own
+   database (teorth/erdosproblems, data/problems.yaml, `status.state`), which is what the page
+   renders from; `erdos_status()` reads the page's status where it still exists and the database
+   otherwise. 456 Erdős rows are scoreable again.
+3. Epoch (epoch-research/LeanOpenProblems) removed `apn/data/erdos_autoformalized/`, so
+   `load_epoch` died with FileNotFoundError before anything was written. The file only ever earned
+   a "+0" note; it is optional now.
+
+A fourth defect appeared on the rebuilt output: six keys appeared twice. `Millennium/BSD.lean`
+states `weakBSD` and `strongBSD` once for a number field and once for ℚ, and
+`Paper/RiemannZetaZeros.lean` repeats four names across two namespaces; the parser keyed a
+declaration by its short name. A repeated short name is now qualified by its enclosing namespace
+(`WeierstrassCurve.Affine.NumberField.weakBSD`), a unique one keeps the short key, so every key an
+earlier catalog or a live evidence record wrote still names the same row.
+
+Red first. gate/tests/test_catalog_build.py drives the build's own functions with today's input
+shapes; all four tests failed on the defect (not on a missing name) before the fixes:
+
+  test_scoring_reads_the_clock_not_a_constant         ['-1 file modified in the last 30 days', ...]
+  test_erdos_status_comes_from_the_database_...        ['site status is ?, not a seed candidate']
+  test_epoch_autoformalized_subset_is_optional         FileNotFoundError: .../erdos_autoformalized/...
+  test_a_name_declared_in_two_namespaces_keys_two_rows (added with the key fix; gate/tests/test_catalog.py's
+                                                        unique-key assertion was the red: 2083 == 2077)
+
+Run (the fetch and the build, scratchpad):
+  docs/seed_conjecture_sources_fetch.sh <work> d8d031d4998c78575159ccab9a7a9e95ce043883
+  python3 docs/seed_conjecture_sources_build.py --work <work>
+  → wrote 2083 catalog rows: {'A': 20, 'B': 48, 'B+': 31, 'C': 434, 'D': 985, 'n/a': 565}
+  gate/tests/test_catalog_build.py gate/tests/test_catalog.py: 9 passed
+
+What the catalog says now
+-------------------------
+Registry d8d031d, 2026-11-19; Mathlib tag v4.33.1 (the pin's toolchain, unchanged).
+
+                       rows   A   B+   B    C    D   n/a
+  Erdős (kind erdos)   1021  19   31   48  112  246   565   (456 scoreable; 2026-09: 497, 21 A, 45 B)
+  non-Erdős (kind fc)  1062   1    0    0  322  739     0   (RH is the A; 103 rows score 3, none 4 or 5)
+
+Non-Erdős rows by source: OEIS 394, Wikipedia 293, GreensOpenProblems 128, Paper 100, Arxiv 41,
+OpenQuantumProblems 28, Other 17, Millennium 13, Books 11, OptimizationConstants 11,
+Mathoverflow 9, WrittenOnTheWallII 8, Kourovka 5, HilbertProblems 2, LittProblems 2.
+
+The non-Erdős ceiling is 3 by construction: score_decl's generic signals are +1 180 days public,
++1 no misformalization issue, +1 no file-local definitions in the statement, and the negatives;
+the Bloom, Epoch and Nexus points exist only for Erdős rows, and the +3 Mathlib-definition point
+only the Riemann Hypothesis earns. So at the default grading no new non-Erdős target reaches the
+B+ bar (5) that waives the step-9 reviewer (F14-R5); every one imports at C and a proof settling
+its root waits for a non-author review. The owner's ruling the same day: load every open statement
+regardless of grade and validate statements when a steward arrives (wave two, separate tasks).
+
+Erdős score deltas against the 2026-09-08 catalog (rows scoreable in both):
+  kept   153   +1  79   +2  20   +3  2   +4  1   -1  31   -2  8   -3  3   now n/a  30
+Reasons that moved: the 30-day rule 94 rows (the date fix), 180-day age 34 rows, the registry's new
+value-typed variants 27 rows, issues filed and closed 15, open issues 12. test_catalog's
+"kept their score" floor is lowered from 250 to 100 with this table cited; it is a same-problems
+guard, not a stability claim. The five first live targets: 52 → 5 (B+), 68/376/406 → 8 (A),
+172 → n/a (below).
+
+Findings for the record (owner's acts, not this task's)
+--------------------------------------------------------
+- erdos_172 is `research solved` in the registry since 2026-10-29 (#7631), with
+  `formal_proof using lean4 at github.com/cadamcat/hindman-sums-products-lean4/.../audit/Erdos172.lean`,
+  while erdosproblems.com's database still says open (last update 2025-08-31). The live target
+  erdos-172 is `listed`, `claimable: true`, `mechanical-only`. D-33 dormancy is a curator
+  declaration with the citation attached; the F12 watcher reads statement text, not the category
+  tag, so nothing on the record flagged it.
+- The registry renamed `FormalConjectures/Millenium/` to `Millennium/`. The live riemann-hypothesis
+  record carries `provenance.upstream_path` and the evidence key under the old name (immutable;
+  target.yaml is path-forbidden). watch.py fetches the pinned path at HEAD and reads a 404 as
+  "path removed upstream" → it would write a drift record and freeze the root (upstream-drift) on
+  its next write-enabled run; today no drift/ directory exists on the target. The F12 watcher
+  should follow a rename (git log --follow at the pin) before declaring a removal.
+- The ep_pages fetch (one erdosproblems.com page per Erdős file, paced) now contributes only the
+  informal statement text for the hazard scan; the status comes from the database.
+
+make verify (fast tier, OPN_GRAPH_CHECKOUT at graph origin/main): 7522 passed, 41 skipped, 283 deselected, 22m28s.
