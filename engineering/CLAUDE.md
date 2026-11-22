@@ -1921,3 +1921,17 @@ The law of the project:
   a batch of asserted `str.replace` edits aborts on the first miss and writes nothing — the
   formatter had rewrapped a docstring — so check each replacement's count before trusting the
   run (2026-09-09's rule, paid again).
+- 2026-11-23 — The bulk load's machinery (F14-T20 wave-admit, T21 the witness pass, T22 the actor takes
+  `intake/`), while the first admission run of 365 drafts ran in CI. Three things worth keeping.
+  **A pilot's "defects" sort into three bins before any fix**: of ten witnesses the hosted route would
+  not accept, seven were the probe's own limit (the witness route takes a statement with exactly one
+  theorem, `lemma` counted, so a ported definition whose proof fields cite its module's lemmas cannot
+  be pre-flighted there), three were driver defects, and none was the witness — nineteen of nineteen
+  were written, which is the number that sizes the full pass (ten agent-hours for 391). **A name scan
+  over a body is not a name scan over a statement**: `S` and `of` in a definition's binders matched
+  the library's `Degrees.S` and `MilnorK.of` and ported four unrelated modules; a body's bare name
+  counts only at the root, under an opened namespace, or written with its namespace. **`open X in` is
+  the next command's**: copied as an `open` line of the statement it swallowed the line after it.
+  Also: the actor tests read the graph's `merge.yml` from a named branch before `origin/main`, so a
+  workflow change is developed on a graph worktree branch, committed there (a `git show
+  branch:path` reads commits, not the working tree), and the branch name goes first in `REFS`.

@@ -147,6 +147,7 @@ class Draft:
     defs: tuple[str, ...] = ()  # the ported modules, for import.sh --defs
     hazards: bool = False  # a hazards.yaml travels with the draft, for import.sh --hazards
     ports: tuple[str, ...] = ()  # the modules the driver ported itself, for the report (F14-T19)
+    refused_dir: Path | None = None  # the statement written for a hand witness (F14-T21)
 
     @property
     def drafted(self) -> bool:
@@ -170,7 +171,8 @@ _DEFINITION_RE = re.compile(
     r"^\s*(?:@\[[^\]]*\]\s*)?(?:noncomputable\s+|protected\s+|private\s+|public\s+)*"
     r"(?:def|abbrev|structure|class|inductive)\s+(?P<name>[A-Za-z_][A-Za-z0-9_.']*)"
 )
-_NAMESPACE_RE = re.compile(r"^\s*(?P<kind>namespace|section|end)\b\s*(?P<name>[A-Za-z0-9_.']*)")
+#: A namespace name may carry guillemets (`Arxiv.«1601.03081»`, the registry's arXiv papers).
+_NAMESPACE_RE = re.compile(r"^\s*(?P<kind>namespace|section|end)\b\s*(?P<name>[A-Za-z0-9_.'«»]*)")
 
 
 _LIBRARY_NOTATION_RE = re.compile(
@@ -573,6 +575,31 @@ def bound_names(prop: str) -> set[str]:
     return bound
 
 
+def opened_namespaces(text: str) -> set[str]:
+    """The namespaces a file's `open` lines name (`open Filter Topology`, `open scoped X in`,
+    `open Nat (factorial)`): where a bare helper name in the file's own definitions can resolve."""
+    out: set[str] = set()
+    for line in _OPEN_RE.findall(text):
+        words = re.sub(r"\(.*?\)", " ", line).split()
+        out.update(w for w in words[1:] if w not in ("scoped", "in", "hiding", "renaming"))
+    return out
+
+
+def helpers_used_in_body(body: str, index: dict[str, set[str]], opened: set[str]) -> list[str]:
+    """The helper definitions a file's own definitions use (F14-T21): a name counts when the library
+    declares it at the root or under a namespace the file opens, or when the body writes it with
+    its namespace (`MilnorK.of`). The bare-name rule of `helpers_used` is the statement's, where a
+    bare `S` is a use; in a body of definitions `S` and `of` are everyone's own names, and the
+    pilot's erdos-509 ported four unrelated modules on them."""
+    used: set[str] = set()
+    for name, spaces in index.items():
+        if not re.search(rf"(?<![\w.']){re.escape(name)}(?![\w'])", body):
+            continue
+        if any(s == "" or s in opened or f"{s}.{name}" in body for s in spaces):
+            used.add(name)
+    return sorted(used)
+
+
 def helpers_used(prop: str, index: dict[str, set[str]]) -> list[str]:
     """The helper definitions a statement uses: a bare name the library defines and the statement
     does not bind (the file may ``open`` the namespace it lives in, so the namespace cannot excuse
@@ -791,19 +818,26 @@ def parse_refusal(prop: str) -> str | None:
     return None
 
 
+HYPOTHESES_REFUSAL = (
+    "leading ∀ binders carry hypotheses (a bounded binder or an implication): the "
+    "witness is not `True`, write it by hand"
+)
+UNCLOSEABLE_REFUSAL = (
+    "leading ∀ binders the driver cannot close (implicit, instance or untyped): the "
+    "witness is their closure over `True`, write it by hand"
+)
+#: The refusals a hand witness lifts: a row refused for these alone still has a statement the
+#: driver can write for the witness's author (F14-T21, `--write-refused`).
+WITNESS_REFUSALS = frozenset({HYPOTHESES_REFUSAL, UNCLOSEABLE_REFUSAL, BINDERS_BEFORE_COLON})
+
+
 def witness_refusal(prop: str) -> str | None:
     """Why the driver cannot write the proposition's witness, or ``None``. A curator's hand
     `Witness.lean` lifts this refusal (F14-T18)."""
     if leading_hypotheses(prop):
-        return (
-            "leading ∀ binders carry hypotheses (a bounded binder or an implication): the "
-            "witness is not `True`, write it by hand"
-        )
+        return HYPOTHESES_REFUSAL
     if _LEADING_FORALL_RE.match(prop.strip()) and leading_binders(prop) is None:
-        return (
-            "leading ∀ binders the driver cannot close (implicit, instance or untyped): the "
-            "witness is their closure over `True`, write it by hand"
-        )
+        return UNCLOSEABLE_REFUSAL
     return None
 
 
@@ -927,6 +961,7 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     helpers: dict[str, set[str]],
     curator: str,
     overrides: Path | None = None,
+    write_refused: bool = False,
 ) -> Draft:
     draft = Draft(row["key"], target_id_for(row))
     hand = Hand.read(overrides, draft.target_id)
@@ -966,7 +1001,10 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
         draft.reasons.append(witness)
     # Names the statement takes from its file or the helper library: a port under defs/ (R12).
     # The curator's hand port wins; otherwise the driver ports mechanically (F14-T19).
-    tokens = set(_TOKEN_RE.findall(prop))
+    # The names the statement uses are in its binders before the colon as much as after it
+    # (crystals-components-unique on the pilot: the local definition sat in a hypothesis binder).
+    whole = closed_prop(prop, binders)
+    tokens = set(_TOKEN_RE.findall(whole))
     notations = sorted(n for n in _NOTATION_RE.findall(text) if n in tokens)
     if notations and not hand.defs:
         # erdos-812, live: `local notation "R" => hypergraphRamsey 2` is neither a def nor a
@@ -974,11 +1012,11 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
         draft.reasons.append("uses file-local notation (port into defs/): " + ", ".join(notations))
     local = sorted(n for n in row.get("local_defs") or [] if n.rsplit(".", 1)[-1] in tokens)
     locals_short = {n.rsplit(".", 1)[-1] for n in row.get("local_defs") or []}
-    used = [n for n in helpers_used(prop, helpers) if n not in locals_short]
+    used = [n for n in helpers_used(whole, helpers) if n not in locals_short]
     ports: dict[str, str] = {}
     opens_namespaces: list[str] = []
     lib_notations = helper_notations(fc)
-    literals = notations_used(prop, lib_notations)
+    literals = notations_used(whole, lib_notations)
     if (local or used or literals) and not hand.defs:
         modules = helper_modules(fc)
         try:
@@ -986,9 +1024,8 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
             if local:
                 # The file's own definitions may use the library too: port what they use.
                 body, _imports = port_body(text)
-                used = sorted(
-                    set(used) | {n for n in helpers_used(body, helpers) if n not in locals_short}
-                )
+                in_body = helpers_used_in_body(body, helpers, opened_namespaces(text))
+                used = sorted(set(used) | {n for n in in_body if n not in locals_short})
                 literals = sorted(set(literals) | set(notations_used(body, lib_notations)))
             wanted = [m for name in used for m in sorted(modules.get(name, ()))] + [
                 m for lit in literals for m in sorted(lib_notations[lit])
@@ -1020,7 +1057,10 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     domains = {DOMAINS.get(a) for a in row.get("ams") or []}
     if not (domains - {None}):
         draft.reasons.append(f"no graph domain for AMS {', '.join(row.get('ams') or []) or 'none'}")
-    if draft.reasons:
+    # A row refused for its witness alone still has a statement worth writing, for the person or
+    # agent who writes the witness (F14-T21): under refused/, with no Witness.lean.
+    for_witness = bool(draft.reasons) and all(r in WITNESS_REFUSALS for r in draft.reasons)
+    if draft.reasons and not (write_refused and for_witness):
         return draft
 
     doc = record_for(row, catalog, curator, heading_of(text))
@@ -1032,7 +1072,14 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     except (schemas.SchemaError, intake.IntakeError) as exc:
         draft.reasons.append(f"the drafted record is refused: {exc}")
         return draft
-    opens = "\n".join([*_OPEN_RE.findall(text), *(f"open {ns}" for ns in opens_namespaces)])
+    # An `open … in` prefix on the theorem is the theorem's: opened plainly here, never with the
+    # `in`, which would swallow the statement's next line (erdos-883 on the pilot, F14-T21).
+    opens = "\n".join(
+        [
+            *(re.sub(r"\s+in$", "", o) for o in _OPEN_RE.findall(text)),
+            *(f"open {ns}" for ns in opens_namespaces),
+        ]
+    )
     note = (
         "the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its "
         "affirmative reading (F11-Q24)"
@@ -1060,13 +1107,15 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     if not isinstance(parsed, layout.Statement):
         draft.reasons.append(f"the drafted statement does not parse: {parsed.message}")
         return draft
-    directory = out / draft.target_id
+    directory = (out / "refused" / draft.target_id) if draft.reasons else (out / draft.target_id)
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "record.yaml").write_text(
         yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8"
     )
     (directory / "Statement.lean").write_text(statement, encoding="utf-8")
-    if hand.witness is not None:
+    if draft.reasons:
+        pass  # the witness is what is missing: nothing stands in for it
+    elif hand.witness is not None:
         shutil.copyfile(hand.witness, directory / "Witness.lean")
     else:
         (directory / "Witness.lean").write_text(witness_for(prop, binders), encoding="utf-8")
@@ -1095,6 +1144,7 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
                 "file": row["file"],
                 "defs": list(draft.defs),
                 "hazards": draft.hazards,
+                **({"refused": list(draft.reasons)} if draft.reasons else {}),
             },
             indent=1,
             ensure_ascii=False,
@@ -1102,6 +1152,9 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
         + "\n",
         encoding="utf-8",
     )
+    if draft.reasons:
+        draft.refused_dir = directory
+        return draft
     draft.directory = directory
     return draft
 
@@ -1172,7 +1225,11 @@ def report(
         "",
         "## Refused (a later wave, or a port by hand; F14-Q11)",
         "",
-        *[f"- `{d.key}`: {'; '.join(d.reasons)}" for d in held],
+        *[
+            f"- `{d.key}`: {'; '.join(d.reasons)}"
+            + (" (statement written under refused/ for a hand witness)" if d.refused_dir else "")
+            for d in held
+        ],
         "",
     ]
     return "\n".join(out)
@@ -1199,6 +1256,12 @@ def main(argv: list[str] | None = None) -> int:
         help="the curator's hand files: <dir>/<target-id>/Witness.lean and defs/*.lean (F14-T18)",
     )
     parser.add_argument("--curator", default="thisisanameforsure")
+    parser.add_argument(
+        "--write-refused",
+        action="store_true",
+        help="write the statement and record of a row refused for its witness alone under "
+        "<out>/refused/<target-id>/, for the hand witness (F14-T21)",
+    )
     args = parser.parse_args(argv)
 
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
@@ -1215,7 +1278,10 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     helpers = helper_names(args.fc)
     drafts = [
-        draft_row(r, catalog, args.fc, out, helpers, args.curator, args.overrides) for r in chosen
+        draft_row(
+            r, catalog, args.fc, out, helpers, args.curator, args.overrides, args.write_refused
+        )
+        for r in chosen
     ]
     script = out / "import.sh"
     script.write_text(import_script(drafts, rows, catalog), encoding="utf-8")

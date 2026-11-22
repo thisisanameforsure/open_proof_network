@@ -1,0 +1,44 @@
+F14-T21 — the witness pass: the driver writes what a hand witness needs, and a pilot writes nineteen
+================================================================================================
+
+Why. After T19, 391 of the catalog's rows are refused for their witness alone: their binders carry
+hypotheses (198 leading ∀s, 160 before the colon, 33 the driver cannot close), and the driver wrote
+nothing for them, so whoever writes the witness had nothing to write it against.
+
+What changed (gate/tools/wave.py)
+  --write-refused        a row refused for its witness alone (WITNESS_REFUSALS, now named constants)
+                         is drafted under <out>/refused/<id>/: record.yaml, Statement.lean, its ports,
+                         and draft.json carrying "refused"; no Witness.lean, since the witness is what
+                         is missing. The report says "(statement written under refused/ for a hand
+                         witness)". A row refused for anything else is not written.
+  Four driver defects the pilot found, each a test before its fix (gate/tests/test_wave.py, 33 tests):
+    an `open scoped Classical in` prefix on the theorem reached the statement with its `in` and
+      swallowed the next line (erdos-883) — opened plainly now;
+    the file's own definitions scanned for helper names took `S` and `of` for the library's
+      `Degrees.S` and `MilnorK.of` and ported four unrelated modules (erdos-509) — a body's bare name
+      counts only at the root, under a namespace the file opens, or written with its namespace;
+    a local definition used only in a binder before the colon was not ported (crystals-components-
+      unique) — the scan covers the binders;
+    `namespace Arxiv.«1601.03081»` was opened as `open Arxiv.` (the `conjecture` row) — guillemets.
+
+The pilot (engineering/evidence/F14/task-21-pilot/lane-{A,B,C}.md; 19 rows, three agents, under ten
+minutes each)
+  Tool: witness_check.py (scratchpad) sends a draft's statement with its ports inlined (each module
+  in its own section, theorems removed) and a candidate Witness.lean to POST /check, mode witness,
+  and reads `witness.expected` and `witness.matches`.
+  Result: a witness written for every one of the 19 rows; 9 accepted on the hosted route as drafted,
+  the other 10 blocked by something other than the witness — 7 by the probe (a ported module whose
+  definition's proof fields cite the module's own lemmas, which the route cannot carry: it takes a
+  statement with exactly one theorem, `lemma` counted), 3 by the driver defects above (now fixed).
+  Every one of the 10 was accepted on the statement's own definitions or a repaired copy.
+  Shapes: ⟨1, by norm_num⟩ for a positive real; ⟨3, Nat.prime_three, …⟩; a one-vertex graph; `Unit`
+  with n = 0 for Bing–Borsuk; powers of two as an infinite Sidon set (45 lines); 35 = 5·7 for the
+  crystals; n = 6, A = Icc 1 6, l = 3 for erdos-883. Two rows the driver could have closed itself
+  (an untyped `∀ k` → ⟨0, trivial⟩; `∀ᵉ (p : ℕ) (hp : p.Prime)` → a hypothesis, correctly refused).
+  Projection: about a minute and a half of agent time per row, so the 391 take ten agent-hours.
+
+Green: uv run --frozen python -m pytest gate/tests/test_wave.py gate/tests/test_wave_admit.py → 38
+passed; make lint and make types clean.
+
+Not done here: the witnesses themselves are not on the record; they go in as --overrides when the
+admission run (T20) has said which drafts the gate takes, and the full pass runs then.

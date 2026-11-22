@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -76,6 +77,21 @@ FILES: dict[int, str] = {
     7027: registry_file(
         7027, " : erdos_7027.answer = 1", before="def erdos_7027.answer : ℕ := by sorry\n\n"
     ),
+    # F14-T21 (the pilot's erdos-883): an `open … in` prefix on the theorem is the theorem's; as an
+    # `open` line of the statement it would swallow the line after it.
+    7028: registry_file(7028, " : ∃ n : ℕ, n = 7028", before="open scoped Classical in\n"),
+    # F14-T21 (the pilot's erdos-509): a file-local definition whose body uses `S` and `of` as its
+    # own names ports no library module that happens to declare an `S` or an `of` in a namespace
+    # the file never opens; one it opens (`Ramsey`) is ported.
+    7029: registry_file(
+        7029,
+        " : ∀ n : ℕ, Big n",
+        before=(
+            "open Ramsey in\n"
+            "def Big (n : ℕ) : Prop := ∃ S : Finset ℕ, (S.card = n) ∧ ∀ of ∈ S, "
+            "of ≤ hyperRamsey n\n\n"
+        ),
+    ),
 }
 #: Rows the refined helper and name rules must draft: a dotted declaration name, a bound variable
 #: named like a helper definition, and a dotted Mathlib member the helper library also declares as
@@ -119,6 +135,21 @@ EXTRA: dict[int, str] = {
     7023: registry_file(7023, " : ∃ n : ℕ, n = 7023"),
     # Below the default minimum score; drafted only when named with --key (F14-T18).
     7007: registry_file(7007, " : ∃ n : ℕ, n = 7007"),
+    # F14-T21 (the pilot's crystals-components-unique): a file-local definition used only in a
+    # binder before the colon is still a use the port must carry.
+    7030: registry_file(
+        7030,
+        " (n : ℕ) (h : Good30 n) : n ≤ n + 1",
+        before="def Good30 (n : ℕ) : Prop := 0 < n\n\n",
+    ),
+    # F14-T21 (the pilot's `conjecture`): the registry names an arXiv paper's namespace in
+    # guillemets, `Arxiv.«1601.03081»`; the statement opens it whole, not `open Arxiv.`.
+    7031: (
+        f"{MODULE_HEAD}namespace Arxiv.«1601.03081»\n\ndef Good31 (n : ℕ) : Prop := 0 < n\n\n"
+        "@[category research open, AMS 11]\n"
+        "theorem erdos_7031 : ∀ n : ℕ, Good31 n → n ≤ n + 1 := by\n"
+        "  sorry\n\nend Arxiv.«1601.03081»\n"
+    ),
 }
 #: A non-Erdős registry file (F14-T18): its module doc carries the `# heading` that names the
 #: problem, where the theorem's docstring opens with a sentence of context.
@@ -196,6 +227,10 @@ def catalog_doc() -> dict[str, Any]:
             row(7025),
             row(7026),
             row(7027, local_defs=["erdos_7027.answer"]),
+            row(7028),
+            row(7029, local_defs=["Big"]),
+            row(7030, local_defs=["Good30"]),
+            row(7031, local_defs=["Good31"]),
             row(
                 7009, decl="erdos_7009.parts.i"
             ),  # a dotted declaration name, as the file writes it
@@ -276,7 +311,7 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
 ) -> None:
     out, _result, _doc = wave
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 14, refused 11." in report
+    assert "Drafted 16, refused 13." in report
     # F14-T18: `∀ᶠ` is not a binder; the witness is `True` and nothing is refused.
     assert (
         (out / "erdos-7021" / "Witness.lean")
@@ -331,6 +366,8 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
         "erdos-7022",
         "erdos-7025",
         "erdos-7026",
+        "erdos-7028",
+        "erdos-7029",
         "seven-conjecture",
         "upstream",
     ]
@@ -458,7 +495,7 @@ def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> 
     overrides = write_overrides(tmp_path)
     out, _result, _doc = run_wave(tmp_path, "--overrides", str(overrides))
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 16, refused 9." in report
+    assert "Drafted 18, refused 11." in report
     # Binders before the colon stay before the colon; the witness is the curator's.
     statement = (out / "erdos-7005" / "Statement.lean").read_text(encoding="utf-8")
     assert "theorem Opn.erdos_7005 (n : ℕ) (h : 0 < n) :\n    n ≤ n + 1 := by\n  sorry" in statement
@@ -482,7 +519,7 @@ def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> 
     script = (out / "import.sh").read_text(encoding="utf-8")
     assert "--target erdos-7003 " in script and '--defs "$HERE/erdos-7003/defs"' in script
     # F14-T19: the hand ports for 7002 and 7003, and the driver's own for 7012, 7013, 7014.
-    assert "--target erdos-7001 " in script and script.count("--defs") == 6
+    assert "--target erdos-7001 " in script and script.count("--defs") == 7
     assert "`erdos:7003` → `erdos-7003/` (hand: defs Good)" in report
     # The curator's port wins over the mechanical one: no `Local.lean` beside `Good.lean`.
     assert sorted(p.name for p in (out / "erdos-7003" / "defs").iterdir()) == ["Good.lean"]
@@ -897,3 +934,82 @@ def test_a_definition_resting_on_sorry_refuses_the_row(
         "erdos_7027.answer" in report
     )
     assert not (out / "erdos-7027").exists()
+
+
+def test_write_refused_drafts_the_statement_for_a_hand_witness(tmp_path: Path) -> None:
+    """F14-T21: a row the driver refuses only for its witness still has a statement and a record
+    the driver can write; with `--write-refused` they go under `<out>/refused/<id>/` (no
+    `Witness.lean`, a manifest naming the refusal) so a person or an agent writes the witness
+    against the drafted statement and hands it back as `--overrides`. A row refused for
+    anything else is not
+    written, and the default writes nothing there."""
+    out, _result, _doc = run_wave(tmp_path, "--write-refused")
+    refused = out / "refused"
+    assert sorted(p.name for p in refused.iterdir()) == [
+        "erdos-7005",
+        "erdos-7010",
+        "erdos-7015",
+        "erdos-7016",
+        "erdos-7020",
+        "erdos-7030",
+        "erdos-7031",
+    ]
+    # A local definition used only in a binder before the colon is ported (crystals on the pilot),
+    # and a guillemet namespace is opened whole (`conjecture` on the pilot: `open Arxiv.`).
+    assert (refused / "erdos-7030" / "defs" / "Local.lean").is_file()
+    assert "open Erdos7030\n" in (refused / "erdos-7030" / "Statement.lean").read_text(
+        encoding="utf-8"
+    )
+    thirty_one = (refused / "erdos-7031" / "Statement.lean").read_text(encoding="utf-8")
+    assert "open Arxiv.«1601.03081»\n" in thirty_one and "open Arxiv.\n" not in thirty_one
+    port = (refused / "erdos-7031" / "defs" / "Local.lean").read_text(encoding="utf-8")
+    assert "namespace Arxiv.«1601.03081»\n" in port and "end Arxiv.«1601.03081»\n" in port
+    assert not (refused / "erdos-7004").exists() and not (refused / "erdos-7027").exists()
+    statement = (refused / "erdos-7005" / "Statement.lean").read_text(encoding="utf-8")
+    assert "theorem Opn.erdos_7005 (n : ℕ) (h : 0 < n) :\n    n ≤ n + 1 := by\n  sorry" in (
+        statement
+    )
+    assert not (refused / "erdos-7005" / "Witness.lean").exists()
+    record = yaml.safe_load((refused / "erdos-7005" / "record.yaml").read_text(encoding="utf-8"))
+    assert record["id"] == "erdos-7005"
+    manifest = json.loads((refused / "erdos-7005" / "draft.json").read_text(encoding="utf-8"))
+    assert manifest["target_id"] == "erdos-7005" and manifest["defs"] == []
+    assert manifest["refused"] == [
+        "binders before the colon carry a hypothesis (or cannot be closed): the witness is not "
+        "their closure over `True`, write it by hand"
+    ]
+    report = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert "`erdos:7005`: binders before the colon carry a hypothesis" in report
+    assert "(statement written under refused/ for a hand witness)" in report
+    # A refused row with a port carries the port too, so the witness can be checked against it.
+    assert not (refused / "erdos-7016" / "defs").exists()  # 7016 uses no port
+    out2, _r, _d = run_wave(tmp_path / "plain")
+    assert not (out2 / "refused").exists()
+
+
+def test_an_open_in_prefix_becomes_a_plain_open_of_the_statement(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    """The registry writes `open scoped Classical in` on the line before a theorem; copied as an
+    `open` line it swallows the statement's next line (erdos-883 on the pilot). It is the
+    theorem's, so the statement opens it plainly."""
+    out, _result, _doc = wave
+    statement = (out / "erdos-7028" / "Statement.lean").read_text(encoding="utf-8")
+    assert "open scoped Classical\n" in statement
+    assert not re.search(r"\bin$", statement.split("theorem Opn.")[0], re.M)
+    parsed = layout.parse_statement(statement)
+    assert isinstance(parsed, layout.Statement)
+
+
+def test_a_local_definitions_own_names_port_no_unrelated_module(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    """A local definition binding `S` and `of` is not a use of the library's `Degrees.S` or an
+    `of` in a namespace the file never opens (erdos-509 on the pilot ported four unrelated
+    modules); `hyperRamsey` under a namespace the file opens is ported."""
+    out, _result, _doc = wave
+    manifest = json.loads((out / "erdos-7029" / "draft.json").read_text(encoding="utf-8"))
+    assert manifest["defs"] == ["CombinatoricsAP", "CombinatoricsBase", "Local"]
+    port = (out / "erdos-7029" / "defs" / "Local.lean").read_text(encoding="utf-8")
+    assert "import Defs.CombinatoricsAP\n" in port and "def Big" in port
+    assert "open Ramsey in\ndef Big" in port  # the `open … in` prefix stays the definition's
