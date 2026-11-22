@@ -235,3 +235,20 @@ def test_the_dry_run_imports_through_the_real_command(
     assert doc["id"] == "erdos-7003"
     saved = json.loads((tmp_path / "dry" / "erdos-7003.json").read_text(encoding="utf-8"))
     assert saved["verdict"]["ok"] is True
+
+
+def test_the_verdict_is_read_through_the_log_lines_around_it() -> None:
+    """The CLI prints its JSON indented, and when it refuses, the sandbox's log lines follow it
+    on stderr (seen on the first live run: every refusal read as `error` with the log's tail as
+    its message). The last JSON object is read as a prefix, whatever follows it."""
+    tool = load_tool()
+    text = (
+        "INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged\n"
+        '{\n  "ok": false,\n  "refused": {\n    "check": "hazards",\n'
+        '    "message": "hazard-unacknowledged: off-by-one-range at 2 < n"\n  }\n}\n'
+        "opn-gate: refused: admission refused 'erdos-1002': root: hazards: Diagnostic(...)\n"
+    )
+    verdict = tool.last_json(text)
+    assert verdict is not None and verdict["refused"]["check"] == "hazards"
+    check, message = tool.refusal_of(verdict, text)
+    assert check == "hazards" and message.startswith("hazard-unacknowledged: off-by-one-range")

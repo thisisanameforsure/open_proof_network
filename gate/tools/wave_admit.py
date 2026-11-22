@@ -138,10 +138,11 @@ def run_cli(argv: list[str], cwd: Path) -> tuple[int, str]:
 
 def last_json(text: str) -> dict[str, Any] | None:
     """The last JSON object the command printed (a log line may precede it)."""
+    decoder = json.JSONDecoder()
     for i in range(len(text) - 1, -1, -1):
         if text[i] == "{" and (i == 0 or text[i - 1] == "\n"):
             try:
-                doc = json.loads(text[i:])
+                doc, _end = decoder.raw_decode(text[i:])  # a prefix: log lines may follow it
             except json.JSONDecodeError:
                 continue
             return doc if isinstance(doc, dict) else None
