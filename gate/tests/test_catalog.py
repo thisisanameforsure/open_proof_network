@@ -19,7 +19,9 @@ import pytest
 REPO = Path(__file__).resolve().parents[2]
 CATALOG = REPO / "docs" / "lean_conjecture_catalog.json"
 F11_DATASET = REPO / "docs" / "seed_conjecture_sources.json"
-RIEMANN = "fc:FormalConjectures/Millenium/RiemannHypothesis.lean#riemannHypothesis"
+# The registry renamed its directory from `Millenium` between the first build and 2026-11; the live
+# record (graph `targets/riemann-hypothesis`) keeps the path it was imported from (F14-T17).
+RIEMANN = "fc:FormalConjectures/Millennium/RiemannHypothesis.lean#riemannHypothesis"
 LIVE_ERDOS = (52, 68, 172, 376, 406)  # the five open targets F11 listed on the graph
 HIGH = 5  # F14-R5's default minimum: "B+"
 
@@ -105,9 +107,24 @@ def test_erdos_letters_agree_with_the_f11_dataset(rows: dict[str, dict[str, Any]
         letter = old.group(1)
         expected = ("B+" if row["score"] == HIGH else "B") if letter == "B" else letter
         assert row["letter"] == expected, (problem["number"], letter, row["letter"])
-    assert compared > 250, f"only {compared} problems kept their score; read the rebuild's evidence"
+    # 2026-09-14: 300-odd kept their score. 2026-11-21 (F14-T17, registry d8d031d): 146, because
+    # the scoring date moved from the build constant to the run date (94 rows lost or gained the
+    # 30-day point, 34 aged past 180 days) and the registry added value-typed variants to 27 files;
+    # the deltas are tabulated in engineering/evidence/F14/task-17.txt. The floor is a guard that
+    # the two catalogs are about the same problems, not a claim that scores are stable.
+    assert compared > 100, f"only {compared} problems kept their score; read the rebuild's evidence"
     for number in LIVE_ERDOS:
-        assert rows[f"erdos:{number}"]["score"] >= HIGH, (
+        row = rows[f"erdos:{number}"]
+        if row["score"] is None:
+            # F14-T17: the registry retagged erdos_172 `research solved` on 2026-10-29 while
+            # erdosproblems.com still lists it open. The catalog says so by name rather than
+            # grading it; whether the live target goes dormant (D-33) is a curator declaration.
+            assert any("no `research open` statement" in r for r in row["reasons"]), (
+                number,
+                row["reasons"],
+            )
+            continue
+        assert row["score"] >= HIGH, (
             number,
             rows[f"erdos:{number}"]["reasons"],
         )

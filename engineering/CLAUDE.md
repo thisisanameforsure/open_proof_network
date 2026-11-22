@@ -1877,3 +1877,17 @@ The law of the project:
   copy where F08-T10's lift-by-ancestry cannot see history (the 2026-10-04 lesson about `check_products.py`, paid
   again in a third command). **Two green branches met at a signature**: the service branch made `awaits_render`
   take the context, the words branch added a caller without it; `make types` after the merge found it in seconds.
+- 2026-11-22 — Wave two's first five (Goldbach, Green 58, Reed's ω Δ χ, the Flint Hills series, Schanuel)
+  on the record as graph #1601–#1605, from the owner's ruling to load every open statement regardless of
+  grade. Four things worth keeping. **A catalog is a claim about inputs that move**: the first rebuild in
+  ten weeks found a hard-coded scoring date, a client-rendered status page and a removed Epoch subset,
+  each silently regrading every row (F14-T17). **The curator's hand files are driver inputs, not edits of
+  its output**: a hand witness, ported defs and hazard acknowledgements go in as `--overrides` and
+  `--hazards`, so the record says what the curator wrote and the refusal stands for any row without one
+  (F14-T18, Q16); wave one had edited META on the branch after the refusal. **Check a ported statement
+  with its ports inlined**: `POST /check` reads only committed `defs/`, so the two statements with ports
+  were elaborated with the port text pasted in before import. **A runner script copies the flags it was
+  generated from**: the re-import after adding `--hazards` wrote the same META as before, caught by reading
+  the branch's META, not the log's "ok". Also: zsh's `$b:t` ate five pull-request titles (brace it), and
+  Playwright for the site's browser tests is `uv run --with 'playwright==1.58.0' python -m pytest`
+  (`--frozen --with` does not reach pytest; 1.58 matches the cached chromium 1248).

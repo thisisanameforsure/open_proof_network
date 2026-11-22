@@ -493,6 +493,32 @@ def test_import_carries_ported_definitions(tmp_path: Path) -> None:
     assert sorted(fidelity.subjects_of(target)) == ["Primes", "root"]
 
 
+def test_import_carries_the_curators_hazard_acknowledgements(tmp_path: Path) -> None:
+    """F14-T18: ``import-fc --hazards`` puts the curator's step-6 acknowledgements (F02-R4) in the
+    root's META at import, so an intake whose statement carries an intended literal or a total
+    division is admitted on the record the curator wrote, not on a hand edit after the refusal
+    (wave one's recipe). The list is validated as META is; a malformed entry is refused by name."""
+    root = copy_graph(tmp_path)
+    acknowledged = [
+        {
+            "checker": "off-by-one-range",
+            "location": "2 < n",
+            "justification": "strict, as the words say: every even integer greater than 2",
+        }
+    ]
+    import_fc(root, acknowledged_hazards=acknowledged)
+    meta = yaml.safe_load(
+        (root / "targets" / "fc-42" / "nodes" / "fc-42" / "META.yaml").read_text(encoding="utf-8")
+    )
+    assert meta["acknowledged_hazards"] == acknowledged
+    schemas.validate(meta, meta["schema"])
+    with pytest.raises(intake.IntakeError, match="acknowledged_hazards"):
+        import_fc(
+            copy_graph(tmp_path / "again"),
+            acknowledged_hazards=[{"checker": "div-zero", "location": "n / k"}],
+        )
+
+
 LIVE_NOTICES = Path(__file__).resolve().parent / "golden" / "notices" / "THIRD_PARTY_NOTICES.md"
 
 

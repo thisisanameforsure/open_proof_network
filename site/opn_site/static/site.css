@@ -208,6 +208,11 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .legend-mobile dt { color: var(--n100); margin-top: var(--s3); }
 .legend-mobile dd { margin: 0; color: var(--n400); }
 .problem-list { display: flex; flex-direction: column; gap: var(--s4); }
+.topic { display: flex; flex-direction: column; gap: var(--s4); }
+.topic + .topic { margin-top: var(--s6); }
+.topic-head { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--n400); margin: 0; padding-bottom: var(--s2); border-bottom: 1px solid var(--divider); }
+.topic-head .n { font-family: var(--mono); font-weight: 400; color: var(--n500); margin-left: var(--s2); }
+.problem .collection { font-size: 12px; color: var(--n400); border: 1px solid var(--divider); border-radius: 999px; padding: 1px 8px; }
 .card.problem { padding: var(--s6) var(--s8); gap: var(--s5); }
 .problem-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s8); align-items: start; }
 .problem-main { display: flex; flex-direction: column; gap: var(--s3); align-items: flex-start; }

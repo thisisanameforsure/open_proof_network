@@ -1,0 +1,41 @@
+schema: target/v3
+id: reed-omega-delta-chi-conjecture
+title: Reed's omega, delta, and chi conjecture
+informal: For a graph $G$, we define $\Delta(G)$ to be the maximum degree, $\omega(G)$
+  to be the size of the largest clique subgraph, and $\chi(G)$ to be the chromatic
+  number. Reed's omega, delta, and chi conjecture states that $$\chi(G) \leq \lceil
+  \frac{1}{2}(\omega(G) + \Delta(G) + 1) \rceil.$$
+paraphrase: null
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/Paper/ReedOmegaDeltaChi.lean
+  url: https://github.com/google-deepmind/formal-conjectures/blob/d8d031d4998c78575159ccab9a7a9e95ce043883/FormalConjectures/Paper/ReedOmegaDeltaChi.lean
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: null
+  summary: 'Catalog score 3 (C) at registry commit d8d031d4998c: +1 Lean statement
+    public for 180+ days; +1 no misformalization issue ever filed; +1 no file-local
+    definitions in the statement (Mathlib vocabulary only). AlphaProof Nexus attempts:
+    none on record. In the registry since 2026-02-25. Drafted by gate/tools/wave.py
+    (F14-T11); the curator reads it before import (R13).'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: d8d031d4998c78575159ccab9a7a9e95ce043883
+sources: []
+attack_routes: []
+posting: null
+domains:
+- combinatorics
+qa_summary: null
+classification:
+  arxiv:
+  - math.CO
+  msc2020:
+  - 05-xx

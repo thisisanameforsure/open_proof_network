@@ -33,7 +33,9 @@ import sys
 
 import yaml
 
-TODAY = dt.date(2026, 9, 8)
+# The scoring date. The run date by default; `--as-of` pins it (the first build was 2026-09-08).
+# F14-T17: a constant here docked every row a point once the registry's files were younger than it.
+TODAY = dt.date.today()
 AMS_NAMES = {
     "3": "logic and foundations", "5": "combinatorics", "11": "number theory", "12": "field theory",
     "14": "algebraic geometry", "20": "group theory", "26": "real functions", "28": "measure theory",
@@ -76,6 +78,21 @@ def parse_attrs(text):
     return out
 
 
+def _namespace_at(src, pos):
+    """The dotted namespace open at `pos`: every `namespace X` line before it not yet closed by its
+    `end X`. Sections and anonymous `end`s are ignored."""
+    stack = []
+    for line in src[:pos].splitlines():
+        m = re.match(r"^namespace\s+(\S+)", line)
+        if m:
+            stack.append(m.group(1))
+            continue
+        m = re.match(r"^end\s+(\S+)", line)
+        if m and stack and stack[-1] == m.group(1):
+            stack.pop()
+    return ".".join(stack)
+
+
 def parse_lean(path):
     src = open(path, encoding="utf-8").read()
     mod = MODDOC_RE.search(src)
@@ -90,9 +107,19 @@ def parse_lean(path):
     namespace = ns.group(1) if ns else ""
     decls = []
     positions = [(m.start(), m) for m in DECL_RE.finditer(src)]
+    # F14-T17: a file may declare the same short name in two namespaces (BSD.lean states `weakBSD`
+    # for a number field and again for ℚ), and a catalog key must name one declaration. A repeated
+    # short name is qualified by the namespace it sits in; a unique one keeps its short name, so
+    # every key written before this rule still names the same row.
+    short_names = [m.group("name") for _, m in positions]
+    repeated = {n for n in short_names if short_names.count(n) > 1}
     for idx, (pos, m) in enumerate(positions):
         end = positions[idx + 1][0] if idx + 1 < len(positions) else len(src)
         body = src[m.end():end]
+        name = m.group("name")
+        if name in repeated:
+            enclosing = _namespace_at(src, pos)
+            name = f"{enclosing}.{name}" if enclosing else name
         # attributes and docstring immediately preceding the declaration
         pre = src[max(0, pos - 6000):pos]
         attrs_text = ""
@@ -111,7 +138,7 @@ def parse_lean(path):
                 doc = tail[d + 3:-2].strip()
         at = parse_attrs(attrs_text)
         decls.append({
-            "kind": m.group("kind"), "name": m.group("name"), "doc": doc,
+            "kind": m.group("kind"), "name": name, "doc": doc,
             "category": at["category"], "ams": at["ams"], "formal_proof": at["formal_proof"],
             # value-typed: `answer(sorry)` used as a value (`f n = answer(sorry)`), as opposed to the
             # prove-or-disprove form `answer(sorry) ↔ P`, which is a conjecture with unknown truth value
@@ -230,7 +257,9 @@ def load_epoch(work):
     m = re.search(r"selected 70 Erdős problem numbers[^\n]*\n\n((?:>[^\n]*\n)+)", sel)
     bloom70 = set(int(x) for x in re.findall(r"\d+", m.group(1))) if m else set()
     fc48 = json.load(open(os.path.join(base, "erdos/subsets/bloom_selection.json")))["ids"]
-    auto18 = json.load(open(os.path.join(base, "erdos_autoformalized/subsets/bloom_selection.json")))["ids"]
+    # Epoch removed the autoformalized subset in 2026-10 (F14-T17); it only ever earned a +0 note.
+    auto_path = os.path.join(base, "erdos_autoformalized/subsets/bloom_selection.json")
+    auto18 = json.load(open(auto_path))["ids"] if os.path.exists(auto_path) else []
     top10 = json.load(open(os.path.join(base, "erdos/metadata/snapshots/bloom_top10.json")))
     top = set()
     for e in top10["entries"]:
@@ -261,10 +290,25 @@ def load_nexus(work):
 
 
 # ----------------------------------------------------------------------------- scoring
+def erdos_status(r):
+    """The problem's status on erdosproblems.com: the page's status markup where the fetched page
+    still carries one, else the state in the site's own database (`ep/data/problems.yaml`), which
+    is what the page renders from. F14-T17: the page went client-side in 2026-10 and every row read
+    as "status ?" until the build read the database it had cloned all along."""
+    page = (r.get("site") or {}).get("status")
+    if page:
+        return str(page)
+    db_status = (r.get("db") or {}).get("status")
+    if isinstance(db_status, dict) and db_status.get("state"):
+        return str(db_status["state"])
+    return ""
+
+
 def score_row(r):
     """Heuristic trust score for seeding, from the report's filter. Returns (points, letter, reasons)."""
-    if r["site"] and r["site"].get("status", "").upper() not in ("OPEN",):
-        return None, "n/a", ["site status is " + r["site"].get("status", "?") + ", not a seed candidate"]
+    status = erdos_status(r)
+    if status.upper() != "OPEN":
+        return None, "n/a", ["site status is " + (status or "?") + ", not a seed candidate"]
     if not r["open_stmts"]:
         return None, "n/a", ["no `research open` statement in the Lean file"]
     pts, why = 0, []
@@ -459,7 +503,12 @@ def main():
     ap.add_argument("--body", default=os.path.join(os.path.dirname(__file__), "seed_conjecture_sources_body.html"),
                     help="the report's hand-written prose, with the placeholders the build fills")
     ap.add_argument("--mathlib", default=os.path.join(os.path.dirname(__file__), "mathlib_conjectures.yaml"))
+    ap.add_argument("--as-of", default=None,
+                    help="score as of this date (YYYY-MM-DD) instead of today; the catalog records it as scored_as_of")
     args = ap.parse_args()
+    global TODAY
+    if args.as_of:
+        TODAY = dt.date.fromisoformat(args.as_of)
     W = args.work
     fc = os.path.join(W, "fc")
     commit = subprocess.check_output(["git", "-C", fc, "rev-parse", "HEAD"], text=True).strip()
@@ -510,7 +559,7 @@ def main():
     for r in rows:
         s = r["site"] or {}
         db = r["db"]
-        status = s.get("status") or db.get("status", {}).get("state", "?")
+        status = erdos_status(r) or "?"
         status_cls = "open" if status.upper() == "OPEN" else "closed"
         cats = {}
         for d in r["lean"]["decls"]:
@@ -663,7 +712,7 @@ def main():
 <td><details><summary>{len(opens)} statements</summary>{render_stmt_list(opens, commit, rel)}</details></td>
 <td class="score"><details><summary>{esc(best_txt)}</summary><ul class="stmts">{trust}</ul></details></td></tr>""")
 
-    n_open_site = sum(1 for r in rows if (r["site"] or {}).get("status", "").upper() == "OPEN")
+    n_open_site = sum(1 for r in rows if erdos_status(r).upper() == "OPEN")
     n_cand = sum(1 for r in rows if r["score"] is not None)
     n_A = sum(1 for r in rows if r["letter"] == "A")
     n_B = sum(1 for r in rows if r["letter"] in ("B+", "B"))

@@ -1,0 +1,46 @@
+F04-T63 — the Problems page groups problems by topic and names each one's collection (Q61)
+==========================================================================================
+
+Why. Wave two (F14-T18) put five non-Erdős problems on the record — Goldbach, Green's problem 58, Reed's
+ω Δ χ conjecture, the Flint Hills series, Schanuel — beside 24 Erdős targets on a page that listed every
+problem in one run sorted by id. The owner asked (2026-11-21) that the problems be organised by topic,
+as the registry organises its own.
+
+What changed
+  site/opn_site/render.py            COLLECTIONS, TOPIC_WORDS, collection_label(), topic_words(), topic_of();
+                                     problems() groups cards into <section class="topic"> by the record's first
+                                     domain tag, topics in the order of their words, each headed with a count;
+                                     problem_card() adds data-topic and a <span class="collection"> read from
+                                     provenance.upstream_path's second segment.
+  templates/problem-card.html        data-topic on the article; the collection pill after the status tags.
+  static/problems.js                 after a filter or search, a topic whose cards are all hidden is hidden.
+  static/site.css                    .topic, .topic-head, .problem .collection (tokens --n400, --n500, --divider).
+  site/tests/golden/problems/index.html  one golden moved: the fixture's single card now sits under "Other".
+
+Red first (site/tests/test_finding_problems_by_topic.py):
+  test_every_problem_sits_once_under_its_first_domain       AssertionError: [] (no topic sections)
+  test_a_card_names_the_collection_its_statement_came_from  '<span class="collection">Papers</span>' not in card
+  test_the_collection_label_reads_the_upstream_path ×6       AttributeError: no collection_label
+  test_a_search_that_empties_a_topic_hides_its_heading       (browser; skipped until Playwright was found)
+Green: 9 passed —
+  uv run --with 'playwright==1.58.0' python -m pytest site/tests/test_finding_problems_by_topic.py
+(the venv has no Playwright; `--frozen --with` does not apply the overlay to pytest here, `python -m pytest`
+under `uv run --with` does, and 1.58.0 is the version whose chromium_headless_shell-1248 is in the laptop's
+cache — 1.57.x and the unpinned latest each asked for a build that is not).
+Site suite: uv run --with playwright python -m pytest site/tests → 737 passed, 34 skipped, 1 failed
+(test_golden_pages, the expected golden move), then goldens regenerated with test_render.write_goldens()
+and test_render.py + the topic tests: 37 passed. ruff, ruff format, mypy --strict clean.
+
+Measured on the live graph (graph 946bb99f71, 28 targets, after #1603 merged Reed), rendered with the new
+code into a scratch directory and served to Playwright:
+  1200 px  scrollWidth 1200  topics: Combinatorics 2 · Discrete geometry 1 · Number theory 24 · Other 1
+           search "reed-omega" leaves only Combinatorics visible
+  390 px   scrollWidth 390   same four topics (the search box is hidden at phone width by the existing CSS)
+  collection pills on the page: Erdős Problems 21, Millennium problems 1, Papers 1 (three Erdős records
+  and the tutorial carry no upstream_path; the tutorial has no curated record and heads "Other")
+Screenshots: task-63-problems-1200.png, task-63-problems-search-1200.png, task-63-problems-390.png — read:
+the headings sit above their cards with the count in mono, the pill reads "Erdős Problems" / "Papers" beside
+the status tags, Reed's card shows its KaTeX informal statement under Combinatorics, nothing overflows.
+
+Not done here: the tutorial's "Other" heading is a fact about its record (no domains), not the page; the
+Discrete geometry singleton (erdos-212) is what the registry's AMS 52 says.
