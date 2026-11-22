@@ -1,0 +1,30 @@
+F14-T22 — the merge actor takes the curator's intake/ branches
+==============================================================
+
+Why. The bulk load opens one intake pull request per target (F11-Q26: a submission touches exactly
+one target) from an `intake/<id>` branch, and the actor took only the service's `propose/`, `append/`
+and `submit/` branches, so wave two's five (2026-11-22) were merged by hand, one per bot commit. A
+few hundred intakes merged by hand is days of a person's attention for no judgment: the gate's intake
+mode has already said yes, and the admission run (T20) said so before the pull request existed.
+
+What changed
+  graph .github/workflows/merge.yml   SERVICE_PREFIXES gains "intake/" (graph PR #1606, merged
+                                      2026-11-23, gate "nothing to gate": a workflow change by a
+                                      listed curator). Guards unchanged: only an account with push
+                                      access can open a branch in the repository, and only the pinned
+                                      gate's intake mode turns an intake green; the ruleset's required
+                                      checks are read by name on every run as before.
+  api/opn_api/pending.py              SERVICE_PREFIXES held equal (the service's queue positions).
+  gate/tests/test_finding_merge_actor_workflow.py   REFS reads the branch f14-t22-intake-lane first,
+                                      then origin/main (the branch is merged and deleted; origin/main
+                                      carries it).
+  api/tests/test_registrations.py     the docstring's list of prefixes.
+
+Red first: gate/tests/test_finding_queue_order_is_the_actors.py
+  test_a_curators_intake_branch_is_the_actors_too — failed on the service's prefixes
+  (AssertionError: ('propose/', 'append/', 'submit/') == (…, 'intake/')) and on the actor's order
+  ([12] == [10, 12]) while the graph branch was uncommitted: `git show branch:path` reads commits.
+Green: the actor, steward, workflow, registrations and pending tests → 88 passed.
+
+Not changed: a `curate/` branch is still not the actor's (test_merge_actor_steward.py); a draft intake
+pull request is not either. Live proof is the first intake the actor merges, recorded in T23's import.

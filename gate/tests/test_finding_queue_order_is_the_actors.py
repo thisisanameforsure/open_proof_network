@@ -122,3 +122,19 @@ def test_decide_takes_the_first_green_in_that_order(pick: dict[str, Any]) -> Non
     )[:3]
     assert (number, action) == (6, "merge")
     assert "passes over" in pending.QUEUE_ORDER and "upper bound" in pending.QUEUE_ORDER
+
+
+def test_a_curators_intake_branch_is_the_actors_too(pick: dict[str, Any]) -> None:
+    """F14-T22: the bulk load opens one intake pull request per target from an ``intake/<id>``
+    branch, and nothing merged them but a person (wave two's five, 2026-11-22, by hand). The actor
+    takes them: only an account with push access can open such a branch here, and only the pinned
+    gate's intake mode turns one green. The service's queue says the same."""
+    assert "intake/" in pending.SERVICE_PREFIXES
+    pulls = [
+        host_entry(10, "intake/erdos-10"),
+        host_entry(11, "curate/erdos-10"),
+        host_entry(12, "propose/x"),
+        host_entry(13, "intake/erdos-11", draft=True),
+    ]
+    assert actor_order(pick, pulls) == [10, 12]
+    assert service_order(pulls) == [10, 12]

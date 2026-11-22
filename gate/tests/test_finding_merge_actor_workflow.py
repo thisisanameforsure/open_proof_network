@@ -45,6 +45,7 @@ PATH = ".github/workflows/merge.yml"
 #: sub-lane per target) reached main 2026-11-20 with the re-pin to network 90807562, and came
 #: out then.
 REFS = (
+    "f14-t22-intake-lane",
     "audit-b-workflows",
     "origin/main",
     "f07-t25-merge-actor",

@@ -5,8 +5,9 @@ A signed-in curator or an active steward of the target — a web session, or a b
 identity is a GitHub login — records a submission to, or a registration in, Palomar. The service
 writes the ``registration/v1`` record as that login (``submitted_by`` is the sign-in, never a
 field), names the file ``registrations/<date>-<n>.yaml`` and opens it on an ``append/`` branch,
-which the graph's merge actor takes without any change (its ``SERVICE_PREFIXES`` are ``propose/``,
-``append/``, ``submit/``). It refuses by name what the gate would refuse — the submitter's role,
+which the graph's merge actor takes without any change (its ``SERVICE_PREFIXES`` are
+``propose/``, ``append/``, ``submit/`` and, since F14-T22, the curator's ``intake/``). It
+refuses by name what the gate would refuse — the submitter's role,
 the proof's node, the attestation — with nothing opened, and what lands is checked by the gate's
 own ``modes.check_as_service`` over the tree it will merge into. Nothing here talks to the
 registry: the submission is the curator's act outside the network.

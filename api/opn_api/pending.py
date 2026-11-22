@@ -533,10 +533,10 @@ def attestation_doc(raw: bytes, path: str) -> dict[str, Any]:
 
 # --- the merge queue (F05-T18) --------------------------------------------------------------------
 
-#: The branches the service opens pull requests from, which are the ones the merge actor takes
-#: (``SERVICE_PREFIXES`` in the graph's ``merge.yml``; held equal by
-#: ``gate/tests/test_finding_queue_order_is_the_actors.py``).
-SERVICE_PREFIXES: tuple[str, ...] = ("propose/", "append/", "submit/")
+#: The branches the service opens pull requests from, and the curator's ``intake/`` branches of
+#: the bulk load (F14-T22), which are the ones the merge actor takes (``SERVICE_PREFIXES`` in the
+#: graph's ``merge.yml``; held equal by ``gate/tests/test_finding_queue_order_is_the_actors.py``).
+SERVICE_PREFIXES: tuple[str, ...] = ("propose/", "append/", "submit/", "intake/")
 QUEUE_BASE = "main"
 #: How the position is to be read, said in the answer because the position alone overstates it.
 QUEUE_ORDER = (
