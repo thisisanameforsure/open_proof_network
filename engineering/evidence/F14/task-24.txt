@@ -1,0 +1,24 @@
+F14-T24 — the admitted drafts open as intake pull requests, one per target
+===========================================================================
+
+gate/tools/wave_open.py reads T20's merged admission report (summary.json) beside the drafts and, for
+each admitted target in id order: a detached checkout of a graph clone at origin/main, the draft's
+`intake import-fc … --branch intake/<id> --no-toolchain` (the sandbox already admitted it; the gate
+judges the pull request again), `git push`, `gh pr create` against main. The merge actor takes
+`intake/` branches (T22). `opened.json` beside the report records each target as it is opened, so a
+stopped run resumes and no target is opened twice; the first failure stops the run naming the target;
+`--limit N` opens the first N; `--dry-run` prints what it would run.
+
+Red first (gate/tests/test_wave_open.py): both tests failed on the missing module (not red on a
+defect: the module was new); then on `ModuleNotFoundError: wave_admit` (gate/tools is not a package,
+so the sibling is loaded by path). Green: 2 passed (41 s: the fixture drafts the registry). ruff,
+ruff format, mypy --strict clean.
+
+Dry run against the live drafts (all-drafts8) with a hand-written report of three ids: erdos-10 and
+collatz-conjecture print their import (with --defs for erdos-10's Local port, --branch
+intake/<id>, --no-toolchain) and `gh pr create --repo thisisanameforsure/open_proof_network_graph
+--base main --head intake/<id>`; an id with no draft (green-58-x) is skipped silently, as an admitted
+id the drafts do not carry cannot be opened.
+
+Not run here: the live opening waits for the admission run's report (run 2, 45084620268, over the 652
+drafts with the witnesses). The first live opening is recorded below when it happens.
