@@ -1086,6 +1086,22 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     upstream = out / "upstream" / row["file"]
     upstream.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, upstream)
+    # The manifest the admission runner reads (F14-T20): one source for a draft's inputs.
+    (directory / "draft.json").write_text(
+        json.dumps(
+            {
+                "key": draft.key,
+                "target_id": draft.target_id,
+                "file": row["file"],
+                "defs": list(draft.defs),
+                "hazards": draft.hazards,
+            },
+            indent=1,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     draft.directory = directory
     return draft
 

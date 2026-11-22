@@ -1,0 +1,173 @@
+# F14-T20: admit every wave draft with the gate before any pull request opens.
+#
+# The wave driver drafts one intake directory per research-open row of the registry (F14-T11,
+# T18, T19); the hosted fast check samples a port in 20 s and reads no committed defs/ (Q17), so
+# the gate's own admission in the pinned step-3 image is the verdict. One job drafts; N shards
+# import their drafts into a scratch clone with `intake import-fc --sandbox`; one job merges the
+# reports and publishes `import-admitted.sh`, the import script filtered to what the gate admitted.
+# Read-only against every host (C8): the scratch clone is never pushed, no secret is granted.
+name: wave admit
+on:
+  workflow_dispatch:
+    inputs:
+      min_score:
+        description: "draft the catalog rows scoring at least this (0: every open statement)"
+        required: false
+        default: "0"
+        type: string
+      keys:
+        description: "draft only these catalog keys, space-separated (overrides min_score)"
+        required: false
+        default: ""
+        type: string
+      shards:
+        description: "how many admission shards (one runner each)"
+        required: false
+        default: "8"
+        type: string
+      spec_target:
+        description: "the live target whose gate-spec.json (image, Mathlib pin) the imports inherit"
+        required: false
+        default: "goldbach"
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GRAPH_REPO: https://github.com/thisisanameforsure/open_proof_network_graph
+  FC_REPO: https://github.com/google-deepmind/formal-conjectures
+
+jobs:
+  draft:
+    name: draft every chosen row
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - name: Fetch the registry at the catalog's pin
+        run: |
+          set -euo pipefail
+          pin=$(python3 -c 'import json; print(json.load(open("docs/lean_conjecture_catalog.json"))["fc_commit"])')
+          git init -q fc && git -C fc remote add origin "$FC_REPO"
+          git -C fc fetch -q --depth 1 origin "$pin" && git -C fc checkout -q FETCH_HEAD
+          echo "registry at $(git -C fc rev-parse HEAD)"
+      - name: Draft
+        env:
+          MIN_SCORE: ${{ inputs.min_score }}
+          KEYS: ${{ inputs.keys }}
+          PYTHONPATH: gate
+        run: |
+          set -euo pipefail
+          args=(--catalog docs/lean_conjecture_catalog.json --fc fc --out drafts --min-score "$MIN_SCORE")
+          for k in $KEYS; do args+=(--key "$k"); done
+          uv run --frozen python gate/tools/wave.py "${args[@]}" > drafts.json
+          sed -n 1,6p drafts/REPORT.md
+      - name: Plan the shards
+        id: plan
+        env:
+          SHARDS: ${{ inputs.shards }}
+        run: |
+          set -euo pipefail
+          python3 - "$SHARDS" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          n = int(sys.argv[1])
+          print("shards=" + json.dumps(list(range(n))))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: drafts
+          path: |
+            drafts
+            drafts.json
+          retention-days: 14
+
+  admit:
+    name: admit shard ${{ matrix.shard }}
+    needs: draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.draft.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: drafts
+      - name: Clone the graph (read-only, shallow; D-35) as the scratch target
+        run: git clone --depth 1 "$GRAPH_REPO" graph
+      - name: Make room for the Mathlib image
+        run: |
+          set -euo pipefail
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
+      - name: Pull the pinned image
+        id: image
+        env:
+          SPEC_TARGET: ${{ inputs.spec_target }}
+        run: |
+          set -euo pipefail
+          spec="graph/targets/$SPEC_TARGET/gate-spec.json"
+          image=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["devcontainer_ref"])' "$spec")
+          docker pull -q "$image"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "spec=$spec" >> "$GITHUB_OUTPUT"
+      - name: Admit this shard in the sandbox
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ inputs.shards }}
+          PYTHONPATH: gate
+        run: |
+          set -euo pipefail
+          uv run --frozen python gate/tools/wave_admit.py run --drafts drafts --graph graph \
+            --spec "${{ steps.image.outputs.spec }}" --image "${{ steps.image.outputs.image }}" \
+            --out "admit-$SHARD" --shard "$SHARD/$SHARDS" --mode sandbox 2>&1 | tail -400
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        if: always()
+        with:
+          name: admit-${{ matrix.shard }}
+          path: admit-${{ matrix.shard }}
+          retention-days: 14
+
+  report:
+    name: merge the shards' verdicts
+    needs: [draft, admit]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          path: artifacts
+      - name: Merge
+        env:
+          PYTHONPATH: gate
+        run: |
+          set -euo pipefail
+          ls artifacts
+          uv run --frozen python gate/tools/wave_admit.py merge artifacts/admit-* \
+            --drafts artifacts/drafts/drafts --out merged
+          sed -n 1,12p merged/REPORT.md
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: wave-admit-report
+          path: merged
+          retention-days: 90

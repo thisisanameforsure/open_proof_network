@@ -495,6 +495,8 @@ def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> 
         "--target erdos-7005 " in script and '--hazards "$HERE/erdos-7005/hazards.yaml"' in script
     )
     assert script.count("--hazards") == 1
+    manifest = json.loads((out / "erdos-7005" / "draft.json").read_text(encoding="utf-8"))
+    assert manifest["hazards"] is True and manifest["defs"] == []
     # Still refused: the value-typed row, and the row whose leading binders carry hypotheses and
     # whose curator wrote no witness.
     assert "`erdos:7004`: value-typed" in report
@@ -748,6 +750,18 @@ def test_a_file_local_definition_is_ported_mechanically(
     assert isinstance(parsed, layout.Statement) and parsed.decl_name == "Opn.erdos_7003"
     script = (out / "import.sh").read_text(encoding="utf-8")
     assert "--target erdos-7003 " in script and '--defs "$HERE/erdos-7003/defs"' in script
+    # F14-T20: every draft carries a manifest the admission runner reads, so no other tool parses
+    # import.sh for a draft's inputs.
+    manifest = json.loads((out / "erdos-7003" / "draft.json").read_text(encoding="utf-8"))
+    assert manifest == {
+        "key": "erdos:7003",
+        "target_id": "erdos-7003",
+        "file": "FormalConjectures/ErdosProblems/7003.lean",
+        "defs": ["Local"],
+        "hazards": False,
+    }
+    plain = json.loads((out / "erdos-7001" / "draft.json").read_text(encoding="utf-8"))
+    assert plain["defs"] == [] and plain["hazards"] is False
 
 
 def test_a_helper_library_module_is_ported_with_what_it_imports(

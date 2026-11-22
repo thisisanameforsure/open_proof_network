@@ -1,0 +1,35 @@
+F14-T20 — the gate admits every draft before any pull request opens
+====================================================================
+
+Why. T19's live probe used the hosted fast check (POST /check), which has a 20 s budget and reads
+no committed defs/, so it could sample the port but not judge it (Q17). The judge is the gate's own
+admission (R2) in the pinned step-3 image, which is what an intake pull request meets; for a bulk
+load of a few hundred drafts it has to run before the pull requests, not as them.
+
+What changed
+  gate/tools/wave.py             writes <draft>/draft.json {key, target_id, file, defs, hazards}: one
+                                 source for a draft's inputs (no tool parses import.sh).
+  gate/tools/wave_admit.py       run: shard k/N of the drafts (id order), each imported into a scratch
+                                 clone with `intake import-fc … --spec <live gate-spec> --sandbox
+                                 --image <pinned>` (or --no-toolchain, the dry run), the CLI's own JSON
+                                 kept per target, a shard summary; merge: the shards joined, REPORT.md
+                                 (refusals by check, each named), import-admitted.sh = import.sh with
+                                 only the admitted targets' lines, header verbatim.
+  .github/workflows/wave-admit.yml  dispatch (min_score, keys, shards, spec_target): draft job (registry
+                                 fetched at the catalog's pin, wave.py, artifact), N admit shards (graph
+                                 cloned shallow as the scratch target, image pulled by the live spec's
+                                 digest, wave_admit run), merge job (report artifact, 90 days). Read-only
+                                 against every host; no secret.
+
+Red first (gate/tests/test_wave_admit.py, and two manifest assertions in test_wave.py)
+  7 failed before the tool existed: the manifest tests on the missing draft.json (the defect), the
+  five runner tests on the missing module (not red on a defect: the module was new).
+Green: uv run --frozen python -m pytest gate/tests/test_wave.py gate/tests/test_wave_admit.py
+  gate/tests/test_finding_workflow_action_pins.py → 38 passed (the dry-run test drives the real CLI
+  for two drafts into a scratch graph, ~40 s). ruff, ruff format, mypy --strict clean; the workflow
+  passes the action-pin and concurrency rules (download-artifact v4 pinned to d3f86a10).
+
+Not measured here: the sandbox admission itself. The laptop has no Mathlib image (F11-Q17), so the
+first run is CI's: `gh workflow run wave-admit.yml --ref main` after this push, eight shards over
+the 365 drafts of T19's final run. Its run id, the merged REPORT.md and the admitted/refused counts
+are appended below when it finishes.
