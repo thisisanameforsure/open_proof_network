@@ -149,6 +149,9 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARDS: ${{ inputs.shards }}
           PYTHONPATH: gate
+          # The import's listed-targets cap (64) was wave one's sizing; the bulk load passes it by
+          # design (F14-Q18), so the scratch imports here take the same ceiling the opener uses.
+          OPN_LISTED_TARGETS_MAX: "2000"
         run: |
           set -euo pipefail
           uv run --frozen python gate/tools/wave_admit.py run --drafts drafts --graph graph \
