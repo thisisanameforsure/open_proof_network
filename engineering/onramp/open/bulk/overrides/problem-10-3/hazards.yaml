@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 1 ≤ n
+  justification: '`1 ≤ n` is the problem''s own range, because Problem 10.3 asks for ‖e^n‖ > e^{−cn} ''for every n ≥ 1'' (inclusive); the formal bound is the same.'

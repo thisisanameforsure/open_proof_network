@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 6 < n
+  justification: '`6 < n` together with the hypothesis `Odd n` is the problem''s range "all odd integers n ≥ 7" as the informal text states it, because the odd integers greater than 6 are exactly the odd integers ≥ 7; the boundary is the stated one.'

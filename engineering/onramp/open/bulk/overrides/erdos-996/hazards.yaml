@@ -1,0 +1,12 @@
+- checker: div-zero
+  location: (∑ k ∈ Finset.range N, ↑↑f (n k • x)) / ↑N
+  justification: "`(∑_{k<N} f(n_k x)) / N` is the problem's Cesàro average of the first N terms, because the claim is `Tendsto … atTop`, a statement about N → ∞, and N ≥ 1 for every index but the first; the junk value at N = 0 (an empty sum over 0) is one term and cannot affect a limit."
+- checker: div-zero
+  location: 1 / Real.log (Real.log (Real.log ↑k)) ^ C
+  justification: "`1 / (log log log k)^C` is the problem's O(1/(log log log k)^C) bound, because the hypothesis is `=O[atTop]`, which constrains only large k, and for every k ≥ 16 we have log k > e, so log log k > 1 and log log log k > 0, making the denominator positive; the finitely many smaller k are outside the eventual range."
+- checker: junk-value
+  location: Real.log (Real.log (Real.log ↑k))
+  justification: "`log (log (log k))` is the problem's iterated logarithm, because inside the `=O[atTop]` hypothesis only large k matter and for k ≥ 16 all three logarithms have positive argument (log k > e > 1, log log k > 1 > 0), so no junk value occurs in the range the claim depends on."
+- checker: junk-value
+  location: Real.log (Real.log ↑k)
+  justification: "`log (log k)` is the problem's log log k, because it occurs only inside the `=O[atTop]` bound and for every k ≥ 3 we have log k > 1 > 0, so its argument is positive on the eventual range; the junk values at k ≤ 2 cannot affect an eventual bound."

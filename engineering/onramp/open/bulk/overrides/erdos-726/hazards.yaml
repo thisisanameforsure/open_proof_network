@@ -1,0 +1,15 @@
+- checker: div-zero
+  location: 1 / ↑p
+  justification: '`1 / ↑p` is the problem''s 1/p summed over primes p ≤ n, because p ranges over the filter `p.Prime ∧ …` of `range (n+1)`, so p ≥ 2 wherever a term exists; the denominator is never zero.'
+- checker: div-zero
+  location: n % a
+  justification: '`n % a` is the checker''s rendering of the statement''s single modulo `n % p` (the statement contains no other `%`); it is the problem''s residue of n mod p for a prime p, because the modulo is conjoined with `p.Prime`, so for p = 0 (where `n % 0 = n` is junk) the conjunct is false and the junk value never decides membership. The registry''s own docstring says the remainder is computed in ℕ before casting.'
+- checker: div-zero
+  location: n % p
+  justification: '`n % p` is the problem''s residue r with n ≡ r (mod p), 0 ≤ r < p, because the condition is conjoined with `p.Prime`, so p ≥ 2 wherever the modulo matters and the comparison p/2 < r is exactly the informal n ∈ (p/2, p) (mod p); the registry''s docstring states the remainder is computed in ℕ before casting to ℝ.'
+- checker: junk-value
+  location: Real.log (Real.log ↑n)
+  justification: '`Real.log (Real.log ↑n)` is the problem''s log log n in the asymptotic (log log n)/2, because the statement is an asymptotic equivalence `~[atTop]`, which depends only on large n, and for n ≥ 3 we have log n > 1 so log log n > 0 is the genuine value; the junk at n ≤ 1 and the negative value at n = 2 are finitely many terms that cannot affect the equivalence.'
+- checker: off-by-one-range
+  location: Finset.range (n + 1)
+  justification: '`Finset.range (n + 1)` is the problem''s range p ≤ n in ∑_{p ≤ n}, because range (n+1) = {0, …, n} includes n; the inclusive endpoint is the stated one.'

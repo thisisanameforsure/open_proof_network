@@ -159,6 +159,42 @@ EXTRA: dict[int, str] = {
         " : F(2, 3) = 6",
         before='local notation "F(" s ", " n ")" => (s : ℕ) * n\n\n',
     ),
+    # F14-T25 (run 2's agoh-giuga, 15 rows): a local definition's body uses a library definition
+    # dotted on a variable (`n.Composite`, the library's `Nat.Composite`); the body scan follows it.
+    7034: registry_file(
+        7034, " : ∀ n : ℕ, Heavy n", before="def Heavy (n : ℕ) : Prop := n.Composite ∧ 1 < n\n\n"
+    ),
+    # F14-T25 (cerny-conjecture, 9 rows): the statement uses a library definition dotted on a
+    # Mathlib type the fixture's namespace list never named (`M.IsSynchronizing`, `DFA`).
+    7035: registry_file(7035, " : ∀ M : DFA ℕ ℕ, M.IsSynchronizing"),
+    # F14-T25 (erdos-145, 5 rows): a local definition's body cites a library *theorem*
+    # (`Nat.squarefree_infinite`); the body scan follows lemmas too.
+    7036: registry_file(
+        7036,
+        " : ∀ n : ℕ, Count n = n",
+        before=(
+            "def Count (n : ℕ) : ℕ := Nat.nth Squarefree n + (Nat.squarefree_infinite).ncard\n\n"
+        ),
+    ),
+    # F14-T25 (erdos-1055, 8 rows): a local definition's body cites a proved lemma of the file;
+    # the Local port keeps a proved theorem and drops only the conjectures (sorry, `category`).
+    7037: registry_file(
+        7037,
+        " : ∀ n : ℕ, Pick n = n",
+        before=(
+            "theorem exists_p (n : ℕ) : ∃ p, n ≤ p := ⟨n, le_rfl⟩\n\n"
+            "noncomputable def Pick (n : ℕ) : ℕ := (exists_p n).choose\n\n"
+        ),
+    ),
+    # F14-T25 (erdos-14, 4 rows): a file-local infix the statement uses.
+    7038: registry_file(
+        7038, " : ∀ n : ℕ, n ≫ 0", before='local infix:50 " ≫ " => fun (a b : ℕ) => b ≤ a\n\n'
+    ),
+    # F14-T25 (green-77, 6 rows): the file opens another registry file's namespace; a cross-file
+    # statement is curated by hand.
+    7039: registry_file(7039, " : ∀ n : ℕ, n = n", before="open Erdos7001\n\n"),
+    # F14-T25 (erdos-1135, 4 rows): the statement is another statement's type.
+    7040: registry_file(7040, " : type_of% erdos_7001"),
     7031: (
         f"{MODULE_HEAD}namespace Arxiv.«1601.03081»\n\ndef Good31 (n : ℕ) : Prop := 0 < n\n\n"
         "@[category research open, AMS 11]\n"
@@ -248,6 +284,13 @@ def catalog_doc() -> dict[str, Any]:
             row(7031, local_defs=["Good31"]),
             row(7032),
             row(7033),
+            row(7034, local_defs=["Heavy"]),
+            row(7035),
+            row(7036, local_defs=["Count"]),
+            row(7037, local_defs=["Pick"]),
+            row(7038),
+            row(7039),
+            row(7040),
             row(
                 7009, decl="erdos_7009.parts.i"
             ),  # a dotted declaration name, as the file writes it
@@ -296,6 +339,16 @@ def write_registry(tmp_path: Path) -> tuple[Path, Path, dict[str, Any]]:
     helpers.parent.mkdir(parents=True)
     helpers.write_text(HELPER_AP, encoding="utf-8")
     (helpers.parent / "Base.lean").write_text(HELPER_BASE, encoding="utf-8")
+    more = fc / "FormalConjecturesForMathlib" / "Data" / "More.lean"
+    more.parent.mkdir(parents=True)
+    more.write_text(
+        f"{HEADER}module\n\npublic import Mathlib.Order.Basic\n\n@[expose] public section\n\n"
+        "namespace Nat\nabbrev Composite (n : ℕ) : Prop := 1 < n ∧ ¬n.Prime\n"
+        "theorem squarefree_infinite : Set.Infinite {n : ℕ | Squarefree n} := sorry_free\n"
+        "end Nat\n\n"
+        "namespace DFA\ndef IsSynchronizing (M : DFA ℕ ℕ) : Prop := True\nend DFA\n",
+        encoding="utf-8",
+    )
     plane = fc / "FormalConjecturesForMathlib" / "Geometry" / "Plane.lean"
     plane.parent.mkdir(parents=True)
     plane.write_text(
@@ -328,7 +381,7 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
 ) -> None:
     out, _result, _doc = wave
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 18, refused 13." in report
+    assert "Drafted 23, refused 15." in report
     # F14-T18: `∀ᶠ` is not a binder; the witness is `True` and nothing is refused.
     assert (
         (out / "erdos-7021" / "Witness.lean")
@@ -388,6 +441,11 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
         "erdos-7028",
         "erdos-7029",
         "erdos-7033",
+        "erdos-7034",
+        "erdos-7035",
+        "erdos-7036",
+        "erdos-7037",
+        "erdos-7038",
         "seven-conjecture",
         "upstream",
     ]
@@ -515,7 +573,7 @@ def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> 
     overrides = write_overrides(tmp_path)
     out, _result, _doc = run_wave(tmp_path, "--overrides", str(overrides))
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 20, refused 11." in report
+    assert "Drafted 25, refused 13." in report
     # Binders before the colon stay before the colon; the witness is the curator's.
     statement = (out / "erdos-7005" / "Statement.lean").read_text(encoding="utf-8")
     assert "theorem Opn.erdos_7005 (n : ℕ) (h : 0 < n) :\n    n ≤ n + 1 := by\n  sorry" in statement
@@ -539,7 +597,7 @@ def test_hand_files_lift_the_witness_and_definition_refusals(tmp_path: Path) -> 
     script = (out / "import.sh").read_text(encoding="utf-8")
     assert "--target erdos-7003 " in script and '--defs "$HERE/erdos-7003/defs"' in script
     # F14-T19: the hand ports for 7002 and 7003, and the driver's own for 7012, 7013, 7014.
-    assert "--target erdos-7001 " in script and script.count("--defs") == 9
+    assert "--target erdos-7001 " in script and script.count("--defs") == 14
     assert "`erdos:7003` → `erdos-7003/` (hand: defs Good)" in report
     # The curator's port wins over the mechanical one: no `Local.lean` beside `Good.lean`.
     assert sorted(p.name for p in (out / "erdos-7003" / "defs").iterdir()) == ["Good.lean"]
@@ -1071,3 +1129,49 @@ def test_a_local_notation_is_ported_and_the_statement_imports_it(
     statement = (out / "erdos-7033" / "Statement.lean").read_text(encoding="utf-8")
     assert "import Defs.Local\n" in statement and "open Erdos7033\n" in statement
     assert "F(2, 3) = 6 := by" in statement
+
+
+# --- F14-T25: what the second admission run's refusals taught -----------------------------------
+
+
+def test_dotted_library_names_are_followed_in_statements_and_bodies(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    out, _result, _doc = wave
+    report = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert "`erdos:7034` → `erdos-7034/` (port: DataMore Local)" in report
+    assert "`erdos:7035` → `erdos-7035/` (port: DataMore)" in report
+    assert "`erdos:7036` → `erdos-7036/` (port: DataMore Local)" in report
+
+
+def test_a_local_port_keeps_the_files_proved_lemmas(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    out, _result, _doc = wave
+    port = (out / "erdos-7037" / "defs" / "Local.lean").read_text(encoding="utf-8")
+    assert "theorem exists_p (n : ℕ) : ∃ p, n ≤ p := ⟨n, le_rfl⟩\n" in port
+    assert "erdos_7037" not in port and "sorry" not in port and "@[category" not in port
+
+
+def test_a_local_infix_is_ported_as_a_plain_infix(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    out, _result, _doc = wave
+    port = (out / "erdos-7038" / "defs" / "Local.lean").read_text(encoding="utf-8")
+    assert 'infix:50 " ≫ " => fun (a b : ℕ) => b ≤ a\n' in port and "local infix" not in port
+    assert "import Defs.Local\n" in (out / "erdos-7038" / "Statement.lean").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_cross_file_statements_are_refused_by_name(
+    wave: tuple[Path, dict[str, Any], dict[str, Any]],
+) -> None:
+    out, _result, _doc = wave
+    report = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert (
+        "`erdos:7039`: opens another registry file's namespace (Erdos7001): a cross-file "
+        "statement, curate by hand" in report
+    )
+    assert "`erdos:7040`: the statement is another statement's type (`type_of%`)" in report
+    assert not (out / "erdos-7039").exists() and not (out / "erdos-7040").exists()

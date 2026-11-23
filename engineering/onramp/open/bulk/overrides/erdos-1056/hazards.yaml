@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: k ≥ 2
+  justification: '`k ≥ 2` is the problem''s own hypothesis: the informal statement opens ''Let k ≥ 2'', so the inclusive bound at 2 (three consecutive intervals I_0, I_1, I_2) is the stated one.'

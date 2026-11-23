@@ -1,0 +1,3 @@
+- checker: nat-sub
+  location: p - 1
+  justification: 'p - 1 is the group order of (ZMod p)ˣ, so orderOf (q : ZMod p) = p - 1 says q is a primitive root mod p; it never truncates because the hypothesis hp_prime : p.Prime gives p ≥ 2.'

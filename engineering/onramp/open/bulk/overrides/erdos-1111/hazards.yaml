@@ -1,0 +1,9 @@
+- checker: off-by-one-range
+  location: 1 ≤ c
+  justification: '`1 ≤ c` is the problem''s own hypothesis, because the informal text says ''If t, c ≥ 1'' (inclusive).'
+- checker: off-by-one-range
+  location: 1 ≤ d
+  justification: '`1 ≤ d` is the problem''s own conclusion, because the informal text says ''there exists d ≥ 1'' (inclusive).'
+- checker: off-by-one-range
+  location: 1 ≤ t
+  justification: '`1 ≤ t` is the problem''s own hypothesis, because the informal text says ''If t, c ≥ 1'' (inclusive).'

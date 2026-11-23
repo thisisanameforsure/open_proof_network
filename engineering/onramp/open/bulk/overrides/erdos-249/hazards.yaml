@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(φ n) / 2 ^ n
+  justification: '`↑(φ n) / 2 ^ n` is the problem''s term φ(n)/2^n, because the division is in ℝ (the sum is a real tsum under `Irrational`) and 2^n > 0 for every natural n; the denominator is never zero.'

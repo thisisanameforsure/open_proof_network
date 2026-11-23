@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(AdditiveCombinatorics.sumRep A n) / Real.log ↑n
+  justification: '`↑(AdditiveCombinatorics.sumRep A n) / Real.log ↑n` is the problem''s ratio 1_A∗1_A(n)/log n whose limit is asserted as n → ∞, and Real.log n = 0 only for n ∈ {0, 1}, which the limit along atTop never sees, so the denominator is positive wherever it matters.'

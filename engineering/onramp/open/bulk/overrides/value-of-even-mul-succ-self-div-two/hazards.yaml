@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: "Finset.Icc 1 N"
+  justification: "Finset.Icc 1 N is {1, ..., N}, the number set of the game Catch-Up({1, …, N}) and the index set of T_N = ∑_{k=1}^N k; both endpoints are included as the registry states them."

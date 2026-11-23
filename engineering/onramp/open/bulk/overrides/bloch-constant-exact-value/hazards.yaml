@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: "Real.Gamma (1 / 3) * Real.Gamma (11 / 12) / (Real.Gamma (1 / 4) * \√(1 + \√3))"
+  justification: "The denominator Real.Gamma (1/4) * √(1 + √3) is positive, because the Gamma function is positive on the positive reals (1/4 > 0) and √(1 + √3) > 0; the quotient is the Ahlfors–Grunsky closed form the registry states for the Bloch constant, with no zero divisor."

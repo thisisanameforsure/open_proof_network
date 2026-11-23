@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(Erdos82.F n) / Real.log ↑n
+  justification: '`F(n) / log n` is the problem''s own quotient, because the informal statement is F(n)/log n → ∞ as n → ∞; Real.log n is 0 only at n ∈ {0, 1}, two points that Tendsto along atTop ignores, and positive for n ≥ 2.'

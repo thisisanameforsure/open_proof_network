@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: n ≥ 2
+  justification: '`n ≥ 2` is the problem''s range "any n ≥ 2" as the informal text states it; the boundary is inclusive and is the stated one (n = 1 is trivial, since any fifth power is a sum of two fifth powers in one way).'

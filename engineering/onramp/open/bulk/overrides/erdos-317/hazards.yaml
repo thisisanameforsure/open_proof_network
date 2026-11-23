@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: c / 2 ^ n
+  justification: '`c / 2 ^ n` is the problem''s bound c/2^n, and its denominator 2^n is positive for every n, so the division is never by zero.'

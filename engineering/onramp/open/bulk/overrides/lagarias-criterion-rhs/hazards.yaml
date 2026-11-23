@@ -1,0 +1,6 @@
+- checker: junk-value
+  location: Real.log ↑(harmonic n)
+  justification: '`Real.log (harmonic n)` is the genuine logarithm of the harmonic number, because harmonic n ≥ 1 > 0 for every n ≥ 1 and the statement assumes 1 < n; the argument is never non-positive, so Lean''s junk value is never taken.'
+- checker: off-by-one-range
+  location: 1 < n
+  justification: '`1 < n` is the problem''s own range, because Lagarias'' criterion (as the registry''s docstring records) is σ(n) ≤ H_n + e^{H_n} log H_n for all n ≥ 1 with equality only at n = 1, equivalently the strict inequality for all n > 1; the registry''s own `lagarias_criterion` states the RH equivalence with `∀ n > 1` and this strict form, and the draft is its right-hand side.'

@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: "k > 233"
+  justification: "k > 233 is the problem's range as the registry states it: 'for any prime k larger than 233', a strict inequality, so the bound is exclusive and k = 233 is excluded on purpose."

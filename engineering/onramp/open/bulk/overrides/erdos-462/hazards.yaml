@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑n.minFac / ↑n
+  justification: '`↑n.minFac / ↑n` is the problem''s summand p(n)/n, and its denominator is positive because the sum runs over n ∈ Icc x ⌊…⌋₊ so n ≥ x, while the statement holds only eventually (∀ᶠ x in atTop) so x ≥ 1 for every x it depends on.'

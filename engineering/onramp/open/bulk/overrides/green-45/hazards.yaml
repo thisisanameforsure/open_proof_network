@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: 10 ≤ {p ∈ Finset.Icc 1 N | Nat.Prime p ∧ a p ≡ m [MOD p]}.card
+  justification: '`10 ≤ card` is the problem''s own threshold, because the question asks that every integer ≤ N lie in ''at least 10'' of the chosen residue classes, an inclusive bound, and the informal text contrasts it with the same statement for 2.'
+- checker: off-by-one-range
+  location: Finset.Icc 1 N
+  justification: '`Finset.Icc 1 N` is the problem''s own range, because the classes are chosen ''one for each prime p ≤ N'' and the covering is asked of ''every integer ≤ N'', i.e. the positive integers 1, …, N inclusive; Icc 1 N is that set for both the primes and the integers m.'

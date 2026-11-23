@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑n / Real.log ↑n
+  justification: "`n / log n` is the problem's n/log n inside (n/log n)^{1/2}, because the statement is an asymptotic `~[atTop]` as n → ∞ and log n > 0 for every n ≥ 2; the two indices n = 0, 1 where the denominator is zero lie outside the eventual range and cannot change the claim."

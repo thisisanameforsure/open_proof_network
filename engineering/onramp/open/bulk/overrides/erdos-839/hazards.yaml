@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(a n) / ↑n
+  justification: '`↑(a n) / ↑n` is the a_n / n of the problem in ℝ≥0∞, and the statement is a limsup along atTop, which ignores finitely many terms; only n = 0 has a zero denominator (giving ⊤ for a 0 ≥ 1), and it does not affect the limsup.'

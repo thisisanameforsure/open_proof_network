@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑↑(Nat.count (fun x => x ∈ Erdos1201.Erdos1201Set ε k) x) / ↑↑x
+  justification: '`count(...) x / x` is the proportion of n < x in the set, i.e. the density in the informal text; the denominator is zero only at x = 0, where Lean returns 0 for one term, and `atTop.liminf` over ℕ is unchanged by any finitely many terms, so the proposition is the problem''s density statement.'

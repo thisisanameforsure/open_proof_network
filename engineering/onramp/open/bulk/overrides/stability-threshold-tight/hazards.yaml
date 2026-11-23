@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 3 ≤ N₀
+  justification: '`3 ≤ N₀` is the registry''s own threshold inside ''for every sufficiently large N'' (∃ N₀, ∀ N ≥ N₀); it does not change the claim, since any threshold N₀ can be replaced by max(N₀, 3), so the statement is equivalent to the informal one.'

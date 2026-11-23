@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 1 / ↑r
+  justification: '`1 / ↑r` is the exponent 2 - 1/r of the problem, and 2 ≤ r is a hypothesis of the statement, so the denominator is positive.'

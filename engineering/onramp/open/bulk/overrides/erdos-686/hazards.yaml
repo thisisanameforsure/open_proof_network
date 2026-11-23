@@ -1,0 +1,12 @@
+- checker: div-zero
+  location: "↑(∏ i ∈ Finset.Icc 1 k, (m + i)) / ↑(∏ i ∈ Finset.Icc 1 k, (n + i))"
+  justification: "The divisor ∏_{i ∈ Icc 1 k} (n + i) is a product of natural numbers each ≥ 1 (i ≥ 1), so it is a positive natural cast to ℚ; the quotient is the registry's ∏(m+i)/∏(n+i) with a nonzero denominator for every n and k."
+- checker: off-by-one-range
+  location: "Finset.Icc 1 k"
+  justification: "Finset.Icc 1 k indexes i with 1 ≤ i ≤ k, the registry's ∏_{1 ≤ i ≤ k}; both endpoints are included as the problem writes them."
+- checker: off-by-one-range
+  location: "N ≥ 2"
+  justification: "N ≥ 2 is the problem's range as the registry states it, 'every integer N ≥ 2', inclusive."
+- checker: off-by-one-range
+  location: "k ≥ 2"
+  justification: "k ≥ 2 is the problem's range as the registry states it, 'for some k ≥ 2', inclusive."

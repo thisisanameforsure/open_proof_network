@@ -1,0 +1,3 @@
+- checker: unused-binder
+  location: k
+  justification: 'The binder k is the problem''s integer k ≠ 1 and is used: it is the right-hand side of the congruence 2^n ≡ k [ZMOD n] and the subject of the hypothesis k ≠ 1; the checker misread the ∀ᵉ binder block, and the registry itself carries k here.'

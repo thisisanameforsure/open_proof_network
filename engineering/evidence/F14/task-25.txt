@@ -1,0 +1,44 @@
+F14-T25 — what the second admission run taught: seven driver fixes and the hazard acknowledgements
+=================================================================================================
+
+The second run (45084620268, network 8d051f50, sixteen shards, 652 drafts with T23's 281 witnesses;
+report in task-20-run2/): admitted 289, refused 359 —
+  186 hazard-unacknowledged · 45 witness-elaboration · 45 statement-elaboration · 25 defs-elaboration
+   23 witness-type-mismatch · 15 already exists (live targets drafted again: the skip reads the live
+   index by id, and these are the fifteen whose catalog key the mapping does not reach, to look at)
+   14 other · 6 defs-import
+Of the 281 rows with a hand witness, 72 were admitted and 209 refused — 103 of those for hazards
+alone, so their witnesses had passed; 62 witnesses (43 + 19) failed, 22 per cent of a pass written
+without a checker.
+
+Seven driver defects, read off the refusals' first Lean error (gate/tests/test_wave.py, 39 tests,
+six red first):
+  `DFA.IsSynchronizing` (9 rows)   a library definition used dotted on a Mathlib type the fixed
+                                   namespace list never named: a dotted use now counts whenever the
+                                   library declares the name under any namespace.
+  `Nat.Composite` in a body (15)   a local definition's body uses a library definition dotted on a
+                                   variable (`n.Composite`): the body scan follows it.
+  `Nat.squarefree_infinite` (5)    a body cites a library *theorem*; the library's lemmas are indexed
+                                   for the body scan.
+  `exists_p` (8)                   a body cites a proved lemma of its own file, which the Local port
+                                   dropped with the conjectures; a problem file's theorem is dropped
+                                   only when it is a conjecture or a test (`category`, `sorry`).
+  `≫` (4)                          a file-local infix: the notation scan reads `infix`/`prefix`/
+                                   `postfix` with precedence, and the port makes them plain.
+  `unknown namespace Erdos507` (6) `open Erdos507` names another registry file's namespace: a
+                                   cross-file statement, refused by name for the curator.
+  `type_of% …` (4)                 the statement is another statement's type: refused by name.
+On the fixture these take the drafted rows to 23 of 38 (the two cross-file rows refused).
+
+The hazard pass. 186 targets, 270 findings (144 off-by-one-range, 71 div-zero, 38 nat-sub, 10
+junk-value, 4 unused-binder, 3 int-trunc), eight agents reading each statement and its informal text
+against the finding, under the rule "acknowledge with a checkable justification, or flag": 186
+acknowledged, 0 flagged (task-25-hazards/lane-{0..7}.md). Forty files carried literal `\uXXXX`
+escapes for `↑`, `√`, `φ` in their locations — the diagnostic's repr, double-escaped on the way
+through the run's output — normalised to the characters the gate prints before commit. The
+acknowledgements are the curator's inputs under engineering/onramp/open/bulk/overrides/<id>/hazards.yaml
+(186), beside the witnesses, and the gate judges each at the next run.
+
+Live so far (T24): 110 intake pull requests opened in three batches (10, 40, 60); at the last tally
+38 merged by the actor within minutes of going green, 37 green waiting on it, 44 gating, one red on a
+transient image pull (rerun). No gate has refused an admitted draft.

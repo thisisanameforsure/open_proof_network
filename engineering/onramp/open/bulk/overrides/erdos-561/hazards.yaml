@@ -1,0 +1,18 @@
+- checker: nat-sub
+  location: n p.1 + m p.2 - 1
+  justification: '`n i + m j - 1` cannot truncate: the statement''s hypotheses `∀ i, 1 ≤ n i` and `∀ j, 1 ≤ m j` give `n i + m j ≥ 2`, so the natural-number subtraction equals the integer `n_i + m_j - 1 ≥ 1` of the informal text''s l_k.'
+- checker: off-by-one-range
+  location: 1 ≤ m j
+  justification: '`1 ≤ m j` is the problem''s `m_1 ≥ ⋯ ≥ m_t ≥ 1`: every star K_{1,m_j} has at least one leaf, as the informal text states, inclusive at 1.'
+- checker: off-by-one-range
+  location: 1 ≤ n i
+  justification: '`1 ≤ n i` is the problem''s `n_1 ≥ ⋯ ≥ n_s ≥ 1`: every star K_{1,n_i} has at least one leaf, as the informal text states, inclusive at 1.'
+- checker: off-by-one-range
+  location: 1 ≤ s
+  justification: '`1 ≤ s` is the problem''s `s ≥ 1`, stated in the informal text (''s, t ≥ 1''): F_1 is a union of at least one star.'
+- checker: off-by-one-range
+  location: 1 ≤ t
+  justification: '`1 ≤ t` is the problem''s `t ≥ 1`, stated in the informal text (''s, t ≥ 1''): F_2 is a union of at least one star.'
+- checker: off-by-one-range
+  location: Finset.Icc 2 (s + t)
+  justification: '`Finset.Icc 2 (s + t)` is the problem''s summation range `2 ≤ k ≤ s + t`, both endpoints included as the informal text writes it; k = i + j with 1 ≤ i ≤ s and 1 ≤ j ≤ t ranges over exactly these values, so each l_k is a max over a nonempty set.'

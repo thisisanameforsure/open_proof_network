@@ -1,0 +1,3 @@
+- checker: junk-value
+  location: "Real.log T"
+  justification: "Real.log T is a junk value only for T ≤ 0 (and T = 1 gives log T = 0, no junk); the claim is moment k ~[atTop] fun T ↦ c * log T ^ (k^2), an asymptotic equivalence as T → ∞ as the registry states it, which the values on T ≤ 1 cannot affect, and for T > 1 log T is the ordinary positive logarithm."

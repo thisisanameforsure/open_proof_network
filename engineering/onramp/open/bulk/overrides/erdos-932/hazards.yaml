@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: "Nat.nth Nat.Prime r.succ - Nat.nth Nat.Prime r"
+  justification: "r.succ.nth Nat.Prime - r.nth Nat.Prime is the prime gap p_{r+1} - p_r of the problem; it cannot truncate because Nat.nth Nat.Prime is strictly increasing (there are infinitely many primes), so p_{r+1} > p_r and the natural difference is the ordinary one."
+- checker: off-by-one-range
+  location: "2 ≤\\n  {m ∈ Finset.Ioo (Nat.nth Nat.Prime r) (Nat.nth Nat.Prime r.succ) |\\n      m.maxPrimeFac < Nat.nth Nat.Prime r.succ - Nat.nth Nat.Prime r}.card"
+  justification: "2 ≤ card {...} is the problem's 'at least two integers p_r < n < p_{r+1}' with all prime factors < p_{r+1} - p_r, an inclusive bound (exactly two such integers count)."

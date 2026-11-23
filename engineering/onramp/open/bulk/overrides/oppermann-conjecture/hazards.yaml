@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: x - 1
+  justification: '`x - 1` is the problem''s x - 1 in the interval endpoint x(x - 1) and never truncates because the hypothesis `hx : 2 ≤ x` gives x - 1 ≥ 1 as an integer.'
+- checker: off-by-one-range
+  location: 2 ≤ x
+  justification: '`2 ≤ x` is the problem''s own ''for every integer x ≥ 2'', so the inclusive boundary is the stated one (at x = 1 the interval (0, 1) is empty and the claim would be false).'

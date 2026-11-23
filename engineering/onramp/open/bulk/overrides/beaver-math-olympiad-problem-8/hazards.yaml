@@ -1,0 +1,9 @@
+- checker: int-trunc
+  location: (b n + 1) / 2
+  justification: "`(b n + 1) / 2` on ℤ is the problem's own ⌊(b_n+1)/2⌋, because the informal statement writes the recurrence with explicit floors and Lean's `/` on ℤ with the positive divisor 2 is floor division (Euclidean division rounds toward -∞ for a positive divisor), so the two agree for every integer b_n, negative included."
+- checker: int-trunc
+  location: b i / 2
+  justification: "`b i / 2` is the problem's ⌊b_i/2⌋ in the question `a_i = ⌊b_i/2⌋ + 1`, because the registry states the question with a floor and ℤ-division by 2 in Lean is exactly that floor."
+- checker: int-trunc
+  location: b n / 2
+  justification: "`b n / 2` is the problem's ⌊b_n/2⌋ in the branch test `a_n > ⌊b_n/2⌋` and in `a_n - ⌊b_n/2⌋ - 3`, because the registry's recurrence carries the floor explicitly and Lean's ℤ-division by 2 is floor division."

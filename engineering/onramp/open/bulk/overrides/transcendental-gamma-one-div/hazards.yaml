@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 1 / ↑n
+  justification: '1 / ↑n is the problem''s 1/n in Γ(1/n), and the divisor is positive because the hypothesis hn : 2 ≤ n gives (n : ℝ) ≥ 2.'

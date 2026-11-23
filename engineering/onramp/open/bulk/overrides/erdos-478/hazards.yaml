@@ -1,0 +1,12 @@
+- checker: div-zero
+  location: 1 / Real.exp 1
+  justification: '`1 / Real.exp 1` is the constant 1/e of the informal (1 − 1/e)p; Real.exp 1 = e > 0, so the denominator is never zero.'
+- checker: div-zero
+  location: k.factorial % p
+  justification: '`k.factorial % p` is the problem''s k! (mod p) for p prime, because the limit is taken along `Filter.atTop ⊓ Filter.principal {p | p.Prime}`, so only prime p (hence p ≥ 2) contribute to the statement; the modulus is never zero where the statement speaks.'
+- checker: div-zero
+  location: ↑(Finset.image (fun k => k.factorial % p) (Finset.Ico 1 p)).card / ↑p
+  justification: '`↑(Finset.image (fun k => k.factorial % p) (Finset.Ico 1 p)).card / ↑p` is the problem''s |A_p|/p, because along the filter p is prime and so p ≥ 2 > 0; the division is in ℝ and the denominator is never zero where the statement speaks.'
+- checker: off-by-one-range
+  location: Finset.Ico 1 p
+  justification: '`Finset.Ico 1 p` is the problem''s range 1 ≤ k < p in A_p = {k! mod p : 1 ≤ k < p} as the informal text states it; the lower endpoint is included and the upper excluded, exactly as written.'

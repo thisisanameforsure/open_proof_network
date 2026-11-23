@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: k > 3119
+  justification: '`k > 3119` is the problem''s own range, because Conjecture 4.3 is stated ''for any prime k larger than 3119'', a strict inequality with 3119 excluded; the formal bound is the same strict one.'

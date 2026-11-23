@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑((σ 1) n) / ↑n
+  justification: '`σ 1 n / n` is the multiplier k of a k-perfect number, because the little-o is taken along atTop ⊓ 𝓟 {n | ∃ k, IsPerfectFor n 1 k}, and IsPerfectFor requires 0 < n, so every n on the filter has n ≥ 1 (and n → ∞ besides); the denominator is never 0 where the statement looks.'

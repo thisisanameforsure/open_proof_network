@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: k * 2 ^ k - 1
+  justification: '`k * 2 ^ k - 1` is the problem''s Woodall number k·2^k − 1, because the set requires `1 < k`, so k·2^k ≥ 8 and the natural-number subtraction never truncates.'
+- checker: off-by-one-range
+  location: 1 < k
+  justification: '`1 < k` is the problem''s range "for k > 1" as the informal text states it; the boundary is exclusive and is the stated one (k = 1 gives 1, which is not prime).'

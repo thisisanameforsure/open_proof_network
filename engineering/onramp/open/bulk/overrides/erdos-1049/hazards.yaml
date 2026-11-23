@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: "1 / (\↑t ^ \↑n - 1)"
+  justification: "The divisor (t : ℝ)^n - 1 is a real subtraction and is positive, because the hypothesis t > 1 and the index n : ℕ+ (so n ≥ 1) give t^n > 1; the sum is the registry's ∑_{n≥1} 1/(t^n - 1) with every denominator nonzero."

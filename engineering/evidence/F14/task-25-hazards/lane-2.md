@@ -1,0 +1,25 @@
+# lane 2 hazard pass (curator's reader)
+
+- balanced-primes-order — acknowledged — nat-sub, off-by-one-range — k ≤ n keeps n - i whole; Ioc 0 k is 1..k
+- class-number-problem — acknowledged — off-by-one-range — d > 1 is the registry's own squarefree discriminant range
+- dubner-conjecture — acknowledged — off-by-one-range — strictly greater than 4208, as the informal text says
+- erdos-1060 — acknowledged — div-zero — little-o at atTop; log log n > 0 for n ≥ 16 (location decoded from the lane file's literal \u escape)
+- erdos-1122 — acknowledged — off-by-one-range — A = {n ≥ 1 : …} is the registry's set
+- erdos-1210 — acknowledged — div-zero — real subtraction, a < n makes n - a ≥ 1 (location decoded from the lane file's literal \u escape)
+- erdos-244 — acknowledged — off-by-one-range — C > 1 is the problem's stated hypothesis
+- erdos-317 — acknowledged — div-zero — 2^n is always positive
+- erdos-388 — acknowledged — off-by-one-range, off-by-one-range, off-by-one-range, off-by-one-range — k > 3 strict and 1 ≤ i ≤ k inclusive, as stated
+- erdos-462 — acknowledged — div-zero — n ≥ x ≥ 1 eventually; summand p(n)/n well defined (location decoded from the lane file's literal \u escape)
+- erdos-563 — acknowledged — div-zero — limit at atTop; log n = 0 only at n ≤ 1 (location decoded from the lane file's literal \u escape)
+- erdos-66 — acknowledged — div-zero — limit at atTop; log n = 0 only at n ≤ 1 (location decoded from the lane file's literal \u escape)
+- erdos-719 — acknowledged — off-by-one-range — r ≥ 2 is the problem's stated hypothesis
+- erdos-859 — acknowledged — div-zero — asymptotic at atTop; log t > 0 for t ≥ 2 (location decoded from the lane file's literal \u escape)
+- erdos-891 — acknowledged — off-by-one-range — k ≥ 2 is the problem's stated hypothesis
+- erdos-979 — acknowledged — off-by-one-range — k ≥ 2 is the problem's stated hypothesis
+- feit-thompson-primes — acknowledged — div-zero, div-zero, nat-sub, nat-sub, nat-sub, nat-sub — primes ≥ 2 so no truncation; divisions exact geometric sums
+- green-62 — acknowledged — off-by-one-range — 1 ≤ x < p is the residues {1..p-1}
+- infinitely-many-proth-primes-multiplier-three — acknowledged — off-by-one-range — n ≥ 2 makes 3 < 2^n, the Proth condition
+- lehmer-totient — acknowledged — nat-sub, off-by-one-range — n > 1 stated; n - 1 ≥ 1 under it
+- oppermann-conjecture — acknowledged — nat-sub, off-by-one-range — x ≥ 2 stated; x - 1 ≥ 1 under it
+- restricted-prime-number-theorem — acknowledged — div-zero — asymptotic at atTop; log n = 0 only at n ≤ 1 (location decoded from the lane file's literal \u escape)
+- tan-arctan-sum-not-integer — acknowledged — off-by-one-range — n ≥ 5 stated; x_1..x_4 are the integer cases

@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(A ∩ Set.Icc 1 x).ncard / ↑x ^ (1 / 2)
+  justification: '`|A ∩ [1,x]| / x^(1/2)` is the problem''s own density ratio, because the informal statement is liminf_{x→∞} |A ∩ [1,x]| / x^{1/2} · (log x)^{1/2} with x running over ℕ; the denominator vanishes only at x = 0, a single point that a liminf along atTop ignores (for x ≥ 1 the real power is positive).'

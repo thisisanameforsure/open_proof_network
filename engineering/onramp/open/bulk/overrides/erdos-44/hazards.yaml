@@ -1,0 +1,9 @@
+- checker: off-by-one-range
+  location: Finset.Icc (N + 1) M
+  justification: '`Finset.Icc (N + 1) M` is the problem''s `B ⊆ {N+1, …, M}`, both endpoints included, as the informal text writes it; it is the complement of {1..N} inside {1..M}, so A ∪ B ⊆ {1..M} as the problem requires.'
+- checker: off-by-one-range
+  location: Finset.Icc 1 N
+  justification: '`Finset.Icc 1 N` is the problem''s `A ⊆ {1, …, N}`, the informal text''s own range with both endpoints included.'
+- checker: off-by-one-range
+  location: N ≥ 1
+  justification: '`N ≥ 1` is the problem''s hypothesis ''Let N ≥ 1'', inclusive at 1, so that {1..N} is nonempty; the boundary is the stated one.'

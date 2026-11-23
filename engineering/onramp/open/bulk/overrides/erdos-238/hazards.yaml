@@ -1,0 +1,6 @@
+- checker: junk-value
+  location: Real.log x
+  justification: '`Real.log x` is the c₁ log x of the problem, and the statement is ∀ᶠ x in atTop, so it only constrains x sufficiently large, where x > 0 and log x is the real logarithm; the junk value at x ≤ 0 is never reached.'
+- checker: nat-sub
+  location: k - 1
+  justification: '`k - 1` indexes the k - 1 gaps between k consecutive primes (Fin (k - 1)), and k is forced ≥ 1 by c₁ * log x < k with c₁ > 0 and x large, so the only truncating case k = 0 is excluded; for k = 1 there are no gaps, which is the problem''s meaning.'

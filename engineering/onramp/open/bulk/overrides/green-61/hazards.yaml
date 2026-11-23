@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: Finset.Icc 1 n
+  justification: '`Finset.Icc 1 n` with the image (· ^ 2) is exactly the first n squares 1^2, ..., n^2 the informal text names; both endpoints are included.'
+- checker: off-by-one-range
+  location: n ≥ 1
+  justification: '`n ≥ 1` is the registry''s own hypothesis: the claim |A| ≥ n^{1-o(1)} concerns the first n squares for n ≥ 1, and n = 0 (no squares, the empty A) is not part of the question.'

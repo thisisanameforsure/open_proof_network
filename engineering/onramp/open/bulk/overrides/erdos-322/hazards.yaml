@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 3 ≤ k
+  justification: 3 ≤ k is the problem's 'Let k ≥ 3' (inclusive), as the informal text states it; k is the exponent of the k-th powers and the number of summands.

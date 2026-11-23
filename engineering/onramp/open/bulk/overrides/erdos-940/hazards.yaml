@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: r ≥ 3
+  justification: '`r ≥ 3` is the problem''s hypothesis ''Let r ≥ 3'', inclusive at 3; the boundary is the stated one.'

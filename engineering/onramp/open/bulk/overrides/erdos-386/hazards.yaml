@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: n - 2
+  justification: '`n - 2` is the upper bound of the problem''s range 2 ≤ k ≤ n - 2; it truncates only for n < 2, where no k ≥ 2 can satisfy k ≤ 0, so truncation excludes only the n that the informal range already excludes.'
+- checker: off-by-one-range
+  location: k ≥ 2
+  justification: '`k ≥ 2` is the lower end of the problem''s own range 2 ≤ k ≤ n - 2 (inclusive), which excludes the trivial binomial coefficients n choose 0, 1, n-1, n.'

@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 1 / Real.log (Real.log ↑n)
+  justification: '`1 / Real.log (Real.log ↑n)` is the problem''s exponent scale 1/log log n in a little-o relation at `atTop`, which only constrains the tail; for n ≥ 16 we have log log n > 0, so the denominator is nonzero for every n the relation depends on and the finitely many small n with Lean''s junk value are irrelevant.'

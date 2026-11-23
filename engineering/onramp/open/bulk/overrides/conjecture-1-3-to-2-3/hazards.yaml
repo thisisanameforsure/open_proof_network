@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑{σ | σ ∈ total_ext ∧ σ x < σ y}.ncard / ↑total_ext.ncard
+  justification: 'The quotient is the problem''s probability that x precedes y in a uniformly random linear extension: the denominator total_ext.ncard is the number of linear extensions, which is positive because total_ext is a finite set (maps from the finite P into Icc 1 (card P)) and every finite poset has a linear extension; and were it 0 the quotient would be 0 ∉ Icc (1/3) (2/3), so Lean''s x/0 = 0 could only make the claim false, never vacuously true.'

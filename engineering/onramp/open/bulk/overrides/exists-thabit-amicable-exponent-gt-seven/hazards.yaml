@@ -1,0 +1,12 @@
+- checker: nat-sub
+  location: 2 * n - 1
+  justification: '`2 * n - 1` is the exponent 2n - 1 of the problem''s 9·2^{2n-1} - 1, and n > 7 is a hypothesis, so 2n - 1 ≥ 15 and the subtraction never truncates.'
+- checker: nat-sub
+  location: 9 * 2 ^ (2 * n - 1) - 1
+  justification: '`9 * 2 ^ (2 * n - 1) - 1` is the problem''s 9·2^{2n-1} - 1, and 9 * 2^(2n-1) ≥ 9 * 2^15 under n > 7, so the subtraction never truncates.'
+- checker: nat-sub
+  location: n - 1
+  justification: '`n - 1` is the index of K_{n-1} in the problem, and n > 7 is a hypothesis, so n - 1 ≥ 7 and the subtraction never truncates.'
+- checker: off-by-one-range
+  location: n > 7
+  justification: '`n > 7` is the problem''s own range, because the informal text asks for an integer n > 7 and notes only n = 2, 4, 7 are known; 7 is excluded as stated.'

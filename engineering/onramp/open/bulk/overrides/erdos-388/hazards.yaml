@@ -1,0 +1,12 @@
+- checker: off-by-one-range
+  location: 3 < k₁
+  justification: '`3 < k₁` is the problem''s condition k₁ > 3, stated as a strict inequality in the informal text, so the boundary (k₁ ≥ 4) is the stated one.'
+- checker: off-by-one-range
+  location: 3 < k₂
+  justification: '`3 < k₂` is the problem''s condition k₂ > 3, stated as a strict inequality in the informal text, so the boundary (k₂ ≥ 4) is the stated one.'
+- checker: off-by-one-range
+  location: Finset.Icc 1 k₁
+  justification: '`Finset.Icc 1 k₁` is the index set of the problem''s product ∏_{1 ≤ i ≤ k₁}(m₁ + i), inclusive at both ends as the informal text writes it, so the factors are m₁ + 1, …, m₁ + k₁.'
+- checker: off-by-one-range
+  location: Finset.Icc 1 k₂
+  justification: '`Finset.Icc 1 k₂` is the index set of the problem''s product ∏_{1 ≤ j ≤ k₂}(m₂ + j), inclusive at both ends as the informal text writes it, so the factors are m₂ + 1, …, m₂ + k₂.'

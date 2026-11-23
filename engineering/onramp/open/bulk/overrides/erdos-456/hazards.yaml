@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(Nat.count (fun n => Erdos456.m n < Erdos456.p n) N) / ↑N
+  justification: '`count (...) N / N` is the proportion of n < N with m_n < p_n, and the statement is a limit along atTop, so only N ≥ 1 matters, where the denominator is positive; ''almost all n'' is this proportion tending to 1.'

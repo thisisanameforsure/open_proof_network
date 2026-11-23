@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑A.card / √↑↑q
+  justification: "`A.card / √q` is the problem's |A| / q^{1/2}, because q : ℕ+ is a positive natural, so √q ≥ 1 > 0 and the denominator is never zero; the clause |…| < ε for infinitely many q is the registry's reading of |A| = (√2 + o(1)) q^{1/2}."

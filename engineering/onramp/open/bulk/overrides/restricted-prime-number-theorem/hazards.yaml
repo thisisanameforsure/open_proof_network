@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑n / (2 * Real.log ↑n)
+  justification: '`↑n / (2 * Real.log ↑n)` is the problem''s n/(2 ln n), compared by `~[atTop]` which only constrains the tail; Real.log n = 0 only for n ∈ {0, 1}, so the denominator is positive for every n the relation depends on.'

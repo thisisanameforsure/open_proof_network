@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 9 / 4 * Real.log ↑n ^ 2 / ↑n
+  justification: (9/4)·(log n)²/n is the problem's lower bound (9/4)(log n)²/n on the threshold, asserted only eventually (∀ᶠ n in atTop), so the single n = 0 where Lean returns 0 is irrelevant and for n ≥ 1 the divisor is positive.

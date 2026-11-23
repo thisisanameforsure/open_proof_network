@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑n / ↑r
+  justification: "`n / r` is the problem's (n/r) in the edge bound (1+ε)(n/r)^r, because the statement is under the hypothesis `3 ≤ r`, so the real denominator r is at least 3 and never zero."

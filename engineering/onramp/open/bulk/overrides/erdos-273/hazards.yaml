@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: p - 1
+  justification: p - 1 is the problem's modulus p − 1, and it never truncates because the same conjunct carries p.Prime ∧ 5 ≤ p, so p ≥ 5.
+- checker: off-by-one-range
+  location: 5 ≤ p
+  justification: 5 ≤ p is the problem's 'primes p ≥ 5' (inclusive), as the informal text states it; p = 5 giving modulus 4 is deliberately allowed.

@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: "1 < n"
+  justification: "1 < n is the problem's 'for integers n > 1', a strict bound as the registry writes it (n = 1 would be the trivial identity a^k = b^k)."
+- checker: off-by-one-range
+  location: "5 < k"
+  justification: "5 < k, i.e. k ≥ 6, is the open range as the registry states it: its text says the conjecture 'is known to be false for k = 4 and k = 5, but remains open for k ≥ 6', and the registry's file proves the k = 4 and k = 5 counterexamples beside this theorem, so the bound deliberately states the open part and not the refuted original 'k > 1'."

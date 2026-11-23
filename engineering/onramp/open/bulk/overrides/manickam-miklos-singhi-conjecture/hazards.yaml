@@ -1,0 +1,9 @@
+- checker: nat-sub
+  location: k - 1
+  justification: "`k - 1` is the problem's k − 1 in binom(n−1, k−1) and never truncates, because the statement is under the hypothesis `1 ≤ k`, so k − 1 ≥ 0 is exact."
+- checker: nat-sub
+  location: n - 1
+  justification: "`n - 1` is the problem's n − 1 in binom(n−1, k−1) and never truncates, because the hypotheses `1 ≤ k` and `4 * k ≤ n` give n ≥ 4, so n − 1 ≥ 3 is exact."
+- checker: off-by-one-range
+  location: 1 ≤ k
+  justification: "`1 ≤ k` is the problem's implicit domain for k, because the informal statement speaks of k-element subsets and the bound binom(n−1, k−1), which needs k ≥ 1 to be meaningful (the registry's own theorem carries `1 ≤ k` verbatim, upstream ManickamMiklosSinghiConjecture.lean line 57); k = 0 is a degenerate case the conjecture does not address."

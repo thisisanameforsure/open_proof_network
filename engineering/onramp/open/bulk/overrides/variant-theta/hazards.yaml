@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: C > 1
+  justification: '`C > 1` is the problem''s own constant range, because the question asks whether O(p^{1−θ}) translates of a set of size p^θ suffice, and proportionCoverable p k c is monotone in c (it counts sets coverable by at most c translates), so ∃ C > 1 is equivalent to ∃ C > 0; moreover a set of size k = ⌊p^θ⌋ with c translates covers at most k·c elements, which is below p whenever C ≤ 1, so no constant ≤ 1 could work, and Green''s own constants (100, and 1.01 in the registry''s neighbouring variant) all exceed 1.'

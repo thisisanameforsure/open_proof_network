@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 1 ≤ a
+  justification: "`1 ≤ a` is the problem's `integers a ≥ 1` (inclusive), because the informal statement says a ≥ 1, so a = 1 (n = p² + b) is admitted and a = 0 (which would make every n < p trivially representable) is excluded."

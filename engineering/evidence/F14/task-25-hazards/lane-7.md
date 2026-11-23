@@ -1,0 +1,25 @@
+# lane-7 hazard pass (2026-11-23)
+
+- buchi-problem — acknowledged — off-by-one-range — positive M is the registry's 'positive integer M'.
+- conjecture-4-3 — acknowledged — off-by-one-range — strict k > 3119 is the stated 'larger than 3119'.
+- erdos-1053 — acknowledged — div-zero — filter requires 0 < n via IsPerfectFor; n → ∞ anyway.
+- erdos-1106 — acknowledged — off-by-one-range — Icc 1 n is the product's index set i = 1..n.
+- erdos-1191 — acknowledged — div-zero — x = 0 alone zeroes x^(1/2); liminf atTop ignores it.
+- erdos-213 — acknowledged — off-by-one-range — n ≥ 4 is the informal 'Let n ≥ 4'.
+- erdos-279 — acknowledged — off-by-one-range — k ≥ 3 is the informal 'Let k ≥ 3'.
+- erdos-340 — acknowledged — div-zero — n^ε zero only at n = 0; =O[atTop] ignores it.
+- erdos-428 — acknowledged — nat-sub — guarded by 0 < a < n in the same clause.
+- erdos-554 — acknowledged — div-zero, off-by-one-range — R_k(K_3) ≥ 3 for k ≥ 1; n ≥ 2 stated, n = 1 excluded.
+- erdos-627 — acknowledged — div-zero — denominator zero only at n ≤ 1; limit atTop.
+- erdos-695 — acknowledged — div-zero — 1/k exponent; k = 0 single point ignored atTop.
+- erdos-82 — acknowledged — div-zero — log n zero only at n ≤ 1; Tendsto atTop ignores.
+- erdos-885 — acknowledged — off-by-one-range — D(0) is all of ℕ; registry defines D for n ≥ 1; k ≥ 1 stated.
+- erdos-933 — acknowledged — div-zero — n log n zero only at n ≤ 1; limsup atTop.
+- exists-k — acknowledged — off-by-one-range — strict 1 < n is the stated 'every n > 1'.
+- green-45 — acknowledged — off-by-one-range — at least 10 inclusive; primes and integers in 1..N.
+- grimm-conjecture-weak — acknowledged — off-by-one-range — k ≥ 1 run nonempty; 0 is not composite anyway.
+- lagarias-criterion-rhs — acknowledged — junk-value, off-by-one-range — harmonic n ≥ 1 so log genuine; strict form for n > 1 is Lagarias'.
+- moment-is-equiv3 — acknowledged — div-zero — denominator is the numeral 9!.
+- problem-10-3 — acknowledged — off-by-one-range — n ≥ 1 is the stated 'for every n ≥ 1'.
+- scholz-conjecture — acknowledged — nat-sub — 2^n ≥ 1 and 0 < n: neither subtraction truncates.
+- variant-theta — acknowledged — off-by-one-range — coverable monotone in c; C ≤ 1 covers fewer than p elements.

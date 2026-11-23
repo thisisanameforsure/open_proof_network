@@ -1,0 +1,26 @@
+# lane-0 hazard pass (2026-11-23)
+
+- agrawal-conjecture — acknowledged — off-by-one-range — bound is the registry's stated range.
+- butson-hadamard-fourth-roots-conjecture — acknowledged — off-by-one-range — bound is the registry's stated range.
+- cookson-hills-series-converges — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- erdos-1056 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- erdos-1108 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- erdos-1201 — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- erdos-234 — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- erdos-311 — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- erdos-383 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- erdos-44 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- erdos-561 — acknowledged — nat-sub, off-by-one-range — subtraction cannot truncate; bound is the registry's stated range.
+- erdos-640 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- erdos-704 — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- erdos-826 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- erdos-89 — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- erdos-940 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- exists-nowhere-dense-spectral-set — acknowledged — off-by-one-range — bound is the registry's stated range.
+- green-60 — acknowledged — off-by-one-range — bound is the registry's stated range.
+- i — acknowledged — nat-sub, off-by-one-range — subtraction cannot truncate; bound is the registry's stated range.
+- landau-constant-exact-value — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- moment-is-equiv4 — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- problem-10-7 — acknowledged — div-zero — divisor nonzero or finitely many terms.
+- singmaster — acknowledged — off-by-one-range — bound is the registry's stated range.
+- waldschmidt — acknowledged — off-by-one-range — bound is the registry's stated range.

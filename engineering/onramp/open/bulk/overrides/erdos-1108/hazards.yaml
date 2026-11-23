@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: k ≥ 2
+  justification: '`k ≥ 2` is the problem''s range of exponents: the informal statement says ''For each k ≥ 2 ... finitely many k-th powers'', and k = 1 would make every number a first power, so the inclusive bound at 2 is the stated one.'

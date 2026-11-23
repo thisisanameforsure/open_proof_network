@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑↑(2 ^ Erdos933.k n * 3 ^ Erdos933.l n) / (↑↑n * ↑(Real.log ↑n))
+  justification: '`2^k 3^l / (n log n)` is the problem''s own quotient, because the informal statement asks whether limsup_{n→∞} 2^k 3^l / (n log n) = ∞; the denominator is 0 only at n ∈ {0, 1}, finitely many points that a limsup along atTop ignores, and positive for n ≥ 2.'

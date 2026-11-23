@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: 1 ≤ n
+  justification: '`1 ≤ n` for each N_i is the problem''s own range, because the registry defines the factor difference set ''for integer n ≥ 1'', and D(0) = {|a − b| : 0 = ab} is all of ℕ (take a = 0), so admitting N_i = 0 would make the intersection infinite and the question trivial.'
+- checker: off-by-one-range
+  location: k ≥ 1
+  justification: '`k ≥ 1` is the problem''s own range, because the informal statement asks the question ''for every k ≥ 1'' (inclusive); the formal bound is the same.'

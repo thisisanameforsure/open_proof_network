@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: ε < 1
+  justification: "`ε < 1` is the problem's `0 < ε < 1` (strict), because the informal statement states the range as 0 < ε < 1 and says the restriction ε < 1 is there to exclude negative bases in (1 − ε)^k, which requires the strict inequality."

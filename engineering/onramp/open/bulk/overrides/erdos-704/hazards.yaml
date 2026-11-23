@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 1 / ↑n
+  justification: '`1 / n` is the exponent in the problem''s `χ(G_n)^{1/n}`; the divisor is zero only at n = 0, where Lean''s convention gives exponent 0 and one term equal to 1, and `Tendsto ... atTop` is unchanged by finitely many terms, so the limit is the informal text''s limit.'

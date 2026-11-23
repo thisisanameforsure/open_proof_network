@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑n / √(Real.log ↑n)
+  justification: '`n / sqrt (log n)` is the problem''s own lower-bound function `n / √(log n)`; its divisor is zero only at n = 0 and n = 1 (log 0 = log 1 = 0), where Lean returns 0, and `=O[atTop]` is a statement about all sufficiently large n, unchanged by finitely many values, so the asymptotic claim is the informal text''s.'

@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: p - 1
+  justification: p - 1 is the problem's binomial argument in q ≤ C(p−1, 2) + 1, where the informal text fixes p ≥ 1; the only case where it truncates is p = 0, which the informal text excludes, and there the range Set.Icc 1 1 is a singleton on which StrictMonoOn holds trivially, so the truncation adds a vacuous case and changes nothing for p ≥ 1.
+- checker: off-by-one-range
+  location: Set.Icc 1 ((p - 1).choose 2 + 1)
+  justification: Set.Icc 1 ((p - 1).choose 2 + 1) is the problem's range 1 ≤ q ≤ C(p−1,2) + 1 with both endpoints included, as the informal text states it (q = 1 is the Ramsey case, q = C(p−1,2)+1 gives c(p,q) = 1).

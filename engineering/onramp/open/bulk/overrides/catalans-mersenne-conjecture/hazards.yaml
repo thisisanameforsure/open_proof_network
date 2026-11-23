@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: n ≥ 5
+  justification: '`n ≥ 5` is the problem''s own range, because catalanMersenne 0..4 are 2, 3, 7, 127, 2^127-1, the five Catalan–Mersenne numbers the informal text says are known to be prime, and the question is asked exactly of c_n with n ≥ 5 (inclusive).'

@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: 1 ≤ k
+  justification: '`1 ≤ k` is the problem''s own range, because the conjecture speaks of the run n, n+1, …, n+k−1 of k composite numbers and asks for k distinct prime divisors; k = 0 is the empty run, which the registry''s statement excludes and which would in any case hold trivially (Fin 0 ↪ ℕ exists).'
+- checker: off-by-one-range
+  location: 1 ≤ n
+  justification: '`1 ≤ n` is the problem''s own range, because the run starts at a positive integer n; n = 0 cannot satisfy the hypothesis anyway (Nat.Composite n requires 1 < n, so 0 is not composite), so the bound removes no case the conjecture speaks of and changes nothing about its meaning.'

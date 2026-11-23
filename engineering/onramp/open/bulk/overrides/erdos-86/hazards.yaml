@@ -1,0 +1,3 @@
+- checker: nat-sub
+  location: n - 1
+  justification: '`n - 1` in `2 ^ (n - 1 : ℕ)` is the problem''s n 2^{n−1}, the edge count of Q_n, because the statement is `∀ᶠ n in atTop`, so only large n matter and for n ≥ 1 the subtraction never truncates; the only truncating value n = 0 lies outside every eventual range.'

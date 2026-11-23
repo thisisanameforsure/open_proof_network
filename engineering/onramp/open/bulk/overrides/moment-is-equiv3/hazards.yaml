@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 42 * RiemannZetaMoments.arithmeticFactor 3 / ↑9!
+  justification: '`42 · a_3 / 9!` is the problem''s own conjectured constant 42a_3/9! [CG98], because the denominator is the numeral 9! = 362880, a fixed nonzero natural cast to ℝ.'

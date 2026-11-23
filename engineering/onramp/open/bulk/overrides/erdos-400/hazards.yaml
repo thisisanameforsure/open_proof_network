@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: Finset.Icc 1 x
+  justification: "`Icc 1 x` is the problem's sum over `n ≤ x` with n a positive integer (both endpoints included, so n = x is counted), because the informal statement sums an arithmetic function g_k(n) over n ≤ x, which conventionally starts at n = 1; omitting n = 0 changes the sum by the constant g_k(0) ≤ k and cannot affect the asymptotic `~ c_k x log x`."
+- checker: off-by-one-range
+  location: k ≥ 2
+  justification: "`k ≥ 2` is the registry's own domain for g_k, because its definition says `For any k ≥ 2 let g_k(n) denote …` (upstream 400.lean, docstring of `Erdos400.g`), and the theorem's `∀ᵉ (k ≥ 2)` is carried verbatim from the registry."

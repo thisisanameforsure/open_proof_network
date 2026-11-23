@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(Erdos1062.f n) / ↑n
+  justification: '`↑(Erdos1062.f n) / ↑n` is the problem''s density f(n)/n, because the division is in ℝ and the statement is a limit as n → ∞ (`Tendsto … atTop`); the denominator is zero only at the single point n = 0, which cannot affect the limit, and is positive for every n ≥ 1.'

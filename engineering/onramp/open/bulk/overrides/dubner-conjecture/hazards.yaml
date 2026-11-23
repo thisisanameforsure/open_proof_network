@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 4208 < n
+  justification: '`4208 < n` is the problem''s ''every even number greater than 4208'', so the strict inequality excluding 4208 itself is exactly the stated boundary (4208 is the largest even number known not to be a sum of two twin primes).'

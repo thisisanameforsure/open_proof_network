@@ -1,0 +1,6 @@
+- checker: div-zero
+  location: "↑(SimpleGraph.multicolourGraphRamsey k (SimpleGraph.cycleGraph (2 * n + 1))) /\n  ↑(SimpleGraph.multicolourGraphRamsey k (SimpleGraph.completeGraph (Fin 3)))"
+  justification: '`R_k(C_{2n+1}) / R_k(K_3)` is the problem''s own ratio, because R_k(K_3) = sInf {m | every k-colouring of K_m has a monochromatic K_3} is attained for every k by Ramsey''s theorem, and no m ≤ 2 belongs to the set for k ≥ 1 (K_2 has one edge and no triangle), so R_k(K_3) ≥ 3 for every k ≥ 1; k = 0 is a single point the limit along atTop ignores.'
+- checker: off-by-one-range
+  location: 2 ≤ n
+  justification: '`2 ≤ n` is the problem''s own range, because the informal statement says ''for any n ≥ 2'' and explains that n = 1 is excluded since C_3 = K_3 makes the ratio identically 1.'

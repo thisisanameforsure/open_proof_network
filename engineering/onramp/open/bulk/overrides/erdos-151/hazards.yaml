@@ -1,0 +1,3 @@
+- checker: nat-sub
+  location: n - Erdos151.H n
+  justification: "`n - H n` is the problem's n − H(n) and never truncates, because `Erdos151.H n` is `sSup {k | every triangle-free graph on Fin n has an independent set on k vertices}` (defs/Local.lean), and an independent k-set in `Fin n` has k ≤ n, so every member of that set is at most n and H(n) ≤ n."

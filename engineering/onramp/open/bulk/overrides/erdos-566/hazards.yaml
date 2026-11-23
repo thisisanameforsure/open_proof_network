@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: 2 * S.card - 3
+  justification: '`2 * S.card - 3` is the problem''s bound 2k − 3 on the edges of an induced subgraph on k vertices, because the hypothesis is asserted only under `2 ≤ S.card`, where 2k − 3 ≥ 1 and the natural-number subtraction equals the integer value; it never truncates.'
+- checker: off-by-one-range
+  location: 2 ≤ S.card
+  justification: '`2 ≤ S.card` is the problem''s meaning of "any subgraph on k vertices", because for k = 0 or k = 1 the integer bound 2k − 3 is negative and no graph could satisfy it, so the condition is only ever meant for k ≥ 2 (the sparsity condition ''at most 2k−3 edges'' is the standard one on at least two vertices); the registry states the same bound.'

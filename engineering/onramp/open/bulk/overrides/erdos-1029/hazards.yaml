@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(SimpleGraph.diagonalRamsey k) / (↑k * 2 ^ (↑k / 2))
+  justification: "The denominator `k * 2^(k/2)` is positive for every k ≥ 1 (a product of a positive integer and a real power of 2), so the quotient is the problem's R(k)/(k 2^{k/2}) for all k ≥ 1; the only junk value is at k = 0, and `Tendsto … atTop atTop` is a statement about k eventually, so a single finite index cannot change the claim."

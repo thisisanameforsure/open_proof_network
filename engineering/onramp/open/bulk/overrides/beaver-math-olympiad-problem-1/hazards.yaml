@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: a n - b n
+  justification: '`a n - b n` is the problem''s own (a_n - b_n) in the case a_n ≥ b_n, because it sits in the `then` branch of `if b n ≤ a n`, so b n ≤ a n holds and the natural-number subtraction equals the integer difference; it never truncates.'
+- checker: nat-sub
+  location: b n - a n
+  justification: '`b n - a n` is the problem''s own (b_n - a_n) in the case a_n < b_n, because it sits in the `else` branch of `if b n ≤ a n`, so a n < b n holds and the natural-number subtraction equals the integer difference (and is positive); it never truncates.'

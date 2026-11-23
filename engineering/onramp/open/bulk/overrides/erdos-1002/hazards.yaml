@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 1 / Real.log ↑n
+  justification: 1 / Real.log ↑n is the problem's 1/log n in f(α,n); the statement is a limit as n → ∞ (Tendsto … atTop), so the finitely many n ≤ 1 where log n = 0 and Lean returns 0 do not affect the claim, and for n ≥ 2 the denominator is positive.

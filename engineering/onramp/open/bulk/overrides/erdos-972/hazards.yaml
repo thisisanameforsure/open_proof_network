@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: α > 1
+  justification: '`α > 1` is the problem''s own hypothesis, because the informal text begins ''Let α > 1 be irrational'' (strict, as stated).'

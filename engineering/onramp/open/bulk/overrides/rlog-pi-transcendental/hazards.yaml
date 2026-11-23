@@ -1,0 +1,3 @@
+- checker: junk-value
+  location: Real.log π
+  justification: '`Real.log π` is the problem''s log(π), because π > 0, so Real.log takes its genuine value (≈ 1.1447) and not the junk value at a non-positive argument.'

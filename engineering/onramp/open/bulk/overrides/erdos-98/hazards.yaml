@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(Erdos98.h n) / ↑n
+  justification: '`↑(Erdos98.h n) / ↑n` is the problem''s h(n)/n, because the division is in ℝ and the statement is a limit as n → ∞ (`Tendsto … atTop`); the denominator is zero only at the single point n = 0, which cannot affect the limit, and is positive for every n ≥ 1.'

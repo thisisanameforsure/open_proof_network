@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: "1 ≤ k"
+  justification: "1 ≤ k is the registry's own hypothesis and only excludes k = 0, where the run n, …, n+k-1 is empty and the claim (an injection Fin 0 ↪ ℕ) is vacuous; for k ≥ 1 the statement is Grimm's conjecture for a nonempty run of composites, as the registry states it."
+- checker: off-by-one-range
+  location: "1 ≤ n"
+  justification: "1 ≤ n is the registry's own hypothesis and only excludes n = 0; with k ≥ 1 the hypothesis makes n itself composite, so n ≥ 4 in every non-vacuous case and the bound changes nothing about the conjecture's range of positive runs n, …, n+k-1."

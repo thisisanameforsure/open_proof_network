@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: d > 1
+  justification: '`d > 1` is the problem''s own condition on the discriminant, because the registry''s informal text says `d > 1` is a squarefree integer (a real quadratic field needs d ≥ 2; d = 1 gives ℚ itself), so the strict boundary is the stated one.'

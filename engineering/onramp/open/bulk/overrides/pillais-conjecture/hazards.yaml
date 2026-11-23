@@ -1,0 +1,15 @@
+- checker: nat-sub
+  location: a * x ^ n - b * y ^ m
+  justification: '`a * x ^ n - b * y ^ m = c` in ℕ is the problem''s integer equation ax^n − by^m = c, because c > 0 (`hc : 0 < c`): when a x^n ≥ b y^m the natural subtraction equals the integer difference, and when a x^n < b y^m it truncates to 0 ≠ c while the integer difference is negative and also ≠ c, so the solution sets coincide.'
+- checker: off-by-one-range
+  location: 1 < m
+  justification: '`1 < m` is the problem''s requirement that y^m be a perfect power (exponent ≥ 2), the standard statement of Pillai''s conjecture; with m = 1 the equation a x^n − b y = c has infinitely many solutions trivially (for a = 1 take any y and x^n = c + b y with n = 1), so the informal''s "positive solutions" can only mean exponents > 1, as the registry writes.'
+- checker: off-by-one-range
+  location: 1 < n
+  justification: '`1 < n` is the problem''s requirement that x^n be a perfect power (exponent ≥ 2), the standard statement of Pillai''s conjecture; with n = 1 the equation a x − b y^m = c has infinitely many solutions trivially (for a = 1 take x = c + b y^m for every y), so the informal''s "positive solutions" can only mean exponents > 1, as the registry writes.'
+- checker: off-by-one-range
+  location: 1 < x
+  justification: '`1 < x` is the problem''s hypothesis "x, y > 1" as the informal text states it; the boundary is exclusive and is the stated one.'
+- checker: off-by-one-range
+  location: 1 < y
+  justification: '`1 < y` is the problem''s hypothesis "x, y > 1" as the informal text states it; the boundary is exclusive and is the stated one.'

@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 1 ≤ q
+  justification: '`1 ≤ q` is the problem''s own range, because the informal text takes the infimum over q ≥ 1 (inclusive): the integer q is positive.'

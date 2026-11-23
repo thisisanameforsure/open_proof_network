@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: '2 ≤ #X'
+  justification: '2 ≤ #X is the problem''s n ≥ 2 (inclusive), which the informal text states explicitly: a line through two points of X needs two points.'
+- checker: off-by-one-range
+  location: Green75.imbalance X p q ≤ 100
+  justification: 'imbalance X p q ≤ 100 is the problem''s ''the numbers of points on either side of ℓ differ by at most 100'' (inclusive): imbalance is the absolute difference of the two side counts (defs/Local.lean), and ''at most 100'' is ≤ 100.'

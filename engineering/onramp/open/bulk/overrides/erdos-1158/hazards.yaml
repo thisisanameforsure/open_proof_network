@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: 2 ≤ r
+  justification: 2 ≤ r is the problem's range 'for all t, r ≥ 2' (inclusive); the informal text says the restriction r ≥ 2 excludes forbidding a single edge, so r = 2 is deliberately the first case.
+- checker: off-by-one-range
+  location: 2 ≤ t
+  justification: 2 ≤ t is the problem's range 'for all t, r ≥ 2' (inclusive) stated in the informal text; t is the uniformity of the hypergraph.

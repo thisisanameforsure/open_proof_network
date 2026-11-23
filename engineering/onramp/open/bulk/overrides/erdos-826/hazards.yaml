@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: k ≥ 1
+  justification: '`k ≥ 1` is the problem''s range: the informal text says ''for all k ≥ 1, τ(n + k) ≪ k'', inclusive at 1 (k = 0 would ask τ(n) ≤ 0, which is false and is not the problem); the boundary is the stated one.'

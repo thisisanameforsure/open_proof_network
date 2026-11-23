@@ -1,0 +1,3 @@
+- checker: junk-value
+  location: Real.log (Real.log 2)
+  justification: 'Real.log (Real.log 2) is the problem''s log(log 2): the inner argument 2 > 0 and log 2 ≈ 0.693 > 0, so both logarithms take positive arguments and no junk value arises (the value is a genuine negative real, ≈ −0.367).'

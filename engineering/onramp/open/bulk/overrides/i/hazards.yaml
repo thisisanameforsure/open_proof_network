@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: x - 1
+  justification: '`x - 1` cannot truncate: the hypothesis `2 ≤ x` gives `x - 1 ≥ 1`, so `x * (x - 1)` is the integer x(x−1) of the informal statement.'
+- checker: off-by-one-range
+  location: 2 ≤ x
+  justification: '`2 ≤ x` is Oppermann''s own range ''for every integer x ≥ 2'', inclusive at 2 (x = 1 gives the empty interval (0, 1)); the boundary is the stated one.'

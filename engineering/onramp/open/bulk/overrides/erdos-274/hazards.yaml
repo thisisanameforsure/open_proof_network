@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: 1 < ENat.card G
+  justification: "`1 < ENat.card G` asks the group to be nontrivial and is the registry's own hypothesis (upstream 274.lean line 64, verbatim); it excludes nothing the problem means, because the trivial group has exactly one coset and so can never be covered by `more than one coset`."
+- checker: off-by-one-range
+  location: 1 < Fintype.card ι
+  justification: "`1 < Fintype.card ι` is the problem's `exact covering by more than one coset`, because ι indexes the cosets of the covering and `more than one` is the strict bound, so a covering by a single coset (G itself) is excluded as the informal text intends."

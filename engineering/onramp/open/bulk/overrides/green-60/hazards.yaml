@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 2 ≤ A.card
+  justification: '`2 ≤ A.card` is the problem''s `|A| ≥ 2` in the informal text, inclusive at 2 (for |A| = 1 the inequality |A + A| ≥ |A|^{1+c} is 1 ≥ 1 and carries no content); the boundary is the stated one.'

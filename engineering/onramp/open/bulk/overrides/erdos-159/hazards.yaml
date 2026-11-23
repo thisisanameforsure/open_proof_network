@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: "1 ≤ n"
+  justification: "1 ≤ n is the range over which the registry states R(C_4, K_n) ≪ n^{2-c}: a Vinogradov bound is a claim about every n ≥ 1 with one constant C, and n = 0 (K_0, the empty graph) is excluded as the degenerate case; the registry's own statement carries this exact bound."

@@ -1,0 +1,3 @@
+- checker: nat-sub
+  location: p - 1
+  justification: p - 1 is the problem's p − 1 in f(p) = p − 1, and it never truncates because the set carries the hypothesis p.Prime, so p ≥ 2.

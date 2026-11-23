@@ -1,0 +1,18 @@
+- checker: div-zero
+  location: (p ^ q - 1) / (p - 1)
+  justification: '`(p ^ q - 1) / (p - 1)` is the problem''s quotient (p^q - 1)/(p - 1); the denominator is nonzero because p is prime so p ≥ 2, and the natural-number division is exact because p - 1 divides p^q - 1 (the quotient is the geometric sum 1 + p + … + p^{q-1}), so Lean''s `/` returns the integer the problem means.'
+- checker: div-zero
+  location: (q ^ p - 1) / (q - 1)
+  justification: '`(q ^ p - 1) / (q - 1)` is the problem''s quotient (q^p - 1)/(q - 1); the denominator is nonzero because q is prime so q ≥ 2, and the natural-number division is exact because q - 1 divides q^p - 1 (the quotient is 1 + q + … + q^{p-1}), so Lean''s `/` returns the integer the problem means.'
+- checker: nat-sub
+  location: p - 1
+  justification: '`p - 1` never truncates because p is prime (hypothesis `hp`), so p ≥ 2 and p - 1 ≥ 1 as an integer.'
+- checker: nat-sub
+  location: p ^ q - 1
+  justification: '`p ^ q - 1` never truncates because p is prime, so p ≥ 2 and p^q ≥ 2 > 1, hence p^q - 1 ≥ 1 as an integer.'
+- checker: nat-sub
+  location: q - 1
+  justification: '`q - 1` never truncates because q is prime (hypothesis `hq`), so q ≥ 2 and q - 1 ≥ 1 as an integer.'
+- checker: nat-sub
+  location: q ^ p - 1
+  justification: '`q ^ p - 1` never truncates because q is prime, so q ≥ 2 and q^p ≥ 2 > 1, hence q^p - 1 ≥ 1 as an integer.'

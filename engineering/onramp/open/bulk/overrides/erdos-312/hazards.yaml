@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: 1 < K
+  justification: '`1 < K` is the problem''s own hypothesis, because the informal text says ''for any K > 1'' (strict).'
+- checker: off-by-one-range
+  location: ∑ i ∈ S, (↑(a i))⁻¹ ≤ 1
+  justification: '`≤ 1` is the problem''s own conclusion, because the informal text asks for 1 - exp(-cK) < ∑_{n ∈ S} 1/n ≤ 1 (inclusive upper bound).'

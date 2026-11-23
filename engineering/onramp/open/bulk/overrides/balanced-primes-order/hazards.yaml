@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: n - i
+  justification: '`n - i` is the index of the prime p_{n-i} in the registry''s sum over i = 1..k, and it never truncates because the set carries the hypothesis `k ≤ n` and every summation index satisfies i ≤ k, so n - i ≥ n - k ≥ 0 as an integer.'
+- checker: off-by-one-range
+  location: Finset.Ioc 0 k
+  justification: '`Finset.Ioc 0 k` is the index set {1, …, k} of the registry''s sum ∑_{i=1}^{k}, because Ioc excludes the left endpoint 0 and includes the right endpoint k, which is exactly the stated range.'

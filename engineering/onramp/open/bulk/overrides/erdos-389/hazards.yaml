@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: k ≥ 1
+  justification: '`k ≥ 1` is the problem''s meaning of "there is a k", because the products n(n+1)⋯(n+k−1) and (n+k)⋯(n+2k−1) are written as nonempty products; k = 0 would make both sides the empty product 1 and the divisibility vacuous, which is not the question asked. The registry states the same bound.'
+- checker: off-by-one-range
+  location: n ≥ 1
+  justification: '`n ≥ 1` is the problem''s range "for every n ≥ 1" as the informal text states it; the boundary is inclusive and is the stated one.'

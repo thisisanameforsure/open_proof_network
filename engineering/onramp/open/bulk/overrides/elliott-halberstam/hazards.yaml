@@ -1,0 +1,12 @@
+- checker: div-zero
+  location: C * ↑x / Real.log ↑x ^ A
+  justification: '`C * ↑x / Real.log ↑x ^ A` is the problem''s C x / (log x)^A, because the bound is asserted only for x > 2 (`2 < x`), where Real.log x > log 2 > 0 and hence (log x)^A > 0 for the real power with A > 0; the denominator is never zero where the statement speaks.'
+- checker: off-by-one-range
+  location: 2 < x
+  justification: '`2 < x` is the problem''s range "for all x > 2" as the registry''s docstring states it; the boundary is exclusive and is the stated one.'
+- checker: off-by-one-range
+  location: Finset.Icc 1 ⌊↑x ^ θ⌋₊
+  justification: '`Finset.Icc 1 ⌊↑x ^ θ⌋₊` is the problem''s summation range 1 ≤ q ≤ x^θ over integers q, because an integer q satisfies q ≤ x^θ exactly when q ≤ ⌊x^θ⌋; both endpoints are included as in the informal sum.'
+- checker: off-by-one-range
+  location: θ < 1
+  justification: '`θ < 1` is the problem''s hypothesis "for every θ < 1" as the informal text states it; the endpoint θ = 1 is excluded deliberately, since the registry''s own Friedlander–Granville variant records that the conjecture fails at θ = 1.'

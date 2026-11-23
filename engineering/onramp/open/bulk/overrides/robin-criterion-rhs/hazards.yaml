@@ -1,0 +1,6 @@
+- checker: junk-value
+  location: Real.log (Real.log ↑n)
+  justification: "`log (log n)` is Robin's log log n and never a junk value here, because the statement is under the hypothesis `n > 5040`, so log n > log 5040 > 8 > 1 and hence log log n > 0; the argument of the outer logarithm is positive throughout the stated range."
+- checker: off-by-one-range
+  location: n > 5040
+  justification: "`n > 5040` is Robin's criterion's own range (strict), because the registry's `robin_criterion` (upstream RiemannHypothesisEquivalents.lean line 47) states RH ↔ `∀ n > 5040, σ n < e^γ n log log n`, and n = 5040 itself violates the inequality, which is why the criterion starts strictly above it."

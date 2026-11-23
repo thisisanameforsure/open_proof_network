@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: "(!n) % n"
+  justification: "(!n) % n has a positive modulus because the statement assumes 2 < n, so n ≠ 0; this is the registry's own hypothesis (the conjecture !n ≢ 0 mod n is stated for n > 2, since !2 = 0! + 1! = 2 ≡ 0 mod 2, and the registry's prime-reduction lemma in the same file uses the same 2 < n), so the modulus is the ordinary one."

@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: Set.Icc 1 N
+  justification: Set.Icc 1 N is the problem's {1, …, N} (both endpoints included), the window whose intersection with A is counted in |A ∩ {1,…,N}|.

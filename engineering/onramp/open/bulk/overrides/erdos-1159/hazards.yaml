@@ -1,0 +1,15 @@
+- checker: off-by-one-range
+  location: 1 < C
+  justification: "`1 < C` is the problem's `constant C > 1`, because the informal statement asks for C > 1 (strict), and the registry's own theorem carries the same `1 < C`."
+- checker: off-by-one-range
+  location: 1 ≤ (S ∩ {p | p ∈ l}).ncard
+  justification: "`1 ≤ (S ∩ {p | p ∈ l}).ncard` is the problem's `1 ≤ |S ∩ ℓ|` (every line meets S), because the informal statement writes the lower bound inclusively as `1 ≤`, and the finite plane (Fintype P) makes ncard the genuine cardinality."
+- checker: unused-binder
+  location: x._@.Nodes.erdos-1159.Statement.1471303528._hygCtx._hyg.28
+  justification: "This anonymous binder is one of the registry's own hypothesis-only instance binders `(_ : Fintype P)`, `(_ : Fintype L)`, `(_ : ProjectivePlane P L)` (upstream FormalConjectures/ErdosProblems/1159.lean lines 45–46, verbatim): Fintype P and Fintype L are the problem's `finite projective plane`, and the ProjectivePlane instance is the hypothesis that (P, L) is a projective plane; a hypothesis binder is mentioned by nothing after it by design."
+- checker: unused-binder
+  location: x._@.Nodes.erdos-1159.Statement.1471303528._hygCtx._hyg.31
+  justification: "Same as above: one of the registry's own anonymous hypothesis binders (Fintype P, Fintype L, ProjectivePlane P L), carried verbatim from the upstream statement; it constrains the types and is not meant to be referred to."
+- checker: unused-binder
+  location: x._@.Nodes.erdos-1159.Statement.1471303528._hygCtx._hyg.38
+  justification: "Same as above: one of the registry's own anonymous hypothesis binders (Fintype P, Fintype L, ProjectivePlane P L), carried verbatim from the upstream statement; the finiteness and the projective-plane axioms are the problem's hypotheses as the informal text states them."

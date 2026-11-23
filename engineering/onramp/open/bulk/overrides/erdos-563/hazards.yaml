@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(Erdos563.F n α) / Real.log ↑n
+  justification: '`↑(Erdos563.F n α) / Real.log ↑n` is the problem''s ratio F(n, α)/log n whose limit c_α is asserted at `atTop`, and Real.log n = 0 only for n ∈ {0, 1}, which a limit along atTop never sees, so the denominator is positive wherever it matters.'

@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: Real.log ↑G.averageDegree / ↑G.averageDegree
+  justification: "`log t / t` with t = G.averageDegree (a rational, sum of degrees over the vertex count) is the problem's (log t)/t; the only zero denominator is t = 0 (an edgeless graph, or n = 0), where Lean's junk value makes the required bound `c · 0 · n ≤ indepNum`, which is true, and the problem's own claim is also true there since an edgeless graph on n vertices has independence number n; so the junk value neither admits a false case nor removes a case the problem means, and the conjecture is an `≫_r` statement about large t in any event."

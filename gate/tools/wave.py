@@ -174,6 +174,10 @@ _DEFINITION_RE = re.compile(
 )
 #: A namespace name may carry guillemets (`Arxiv.«1601.03081»`, the registry's arXiv papers).
 _NAMESPACE_RE = re.compile(r"^\s*(?P<kind>namespace|section|end)\b\s*(?P<name>[A-Za-z0-9_.'«»]*)")
+_THEOREM_RE = re.compile(
+    r"^\s*(?:@\[[^\]]*\]\s*)?(?:protected\s+|private\s+|public\s+)*"
+    r"(?:theorem|lemma)\s+(?P<name>[A-Za-z_][A-Za-z0-9_.']*)"
+)
 
 
 _LIBRARY_NOTATION_RE = re.compile(
@@ -185,7 +189,7 @@ _LIBRARY_NOTATION_RE = re.compile(
 @functools.lru_cache(maxsize=4)
 def _scan_library(
     fc: Path,
-) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
+) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
     """Every definition the registry's helper library declares, by short name: the namespaces it
     lives in, and the library modules that declare it (F14-T19, for the port); and every notation
     literal the library declares, by the modules declaring it (a notation is not a name the token
@@ -193,6 +197,7 @@ def _scan_library(
     names: dict[str, set[str]] = {}
     modules: dict[str, set[str]] = {}
     notations: dict[str, set[str]] = {}
+    lemmas: dict[str, set[str]] = {}  # a definition's body may cite the library's lemmas (T25)
     for path in sorted((fc / HELPER_LIBRARY).rglob("*.lean")):
         module = ".".join(path.relative_to(fc).with_suffix("").parts)
         stack: list[tuple[str, str]] = []
@@ -211,13 +216,19 @@ def _scan_library(
                 if literal and literal not in names:
                     notations.setdefault(literal, set()).add(module)
                 continue
+            t = _THEOREM_RE.match(line)
+            if t is not None:
+                parts = [n for k, n in stack if k == "namespace" and n] + t.group("name").split(".")
+                lemmas.setdefault(parts[-1], set()).add(".".join(parts[:-1]))
+                modules.setdefault(parts[-1], set()).add(module)
+                continue
             m = _DEFINITION_RE.match(line)
             if m is None:
                 continue
             parts = [n for k, n in stack if k == "namespace" and n] + m.group("name").split(".")
             names.setdefault(parts[-1], set()).add(".".join(parts[:-1]))
             modules.setdefault(parts[-1], set()).add(module)
-    return names, modules, notations
+    return names, modules, notations, lemmas
 
 
 def helper_names(fc: Path) -> dict[str, set[str]]:
@@ -234,6 +245,12 @@ def helper_modules(fc: Path) -> dict[str, set[str]]:
 def helper_notations(fc: Path) -> dict[str, set[str]]:
     """The library modules declaring each notation literal (F14-T19)."""
     return _scan_library(fc)[2]
+
+
+def helper_lemmas(fc: Path) -> dict[str, set[str]]:
+    """The namespaces of each library theorem, by short name (F14-T25: a ported definition's body
+    may cite one, `Nat.squarefree_infinite`)."""
+    return _scan_library(fc)[3]
 
 
 def notations_used(text: str, notations: dict[str, set[str]]) -> list[str]:
@@ -298,6 +315,15 @@ def _strip_module_syntax(line: str) -> str:
     return _MODIFIER_PREFIX_RE.sub("", line)
 
 
+def _is_conjecture(prefix: list[str], block: list[str]) -> bool:
+    """A problem file's theorem is one of its stated conjectures or their tests — a `category`
+    attribute, or a `sorry` body — and not a proved lemma of its own."""
+    text = "\n".join(block)
+    return any("@[category" in p or "category " in p for p in prefix) or bool(
+        re.search(r"\bsorry\b", text)
+    )
+
+
 def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
     text: str, *, keep_theorems: bool = False
 ) -> tuple[str, list[str]]:
@@ -314,6 +340,7 @@ def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
     imports: list[str] = []
     out: list[str] = []
     pending: list[str] = []  # docstring, attribute, `open ... in` and blank lines awaiting a decl
+    raw_pending: list[str] = []  # the same lines as the registry wrote them (`@[category …]`)
     lines = text.splitlines()
     i = 0
 
@@ -341,6 +368,7 @@ def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
         if section is not None:
             out.extend(pending)
             pending.clear()
+            raw_pending.clear()
             out.append(section.group("kind"))
             i += 1
             continue
@@ -348,6 +376,7 @@ def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
             # `#guard_msgs in`, `#eval`, `#check`: the registry's own tests, declaring nothing;
             # a `#guard_msgs` docstring is the pretty-printer's text and changes with it.
             pending.clear()
+            raw_pending.clear()
             i = block_end(i)
             continue
         if line.startswith("/--") or line.startswith("@[") or _IN_PREFIX_RE.match(line):
@@ -365,9 +394,12 @@ def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
             tail = _strip_module_syntax(lines[j])
             inline = re.sub(r"^@\[[^\]]*\]\s*", "", tail)  # `@[simp] instance … := …` on one line
             if _PROOF_DECL_RE.match(inline) and not keep_theorems:
-                pending.clear()
-                i = block_end(j)
-                continue
+                end = block_end(j)
+                if _is_conjecture([*raw_pending, *lines[i:j]], lines[j:end]):
+                    pending.clear()
+                    raw_pending.clear()
+                    i = end
+                    continue
             if _ANY_DECL_RE.match(inline):
                 end = block_end(j)
                 out.extend(pending)
@@ -378,20 +410,35 @@ def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
                 i = end
                 continue
             pending.extend(_strip_module_syntax(ln) for ln in lines[i : j + 1])
+            raw_pending.extend(lines[i : j + 1])
             i = j + 1
             continue
         if not stripped:
             (pending if pending else out).append(line)
+            if pending:
+                raw_pending.append(line)
             i += 1
             continue
         if _PROOF_DECL_RE.match(line) and not keep_theorems:
+            # A problem file's theorems are its conjectures and their tests, dropped; a proved
+            # lemma of its own that a definition cites (`exists_p`, erdos-1055) stays (T25).
+            end = block_end(i)
+            if _is_conjecture(raw_pending, lines[i:end]):
+                pending.clear()
+                raw_pending.clear()
+                i = end
+                continue
+            out.extend(pending)
             pending.clear()
-            i = block_end(i)
+            raw_pending.clear()
+            out.extend(_strip_module_syntax(ln) for ln in lines[i:end])
+            i = end
             continue
         if _ANY_DECL_RE.match(line):
             end = block_end(i)
             out.extend(pending)
             pending.clear()
+            raw_pending.clear()
             out.extend(_strip_module_syntax(ln) for ln in lines[i:end])
             i = end
             continue
@@ -403,11 +450,13 @@ def port_body(  # noqa: PLR0912, PLR0915 — one branch per line kind
                 j += 1
             out.extend(pending)
             pending.clear()
+            raw_pending.clear()
             out.extend(lines[i : j + 1])
             i = j + 1
             continue
         out.extend(pending)
         pending.clear()
+        raw_pending.clear()
         # A `local notation` is the file's; in its own module it would reach nothing, so the port
         # makes it plain (the statement and its proofs import the module).
         out.append(
@@ -637,6 +686,27 @@ def bound_names(prop: str) -> set[str]:
     return bound
 
 
+def declared_namespaces(text: str) -> list[str]:
+    """The `namespace X` lines of a file, in order."""
+    out = []
+    for line in text.splitlines():
+        m = _NAMESPACE_RE.match(line)
+        if m is not None and m.group("kind") == "namespace" and m.group("name"):
+            out.append(m.group("name"))
+    return out
+
+
+@functools.lru_cache(maxsize=4)
+def registry_namespaces(fc: Path) -> frozenset[str]:
+    """Every namespace a registry problem file declares (`Erdos507`, `Green77`, …)."""
+    out: set[str] = set()
+    for path in (fc / "FormalConjectures").rglob("*.lean"):
+        for m in declared_namespaces(path.read_text(encoding="utf-8")):
+            out.add(m)
+            out.add(m.split(".")[0])
+    return frozenset(out)
+
+
 def opened_namespaces(text: str) -> set[str]:
     """The namespaces a file's `open` lines name (`open Filter Topology`, `open scoped X in`,
     `open Nat (factorial)`): where a bare helper name in the file's own definitions can resolve."""
@@ -647,17 +717,29 @@ def opened_namespaces(text: str) -> set[str]:
     return out
 
 
-def helpers_used_in_body(body: str, index: dict[str, set[str]], opened: set[str]) -> list[str]:
+def helpers_used_in_body(
+    body: str,
+    index: dict[str, set[str]],
+    opened: set[str],
+    lemmas: dict[str, set[str]] | None = None,
+) -> list[str]:
     """The helper definitions a file's own definitions use (F14-T21): a name counts when the library
     declares it at the root or under a namespace the file opens, or when the body writes it with
     its namespace (`MilnorK.of`). The bare-name rule of `helpers_used` is the statement's, where a
     bare `S` is a use; in a body of definitions `S` and `of` are everyone's own names, and the
     pilot's erdos-509 ported four unrelated modules on them."""
     used: set[str] = set()
-    for name, spaces in index.items():
-        if not re.search(rf"(?<![\w.']){re.escape(name)}(?![\w'])", body):
+    for name, spaces in [*index.items(), *(lemmas or {}).items()]:
+        if not re.search(rf"(?<![\w']){re.escape(name)}(?![\w'])", body):
             continue
-        if any(s == "" or s in opened or f"{s}.{name}" in body for s in spaces):
+        dotted_on_a_value = re.search(rf"[\w')\]]\.{re.escape(name)}(?![\w'])", body)
+        if any(
+            s == ""
+            or s in opened
+            or f"{s}.{name}" in body
+            or (s and dotted_on_a_value)  # `n.Composite`: the library's `Nat.Composite` (T25)
+            for s in spaces
+        ):
             used.add(name)
     return sorted(used)
 
@@ -677,10 +759,11 @@ def helpers_used(prop: str, index: dict[str, set[str]]) -> list[str]:
             continue
         dotted = m.start() > 0 and prop[m.start() - 1] == "."
         spaces = index[name]
-        if not dotted or any(
-            s and (s.rsplit(".", 1)[-1] in MATHLIB_NAMESPACES or f"{s}.{name}" in prop)
-            for s in spaces
-        ):
+        # A dotted use (`M.IsSynchronizing`, `S.IsAPOfLength`) is the library's whenever it declares
+        # the name under some namespace: `DFA` was not on the list of Mathlib namespaces the library
+        # extends, and nine of run 2's statements did not elaborate (F14-T25). A theorem is never
+        # in this index, so `A.card` stays Mathlib's.
+        if not dotted or any(s for s in spaces):
             used.add(name)
     return sorted(used)
 
@@ -793,7 +876,11 @@ def leading_hypotheses(prop: str) -> bool:
     return seen_forall and _top_level(body, "→") >= 0
 
 
-_NOTATION_RE = re.compile(r'^\s*(?:local\s+|scoped\s+)?notation\s*"([^"]+)"', re.M)
+_NOTATION_RE = re.compile(
+    r"^\s*(?:local\s+|scoped(?:\[\w+\])?\s+)?(?:notation3?|infixl?|infixr|prefix|postfix)"
+    r'(?::\d+)?\s*(?:\(.*?\)\s*)?"([^"]+)"',
+    re.M,
+)
 _GROUP_RE = re.compile(r"\(([^()]*)\)")
 
 
@@ -1057,6 +1144,22 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
     shape = parse_refusal(prop)
     if shape is not None:
         draft.reasons.append(shape)
+    if "type_of%" in prop:
+        # erdos-1135 (run 2): `type_of% CollatzConjecture.collatz_conjecture` is another statement.
+        draft.reasons.append(
+            "the statement is another statement's type (`type_of%`): curate by hand"
+        )
+    here = set(declared_namespaces(text))
+    foreign = sorted(
+        ns for ns in opened_namespaces(text) if ns in registry_namespaces(fc) and ns not in here
+    )
+    if foreign:
+        # green-77 (run 2): `open Erdos507` names a namespace another registry file declares, which
+        # the file imports; the statement's meaning reaches across files.
+        draft.reasons.append(
+            f"opens another registry file's namespace ({', '.join(foreign)}): a cross-file "
+            "statement, curate by hand"
+        )
     # The witness: the driver's where it can write one (binders before the colon are leading
     # binders to step 7, F14-T19), the curator's hand file otherwise (F14-T18); without either
     # the row is refused by the reason the driver cannot.
@@ -1095,7 +1198,9 @@ def draft_row(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915, PLR0917 — a check 
             if local:
                 # The file's own definitions may use the library too: port what they use.
                 body, _imports = port_body(text)
-                in_body = helpers_used_in_body(body, helpers, opened_namespaces(text))
+                in_body = helpers_used_in_body(
+                    body, helpers, opened_namespaces(text), helper_lemmas(fc)
+                )
                 used = sorted(set(used) | {n for n in in_body if n not in locals_short})
                 literals = sorted(set(literals) | set(notations_used(body, lib_notations)))
             wanted = [m for name in used for m in sorted(modules.get(name, ()))] + [

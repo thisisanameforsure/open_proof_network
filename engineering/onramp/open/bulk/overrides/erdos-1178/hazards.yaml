@@ -1,0 +1,9 @@
+- checker: nat-sub
+  location: "r - 2"
+  justification: "(r - 2) * e + 3 is the problem's conjectured value d_r(e) = (r-2)e + 3; the subtraction cannot truncate because the statement assumes 3 ≤ r, so r - 2 ≥ 1 is the ordinary difference."
+- checker: off-by-one-range
+  location: "3 ≤ e"
+  justification: "3 ≤ e is the problem's range as the registry states it, 'for all r, e ≥ 3', an inclusive bound with e = 3 included."
+- checker: off-by-one-range
+  location: "3 ≤ r"
+  justification: "3 ≤ r is the problem's range as the registry states it, 'for r ≥ 3 ... for all r, e ≥ 3', an inclusive bound with r = 3 included (the smallest uniformity for which d_r(e) is defined in the problem)."

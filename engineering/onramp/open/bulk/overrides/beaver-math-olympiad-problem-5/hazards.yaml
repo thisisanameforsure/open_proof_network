@@ -1,0 +1,9 @@
+- checker: nat-sub
+  location: 10 * 2 ^ x - 1
+  justification: 10 * 2 ^ x - 1 is the problem's f(x) = 10·2^x − 1 and never truncates, because 2^x ≥ 1 for every natural x, so 10 * 2^x ≥ 10 > 1.
+- checker: nat-sub
+  location: b n - f (a n)
+  justification: b n - f (a n) is the problem's b_{n+1} = b_n − f(a_n) in the first case, and it never truncates because that branch of the `if` is taken only when f (a n) ≤ b n, exactly the informal case condition b_n ≥ f(a_n).
+- checker: nat-sub
+  location: f (a i) - 1
+  justification: f (a i) - 1 is the problem's target value f(a_i) − 1 and never truncates, because f (a i) = 10 * 2^(a i) - 1 ≥ 9.

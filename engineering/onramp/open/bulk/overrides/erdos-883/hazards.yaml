@@ -1,0 +1,9 @@
+- checker: nat-sub
+  location: "n / 2 + n / 3 - n / 6"
+  justification: "n / 2 + n / 3 - n / 6 is the problem's ⌊n/2⌋ + ⌊n/3⌋ - ⌊n/6⌋; the subtraction cannot truncate because ⌊n/6⌋ ≤ ⌊n/2⌋ ≤ ⌊n/2⌋ + ⌊n/3⌋ for every natural n, so the natural-number difference equals the integer one."
+- checker: off-by-one-range
+  location: "3 ≤ l"
+  justification: "3 ≤ l together with Odd l ranges over the odd cycle lengths, which are 3, 5, 7, ...; the problem asks for 'all odd cycles of length ≤ n/3 + 1' and no odd cycle has length 1, so the bound only names the smallest odd cycle, inclusive."
+- checker: off-by-one-range
+  location: "Finset.Icc 1 n"
+  justification: "Finset.Icc 1 n is {1, ..., n}, the registry's A ⊆ {1, …, n}, both endpoints included as the problem states them."

@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: r - 1
+  justification: '`r - 1` is the (r-1)-fold iterated logarithm the informal text names, and r ≥ 3 is a hypothesis, so r - 1 ≥ 2 and the subtraction never truncates.'
+- checker: off-by-one-range
+  location: r ≥ 3
+  justification: '`r ≥ 3` is the problem''s own range, because the informal text says ''for r ≥ 3'' (inclusive); for r = 2 the ordinary Ramsey number is exponential, not doubly iterated, so 3 is the stated boundary.'

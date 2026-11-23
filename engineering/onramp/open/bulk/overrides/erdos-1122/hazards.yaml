@@ -1,0 +1,3 @@
+- checker: off-by-one-range
+  location: 1 ≤ n
+  justification: '`1 ≤ n` is the problem''s own set A = {n ≥ 1 : f(n+1) < f(n)}, so the inclusive lower bound 1 is the stated range of the exceptional set whose density is 0.'

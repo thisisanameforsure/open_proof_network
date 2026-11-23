@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: ↑(Erdos893.f (2 * n)) / ↑(Erdos893.f n)
+  justification: '`↑(Erdos893.f (2 * n)) / ↑(Erdos893.f n)` is the problem''s f(2n)/f(n), because f n = ∑_{1 ≤ k ≤ n} τ(2^k − 1) ≥ τ(1) = 1 for every n ≥ 1, so the denominator is positive for every n ≥ 1 and zero only at the single point n = 0, which cannot affect the limit as n → ∞ (`Tendsto … atTop`).'

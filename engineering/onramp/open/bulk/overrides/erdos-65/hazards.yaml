@@ -1,0 +1,3 @@
+- checker: div-zero
+  location: 1 / ↑a
+  justification: '`1 / ↑a` sums over a ∈ G.cycleLengths, the lengths of cycles of a simple graph (defs: a walk with IsCycle), and a cycle in a simple graph has length ≥ 3, so every denominator is positive; this is the problem''s sum of 1/a_i over cycle lengths.'

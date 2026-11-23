@@ -1,0 +1,6 @@
+- checker: nat-sub
+  location: 2 ^ n - 1
+  justification: '`2 ^ n - 1` cannot truncate, because 2^n ≥ 1 for every natural n, so 2^n − 1 is the genuine Mersenne number the conjecture is about (''the addition-chain length of 2^n − 1'').'
+- checker: nat-sub
+  location: n - 1
+  justification: '`n - 1` cannot truncate, because the statement assumes 0 < n, i.e. n ≥ 1, so n − 1 is the genuine value in the conjectured bound n − 1 + ℓ(n) ''for every positive integer n''.'

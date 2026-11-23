@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: Finset.Icc 1 k
+  justification: '`Finset.Icc 1 k` is the problem''s product ∏_{1 ≤ i ≤ k}(n+i) as the informal text states it; both endpoints are included and the range is the stated one.'
+- checker: off-by-one-range
+  location: k ≥ 2
+  justification: '`k ≥ 2` is the problem''s hypothesis "Let k ≥ 2" as the informal text states it; the boundary is inclusive and is the stated one.'
