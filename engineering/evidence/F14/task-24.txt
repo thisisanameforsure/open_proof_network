@@ -22,3 +22,12 @@ id the drafts do not carry cannot be opened.
 
 Not run here: the live opening waits for the admission run's report (run 2, 45084620268, over the 652
 drafts with the witnesses). The first live opening is recorded below when it happens.
+
+The live opening (2026-11-23, run 2's 289 admitted drafts; task-24-opened.json is opened.json): four
+batches — 10, 40, 60, then the rest. The first ten were open at 05:35Z and eight of them merged by
+the actor within seven minutes (graph PRs #1607–#1616); the 134th import was refused by the
+listed-targets cap (default 64, F14-Q18) and the run resumed with the cap at 2000 from where
+opened.json left it. All 289 were open by 07:20Z. Tally at 07:25Z over every intake pull request on
+the graph (wave one's five closed red ones from September included): merged 104, open and green 98,
+open and gating 119, closed red 5 (wave one's). No gate has refused a draft the sandbox admitted; the
+one red check was a transient image pull, rerun green.
