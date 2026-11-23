@@ -778,7 +778,8 @@ def target_id_for(row: dict[str, Any]) -> str:
     if row["kind"] == "erdos":
         return f"erdos-{row['key'].split(':', 1)[1]}"
     decl = str(row["decl"]).rsplit(".", 1)[-1].translate(_SUBSCRIPTS)
-    return re.sub(r"(?<!^)(?=[A-Z])", "-", decl).replace("_", "-").lower()
+    kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", decl).replace("_", "-").lower()
+    return re.sub(r"-{2,}", "-", kebab).strip("-")  # `_M5` → `--m5` on the live record (T25)
 
 
 def theorem_name(row: dict[str, Any]) -> str:

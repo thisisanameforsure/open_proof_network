@@ -980,6 +980,10 @@ def test_a_subscript_in_the_declaration_name_becomes_a_plain_letter_in_the_id() 
     row = {"kind": "fc", "key": "fc:x", "decl": "Moments.moment_is_equiv₃"}
     assert tool.target_id_for(row) == "moment-is-equiv3"
     assert tool.target_id_for({**row, "decl": "moment_is_equivₖ"}) == "moment-is-equivk"
+    # F14-T25: `buchi_problem_M5` gave `buchi-problem--m5` on the live record; a run of hyphens
+    # collapses, since `--h` is the hole-id grammar's own separator (D-12).
+    assert tool.target_id_for({**row, "decl": "buchi_problem_M5"}) == "buchi-problem-m5"
+    assert tool.target_id_for({**row, "decl": "green_58_IsPrime"}) == "green-58-is-prime"
 
 
 def test_a_library_notation_is_followed_to_its_module(
