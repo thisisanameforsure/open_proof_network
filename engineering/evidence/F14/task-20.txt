@@ -56,3 +56,17 @@ Read against the sample probes of T19: the hosted route compiled 20 of 20 drafts
 of 363; the difference is the gate's own checks the route never runs — hazards (step 6), the
 witness (step 7), each defs file on its own — and the twenty-nine statements the route's budget never
 reached. The 218 are what T24 opens; the 81 need a curator acknowledgement each.
+
+The third run (run 45124135885, network d7dd3873, sixteen shards, 486 drafts: every row not live at
+drafting, with T23's witnesses, T25's driver and the 186 hazard acknowledgements, the listed cap at
+2000): every job green. Report in task-20-run3/:
+  Admitted 283, refused 203
+   72  already exists        targets merged by the actor between the drafting job and the shard
+   30  witness-elaboration   the agents' unchecked witnesses (28 of them on rows with a hand witness)
+   28  statement-elaboration
+   24  hazard-unacknowledged (186 before the acknowledgements)
+   22  witness-type-mismatch
+   13  defs-elaboration · 4 defs-import · 10 other
+Of the 283, 161 were open from run 2 already; the other 122 opened as intake pull requests at once
+(task-24-opened.json now lists 411). Intake pull requests on the graph at 09:05Z: 233 merged, 210
+gating or green, 5 closed red (wave one's, September).

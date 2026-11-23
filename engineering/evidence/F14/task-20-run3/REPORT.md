@@ -1,0 +1,501 @@
+# Wave admission (F14-T20)
+
+Mode sandbox; image ghcr.io/thisisanameforsure/opn-gate@sha256:45db166436383168a62b0cf37dea3fd7b0cee44d3bc2b09dbe0256ebe0a8fbbe; 16 shards.
+Admitted 283, refused 203. Read every admitted draft before import (F14-R13); `import-admitted.sh` imports the admitted ones only.
+
+## Refused, by check
+
+- refused: 197
+- error: 6
+
+## Refused
+
+- `abc`: refused — target 'abc' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/abc
+- `algebraic-independent-e-pi`: refused — target 'algebraic-independent-e-pi' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/algebraic-independent-e-pi
+- `andrews-curtis-conjecture`: refused — admission refused 'andrews-curtis-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/andrews-curtis-conjecture/Witness.lean', 'line': 3, 'column': 33, 'severity': 'error', 'text': "Function expected at\n  RelatorTuple\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being ap
+- `babai-seress-conjecture`: refused — target 'babai-seress-conjecture' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/babai-seress-conjecture
+- `babai-seress-conjecture-alternating`: refused — target 'babai-seress-conjecture-alternating' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/babai-seress-conjecture-alternating
+- `balanced-primes`: refused — target 'balanced-primes' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/balanced-primes
+- `barker-conjecture`: refused — admission refused 'barker-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/barker-conjecture/Witness.lean', 'line': 3, 'column': 34, 'severity': 'error', 'text': "Function expected at\n  IsBarkerSequence\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being applied to the
+- `bass-conjecture-integral-domain`: refused — admission refused 'bass-conjecture-integral-domain': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ R x G x_1 n x_2 A g, IsDomain R ∧ A * A = A ∧ ¬IsUnit ↑(orderOf g) but the statement's hypotheses need ∃ R inst G inst_1 n inst_2 A g, IsDomain R ∧ A * A = A ∧ ¬IsUnit ↑(orderOf g)", details={'expected': '∃ R inst G inst_1 n inst_2 A g, IsDomain R ∧ A * A = A ∧ ¬
+- `bateman-horn-conjecture`: refused — admission refused 'bateman-horn-conjecture': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 51, 'column': 43, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  X\nhas type\n  ?m.1[X]\nbut is expected to have typ
+- `beal-conjecture`: refused — target 'beal-conjecture' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/beal-conjecture
+- `beaver-math-olympiad-problem-2-antihydra`: refused — target 'beaver-math-olympiad-problem-2-antihydra' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/beaver-math-olympiad-problem-2-antihydra
+- `beck-fiala-conjecture`: refused — target 'beck-fiala-conjecture' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/beck-fiala-conjecture
+- `beurling-nyman-criterion-rhs`: refused — admission refused 'beurling-nyman-criterion-rhs': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 71, 'column': 14, 'severity': 'error', 'text': 'Unknown identifier `fractScalarInv_memLp2`'}]}); AlgebraWeylAlgebra: blocked by Defs.Loca
+- `bing-borsuk-conjecture`: refused — admission refused 'bing-borsuk-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/bing-borsuk-conjecture/Witness.lean', 'line': 4, 'column': 2, 'severity': 'error', 'text': "Function expected at\n  MetrizableSpace\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being applie
+- `bunyakovsky-conjecture`: refused — admission refused 'bunyakovsky-conjecture': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«bunyakovsky-conjecture».Statement', 'messages': [{'file': 'Nodes/bunyakovsky-conjecture/Statement.lean', 'line': 28, 'column': 42, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  X\nhas type\n  ?m.1[X]
+- `burning-number-conjecture`: refused — admission refused 'burning-number-conjecture': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ V inst G, G.Connected but the statement's hypotheses need ∃ V V inst G, G.Connected", details={'expected': '∃ V V inst G, G.Connected', 'witness': '∃ V inst G, G.Connected'})
+- `c6a-eq-half`: refused — target 'c6a-eq-half' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/c6a-eq-half
+- `c6a-lower-bound-improved`: refused — target 'c6a-lower-bound-improved' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/c6a-lower-bound-improved
+- `c6a-upper-bound-improved`: refused — target 'c6a-upper-bound-improved' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/c6a-upper-bound-improved
+- `c7b-lower-bound-improved`: refused — admission refused 'c7b-lower-bound-improved': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.OptimizationConstants.«7a»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.OptimizationConstants.«7a»'}); AlgebraWeylAlgebra: blocked by defs/Local.lean imports FormalCon
+- `c7b-upper-bound-improved`: refused — admission refused 'c7b-upper-bound-improved': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.OptimizationConstants.«7a»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.OptimizationConstants.«7a»'}); AlgebraWeylAlgebra: blocked by defs/Local.lean imports FormalCon
+- `cardinal-mk-le-continuum-of-weakly-first-countable-of-countable-souslin-number`: refused — node id 'cardinal-mk-le-continuum-of-weakly-first-countable-of-countable-souslin-number' must match ^[a-z0-9][a-z0-9-]*$ and be at most 64 chars
+- `center-column-frequency-half`: refused — target 'center-column-frequency-half' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/center-column-frequency-half
+- `center-column-not-eventually-periodic`: refused — target 'center-column-not-eventually-periodic' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/center-column-not-eventually-periodic
+- `cerny-conjecture`: refused — admission refused 'cerny-conjecture': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ α σ inst M, M.IsSynchronizing but the statement's hypotheses need ∃ α σ inst M, M.IsSynchronizing", details={'expected': '∃ α σ inst M, M.IsSynchronizing', 'witness': '∃ α σ inst M, M.IsSynchronizing'})
+- `collatz-conjecture`: refused — target 'collatz-conjecture' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/collatz-conjecture
+- `complexity-two-pow`: refused — admission refused 'complexity-two-pow': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 67, 'column': 40, 'severity': 'error', 'text': 'Unknown identifier `not_reachable_zero_fst`'}, {'file': 'Defs/Local.lean', 'line': 68, 'column': 40
+- `conj-class-sizes-iff-sym-three`: refused — admission refused 'conj-class-sizes-iff-sym-three': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/conj-class-sizes-iff-sym-three/Witness.lean', 'line': 4, 'column': 30, 'severity': 'error', 'text': 'Invalid argument name `G` for function'}], 'expected': None})
+- `conjecture`: refused — admission refused 'conjecture': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ x y, 0 < x ∧ 0 < y but the statement's hypotheses need True", details={'expected': 'True', 'witness': '∃ x y, 0 < x ∧ 0 < y'})
+- `conjecture-1-3-to-2-3`: refused — admission refused 'conjecture-1-3-to-2-3': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Set.Icc 1 (Nat.card P): Set.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-range', 'location': 'Set.Icc 1 (Nat.card P)', 'message': 'Set.Icc with a litera
+- `conjecture-one`: refused — target 'conjecture-one' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/conjecture-one
+- `crystals-components-unique`: refused — admission refused 'crystals-components-unique': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/crystals-components-unique/Witness.lean', 'line': 3, 'column': 61, 'severity': 'error', 'text': "Function expected at\n  IsCrystalWithComponents\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this ter
+- `curling-number-conjecture`: refused — target 'curling-number-conjecture' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/curling-number-conjecture
+- `determinantal-conjecture`: refused — target 'determinantal-conjecture' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/determinantal-conjecture
+- `dickson-conjecture`: refused — admission refused 'dickson-conjecture': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«dickson-conjecture».Statement', 'messages': [{'file': 'Nodes/dickson-conjecture/Statement.lean', 'line': 28, 'column': 46, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  X\nhas type\n  ?m.1[X]\nbut is exp
+- `dirichlet-divisor-problem`: refused — target 'dirichlet-divisor-problem' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/dirichlet-divisor-problem
+- `distinct-prop-lt`: refused — target 'distinct-prop-lt' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/distinct-prop-lt
+- `edge-reconstruction-conjecture`: refused — admission refused 'edge-reconstruction-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/edge-reconstruction-conjecture/Witness.lean', 'line': 3, 'column': 101, 'severity': 'error', 'text': "Function expected at\n  EdgeHypomorphic\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this te
+- `erdos-10`: refused — target 'erdos-10' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-10
+- `erdos-101`: refused — target 'erdos-101' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-101
+- `erdos-1035`: refused — target 'erdos-1035' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1035
+- `erdos-104`: refused — target 'erdos-104' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-104
+- `erdos-1049`: error —   in "<unicode string>", line 2, column 20:       location: "1 / (\↑t ^ \↑n - 1)"                        ^
+- `erdos-1052`: refused — target 'erdos-1052' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1052
+- `erdos-1053`: refused — admission refused 'erdos-1053': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: junk-value at Real.log (Real.log ↑n): Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': 'Real.log (Real.log ↑n)', 'message': 'Real.log of a possibly-negative argument is a junk value (0)'
+- `erdos-1055`: refused — admission refused 'erdos-1055': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 62, 'column': 12, 'severity': 'error', 'text': 'Unknown identifier `exists_p`'}]}); AlgebraWeylAlgebra: blocked by Defs.Local (defs/Local.lean) does not el
+- `erdos-1060`: refused — admission refused 'erdos-1060': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: junk-value at Real.log (Real.log ↑n): Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': 'Real.log (Real.log ↑n)', 'message': 'Real.log of a possibly-negative argument is a junk value (0)'
+- `erdos-1061`: refused — target 'erdos-1061' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1061
+- `erdos-1065`: refused — target 'erdos-1065' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1065
+- `erdos-1075`: refused — admission refused 'erdos-1075': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 3 ≤ r: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': '3 ≤ r', 'message': 'comparison against an explicit literal: check wheth
+- `erdos-108`: refused — admission refused 'erdos-108': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-108».Statement', 'messages': [{'file': 'Nodes/erdos-108/Statement.lean', 'line': 22, 'column': 5, 'severity': 'error', 'text': 'unknown namespace `Erdos108`'}]})
+- `erdos-1083`: error —   in "<unicode string>", line 2, column 19:       location: "2 / \↑d"                       ^
+- `erdos-1087`: refused — target 'erdos-1087' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1087
+- `erdos-1088`: refused — admission refused 'erdos-1088': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ n, n ≥ 3 but the statement's hypotheses need ∃ d n, n ≥ 3", details={'expected': '∃ d n, n ≥ 3', 'witness': '∃ n, n ≥ 3'})
+- `erdos-11`: refused — target 'erdos-11' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-11
+- `erdos-1109`: refused — admission refused 'erdos-1109': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-1109».Statement', 'messages': [{'file': 'Nodes/erdos-1109/Statement.lean', 'line': 35, 'column': 31, 'severity': 'error', 'text': 'expected token'}, {'file': 'Nodes/erdos-1109/Statement.lean', 'line': 35, 'column': 6, 'severity': 'e
+- `erdos-1113`: refused — target 'erdos-1113' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1113
+- `erdos-1137`: refused — acknowledged_hazards: document does not satisfy 'meta/v2': $['acknowledged_hazards'][0]['justification']: "`↑((Finset.range x).sup fun n => primeGap n * primeGap (n - 1)) / ↑((Finset.range x).sup primeGap) ^ 2` is the problem's max_{n<x} d_n d_{n-1} / (max_{n<x} d_n)^2, because primeGap n = nth Prime (n+1) - nth Prime n ≥ 1 for every n (consecutive primes are distinct, so no truncation), hence for
+- `erdos-1146`: refused — target 'erdos-1146' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1146
+- `erdos-1191`: refused — admission refused 'erdos-1191': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Set.Icc 1 x: Set.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-range', 'location': 'Set.Icc 1 x', 'message': 'Set.Icc with a literal-adjusted bound: check whether t
+- `erdos-1199`: refused — target 'erdos-1199' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1199
+- `erdos-1203`: refused — target 'erdos-1203' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1203
+- `erdos-1210`: refused — admission refused 'erdos-1210': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at 1 / ↑p: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker': 'div-zero', 'location': '1 / ↑p', 'message': "division by a divisor that is not syntactically 
+- `erdos-1221`: refused — target 'erdos-1221' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1221
+- `erdos-14`: refused — admission refused 'erdos-14': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-14».Statement', 'messages': [{'file': 'Nodes/erdos-14/Statement.lean', 'line': 34, 'column': 38, 'severity': 'error', 'text': 'expected token'}, {'file': 'Nodes/erdos-14/Statement.lean', 'line': 34, 'column': 18, 'severity': 'error', 
+- `erdos-143`: refused — admission refused 'erdos-143': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-143/Witness.lean', 'line': 3, 'column': 33, 'severity': 'error', 'text': "Function expected at\n  WellSeparatedSet\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being applied to the argument\n  A\n
+- `erdos-145`: refused — admission refused 'erdos-145': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at 1 / x: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker': 'div-zero', 'location': '1 / x', 'message': "division by a divisor that is not syntactically non
+- `erdos-155`: refused — admission refused 'erdos-155': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at k ≥ 1: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': 'k ≥ 1', 'message': 'comparison against an explicit literal: check whethe
+- `erdos-158`: refused — admission refused 'erdos-158': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-158/Witness.lean', 'line': 16, 'column': 27, 'severity': 'error', 'text': 'mod_cast has type\n  1 ≤ 2\nbut is expected to have type\n  ?m.391 ≤ 2'}, {'file': 'Nodes/erdos-158/Witness.lean', 'line': 4, 'column': 110, 'severity': 'erro
+- `erdos-162`: refused — target 'erdos-162' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-162
+- `erdos-17`: refused — target 'erdos-17' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-17
+- `erdos-20`: refused — target 'erdos-20' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-20
+- `erdos-203`: refused — target 'erdos-203' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-203
+- `erdos-208`: refused — admission refused 'erdos-208': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-208».Statement', 'messages': [{'file': 'Nodes/erdos-208/Statement.lean', 'line': 32, 'column': 30, 'severity': 'error', 'text': "Function expected at\n  s\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term
+- `erdos-212`: refused — target 'erdos-212' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-212
+- `erdos-233`: refused — target 'erdos-233' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-233
+- `erdos-236`: refused — target 'erdos-236' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-236
+- `erdos-241`: refused — target 'erdos-241' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-241
+- `erdos-247`: refused — admission refused 'erdos-247': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-247/Witness.lean', 'line': 3, 'column': 48, 'severity': 'error', 'text': 'Unknown identifier `atTop.limsup`'}], 'expected': None})
+- `erdos-251`: refused — target 'erdos-251' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-251
+- `erdos-263`: refused — target 'erdos-263' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-263
+- `erdos-264`: refused — target 'erdos-264' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-264
+- `erdos-288`: refused — target 'erdos-288' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-288
+- `erdos-295`: refused — target 'erdos-295' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-295
+- `erdos-311`: refused — admission refused 'erdos-311': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: junk-value at Real.log (Erdos311.delta N): Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': 'Real.log (Erdos311.delta N)', 'message': 'Real.log of a possibly-negative argument is a junk v
+- `erdos-313`: refused — target 'erdos-313' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-313
+- `erdos-317`: refused — admission refused 'erdos-317': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at ↑(δ k) / (↑↑k + 1): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker': 'div-zero', 'location': '↑(δ k) / (↑↑k + 1)', 'message': "division by a divisor tha
+- `erdos-324`: refused — target 'erdos-324' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-324
+- `erdos-325`: error —   in "<unicode string>", line 2, column 19:       location: "3 / \↑k"                       ^
+- `erdos-326`: refused — admission refused 'erdos-326': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-326».Statement', 'messages': [{'file': 'Nodes/erdos-326/Statement.lean', 'line': 27, 'column': 31, 'severity': 'error', 'text': 'Invalid field `IsAsymptoticAddBasisOfOrder`: The environment does not contain `Function.IsAsymptoticAddB
+- `erdos-340`: refused — admission refused 'erdos-340': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Set.Icc 1 n: Set.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-range', 'location': 'Set.Icc 1 n', 'message': 'Set.Icc with a literal-adjusted bound: check whether th
+- `erdos-345`: refused — target 'erdos-345' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-345
+- `erdos-352`: refused — target 'erdos-352' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-352
+- `erdos-359`: refused — admission refused 'erdos-359': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-359/Witness.lean', 'line': 3, 'column': 33, 'severity': 'error', 'text': "Function expected at\n  IsGoodFor\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being applied to the argument\n  A\n\nHint:
+- `erdos-365`: refused — target 'erdos-365' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-365
+- `erdos-368`: refused — admission refused 'erdos-368': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': '1 ≤ n', 'message': 'comparison against an explicit literal: check whethe
+- `erdos-376`: refused — target 'erdos-376' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-376
+- `erdos-377`: refused — target 'erdos-377' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-377
+- `erdos-406`: refused — target 'erdos-406' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-406
+- `erdos-408`: error —   in "<unicode string>", line 2, column 15:       location: "\↑(Erdos408.f n) / Real.log \↑n"                   ^
+- `erdos-413`: refused — admission refused 'erdos-413': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-413».Statement', 'messages': [{'file': 'Nodes/erdos-413/Statement.lean', 'line': 32, 'column': 30, 'severity': 'error', 'text': "Function expected at\n  ω\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term
+- `erdos-414`: refused — target 'erdos-414' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-414
+- `erdos-420`: refused — target 'erdos-420' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-420
+- `erdos-430`: refused — target 'erdos-430' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-430
+- `erdos-436`: refused — admission refused 'erdos-436': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-436».Statement', 'messages': [{'file': 'Nodes/erdos-436/Statement.lean', 'line': 24, 'column': 21, 'severity': 'error', 'text': "Function expected at\n  Λ\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term
+- `erdos-445`: refused — target 'erdos-445' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-445
+- `erdos-454`: refused — target 'erdos-454' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-454
+- `erdos-455`: refused — admission refused 'erdos-455': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-455/Witness.lean', 'line': 17, 'column': 21, 'severity': 'error', 'text': 'unsolved goals\nstep : ℕ × ℕ → ℕ × ℕ := fun p => (p.2, Nat.find ⋯)\nf : ℕ → ℕ × ℕ := fun n => step^[n] (2, 3)\nhf : ∀ (n : ℕ), f (n + 1) = step (f n)\nhprime 
+- `erdos-472`: refused — target 'erdos-472' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-472
+- `erdos-509`: refused — admission refused 'erdos-509': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-509/Witness.lean', 'line': 3, 'column': 32, 'severity': 'error', 'text': 'Invalid field notation: Field projection operates on types of the form `C ...` where C is a constant. The expression\n  f\nhas type `?m.7.1 ℂ X ?m.8` which doe
+- `erdos-535`: refused — admission refused 'erdos-535': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: junk-value at Real.log (Real.log ↑N): Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': 'Real.log (Real.log ↑N)', 'message': 'Real.log of a possibly-negative argument is a junk value (0)'}
+- `erdos-572`: refused — admission refused 'erdos-572': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 3 ≤ k: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': '3 ≤ k', 'message': 'comparison against an explicit literal: check whethe
+- `erdos-598`: refused — admission refused 'erdos-598': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ κ m, Infinite m but the statement's hypotheses need ∃ m, Infinite m", details={'expected': '∃ m, Infinite m', 'witness': '∃ κ m, Infinite m'})
+- `erdos-600`: refused — admission refused 'erdos-600': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 2 ≤ r: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': '2 ≤ r', 'message': 'comparison against an explicit literal: check whethe
+- `erdos-626`: error —   in "<unicode string>", line 2, column 15:       location: "\↑(Erdos626.g k n) / Real.log \↑n"                   ^
+- `erdos-68`: refused — target 'erdos-68' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-68
+- `erdos-695`: refused — admission refused 'erdos-695': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at q (i + 1) % q i: modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker': 'div-zero', 'location': 'q (i + 1) % q i', 'message': "modulo by a divisor that is not s
+- `erdos-701`: refused — admission refused 'erdos-701': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ X, ∃ (_ : Nonempty X), ∃ x F, IsLowerSet F but the statement's hypotheses need ∃ X inst F, Nonempty X ∧ IsLowerSet F", details={'expected': '∃ X inst F, Nonempty X ∧ IsLowerSet F', 'witness': '∃ X, ∃ (_ : Nonempty X), ∃ x F, IsLowerSet F'})
+- `erdos-706`: refused — admission refused 'erdos-706': root: layout: Diagnostic(code='defs-elaboration', message='Defs.CombinatoricsSimpleGraphUnitDistancePlaneGraph (defs/CombinatoricsSimpleGraphUnitDistancePlaneGraph.lean) does not elaborate', details={'module': 'Defs.CombinatoricsSimpleGraphUnitDistancePlaneGraph', 'file': 'CombinatoricsSimpleGraphUnitDistancePlaneGraph.lean', 'messages': [{'file': 'Defs/Combinatorics
+- `erdos-740`: refused — admission refused 'erdos-740': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ V G, Cardinal.aleph0 ≤ G.chromaticCardinal but the statement's hypotheses need ∃ V G r, Cardinal.aleph0 ≤ G.chromaticCardinal", details={'expected': '∃ V G r, Cardinal.aleph0 ≤ G.chromaticCardinal', 'witness': '∃ V G, Cardinal.aleph0 ≤ G.chromaticCardinal'})
+- `erdos-75`: refused — admission refused 'erdos-75': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-75».Statement', 'messages': [{'file': 'Nodes/erdos-75/Statement.lean', 'line': 30, 'column': 8, 'severity': 'error', 'text': 'Invalid field `chromaticCardinal`: The environment does not contain `SimpleGraph.chromaticCardinal`, so it i
+- `erdos-774`: refused — admission refused 'erdos-774': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-774/Witness.lean', 'line': 31, 'column': 8, 'severity': 'error', 'text': "Tactic `rewrite` failed: Did not find an occurrence of the pattern\n  (List.map (fun i => 2 ^ i) ?m.370).sum.bitIndices\nin the target expression\n  (∑ i ∈ Fin
+- `erdos-782`: refused — target 'erdos-782' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-782
+- `erdos-802`: refused — acknowledged_hazards: document does not satisfy 'meta/v2': $['acknowledged_hazards'][0]['justification']: "`log t / t` with t = G.averageDegree (a rational, sum of degrees over the vertex count) is the problem's (log t)/t; the only zero denominator is t = 0 (an edgeless graph, or n = 0), where Lean's junk value makes the required bound `c · 0 · n ≤ indepNum`, which is true, and the problem's own c
+- `erdos-810`: refused — target 'erdos-810' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-810
+- `erdos-812`: error —   in "<unicode string>", line 2, column 15:       location: "\↑(R (n + 1)) / \↑(R n)"                   ^
+- `erdos-813`: refused — target 'erdos-813' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-813
+- `erdos-820`: refused — target 'erdos-820' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-820
+- `erdos-829`: refused — target 'erdos-829' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-829
+- `erdos-830`: refused — target 'erdos-830' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-830
+- `erdos-839`: refused — admission refused 'erdos-839': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ a n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': '1 ≤ a n', 'message': 'comparison against an explicit literal: check wh
+- `erdos-850`: refused — target 'erdos-850' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-850
+- `erdos-864`: refused — admission refused 'erdos-864': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Finset.Icc 1 N: Finset.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-range', 'location': 'Finset.Icc 1 N', 'message': 'Finset.Icc with a literal-adjusted bound: chec
+- `erdos-89`: refused — admission refused 'erdos-89': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: junk-value at √(Real.log ↑n): Real.sqrt of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': '√(Real.log ↑n)', 'message': 'Real.sqrt of a possibly-negative argument is a junk value (0)'}], 'acknowledge
+- `erdos-906`: refused — admission refused 'erdos-906': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-906».Statement', 'messages': [{'file': 'Nodes/erdos-906/Statement.lean', 'line': 23, 'column': 17, 'severity': 'error', 'text': 'failed to synthesize instance of type class\n  Algebra (Polynomial ℂ) (ℂ → ℂ)\n\nHint: Type class instan
+- `erdos-918`: refused — admission refused 'erdos-918': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-918».Statement', 'messages': [{'file': 'Nodes/erdos-918/Statement.lean', 'line': 29, 'column': 54, 'severity': 'error', 'text': 'Invalid field `chromaticCardinal`: The environment does not contain `SimpleGraph.chromaticCardinal`, so 
+- `erdos-932`: refused — admission refused 'erdos-932': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 2 ≤\n  {m ∈ Finset.Ioo (Nat.nth Nat.Prime r) (Nat.nth Nat.Prime r.succ) |\n      m.maxPrimeFac < Nat.nth Nat.Prime r.succ - Nat.nth Nat.Prime r}.card: comparison against an explicit literal: check whether the boundary is inclusive or exclusi
+- `erdos-935`: refused — admission refused 'erdos-935': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-935».Statement', 'messages': [{'file': 'Nodes/erdos-935/Statement.lean', 'line': 26, 'column': 8, 'severity': 'error', 'text': 'Unknown identifier `Erdos367.B`'}]})
+- `erdos-944`: refused — admission refused 'erdos-944': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ k r, k ≥ 4 ∧ r ≥ 1 but the statement's hypotheses need ∃ V k r, k ≥ 4 ∧ r ≥ 1", details={'expected': '∃ V k r, k ≥ 4 ∧ r ≥ 1', 'witness': '∃ k r, k ≥ 4 ∧ r ≥ 1'})
+- `erdos-951`: refused — admission refused 'erdos-951': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/erdos-951/Witness.lean', 'line': 7, 'column': 6, 'severity': 'error', 'text': 'mod_cast has type\n  Nat.nth (fun p => Nat.Prime p) i < Nat.nth (fun p => Nat.Prime p) j\nbut is expected to have type\n  (fun i => ↑(Nat.nth Nat.Prime i)) i < 
+- `erdos-961`: refused — admission refused 'erdos-961': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 52, 'column': 31, 'severity': 'error', 'text': 'Unknown identifier `erdos_961.variants.well_defined`'}]}); AlgebraWeylAlgebra: blocked by Defs.Local (defs/L
+- `euclid-numbers-are-square-free`: refused — admission refused 'euclid-numbers-are-square-free': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ n, True", details={'expected': '∃ n, True', 'witness': 'True'})
+- `exists-is-small-cohen-macaulay`: refused — admission refused 'exists-is-small-cohen-macaulay': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ R x, ∃ (x_1 : IsLocalRing R), IsAdicComplete (IsLocalRing.maximalIdeal R) R but the statement's hypotheses need ∃ R inst,\n  ∃ (inst_1 : IsLocalRing R), ∃ M inst_2 inst_3, IsNoetherianRing R ∧ IsAdicComplete (IsLocalRing.maximalIdeal R) R", details={'expected': '∃
+- `exists-weakly-first-countable-compact-big`: refused — admission refused 'exists-weakly-first-countable-compact-big': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«exists-weakly-first-countable-compact-big».Statement', 'messages': [{'file': 'Nodes/exists-weakly-first-countable-compact-big/Statement.lean', 'line': 27, 'column': 6, 'severity': 'error', 'text': "Function 
+- `exists-weakly-first-countable-compact-not-first-countable`: refused — admission refused 'exists-weakly-first-countable-compact-not-first-countable': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«exists-weakly-first-countable-compact-not-first-countable».Statement', 'messages': [{'file': 'Nodes/exists-weakly-first-countable-compact-not-first-countable/Statement.lean', 'line': 27, 'col
+- `f-eq-one-for-all`: refused — admission refused 'f-eq-one-for-all': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 55, 'column': 33, 'severity': 'error', 'text': "Function expected at\n  𝔽₂\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this 
+- `f-two-eq-one`: refused — admission refused 'f-two-eq-one': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 55, 'column': 33, 'severity': 'error', 'text': "Function expected at\n  𝔽₂\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term
+- `finrank-adjoin-triple-le`: refused — admission refused 'finrank-adjoin-triple-le': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/finrank-adjoin-triple-le/Witness.lean', 'line': 5, 'column': 3, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  ℚ\nhas type\n  Type\nof sort `Type 1` but is expected to have type\n  Type u_1\nof sort
+- `flint-hills-series-converges`: refused — target 'flint-hills-series-converges' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/flint-hills-series-converges
+- `goormaghtigh-conjecture`: refused — admission refused 'goormaghtigh-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/goormaghtigh-conjecture/Witness.lean', 'line': 3, 'column': 29, 'severity': 'error', 'text': "Function expected at\n  IsGoormaghtighNumber\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is bein
+- `green-12`: refused — admission refused 'green-12': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/green-12/Witness.lean', 'line': 4, 'column': 3, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  Unit\nhas type\n  Type\nof sort `Type 1` but is expected to have type\n  Type u_1\nof sort `Type (u_1 + 1)` in the appl
+- `green-28`: refused — admission refused 'green-28': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/green-28/Witness.lean', 'line': 4, 'column': 42, 'severity': 'error', 'text': "Function expected at\n  IsUniformOnSupport\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being applied to the argument\n  (in
+- `green-32`: refused — admission refused 'green-32': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 66, 'column': 38, 'severity': 'error', 'text': "Function expected at\n  𝔽₂\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is 
+- `green-40`: refused — admission refused 'green-40': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 55, 'column': 33, 'severity': 'error', 'text': "Function expected at\n  𝔽₂\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is 
+- `green-50`: refused — admission refused 'green-50': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-50».Statement', 'messages': [{'file': 'Nodes/green-50/Statement.lean', 'line': 25, 'column': 42, 'severity': 'error', 'text': "Function expected at\n  𝔽₂\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term i
+- `green-52`: refused — admission refused 'green-52': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-52».Statement', 'messages': [{'file': 'Nodes/green-52/Statement.lean', 'line': 27, 'column': 41, 'severity': 'error', 'text': "Function expected at\n  𝔽₂\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term i
+- `green-53`: refused — admission refused 'green-53': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-53».Statement', 'messages': [{'file': 'Nodes/green-53/Statement.lean', 'line': 26, 'column': 49, 'severity': 'error', 'text': "Function expected at\n  𝔽₂\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term i
+- `green-55`: refused — admission refused 'green-55': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-55».Statement', 'messages': [{'file': 'Nodes/green-55/Statement.lean', 'line': 44, 'column': 13, 'severity': 'error', 'text': "unexpected token 'ⁿ'; expected ')'"}]})
+- `green-58`: refused — target 'green-58' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/green-58
+- `green-9-ii`: refused — admission refused 'green-9-ii': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-9-ii».Statement', 'messages': [{'file': 'Nodes/green-9-ii/Statement.lean', 'line': 34, 'column': 6, 'severity': 'error', 'text': 'expected token'}, {'file': 'Nodes/green-9-ii/Statement.lean', 'line': 33, 'column': 19, 'severity': 'e
+- `green-9-iii`: refused — admission refused 'green-9-iii': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-9-iii».Statement', 'messages': [{'file': 'Nodes/green-9-iii/Statement.lean', 'line': 27, 'column': 6, 'severity': 'error', 'text': 'expected token'}, {'file': 'Nodes/green-9-iii/Statement.lean', 'line': 26, 'column': 19, 'severity'
+- `has-unique-extension-of-forall`: refused — target 'has-unique-extension-of-forall' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/has-unique-extension-of-forall
+- `idempotent-conjecture`: refused — admission refused 'idempotent-conjecture': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ K G x x_1 a, IsIdempotentElem a but the statement's hypotheses need ∃ K inst G inst_1 a, IsIdempotentElem a", details={'expected': '∃ K inst G inst_1 a, IsIdempotentElem a', 'witness': '∃ K G x x_1 a, IsIdempotentElem a'})
+- `infinitely-many-mersenne-primes`: refused — admission refused 'infinitely-many-mersenne-primes': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«infinitely-many-mersenne-primes».Statement', 'messages': [{'file': 'Nodes/infinitely-many-mersenne-primes/Statement.lean', 'line': 22, 'column': 5, 'severity': 'error', 'text': 'unknown namespace `Mersenne`'}]})
+- `inscribed-rectangle-problem`: refused — admission refused 'inscribed-rectangle-problem': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/inscribed-rectangle-problem/Witness.lean', 'line': 6, 'column': 10, 'severity': 'error', 'text': '`fun_prop` was unable to prove `Continuous fun z => (WithLp.equiv 2 (Fin 2 → ℝ)).symm ![(↑z).re, (↑z).im]`\n\nIssues:'}, {'
+- `inscribed-square-problem`: refused — admission refused 'inscribed-square-problem': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/inscribed-square-problem/Witness.lean', 'line': 5, 'column': 5, 'severity': 'error', 'text': 'failed to synthesize instance of type class\n  CompactSpace Circle\n\nHint: Type class instance resolution failures can be inspect
+- `inverse-galois-problem`: refused — admission refused 'inverse-galois-problem': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«inverse-galois-problem».Statement', 'messages': [{'file': 'Nodes/inverse-galois-problem/Statement.lean', 'line': 23, 'column': 4, 'severity': 'error', 'text': "Function expected at\n  IsRealizable\nbut this term has type\n  ?m
+- `irving-leather-growth-rate`: refused — admission refused 'irving-leather-growth-rate': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at 1 / (↑n + 1): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker': 'div-zero', 'location': '1 / (↑n + 1)', 'message': "division by a diviso
+- `kourovka-1-40`: refused — admission refused 'kourovka-1-40': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ G inst H K, H.Normal ∧ K.Normal ∧ Kourovka.«1.40».IsEngelGroup ↥H ∧ Kourovka.«1.40».IsEngelGroup ↥K ∧ H ⊔ K = ⊤ but the statement's hypotheses need ∃ G inst G inst H K, H.Normal ∧ K.Normal ∧ Kourovka.«1.40».IsEngelGroup ↥H ∧ Kourovka.«1.40».IsEngelGroup ↥K ∧ H ⊔ K = ⊤", details={'
+- `latin-square-near-transversal`: refused — admission refused 'latin-square-near-transversal': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/latin-square-near-transversal/Witness.lean', 'line': 5, 'column': 67, 'severity': 'error', 'text': 'failed to synthesize instance of type class\n  Inhabited (LatinSquare default)\n\nHint: Type class instance resolution 
+- `latin-square-order11-transversal`: refused — admission refused 'latin-square-order11-transversal': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/latin-square-order11-transversal/Witness.lean', 'line': 5, 'column': 51, 'severity': 'error', 'text': 'failed to synthesize instance of type class\n  Inhabited (LatinSquare 11)\n\nHint: Type class instance resolution
+- `lehmer-mahler-measure-problem`: refused — admission refused 'lehmer-mahler-measure-problem': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 50, 'column': 40, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  X\nhas type\n  ?m.1[X]\nbut is expected to ha
+- `li-criterion-rhs`: refused — admission refused 'li-criterion-rhs': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 71, 'column': 14, 'severity': 'error', 'text': 'Unknown identifier `fractScalarInv_memLp2`'}]}); AlgebraWeylAlgebra: blocked by Defs.Local (defs/Loca
+- `lindelof-card`: refused — admission refused 'lindelof-card': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«lindelof-card».Statement', 'messages': [{'file': 'Nodes/lindelof-card/Statement.lean', 'line': 26, 'column': 19, 'severity': 'error', 'text': "Function expected at\n  HasGδSingletons\nbut this term has type\n  ?m.1\n\nNote: Expected a 
+- `linear-arboricity-conjecture`: refused — admission refused 'linear-arboricity-conjecture': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ V inst G inst_1, True but the statement's hypotheses need ∃ V V inst G inst, True", details={'expected': '∃ V V inst G inst, True', 'witness': '∃ V inst G inst_1, True'})
+- `lonely-runner-conjecture`: refused — admission refused 'lonely-runner-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/lonely-runner-conjecture/Witness.lean', 'line': 3, 'column': 0, 'severity': 'error', 'text': '(deterministic) timeout at `isDefEq`, maximum number of heartbeats (1000000) has been reached\n\nNote: Use `set_option maxHeartbea
+- `mathoverflow-235893`: refused — admission refused 'mathoverflow-235893': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/mathoverflow-235893/Witness.lean', 'line': 3, 'column': 33, 'severity': 'error', 'text': 'failed to synthesize instance of type class\n  HPow Type ℕ ?m.6\n\nHint: Type class instance resolution failures can be inspected with the 
+- `mathoverflow-339137`: refused — admission refused 'mathoverflow-339137': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.GreensOpenProblems.«28»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.GreensOpenProblems.«28»'}); AlgebraWeylAlgebra: blocked by defs/Local.lean imports FormalConjectures.Gr
+- `min-modulus`: refused — admission refused 'min-modulus': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ n N A, 2 ≤ n ∧ 0 < N ∧ N < Arxiv.«2607.08366».minModulus n ∧ A.card = n but the statement's hypotheses need ∃ N n N A, 2 ≤ n ∧ 0 < N ∧ N < Arxiv.«2607.08366».minModulus n ∧ A.card = n", details={'expected': '∃ N n N A, 2 ≤ n ∧ 0 < N ∧ N < Arxiv.«2607.08366».minModulus n ∧ A.card = n
+- `n-p-ne-co-n-p`: refused — admission refused 'n-p-ne-co-n-p': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ α NP coNP, True", details={'expected': '∃ α NP coNP, True', 'witness': 'True'})
+- `of-t2-of-toronto-space`: refused — admission refused 'of-t2-of-toronto-space': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«of-t2-of-toronto-space».Statement', 'messages': [{'file': 'Nodes/of-t2-of-toronto-space/Statement.lean', 'line': 24, 'column': 80, 'severity': 'error', 'text': 'invalid binder annotation, type is not a class instance\n  ?m.3\n
+- `p-eq-b-p-p`: refused — admission refused 'p-eq-b-p-p': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ α P BPP, True", details={'expected': '∃ α P BPP, True', 'witness': 'True'})
+- `p-ne-n-p`: refused — admission refused 'p-ne-n-p': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ α P NP, True", details={'expected': '∃ α P NP, True', 'witness': 'True'})
+- `pebbling-number-conjecture`: refused — admission refused 'pebbling-number-conjecture': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ V W x x x G H, G.Connected ∧ H.Connected but the statement's hypotheses need ∃ V G inst W inst inst inst G H, G.Connected ∧ H.Connected", details={'expected': '∃ V G inst W inst inst inst G H, G.Connected ∧ H.Connected', 'witness': '∃ V W x x x G H, G.Connected ∧ H.Co
+- `pi-normal-base-ten`: refused — admission refused 'pi-normal-base-ten': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«pi-normal-base-ten».Statement', 'messages': [{'file': 'Nodes/pi-normal-base-ten/Statement.lean', 'line': 26, 'column': 4, 'severity': 'error', 'text': "Function expected at\n  IsNormalInBase\nbut this term has type\n  ?m.1\n\nNote
+- `pierce-birkhoff-conjecture`: refused — admission refused 'pierce-birkhoff-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/pierce-birkhoff-conjecture/Witness.lean', 'line': 3, 'column': 51, 'severity': 'error', 'text': "Function expected at\n  IsPiecewiseMvPolynomial\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this ter
+- `pittel-hyperbola-threshold`: refused — admission refused 'pittel-hyperbola-threshold': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Set.Ioo 0 1: Set.Ioo with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-range', 'location': 'Set.Ioo 0 1', 'message': 'Set.Ioo with a literal-adjusted bound:
+- `problem-10-61`: refused — admission refused 'problem-10-61': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/problem-10-61/Witness.lean', 'line': 7, 'column': 14, 'severity': 'error', 'text': 'Tactic `rewrite` failed: Did not find an occurrence of the pattern\n  minpoly ?m.59 ?a\nin the target expression\n  z ∈ (minpoly ℚ ((algebraMap ℚ ℝ) 3)
+- `problem-10-7`: refused — admission refused 'problem-10-7': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': '1 ≤ n', 'message': 'comparison against an explicit literal: check whe
+- `reconstruction-conjecture`: refused — admission refused 'reconstruction-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/reconstruction-conjecture/Witness.lean', 'line': 4, 'column': 25, 'severity': 'error', 'text': "Function expected at\n  Hypomorphic\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being app
+- `riemann-hypothesis`: refused — target 'riemann-hypothesis' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/riemann-hypothesis
+- `schinzel-conjecture`: refused — admission refused 'schinzel-conjecture': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«schinzel-conjecture».Statement', 'messages': [{'file': 'Nodes/schinzel-conjecture/Statement.lean', 'line': 28, 'column': 47, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  X\nhas type\n  ?m.1[X]\nbut is 
+- `second-moment`: refused — admission refused 'second-moment': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/second-moment/Witness.lean', 'line': 4, 'column': 50, 'severity': 'error', 'text': 'typeclass instance problem is stuck\n  ContinuousSMul ℚ≥0 ?m.32\n\nNote: Lean will not try to resolve this typeclass instance problem because the secon
+- `selfridge-conjecture`: refused — admission refused 'selfridge-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/selfridge-conjecture/Witness.lean', 'line': 3, 'column': 29, 'severity': 'error', 'text': "Function expected at\n  IsSelfridge\nbut this term has type\n  ?m.1\n\nNote: Expected a function because this term is being applied to th
+- `transcendental-gamma-one-div`: refused — admission refused 'transcendental-gamma-one-div': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 2 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one-range', 'location': '2 ≤ n', 'message': 'comparison against an explicit li
+- `tunnell-even-converse`: refused — admission refused 'tunnell-even-converse': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ n, Squarefree n ∧ Even n but the statement's hypotheses need ∃ n, Squarefree n ∧ Even n ∧ 2 * (CongruentNumber.C n).ncard = (CongruentNumber.D n).ncard", details={'expected': '∃ n, Squarefree n ∧ Even n ∧ 2 * (CongruentNumber.C n).ncard = (CongruentNumber.D n).ncard', 'wit
+- `tunnell-odd-converse`: refused — admission refused 'tunnell-odd-converse': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ n, Squarefree n ∧ Odd n but the statement's hypotheses need ∃ n, Squarefree n ∧ Odd n ∧ 2 * (CongruentNumber.A n).ncard = (CongruentNumber.B n).ncard", details={'expected': '∃ n, Squarefree n ∧ Odd n ∧ 2 * (CongruentNumber.A n).ncard = (CongruentNumber.B n).ncard', 'witness
+- `tuza-conjecture`: refused — admission refused 'tuza-conjecture': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type ∃ V inst G, True but the statement's hypotheses need ∃ V V inst G, True", details={'expected': '∃ V V inst G, True', 'witness': '∃ V inst G, True'})
+- `union-closed`: refused — admission refused 'union-closed': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«union-closed».Statement', 'messages': [{'file': 'Nodes/union-closed/Statement.lean', 'line': 30, 'column': 42, 'severity': 'error', 'text': 'failed to synthesize instance of type class\n  Membership n (_root_.Finset ?m.13)\n\nHint: Type
+- `variant-theta`: refused — acknowledged_hazards: document does not satisfy 'meta/v2': $['acknowledged_hazards'][0]['justification']: "`C > 1` is the problem's own constant range, because the question asks whether O(p^{1−θ}) translates of a set of size p^θ suffice, and proportionCoverable p k c is monotone in c (it counts sets coverable by at most c translates), so ∃ C > 1 is equivalent to ∃ C > 0; moreover a set of size k =
+- `vaught-conjecture`: refused — admission refused 'vaught-conjecture': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/vaught-conjecture/Witness.lean', 'line': 4, 'column': 3, 'severity': 'error', 'text': 'Application type mismatch: The argument\n  FirstOrder.Language.empty\nhas type\n  FirstOrder.Language.{0, 0}\nof sort `Type 1` but is expected t
+- `weil-positivity-criterion-rhs`: refused — admission refused 'weil-positivity-criterion-rhs': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 71, 'column': 14, 'severity': 'error', 'text': 'Unknown identifier `fractScalarInv_memLp2`'}]}); AlgebraWeylAlgebra: blocked by Defs.Loc
+- `wichmann-conjecture`: refused — admission refused 'wichmann-conjecture': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.ErdosProblems.«170»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.ErdosProblems.«170»'}); AlgebraWeylAlgebra: blocked by defs/Local.lean imports FormalConjectures.ErdosProbl
+
+## Admitted
+
+- `agrawal-conjecture`
+- `andrica-conjecture`
+- `balanced-primes-order`
+- `beaver-math-olympiad-problem-1`
+- `beaver-math-olympiad-problem-5`
+- `beaver-math-olympiad-problem-8`
+- `buchi-problem`
+- `buchi-problem-m5`
+- `butson-hadamard-fourth-roots-conjecture`
+- `catalans-mersenne-conjecture`
+- `class-number-problem`
+- `collatz-like`
+- `cookson-hills-series-converges`
+- `dubner-conjecture`
+- `elliott-halberstam`
+- `erdos-1029`
+- `erdos-103`
+- `erdos-1059`
+- `erdos-1062`
+- `erdos-1111`
+- `erdos-1122`
+- `erdos-1158`
+- `erdos-1159`
+- `erdos-1178`
+- `erdos-1206`
+- `erdos-137`
+- `erdos-15`
+- `erdos-156`
+- `erdos-159`
+- `erdos-200`
+- `erdos-213`
+- `erdos-244`
+- `erdos-273`
+- `erdos-274`
+- `erdos-276`
+- `erdos-279`
+- `erdos-30`
+- `erdos-312`
+- `erdos-322`
+- `erdos-323`
+- `erdos-383`
+- `erdos-385`
+- `erdos-388`
+- `erdos-389`
+- `erdos-39`
+- `erdos-461`
+- `erdos-462`
+- `erdos-463`
+- `erdos-467`
+- `erdos-470`
+- `erdos-478`
+- `erdos-479`
+- `erdos-483`
+- `erdos-495`
+- `erdos-510`
+- `erdos-544`
+- `erdos-545`
+- `erdos-562`
+- `erdos-563`
+- `erdos-564`
+- `erdos-568`
+- `erdos-588`
+- `erdos-624`
+- `erdos-642`
+- `erdos-644`
+- `erdos-65`
+- `erdos-653`
+- `erdos-657`
+- `erdos-66`
+- `erdos-663`
+- `erdos-665`
+- `erdos-676`
+- `erdos-677`
+- `erdos-680`
+- `erdos-681`
+- `erdos-685`
+- `erdos-686`
+- `erdos-704`
+- `erdos-711`
+- `erdos-719`
+- `erdos-734`
+- `erdos-761`
+- `erdos-773`
+- `erdos-826`
+- `erdos-853`
+- `erdos-855`
+- `erdos-859`
+- `erdos-87`
+- `erdos-873`
+- `erdos-883`
+- `erdos-890`
+- `erdos-893`
+- `erdos-9`
+- `erdos-91`
+- `erdos-913`
+- `erdos-930`
+- `erdos-933`
+- `erdos-940`
+- `erdos-945`
+- `erdos-949`
+- `erdos-96`
+- `erdos-962`
+- `erdos-971`
+- `erdos-972`
+- `erdos-979`
+- `erdos-98`
+- `erdos-985`
+- `erdos-996`
+- `erdos-moser-conjecture`
+- `erdos-ulam-problem`
+- `error-is-big-o`
+- `error-term-improvement`
+- `eulers-sum-of-powers-conjecture`
+- `exists-fermat-not-squarefree`
+- `exists-is-wall-sun-sun-prime`
+- `exists-is-wieferich-prime-and-is-mirimanoff-prime`
+- `exists-is-wieferich-prime-base-47`
+- `exists-k`
+- `exists-k-stronger`
+- `exists-magic-square-squares`
+- `exists-nowhere-dense-spectral-set`
+- `exists-semi-magic-square-cubes`
+- `exists-thabit-amicable-exponent-gt-seven`
+- `exp-add-pi-transcendental`
+- `exp-exp-transcendental`
+- `exp-mul-pi-transcendental`
+- `exp-pow-pi-sq-transcendental`
+- `extended-sierpinski-problem`
+- `feit-thompson-primes`
+- `fermat-catalan`
+- `fermat-number-are-composite`
+- `fib-primes-infinite`
+- `firoozbakht-conjecture`
+- `four`
+- `four-exponentials-conjecture`
+- `generalized-twin-primes`
+- `gilbreath-conjecture`
+- `green-18`
+- `green-2`
+- `green-29`
+- `green-33`
+- `green-36`
+- `green-39`
+- `green-45`
+- `green-60`
+- `green-61`
+- `green-62`
+- `green-64`
+- `green-66`
+- `green-70`
+- `green-75`
+- `green-76`
+- `green-86`
+- `grimm-conjecture`
+- `grimm-conjecture-weak`
+- `hadamard-conjecture`
+- `hall-conjecture`
+- `i`
+- `idoneal-numbers-completeness`
+- `ii`
+- `infinite-club-exists`
+- `infinite-cousin-primes`
+- `infinite-fermat-composite`
+- `infinite-fermat-primes`
+- `infinite-is-wall-sun-sun-prime`
+- `infinite-is-wieferich-prime`
+- `infinite-is-wieferich-prime-base`
+- `infinite-pell-number-primes`
+- `infinite-prime-euclid-numbers`
+- `infinite-prime-sq-add-one`
+- `infinite-safe-primes`
+- `infinite-sexy-primes`
+- `infinitely-many-betrothed`
+- `infinitely-many-factorial-primes`
+- `infinitely-many-first-kind-chains`
+- `infinitely-many-leinster-groups`
+- `infinitely-many-pierpont-primes`
+- `infinitely-many-proth-primes`
+- `infinitely-many-proth-primes-multiplier-three`
+- `infinitely-many-repunit-primes`
+- `infinitely-many-second-kind-chains`
+- `infinitely-many-thabit-primes`
+- `infinitely-many-wilson-primes`
+- `infinitely-many-woodall-primes`
+- `infinitude-question`
+- `irrational-e-plus-pi`
+- `irrational-e-times-pi`
+- `irrational-e-to-e`
+- `irrational-eleven`
+- `irrational-euler-mascheroni-constant`
+- `irrational-ln-pi`
+- `irrational-nine`
+- `irrational-odd`
+- `irrational-pi-to-e`
+- `irrational-pi-to-pi`
+- `irrational-seven`
+- `irving-leather-pow-two`
+- `is-equidistributed-modulo-one-three-halves-pow`
+- `is-lychrel10-196`
+- `is-mirimanoff-prime-iff`
+- `is-spectral-right-of-product-of-convex-body`
+- `is-sum-of-three-cubes-iff-mod-9`
+- `is-ten-solitary`
+- `is-wieferich-prime-iff`
+- `juggler-conjecture`
+- `kakeya-set-conjecture`
+- `kourovka-1-35c`
+- `kourovka-20-51`
+- `kourovka-8-8b`
+- `lagarias-criterion-rhs`
+- `lander-parkin-selfridge`
+- `large-steiner-systems`
+- `latin-tableau-conjecture`
+- `lebesgue-nagell`
+- `legendre-conjecture`
+- `lehmer-ramanujan-tau`
+- `lehmer-totient`
+- `lemoine-conjecture`
+- `lemoine-conjecture-extension`
+- `lennon-pittel-conjecture`
+- `littlewood-conjecture`
+- `manickam-miklos-singhi-conjecture`
+- `mathoverflow-17560`
+- `mathoverflow-21003`
+- `maximal-length-le-strong`
+- `new-mersenne-conjecture`
+- `no-lychrel-numbers-base10`
+- `odd-order-latin-square-transversal`
+- `oppermann-conjecture`
+- `opposite-parity-amicable`
+- `padic-littlewood-conjecture`
+- `pi-pow-exp-transcendental`
+- `pi-pow-pi-pow-pi-pow-pi-not-integer`
+- `pi-pow-pi-pow-pi-pow-pi-transcendental`
+- `pi-pow-pi-pow-pi-transcendental`
+- `pi-pow-pi-transcendental`
+- `pi-pow-sqrt-two-transcendental`
+- `pillais-conjecture`
+- `pollock-tetrahedral`
+- `prime-sierpinski-problem`
+- `prime-triplets`
+- `problem-10-1`
+- `problem-10-2`
+- `problem-10-3`
+- `problem-10-6-variant-1`
+- `problem-10-8`
+- `projective-module-is-stably-free`
+- `rational-7-tuple`
+- `rational-distance-problem`
+- `rectangles-cover-unit-square`
+- `rectangles-pack-unit-square`
+- `reed-omega-delta-chi-conjecture-for-finite-graphs`
+- `relatively-prime-amicable`
+- `rlog-pi-transcendental`
+- `rlog-rlog-two-transcendental`
+- `robin-criterion-rhs`
+- `rudins-conjecture`
+- `rudins-conjecture-strong`
+- `salzer-levine`
+- `same-parity-betrothed`
+- `scholz-conjecture`
+- `second-moment-one-extra-worker`
+- `selfridge-seq-conjecture`
+- `simple-prop-lt`
+- `sin-exp-transcendental`
+- `singmaster`
+- `stability-threshold-tight`
+- `tan-arctan-sum-not-integer`
+- `taxicab-for-5-2-2`
+- `taxicab-for-5-2-n`
+- `transcendental-catalan-constant`
+- `transcendental-gompertz-constant`
+- `twin-primes`
+- `two-five-perfect`
+- `two-pow-three-pow-transcendental`
+- `value-of-even-mul-succ-self-div-two`
+- `variant`
+- `variant-101`
+- `waldschmidt`
+- `weak-hall-conjecture`
+- `weighing-matrix-conjecture`
+- `wolstenholme-prime-infinite`
+- `zagier-conjecture`
