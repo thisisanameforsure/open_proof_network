@@ -1,0 +1,377 @@
+# Wave admission (F14-T20)
+
+Mode sandbox; image ghcr.io/thisisanameforsure/opn-gate@sha256:45db166436383168a62b0cf37dea3fd7b0cee44d3bc2b09dbe0256ebe0a8fbbe; 8 shards.
+Admitted 218, refused 145. Read every admitted draft before import (F14-R13); `import-admitted.sh` imports the admitted ones only.
+
+## Refused, by check
+
+- error: 145
+
+## Refused
+
+- `agoh-giuga`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'agoh-giuga': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«agoh-giuga».Statement', 'messages': [{'file': 'Nodes/agoh-giuga/Statement.lean', 'line': 33, 'column': 0, 'severity': 'error', 'text': 'type 
+- `andrica-conjecture`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'andrica-conjecture': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at √↑(Nat.nth Nat.Prime (n + 1)) - √↑(Nat.nth Nat.Prime n) < 1: comparison against an explicit literal: check whether the boundary is inclus
+- `beurling-nyman-criterion-rhs`: error —  INFO opn_gate.admit: admission check layout failed: defs-elaboration opn-gate: refused: admission refused 'beurling-nyman-criterion-rhs': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 71, 'column': 14, 'severity': 'error', 'text': '
+- `bloch-constant-exact-value`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'bloch-constant-exact-value': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at Real.Gamma (1 / 3) * Real.Gamma (11 / 12) / (Real.Gamma (1 / 4) * √(1 + √3)): division by a divisor that is not syntactically non-zero: L
+- `buchi-problem`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'buchi-problem': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ M: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-b
+- `c7b-lower-bound-improved`: error —  INFO opn_gate.admit: admission check layout failed: defs-import opn-gate: refused: admission refused 'c7b-lower-bound-improved': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.OptimizationConstants.«7a»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.Optimizatio
+- `c7b-upper-bound-improved`: error —  INFO opn_gate.admit: admission check layout failed: defs-import opn-gate: refused: admission refused 'c7b-upper-bound-improved': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.OptimizationConstants.«7a»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.Optimizatio
+- `class-number-problem`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'class-number-problem': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at d > 1: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker':
+- `cookson-hills-series-converges`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'cookson-hills-series-converges': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at 1 / ((↑n + 1) ^ 3 * Real.cos (↑n + 1) ^ 2): division by a divisor that is not syntactically non-zero: Lean's / and % are total and gi
+- `erdos-1002`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1002': root: hazards: Diagnostic(code='hazard-unacknowledged', message="3 unacknowledged hazard finding(s); first: div-zero at 1 / Real.log ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'
+- `erdos-1003`: error — }  opn-gate: refused: target 'erdos-1003' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1003
+- `erdos-1029`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1029': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(SimpleGraph.diagonalRamsey k) / (↑k * 2 ^ (↑k / 2)): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk
+- `erdos-1053`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1053': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at ↑((σ 1) n) / ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'
+- `erdos-1057`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1057': root: hazards: Diagnostic(code='hazard-unacknowledged', message="3 unacknowledged hazard finding(s); first: div-zero at Real.log (Erdos1057.carmichaelCounting x) / Real.log x: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a jun
+- `erdos-1060`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1060': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at 1 / Real.log (Real.log ↑n): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'fin
+- `erdos-1062`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1062': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(Erdos1062.f n) / ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings
+- `erdos-1065`: error — }  opn-gate: refused: target 'erdos-1065' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1065
+- `erdos-1072`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1072': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: nat-sub at p - 1: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'location': 'p - 1', 'message': 'subtract
+- `erdos-1094`: error — }  opn-gate: refused: target 'erdos-1094' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-1094
+- `erdos-1106`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1106': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Finset.Icc 1 n: Finset.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-
+- `erdos-1113`: error —  INFO opn_gate.admit: admission check layout failed: defs-elaboration opn-gate: refused: admission refused 'erdos-1113': root: layout: Diagnostic(code='defs-elaboration', message='Defs.CombinatoricsSimpleGraphResidue (defs/CombinatoricsSimpleGraphResidue.lean) does not elaborate', details={'module': 'Defs.CombinatoricsSimpleGraphResidue', 'file': 'CombinatoricsSimpleGraphResidue.lean', 'messages':
+- `erdos-1135`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-1135': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-1135».Statement', 'messages': [{'file': 'Nodes/erdos-1135/Statement.lean', 'line': 22, 'column': 13, 'severity': 'error', 'text': 'Unkn
+- `erdos-1137`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1137': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at ↑((Finset.range x).sup fun n => primeGap n * primeGap (n - 1)) / ↑((Finset.range x).sup primeGap) ^ 2: division by a divisor that is not syntactically no
+- `erdos-1145`: error —  INFO opn_gate.admit: admission check layout failed: defs-import opn-gate: refused: admission refused 'erdos-1145': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.ErdosProblems.«28»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.ErdosProblems.«28»'}); AlgebraGro
+- `erdos-1159`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1159': root: hazards: Diagnostic(code='hazard-unacknowledged', message='5 unacknowledged hazard finding(s); first: off-by-one-range at 1 < C: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-o
+- `erdos-1206`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1206': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Finset.Icc 1 N: Finset.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-
+- `erdos-1210`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-1210': root: hazards: Diagnostic(code='hazard-unacknowledged', message="3 unacknowledged hazard finding(s); first: div-zero at 1 / (↑n - ↑a): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'ch
+- `erdos-137`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-137': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at k ≥ 3: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-on
+- `erdos-15`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-15': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at (-1) ^ (k + 1) * (↑k + 1) / ↑(Nat.nth Nat.Prime k): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk valu
+- `erdos-159`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-159': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-on
+- `erdos-212`: error — }  opn-gate: refused: target 'erdos-212' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-212
+- `erdos-234`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-234': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(primeGap n) / Real.log ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'fin
+- `erdos-249`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-249': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(φ n) / 2 ^ n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'ch
+- `erdos-251`: error — }  opn-gate: refused: target 'erdos-251' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-251
+- `erdos-273`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-273': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: nat-sub at p - 1: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'location': 'p - 1', 'message': 'subtracti
+- `erdos-274`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-274': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: off-by-one-range at 1 < ENat.card G: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 
+- `erdos-276`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-276': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at n > 1: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-on
+- `erdos-311`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-311': root: hazards: Diagnostic(code='hazard-unacknowledged', message="3 unacknowledged hazard finding(s); first: div-zero at -Real.log (Erdos311.delta N) / ↑N: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details
+- `erdos-312`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-312': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: off-by-one-range at 1 < K: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-on
+- `erdos-317`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-317': root: hazards: Diagnostic(code='hazard-unacknowledged', message="3 unacknowledged hazard finding(s); first: div-zero at c / 2 ^ n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker
+- `erdos-32`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-32': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-32».Statement', 'messages': [{'file': 'Nodes/erdos-32/Statement.lean', 'line': 36, 'column': 4, 'severity': 'error', 'text': "Function ex
+- `erdos-324`: error — }  opn-gate: refused: target 'erdos-324' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-324
+- `erdos-326`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-326': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-326».Statement', 'messages': [{'file': 'Nodes/erdos-326/Statement.lean', 'line': 26, 'column': 31, 'severity': 'error', 'text': 'Invalid
+- `erdos-368`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-368': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-on
+- `erdos-376`: error — }  opn-gate: refused: target 'erdos-376' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-376
+- `erdos-386`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-386': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: nat-sub at n - 2: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'location': 'n - 2', 'message': 'subtracti
+- `erdos-388`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-388': root: hazards: Diagnostic(code='hazard-unacknowledged', message='4 unacknowledged hazard finding(s); first: off-by-one-range at 3 < k₁: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-o
+- `erdos-39`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-39': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Set.Icc 1 N: Set.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-range', 
+- `erdos-406`: error — }  opn-gate: refused: target 'erdos-406' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-406
+- `erdos-408`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-408': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(Erdos408.f n) / Real.log ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'f
+- `erdos-413`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-413': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-413».Statement', 'messages': [{'file': 'Nodes/erdos-413/Statement.lean', 'line': 30, 'column': 30, 'severity': 'error', 'text': "Functio
+- `erdos-417`: error — }  opn-gate: refused: target 'erdos-417' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-417
+- `erdos-428`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-428': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: nat-sub at n - a: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'location': 'n - a', 'message': 'subtracti
+- `erdos-456`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-456': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-456».Statement', 'messages': [{'file': 'Nodes/erdos-456/Statement.lean', 'line': 30, 'column': 37, 'severity': 'error', 'text': "Functio
+- `erdos-462`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-462': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑n.minFac / ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'ch
+- `erdos-467`: error —  INFO opn_gate.admit: admission check layout failed: defs-elaboration opn-gate: refused: admission refused 'erdos-467': root: layout: Diagnostic(code='defs-elaboration', message='Defs.CombinatoricsSimpleGraphResidue (defs/CombinatoricsSimpleGraphResidue.lean) does not elaborate', details={'module': 'Defs.CombinatoricsSimpleGraphResidue', 'file': 'CombinatoricsSimpleGraphResidue.lean', 'messages': 
+- `erdos-478`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-478': root: hazards: Diagnostic(code='hazard-unacknowledged', message="4 unacknowledged hazard finding(s); first: div-zero at 1 / Real.exp 1: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'ch
+- `erdos-51`: error — }  opn-gate: refused: target 'erdos-51' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-51
+- `erdos-573`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-573': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-573».Statement', 'messages': [{'file': 'Nodes/erdos-573/Statement.lean', 'line': 35, 'column': 18, 'severity': 'error', 'text': "Functio
+- `erdos-627`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-627': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at Erdos627.maxChromaticCliqueRatio n / (↑n / Real.logb 2 ↑n ^ 2): division by a divisor that is not syntactically non-zero: Lean's / and % are total and giv
+- `erdos-642`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-642': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-642».Statement', 'messages': [{'file': 'Nodes/erdos-642/Statement.lean', 'line': 33, 'column': 19, 'severity': 'error', 'text': "Functio
+- `erdos-66`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-66': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(AdditiveCombinatorics.sumRep A n) / Real.log ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value
+- `erdos-667`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-667': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-667».Statement', 'messages': [{'file': 'Nodes/erdos-667/Statement.lean', 'line': 34, 'column': 27, 'severity': 'error', 'text': "Functio
+- `erdos-676`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-676': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ a: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-on
+- `erdos-68`: error — }  opn-gate: refused: target 'erdos-68' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-68
+- `erdos-683`: error —  INFO opn_gate.admit: admission check layout failed: defs-import opn-gate: refused: admission refused 'erdos-683': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.ErdosProblems.«961»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.ErdosProblems.«961»'}); AlgebraMv
+- `erdos-704`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-704': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at 1 / ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker': 
+- `erdos-706`: error — V : Set (EuclideanSpace ℝ (Fin 2)) x y : ↑V ⊢ (sorry ()).dist y = 1 → (sorry ()).dist x = 1; could not synthesize default value for field 'loopless' of 'SimpleGraph' using tactics; DataSetTriplewise: blocked by Defs.CombinatoricsSimpleGraphUnitDistancePlaneGraph (defs/CombinatoricsSimpleGraphUnitDistancePlaneGraph.lean) does not elaborate; DataSymSym2: blocked by Defs.CombinatoricsSimpleGraphUnitD
+- `erdos-726`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-726': root: hazards: Diagnostic(code='hazard-unacknowledged', message="5 unacknowledged hazard finding(s); first: div-zero at 1 / ↑p: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker': 
+- `erdos-75`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-75': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-75».Statement', 'messages': [{'file': 'Nodes/erdos-75/Statement.lean', 'line': 25, 'column': 8, 'severity': 'error', 'text': 'Invalid fie
+- `erdos-82`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-82': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(Erdos82.F n) / Real.log ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'fin
+- `erdos-826`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-826': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at k ≥ 1: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-on
+- `erdos-850`: error — }  opn-gate: refused: target 'erdos-850' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/erdos-850
+- `erdos-859`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-859': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at c₁ / Real.log ↑t ^ c₂: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings'
+- `erdos-89`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-89': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at ↑n / √(Real.log ↑n): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [
+- `erdos-893`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-893': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(Erdos893.f (2 * n)) / ↑(Erdos893.f n): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", d
+- `erdos-906`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-906': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-906».Statement', 'messages': [{'file': 'Nodes/erdos-906/Statement.lean', 'line': 22, 'column': 17, 'severity': 'error', 'text': 'failed 
+- `erdos-911`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-911': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at f x / x: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'checker':
+- `erdos-912`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-912': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑n / Real.log ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [{'
+- `erdos-918`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'erdos-918': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«erdos-918».Statement', 'messages': [{'file': 'Nodes/erdos-918/Statement.lean', 'line': 24, 'column': 54, 'severity': 'error', 'text': 'Invalid
+- `erdos-932`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-932': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: nat-sub at Nat.nth Nat.Prime r.succ - Nat.nth Nat.Prime r: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', '
+- `erdos-933`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-933': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑↑(2 ^ Erdos933.k n * 3 ^ Erdos933.l n) / (↑↑n * ↑(Real.log ↑n)): division by a divisor that is not syntactically non-zero: Lean's / and % are total and g
+- `erdos-961`: error —  INFO opn_gate.admit: admission check layout failed: defs-elaboration opn-gate: refused: admission refused 'erdos-961': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 49, 'column': 31, 'severity': 'error', 'text': 'Unknown identifier 
+- `erdos-98`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-98': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑(Erdos98.h n) / ↑n: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'findings': [
+- `erdos-996`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'erdos-996': root: hazards: Diagnostic(code='hazard-unacknowledged', message="4 unacknowledged hazard finding(s); first: div-zero at (∑ k ∈ Finset.range N, ↑↑f (n k • x)) / ↑N: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+- `euclid-numbers-are-square-free`: error —  INFO opn_gate.admit: admission check witness failed: witness-type-mismatch opn-gate: refused: admission refused 'euclid-numbers-are-square-free': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ n, True", details={'expected': '∃ n, True', 'witness': 'True'})
+- `exists-nowhere-dense-spectral-set`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'exists-nowhere-dense-spectral-set': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 2 ≤ d: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings':
+- `exists-thabit-amicable-exponent-gt-seven`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'exists-thabit-amicable-exponent-gt-seven': root: hazards: Diagnostic(code='hazard-unacknowledged', message='4 unacknowledged hazard finding(s); first: nat-sub at 2 * n - 1: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'locati
+- `exists-weakly-first-countable-compact-big`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'exists-weakly-first-countable-compact-big': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«exists-weakly-first-countable-compact-big».Statement', 'messages': [{'file': 'Nodes/exists-weakly-first-counta
+- `exists-weakly-first-countable-compact-not-first-countable`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'exists-weakly-first-countable-compact-not-first-countable': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«exists-weakly-first-countable-compact-not-first-countable».Statement', 'messages': [{'file': '
+- `f-two-eq-one`: error —  Note: Expected a function because this term is being applied to the argument   n; NumberTheoryWallSunSunPrimes: blocked by Defs.Local (defs/Local.lean) does not elaborate; TopologyCardinalInvariants: blocked by Defs.Local (defs/Local.lean) does not elaborate
+- `flint-hills-series-converges`: error — }  opn-gate: refused: target 'flint-hills-series-converges' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/flint-hills-series-converges
+- `fortune-conjecture`: error —  INFO opn_gate.admit: admission check layout failed: defs-elaboration opn-gate: refused: admission refused 'fortune-conjecture': root: layout: Diagnostic(code='defs-elaboration', message='Defs.Local (defs/Local.lean) does not elaborate', details={'module': 'Defs.Local', 'file': 'Local.lean', 'messages': [{'file': 'Defs/Local.lean', 'line': 60, 'column': 12, 'severity': 'error', 'text': 'Unknown id
+- `green-29`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'green-29': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ K: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one
+- `green-32`: error —  Note: Expected a function because this term is being applied to the argument   n; NumberTheoryCoveringSystem: blocked by Defs.Local (defs/Local.lean) does not elaborate
+- `green-40`: error —  Note: Expected a function because this term is being applied to the argument   n; NumberTheoryWallSunSunPrimes: blocked by Defs.Local (defs/Local.lean) does not elaborate; TopologyCardinalInvariants: blocked by Defs.Local (defs/Local.lean) does not elaborate
+- `green-45`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'green-45': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: off-by-one-range at 10 ≤ {p ∈ Finset.Icc 1 N | Nat.Prime p ∧ a p ≡ m [MOD p]}.card: comparison against an explicit literal: check whether the boundary is inclusive or 
+- `green-50`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'green-50': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-50».Statement', 'messages': [{'file': 'Nodes/green-50/Statement.lean', 'line': 24, 'column': 42, 'severity': 'error', 'text': "Function e
+- `green-52`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'green-52': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-52».Statement', 'messages': [{'file': 'Nodes/green-52/Statement.lean', 'line': 26, 'column': 41, 'severity': 'error', 'text': "Function e
+- `green-53`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'green-53': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-53».Statement', 'messages': [{'file': 'Nodes/green-53/Statement.lean', 'line': 25, 'column': 49, 'severity': 'error', 'text': "Function e
+- `green-58`: error — }  opn-gate: refused: target 'green-58' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/green-58
+- `green-60`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'green-60': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 2 ≤ A.card: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-b
+- `green-61`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'green-61': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: off-by-one-range at Finset.Icc 1 n: Finset.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-ra
+- `green-62`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'green-62': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ x: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-one
+- `green-64`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'green-64': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: nat-sub at p - 2: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'location': 'p - 2', 'message': 'subtractio
+- `green-77`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'green-77': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-77».Statement', 'messages': [{'file': 'Nodes/green-77/Statement.lean', 'line': 21, 'column': 5, 'severity': 'error', 'text': 'unknown nam
+- `green-85`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'green-85': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at Set.Icc 0 1: Set.Icc with a literal-adjusted bound: check whether the endpoint is included', details={'findings': [{'checker': 'off-by-one-range', 
+- `green-88`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'green-88': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-88».Statement', 'messages': [{'file': 'Nodes/green-88/Statement.lean', 'line': 21, 'column': 5, 'severity': 'error', 'text': 'unknown nam
+- `green-9-ii`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'green-9-ii': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-9-ii».Statement', 'messages': [{'file': 'Nodes/green-9-ii/Statement.lean', 'line': 31, 'column': 6, 'severity': 'error', 'text': 'expec
+- `green-9-iii`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'green-9-iii': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«green-9-iii».Statement', 'messages': [{'file': 'Nodes/green-9-iii/Statement.lean', 'line': 26, 'column': 6, 'severity': 'error', 'text': 'ex
+- `infinitely-many-amicable`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'infinitely-many-amicable': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«infinitely-many-amicable».Statement', 'messages': [{'file': 'Nodes/infinitely-many-amicable/Statement.lean', 'line': 22, 'colum
+- `infinitely-many-leinster-groups`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'infinitely-many-leinster-groups': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«infinitely-many-leinster-groups».Statement', 'messages': [{'file': 'Nodes/infinitely-many-leinster-groups/Statement.lean
+- `infinitely-many-mersenne-primes`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'infinitely-many-mersenne-primes': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«infinitely-many-mersenne-primes».Statement', 'messages': [{'file': 'Nodes/infinitely-many-mersenne-primes/Statement.lean
+- `infinitely-many-proth-primes-multiplier-three`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'infinitely-many-proth-primes-multiplier-three': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 2 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details=
+- `infinitely-many-woodall-primes`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'infinitely-many-woodall-primes': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: nat-sub at k * 2 ^ k - 1: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'location': '
+- `irrational-ln-pi`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'irrational-ln-pi': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: junk-value at Real.log π: Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': 'Real.log 
+- `irving-leather-growth-rate`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'irving-leather-growth-rate': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at 1 / (↑n + 1): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'f
+- `kourovka-1-35c`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'kourovka-1-35c': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«kourovka-1-35c».Statement', 'messages': [{'file': 'Nodes/kourovka-1-35c/Statement.lean', 'line': 22, 'column': 13, 'severity': 'error', '
+- `landau-constant-exact-value`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'landau-constant-exact-value': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at Real.Gamma (1 / 3) * Real.Gamma (5 / 6) / Real.Gamma (1 / 6): division by a divisor that is not syntactically non-zero: Lean's / and % a
+- `latin-square-near-transversal`: error —  INFO opn_gate.admit: admission check witness failed: witness-elaboration opn-gate: refused: admission refused 'latin-square-near-transversal': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/latin-square-near-transversal/Witness.lean', 'line': 5, 'column': 67, 'severity': 'error', 'text': 'failed to synthesize insta
+- `latin-square-order11-transversal`: error —  INFO opn_gate.admit: admission check witness failed: witness-elaboration opn-gate: refused: admission refused 'latin-square-order11-transversal': root: witness: Diagnostic(code='witness-elaboration', message='witness does not elaborate', details={'messages': [{'file': 'Nodes/latin-square-order11-transversal/Witness.lean', 'line': 5, 'column': 51, 'severity': 'error', 'text': 'failed to synthesize
+- `lehmer-mahler-measure-problem`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'lehmer-mahler-measure-problem': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 < LehmerMahlerMeasureProblem.lehmerConstant: comparison against an explicit literal: check whether the boundary is inclusive
+- `lehmer-totient`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'lehmer-totient': root: hazards: Diagnostic(code='hazard-unacknowledged', message='2 unacknowledged hazard finding(s); first: nat-sub at n - 1: subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a', details={'findings': [{'checker': 'nat-sub', 'location': 'n - 1', 'message': 'subt
+- `moment-is-equiv`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'moment-is-equiv': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: junk-value at Real.log T: Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': 'Real.log T
+- `moment-is-equiv3`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'moment-is-equiv3': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at 42 * RiemannZetaMoments.arithmeticFactor 3 / ↑9!: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a jun
+- `moment-is-equiv4`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'moment-is-equiv4': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at 24024 * RiemannZetaMoments.arithmeticFactor 4 / ↑16!: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a
+- `moment-is-equivk`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'moment-is-equivk': root: hazards: Diagnostic(code='hazard-unacknowledged', message="2 unacknowledged hazard finding(s); first: div-zero at ↑j ! / ↑(j + k)!: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0", details={'finding
+- `n-p-ne-co-n-p`: error —  INFO opn_gate.admit: admission check witness failed: witness-type-mismatch opn-gate: refused: admission refused 'n-p-ne-co-n-p': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ α NP coNP, True", details={'expected': '∃ α NP coNP, True', 'witness': 'True'})
+- `p-eq--b-p-p`: error —  INFO opn_gate.admit: admission check witness failed: witness-type-mismatch opn-gate: refused: admission refused 'p-eq--b-p-p': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ α P BPP, True", details={'expected': '∃ α P BPP, True', 'witness': 'True'})
+- `p-ne--n-p`: error —  INFO opn_gate.admit: admission check witness failed: witness-type-mismatch opn-gate: refused: admission refused 'p-ne--n-p': root: witness: Diagnostic(code='witness-type-mismatch', message="witness has type True but the statement's hypotheses need ∃ α P NP, True", details={'expected': '∃ α P NP, True', 'witness': 'True'})
+- `pi-normal-base-ten`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'pi-normal-base-ten': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«pi-normal-base-ten».Statement', 'messages': [{'file': 'Nodes/pi-normal-base-ten/Statement.lean', 'line': 25, 'column': 4, 'severity':
+- `pittel-hyperbola-threshold`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'pittel-hyperbola-threshold': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«pittel-hyperbola-threshold».Statement', 'messages': [{'file': 'Nodes/pittel-hyperbola-threshold/Statement.lean', 'line': 30, 
+- `problem-10-1`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'problem-10-1': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 < |α|: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-
+- `problem-10-3`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'problem-10-3': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 1 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by
+- `problem-10-9`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'problem-10-9': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«problem-10-9».Statement', 'messages': [{'file': 'Nodes/problem-10-9/Statement.lean', 'line': 22, 'column': 13, 'severity': 'error', 'text':
+- `restricted-prime-number-theorem`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'restricted-prime-number-theorem': root: hazards: Diagnostic(code='hazard-unacknowledged', message="1 unacknowledged hazard finding(s); first: div-zero at ↑n / (2 * Real.log ↑n): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 
+- `riemann-hypothesis`: error — }  opn-gate: refused: target 'riemann-hypothesis' already exists at /home/runner/work/open_proof_network/open_proof_network/graph/targets/riemann-hypothesis
+- `rlog-pi-transcendental`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'rlog-pi-transcendental': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: junk-value at Real.log π: Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value', 'location': 'Rea
+- `rlog-rlog-two-transcendental`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'rlog-rlog-two-transcendental': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: junk-value at Real.log (Real.log 2): Real.log of a possibly-negative argument is a junk value (0)', details={'findings': [{'checker': 'junk-value',
+- `singmaster`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'singmaster': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at t > 1: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-o
+- `stability-threshold-tight`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'stability-threshold-tight': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 3 ≤ N₀: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'che
+- `tarski-exponential-function-problem`: error —  INFO opn_gate.admit: admission check statement failed: statement-elaboration opn-gate: refused: admission refused 'tarski-exponential-function-problem': root: statement: Diagnostic(code='statement-elaboration', message='Statement.lean does not elaborate', details={'module': 'Nodes.«tarski-exponential-function-problem».Statement', 'messages': [{'file': 'Nodes/tarski-exponential-function-problem/St
+- `taxicab-for-5-2-n`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'taxicab-for-5-2-n': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at n ≥ 2: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'o
+- `waldschmidt`: error —  INFO opn_gate.admit: admission check hazards failed: hazard-unacknowledged opn-gate: refused: admission refused 'waldschmidt': root: hazards: Diagnostic(code='hazard-unacknowledged', message='1 unacknowledged hazard finding(s); first: off-by-one-range at 2 ≤ n: comparison against an explicit literal: check whether the boundary is inclusive or exclusive', details={'findings': [{'checker': 'off-by-
+- `wichmann-conjecture`: error —  INFO opn_gate.admit: admission check layout failed: defs-import opn-gate: refused: admission refused 'wichmann-conjecture': root: layout: Diagnostic(code='defs-import', message='defs/Local.lean imports FormalConjectures.ErdosProblems.«170»; a definition imports library modules and other definitions only (F01-Q2)', details={'file': 'Local.lean', 'module': 'FormalConjectures.ErdosProblems.«170»'});
+
+## Admitted
+
+- `babai-seress-conjecture`
+- `babai-seress-conjecture-alternating`
+- `balanced-primes`
+- `beal-conjecture`
+- `beck-fiala-conjecture`
+- `brennan-universal-spectrum-bounded`
+- `buchi-problem--m5`
+- `c6a-eq-half`
+- `c6a-lower-bound-improved`
+- `c6a-upper-bound-improved`
+- `center-column-frequency-half`
+- `center-column-not-eventually-periodic`
+- `conjecture`
+- `conway99-graph`
+- `density-of-hyperbolicity`
+- `distinct-prop-lt`
+- `erdos-10`
+- `erdos-100`
+- `erdos-101`
+- `erdos-103`
+- `erdos-1035`
+- `erdos-104`
+- `erdos-1052`
+- `erdos-1059`
+- `erdos-1061`
+- `erdos-1073`
+- `erdos-1093`
+- `erdos-11`
+- `erdos-1101`
+- `erdos-1142`
+- `erdos-1146`
+- `erdos-1168`
+- `erdos-1199`
+- `erdos-1203`
+- `erdos-1209`
+- `erdos-1221`
+- `erdos-153`
+- `erdos-156`
+- `erdos-17`
+- `erdos-197`
+- `erdos-20`
+- `erdos-200`
+- `erdos-203`
+- `erdos-233`
+- `erdos-236`
+- `erdos-241`
+- `erdos-263`
+- `erdos-264`
+- `erdos-288`
+- `erdos-291`
+- `erdos-295`
+- `erdos-313`
+- `erdos-345`
+- `erdos-352`
+- `erdos-365`
+- `erdos-373`
+- `erdos-377`
+- `erdos-385`
+- `erdos-396`
+- `erdos-420`
+- `erdos-430`
+- `erdos-454`
+- `erdos-461`
+- `erdos-463`
+- `erdos-470`
+- `erdos-472`
+- `erdos-483`
+- `erdos-510`
+- `erdos-544`
+- `erdos-545`
+- `erdos-564`
+- `erdos-567`
+- `erdos-595`
+- `erdos-60`
+- `erdos-624`
+- `erdos-644`
+- `erdos-653`
+- `erdos-657`
+- `erdos-665`
+- `erdos-680`
+- `erdos-681`
+- `erdos-711`
+- `erdos-734`
+- `erdos-78`
+- `erdos-782`
+- `erdos-81`
+- `erdos-810`
+- `erdos-813`
+- `erdos-820`
+- `erdos-828`
+- `erdos-829`
+- `erdos-830`
+- `erdos-85`
+- `erdos-853`
+- `erdos-855`
+- `erdos-889`
+- `erdos-9`
+- `erdos-91`
+- `erdos-913`
+- `erdos-938`
+- `erdos-942`
+- `erdos-943`
+- `erdos-945`
+- `erdos-96`
+- `erdos-962`
+- `erdos-971`
+- `erdos-99`
+- `erdos-ulam-problem`
+- `error-is-big-o`
+- `error-term-improvement`
+- `exists-almost-perfect-not-power-of-two`
+- `exists-fermat-not-squarefree`
+- `exists-is-wall-sun-sun-prime`
+- `exists-is-wieferich-prime-and-is-mirimanoff-prime`
+- `exists-is-wieferich-prime-base-47`
+- `exists-magic-square-squares`
+- `exists-quasiperfect`
+- `exists-semi-magic-square-cubes`
+- `exp-add-pi-transcendental`
+- `exp-exp-transcendental`
+- `exp-mul-pi-transcendental`
+- `exp-pow-pi-sq-transcendental`
+- `extended-sierpinski-problem`
+- `fermat-catalan`
+- `fib-primes-infinite`
+- `firoozbakht-conjecture`
+- `four`
+- `gilbreath-conjecture`
+- `green-15`
+- `green-2`
+- `green-39`
+- `green-66`
+- `green-76`
+- `hadamard-conjecture`
+- `hall-conjecture`
+- `has-unique-extension-of-forall`
+- `infinite-club-exists`
+- `infinite-cousin-primes`
+- `infinite-fermat-composite`
+- `infinite-fermat-primes`
+- `infinite-is-wall-sun-sun-prime`
+- `infinite-is-wieferich-prime`
+- `infinite-is-wieferich-prime-base`
+- `infinite-pell-number-primes`
+- `infinite-prime-euclid-numbers`
+- `infinite-prime-sq-add-one`
+- `infinite-safe-primes`
+- `infinite-sexy-primes`
+- `infinitely-many-betrothed`
+- `infinitely-many-even-perfect`
+- `infinitely-many-factorial-primes`
+- `infinitely-many-perfect`
+- `infinitely-many-pierpont-primes`
+- `infinitely-many-proth-primes`
+- `infinitely-many-repunit-primes`
+- `infinitely-many-thabit-primes`
+- `infinitely-many-wilson-primes`
+- `infinitude-question`
+- `irrational-eleven`
+- `irrational-euler-mascheroni-constant`
+- `irrational-nine`
+- `irrational-pi-to-pi`
+- `irrational-seven`
+- `irving-leather-pow-two`
+- `is-equidistributed-modulo-one-three-halves-pow`
+- `is-lychrel10-196`
+- `is-poly-time-prime-factors-list`
+- `is-poly-time-square-root-sum`
+- `is-poly-time-square-root-sum-two-sided`
+- `is-sum-of-three-cubes-iff-mod-9`
+- `is-ten-solitary`
+- `kourovka-8-8b`
+- `large-steiner-systems`
+- `lindelof-card`
+- `m-l-c`
+- `m-l-c-general-exponent`
+- `mathoverflow-21003`
+- `no-complete-disjoint--n-p-pair`
+- `no-complete-disjoint-co-n-p-pair`
+- `np-inter-conp-no-complete-language`
+- `opposite-parity-amicable`
+- `parkin-shanks`
+- `pi-pow-exp-transcendental`
+- `pi-pow-pi-pow-pi-pow-pi-not-integer`
+- `pi-pow-pi-pow-pi-pow-pi-transcendental`
+- `pi-pow-pi-pow-pi-transcendental`
+- `pi-pow-pi-transcendental`
+- `pi-pow-sqrt-two-transcendental`
+- `prime-sierpinski-problem`
+- `prime-triplets`
+- `problem-10-2`
+- `problem-10-6-variant-1`
+- `rational-7-tuple`
+- `rational-distance-problem`
+- `rectangles-cover-unit-square`
+- `rectangles-pack-unit-square`
+- `regularprime-conjecture`
+- `relatively-prime-amicable`
+- `rudins-conjecture`
+- `salzer-levine`
+- `same-parity-betrothed`
+- `second-moment-one-extra-worker`
+- `selfridge-conjecture`
+- `selfridge-seq-conjecture`
+- `simple-prop-lt`
+- `sin-exp-transcendental`
+- `taxicab-for-5-2-2`
+- `tfnp-no-complete-problem`
+- `transcendental-catalan-constant`
+- `transcendental-gompertz-constant`
+- `twin-primes`
+- `two-five-perfect`
+- `up-no-complete-language`
+- `variant`
+- `variant-101`
+- `volume-frontier-mandelbrot-set-eq-zero`
+- `wolstenholme-prime-infinite`
+- `zagier-conjecture`

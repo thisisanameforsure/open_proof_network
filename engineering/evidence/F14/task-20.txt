@@ -33,3 +33,26 @@ Not measured here: the sandbox admission itself. The laptop has no Mathlib image
 first run is CI's: `gh workflow run wave-admit.yml --ref main` after this push, eight shards over
 the 365 drafts of T19's final run. Its run id, the merged REPORT.md and the admitted/refused counts
 are appended below when it finishes.
+
+The first run (2026-11-23; run 45076763196, network be7b0586, eight shards, 365 drafts of T19's driver,
+no hand witnesses): every job green; the drafting job 30 s, the shards 3 h 20 min to 4 h 50 min each
+(about four minutes a draft: the image's pull, then per draft a sandbox start, Mathlib's import and
+the ports' elaboration). Merged report in task-20-run1/ (REPORT.md, summary.json):
+
+  Admitted 218, refused 145
+   81  hazard-unacknowledged   step 6 found a literal bound (`2 < n`, `Finset.Icc 1 N`) with no
+                               acknowledgement: the curator's justification, as T18 wrote for three of
+                               the five (hazards.yaml), is the next pass
+   29  statement-elaboration   the statement does not elaborate (a port or draft defect; T21 and T23
+                               fixed several kinds after these drafts were made)
+   15  already exists          live targets drafted again (the workflow skips them since T23)
+    5  defs-elaboration        a ported module does not elaborate
+    5  defs-import             a port imports a module the gate's toolchain lacks (FormalConjectures.*)
+    4  witness-type-mismatch   the driver's closure is not step 7's expected type
+    2  witness-elaboration
+    4  other (one sandbox output with no verdict JSON; read as a prefix since 6c4122cc)
+
+Read against the sample probes of T19: the hosted route compiled 20 of 20 drafts, the gate admits 218
+of 363; the difference is the gate's own checks the route never runs — hazards (step 6), the
+witness (step 7), each defs file on its own — and the twenty-nine statements the route's budget never
+reached. The 218 are what T24 opens; the 81 need a curator acknowledgement each.
