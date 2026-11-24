@@ -125,6 +125,17 @@ class CachedDir:
 
 
 @dataclass
+class CachedTree:
+    """The whole graph's file listing at ``ref`` from one recursive tree read (F14-T33), by
+    directory; ``dirs`` is ``None`` when the host truncated the tree, so listings fall back to
+    one Contents call per directory for that head."""
+
+    ref: str
+    dirs: dict[str, list[str]] | None
+    fetched_at: float
+
+
+@dataclass
 class CachedClaims:
     """The claims table as one scan read it (F05-T20), reused for ``claims_max_stale_s``. Only
     the rows are kept: which claims are active is decided on every read, against the clock, so a
@@ -189,6 +200,8 @@ class Context:
     annex_unrendered: dict[tuple[str, str, str], bool] = field(default_factory=dict)
     # F07-T68: the MCP adapter's directory listings, by path, at the head they were read for.
     listings: dict[str, CachedDir] = field(default_factory=dict)
+    # F14-T33: every listing above answered from one recursive tree read per head.
+    tree: CachedTree | None = None
     # F05-T20: the claims table as the registry last scanned it, with the holders' pseudonyms;
     # ``None`` until scanned, and again after a claim or a release through this process.
     claims_scan: CachedClaims | None = None

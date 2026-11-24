@@ -1,0 +1,38 @@
+F14-T33 red run, 2026-11-24T21:57:42Z, worktree at origin/main 1c831f9b
+$ uv run --frozen pytest api/tests/test_session_host_reads.py -q
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+F...                                                                     [100%]
+=================================== FAILURES ===================================
+______ test_a_signed_in_session_costs_the_same_listings_at_any_graph_size ______
+
+tree = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-155/test_a_signed_in_session_costs0/graph')
+
+    def test_a_signed_in_session_costs_the_same_listings_at_any_graph_size(tree: Path) -> None:
+        """The red case: with 200 more targets the walk asked for 600 more listings."""
+        counts = []
+        for extra in (5, 200):
+            gen = harness_over(tree)
+            h = next(gen)
+            n, doc = signed_in_reads(h, extra)
+            assert doc["stewards"] == [TARGET]
+            counts.append(n)
+            gen.close()
+>       assert counts[0] == counts[1], counts
+E       AssertionError: [18, 603]
+E       assert 18 == 603
+
+api/tests/test_session_host_reads.py:80: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_session_host_reads.py::test_a_signed_in_session_costs_the_same_listings_at_any_graph_size
+1 failed, 3 passed, 2 warnings in 48.51s

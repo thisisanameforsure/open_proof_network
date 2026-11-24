@@ -110,6 +110,8 @@ def stale_all_but(ctx: Context, keep: str, now: float) -> None:
             entry.fetched_at = min(entry.fetched_at, aged)
     for listed in list(ctx.listings.values()):  # F07-T68: the MCP listings share the generation
         listed.fetched_at = min(listed.fetched_at, aged)
+    if ctx.tree is not None:  # F14-T33: and so does the tree that answers them
+        ctx.tree.fetched_at = min(ctx.tree.fetched_at, aged)
 
 
 def committed(ctx: Context, path: str) -> bytes:

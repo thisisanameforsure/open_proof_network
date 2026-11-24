@@ -17,6 +17,7 @@ Reads go to ``main`` only (Q4).
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from typing import TYPE_CHECKING, Any
@@ -26,7 +27,7 @@ import yaml
 
 from opn_api import duplicates, frontier, pending, precheck, requests, reviews, session
 from opn_api import glosses as glossroutes
-from opn_api.app import ApiError, CachedDir, CachedFile
+from opn_api.app import ApiError, CachedDir, CachedFile, CachedTree
 from opn_api.githost import GitHostError
 from opn_api.mcp import auth as mcpauth
 from opn_api.mcp import demarcate, results
@@ -35,6 +36,8 @@ from opn_gate import closing, context, explainers, glosses, layout, products, ro
 
 if TYPE_CHECKING:
     from opn_api.app import Context
+
+log = logging.getLogger(__name__)
 
 ATTEMPT_SUFFIXES = (".yaml", ".yml")
 PROSE_SUFFIX = ".md"
@@ -117,6 +120,9 @@ def listing(ctx: Context, path: str) -> list[str]:
         and (ctx.head is not None or now - cached.fetched_at < ctx.settings.frontier_max_stale_s)
     ):
         return _names(cached.names)
+    dirs = _tree(ctx, ref, now)
+    if dirs is not None:
+        return _names(dirs.get(path.strip("/")))
     hold = pending.budget_hold(ctx)
     if hold is not None:
         if cached is not None:
@@ -132,6 +138,30 @@ def listing(ctx: Context, path: str) -> list[str]:
         ctx.listings.clear()
     ctx.listings[path] = CachedDir(ref, names, now)
     return _names(names)
+
+
+def _tree(ctx: Context, ref: str, now: float) -> dict[str, list[str]] | None:
+    """F14-T33: the graph's files by directory at ``ref``, from one recursive tree read kept
+    for the head as a listing is; ``None`` when the tree cannot serve, so the caller lists the
+    one directory. A walk over every target (``GET /session``'s roles) is then one host call,
+    where one Contents call per directory outgrew the gateway's window at 443 targets. A tree
+    the host truncated, a held budget or a failed read all fall back to the directory walk."""
+    kept = ctx.tree
+    if (
+        kept is not None
+        and kept.ref == ref
+        and (ctx.head is not None or now - kept.fetched_at < ctx.settings.frontier_max_stale_s)
+    ):
+        return kept.dirs
+    if pending.budget_hold(ctx) is not None:
+        return None
+    try:
+        dirs = ctx.githost.list_tree(ctx.settings.graph_repo, ref)
+    except GitHostError as exc:
+        log.warning("the graph's tree at %s could not be read, listing by directory: %s", ref, exc)
+        return None
+    ctx.tree = CachedTree(ref, dirs, now)
+    return dirs
 
 
 def _names(names: list[str] | None) -> list[str]:

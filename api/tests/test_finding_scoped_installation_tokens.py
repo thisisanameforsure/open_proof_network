@@ -73,6 +73,12 @@ CASES: list[Case] = [
         {"contents": "read"},
     ),
     (
+        "list_tree",  # F14-T33
+        lambda s: s.on("GET", f"{API}/git/trees/main", json={"tree": [], "truncated": False}),
+        lambda h: h.list_tree(REPO, "main"),
+        {"contents": "read"},
+    ),
+    (
         "last_commit",
         lambda s: s.on("GET", f"{API}/commits", json=[]),
         lambda h: h.last_commit(REPO, BASE_SHA, "targets/t/nodes"),

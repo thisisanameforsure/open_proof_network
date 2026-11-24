@@ -290,6 +290,12 @@ class GitHost(Protocol):
         never guessed)."""
         ...
 
+    def list_tree(self, repo: str, ref: str) -> dict[str, list[str]] | None:
+        """Every directory of the tree at ``ref`` that holds files, mapped to the names of the
+        files directly under it, sorted, in one call; ``None`` when the host truncated the
+        tree, so the caller lists directory by directory instead (F14-T33)."""
+        ...
+
     def last_commit(self, repo: str, ref: str, path: str) -> str | None:
         """The newest commit reachable from ``ref`` that touched ``path``, a file or a
         directory (F06-T18: which commit wrote a target's products, and which last changed its
@@ -557,6 +563,31 @@ class HttpxGitHost:
         return sorted(
             str(e["name"]) for e in entries if isinstance(e, dict) and e.get("type") == "file"
         )
+
+    def list_tree(self, repo: str, ref: str) -> dict[str, list[str]] | None:
+        """The Git Trees API, recursive, as the App (F14-T33): one call for the whole graph,
+        where a directory-by-directory walk costs one Contents call per directory."""
+        with self._api(repo, CONTENTS_READ) as http:
+            resp = _send(
+                http,
+                "GET",
+                f"{GITHUB_API}/repos/{repo}/git/trees/{ref}",
+                params={"recursive": "1"},
+            )
+        doc = _json(resp, f"GET /repos/{repo}/git/trees/{ref}")
+        if doc.get("truncated") is not False:
+            return None
+        entries = doc.get("tree")
+        if not isinstance(entries, list):
+            msg = f"GET /repos/{repo}/git/trees/{ref} carried no tree"
+            raise GitHostError(msg)
+        dirs: dict[str, list[str]] = {}
+        for e in entries:
+            if not isinstance(e, dict) or e.get("type") != "blob":
+                continue
+            parent, _, name = str(e.get("path", "")).rpartition("/")
+            dirs.setdefault(parent, []).append(name)
+        return {d: sorted(names) for d, names in dirs.items()}
 
     def last_commit(self, repo: str, ref: str, path: str) -> str | None:
         """The list-commits API filtered by path, newest first, one entry (F06-T18), as the App

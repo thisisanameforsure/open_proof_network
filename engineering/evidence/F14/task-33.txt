@@ -1,0 +1,34 @@
+F14-T33: a signed-in GET /session costs the host the same reads at any graph size
+2026-11-24T22:17:04Z, branch session-tree-listing on origin/main 1c831f9b
+
+== The symptom, live (owner's Chrome, signed in, 2026-11-24) ==
+fetch GET https://api.openproofnetwork.org/session with the cookie: TypeError: Failed to fetch after 29227 ms
+the same route with no cookie, curl: 200 {"signed_in":false} in 0.49 s
+29 s is API Gateway's integration limit; its 504 carries no CORS header, so the page reads a network error,
+and session.js leaves the header, the review answer/sign forms and /me/ empty.
+
+== The live graph's tree, one call (gh api git/trees/main?recursive=1) ==
+0.93 s, truncated: false, 22982 entries (16559 blobs 100644, 6423 trees), 6.6 MB; no symlinks or submodules
+
+== Red (before the fix; see task-33-red.txt) ==
+E       AssertionError: [18, 603]
+api/tests/test_session_host_reads.py:80: AssertionError
+1 failed, 3 passed, 2 warnings in 48.51s
+
+== Green ==
+$ uv run --frozen pytest api/tests/test_session_host_reads.py api/tests/test_githost_tree.py api/tests/test_finding_scoped_installation_tokens.py api/tests/test_finding_unheld_host_reads.py api/tests/test_mcp_errors.py -q
+42 passed, 2 warnings in 7.27s
+
+== make verify ==
+All checks passed!
+Success: no issues found in 481 source files
+Success: no issues found in 291 source files
+Success: no issues found in 130 source files
+= 1 failed, 7604 passed, 42 skipped, 283 deselected, 2 warnings in 690.93s (0:11:30) =
+the one failure is test_walkthrough's guide copy against the stale sibling graph checkout; with
+OPN_GRAPH_CHECKOUT at a detached worktree of graph origin/main b6c40d0031: 6 passed
+
+== Two tests restated to the rule they pin ==
+test_finding_unheld_host_reads.listings counts tree reads beside Contents listings (one host read per head)
+test_mcp_errors.test_partial_bundle_never_served injects its failure into the per-directory walk, the path
+that can still fail part-way (a tree the host truncates); R10 unchanged

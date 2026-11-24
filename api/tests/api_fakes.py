@@ -130,6 +130,8 @@ class FakeGitHost:
     files: dict[str, bytes] = field(default_factory=dict)
     exchanges: list[str] = field(default_factory=list)
     fetches: list[tuple[str, str | None]] = field(default_factory=list)
+    tree_calls: list[str] = field(default_factory=list)  # F14-T33: list_tree, by ref
+    tree_truncated: bool = False  # F14-T33: the host answers "truncated" for the whole tree
     unreachable: bool = False
     access_token: str = FAKE_ACCESS_TOKEN
     # The App-authenticated half (F06-R3, R5).
@@ -273,6 +275,23 @@ class FakeGitHost:
         if not names:
             return None
         return [n for n in names if prefix + n in tree]
+
+    def list_tree(self, repo: str, ref: str) -> dict[str, list[str]] | None:
+        """F14-T33: the whole tree at ``ref`` in one call, as ``list_dir`` reads it; ``None``
+        while ``tree_truncated`` is set, as the host answers for a tree too large to send."""
+        self.tree_calls.append(ref)
+        if self.unreachable:
+            msg = "listing the tree failed: ConnectError"
+            raise GitHostError(msg)
+        if self.tree_truncated:
+            return None
+        absent = self.absent_at.get(ref, set())
+        tree = {k for k in self.files if k not in absent} | set(self.files_at.get(ref, {}))
+        dirs: dict[str, list[str]] = {}
+        for path in tree:
+            parent, _, name = path.rpartition("/")
+            dirs.setdefault(parent, []).append(name)
+        return {d: sorted(names) for d, names in dirs.items()}
 
     def last_commit(self, repo: str, ref: str, path: str) -> str | None:
         """F06-T18: the newest commit at ``ref`` that touched ``path``, from ``history``."""

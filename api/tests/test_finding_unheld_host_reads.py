@@ -47,8 +47,11 @@ def hold(h: Harness) -> None:
 
 
 def listings(h: Harness) -> list[str]:
-    """Every Contents-API listing the fake host answered (``list_dir`` records ``path/``)."""
-    return [p for p, _ in h.githost.fetches if p.endswith("/")]
+    """Every listing read the fake host answered: a Contents-API listing (``list_dir`` records
+    ``path/``) or a whole-tree read (F14-T33), which answers every listing at its head."""
+    return [p for p, _ in h.githost.fetches if p.endswith("/")] + [
+        f"tree@{ref}" for ref in h.githost.tree_calls
+    ]
 
 
 # --- the MCP adapter's listing -------------------------------------------------------------------
