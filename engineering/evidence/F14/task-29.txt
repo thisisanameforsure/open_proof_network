@@ -1,0 +1,13 @@
+F14-T29 — a literature record no longer holds a skeleton's precheck (2026-11-24)
+
+Testers 2026-11-24, Reed's conjecture: the tester's own literature record (graph #2019) merged at
+14:39:59Z; every skeleton precheck on the target answered 409 products-pending from 14:42Z to
+15:55Z, naming nodes_commit 82a08081 (#2019's head). precheck.WORDS_DIRS held gloss/ and explainer/
+only (F06-Q24); a literature record lives at nodes/<id>/literature/ and was counted as a node
+change. No hole plan, node status or supersession reads it (graph.derive_statuses, shelving.derive
+and closure never import it).
+
+Red first: api/tests/test_finding_precheck_words_window.py::test_a_literature_record_is_words_too
+answered 409 where 202 was expected; literature taken out of the "still holds it" list (which had
+pinned the defect). After: WORDS_DIRS = {gloss, explainer, literature}; 24 passed.
+Verification: `uv run --frozen python -m pytest api/tests/test_finding_precheck_words_window.py`

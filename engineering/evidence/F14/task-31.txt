@@ -1,0 +1,17 @@
+F14-T31 — hole-unnamed names its cause; the guide's three gaps (2026-11-24)
+
+Testers 2026-11-24. Reed: two prechecks failed hole-unnamed ("3 sorry(s) are not bound by a
+`have`") for holes written `have … := by sorry`, because their types opened with implicit and
+instance binders and Lean elaborated the sorry under their lambdas; the cure
+(`:= no_implicit_lambda% sorry`) was found by guessing. Singmaster: the nonce is only in the 202
+answer to POST /precheck, and POST /tokens said proof-invalid without saying where; three
+400 subject-invalid answers before `module: "Local.lean"` for a definition gloss.
+
+Changed: the step-4 diagnostic and the catalogue's remedy name the cause and the cure; the guide
+(gate/agents/AGENTS.md) says how to write such a hole, where the nonce is, and gives a definition
+subject literally. The graph's copy follows at the next re-pin.
+
+Red first: gate/tests/test_finding_hole_unnamed_binders.py, 5 failed on the committed files, 5
+passed after. test_walkthrough::test_agents_md_executes_with_toolchain (lean tier) fails on the
+guide's block at line 748 with the committed guide as well; not this change.
+Verification: `uv run --frozen python -m pytest gate/tests/test_finding_hole_unnamed_binders.py`

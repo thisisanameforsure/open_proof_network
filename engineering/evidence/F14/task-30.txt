@@ -1,0 +1,15 @@
+F14-T30 — the label scan sees the holes the extractor sees (2026-11-24)
+
+Testers 2026-11-24, Reed's conjecture: precheck D was refused partial-unlabelled at step 4 after a
+hosted job had run, though the guide says the service refuses it before any precheck. Each hole
+was `:= no_implicit_lambda% sorry` (its type opened with {V} [..] binders); labels._is_hole knew
+only `:= sorry` and `:= by sorry`, so the service's pre-flight found no hole and asked for no label,
+while the gate, holding the extractor's names to the rule, could not find the label blocks above
+them. The bullet-line label (`· -- label:`) the tester suspected was already supported.
+
+Red first: gate/tests/test_finding_labels_implicit_lambda.py — the scan found [] for three holes;
+the gate's reading reported six missing label/claim lines. Fix: _is_hole reads a term through a
+leading no_implicit_lambda%, and reads on from a `:=` that closes its line. 4 passed; 497 label
+and partial tests across gate and api passed. The gate's half is live at the re-pin; the service's
+at its deploy.
+Verification: `uv run --frozen python -m pytest gate/tests/test_finding_labels_implicit_lambda.py`

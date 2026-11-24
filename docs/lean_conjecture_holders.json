@@ -1,0 +1,9 @@
+{
+  "_comment": "F14-T32: live targets whose id the rule does not compute for their row: a short id several catalog rows share, held by the row the live statement is (matched by the text of the registry declaration), and ids imported before T25 collapsed `--`. Every other row of a shared id is named by its file and declaration (engineering/evidence/F14/task-32.txt).",
+  "buchi-problem--m5": "fc:FormalConjectures/Wikipedia/Buchi.lean#buchi_problem_M5",
+  "distinct-prop-lt": "fc:FormalConjectures/Paper/RiemannZetaZeros.lean#riemannZeta.distinct_prop_lt",
+  "i": "fc:FormalConjectures/Wikipedia/Oppermann.lean#oppermann_conjecture.parts.i",
+  "ii": "fc:FormalConjectures/Wikipedia/Oppermann.lean#oppermann_conjecture.parts.ii",
+  "no-complete-disjoint--n-p-pair": "fc:FormalConjectures/Paper/DisjointNPPairs.lean#no_complete_disjoint_NP_pair",
+  "simple-prop-lt": "fc:FormalConjectures/Paper/RiemannZetaZeros.lean#riemannZeta.simple_prop_lt"
+}

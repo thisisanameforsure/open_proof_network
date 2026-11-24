@@ -641,11 +641,13 @@ def products_commit(ctx: Context, target_id: str) -> tuple[str, str] | None:
 
 
 #: The directories under a node whose files no hole plan reads (F06-T18, F-D6 of 2026-10-27): a
-#: statement gloss and an explainer, with their signatures beneath them. Everything else under a
-#: node counts as a change to it: the statement, ``META.yaml``, ``Proof.lean``, ``attempts/``
-#: (a partial's holes are coming), ``annex/`` (a skeleton's citation, ``check_cited_annex``) and
-#: the records that derive statuses (status, shelving, literature, withdrawals, defects).
-WORDS_DIRS = frozenset({"gloss", "explainer"})
+#: statement gloss and an explainer, with their signatures beneath them, and a literature record,
+#: which says what is known about a statement and derives no node's status (F14-T29: one held
+#: Reed's skeleton for 75 minutes, testers 2026-11-24). Everything else under a node counts as a
+#: change to it: the statement, ``META.yaml``, ``Proof.lean``, ``attempts/`` (a partial's holes
+#: are coming), ``annex/`` (a skeleton's citation, ``check_cited_annex``) and the records that
+#: derive statuses (status, shelving, withdrawals, defects).
+WORDS_DIRS = frozenset({"gloss", "explainer", "literature"})
 
 
 def is_words(target_id: str, path: str) -> bool:

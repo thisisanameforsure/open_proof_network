@@ -330,7 +330,10 @@ def _partial_problems(
             Diagnostic(
                 "hole-unnamed",
                 f"{artifact.unnamed} sorry(s) are not bound by a `have`, so they name no child "
-                "node; every hole in a partial is `have <name> : <type> := sorry`",
+                "node; every hole in a partial is `have <name> : <type> := sorry`. A hole whose "
+                "type opens with implicit or instance binders (`∀ {x} [inst], …`) is elaborated "
+                "under their lambdas, so its bare `sorry` is unbound even under a `have`: write "
+                "`:= no_implicit_lambda% sorry` there",
                 {"unnamed": artifact.unnamed},
             )
         )

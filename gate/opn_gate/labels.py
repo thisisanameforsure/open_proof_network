@@ -124,6 +124,20 @@ def _keyed(block: Iterable[tuple[int, str]]) -> tuple[dict[str, str], list[str]]
     return keyed, [p for p in prose if p]
 
 
+#: F14-T30: a hole whose type opens with implicit or instance binders is bound
+#: ``:= no_implicit_lambda% sorry`` (a plain ``sorry`` is elaborated under the binders' lambdas,
+#: and step 4 calls it ``hole-unnamed``); the term is still ``sorry``.
+_NO_IMPLICIT_LAMBDA = "no_implicit_lambda%"
+
+
+def _bare(term: str) -> str:
+    """``term`` without a leading ``no_implicit_lambda%``, stripped."""
+    term = term.strip()
+    if term.startswith(_NO_IMPLICIT_LAMBDA):
+        return term[len(_NO_IMPLICIT_LAMBDA) :].strip()
+    return term
+
+
 def _is_hole(lines: Sequence[str], start: int) -> bool:  # noqa: PLR0911 — one per shape
     """Whether the ``have`` at ``lines[start]`` is bound to ``sorry`` (directly or as ``by`` then
     ``sorry``): the shape every hole has (step 4, ``hole-unnamed``)."""
@@ -136,18 +150,24 @@ def _is_hole(lines: Sequence[str], start: int) -> bool:  # noqa: PLR0911 — one
         m = _ASSIGN_RE.search(lines[j])
         if m is None:
             continue
-        rest = m.group("rest").strip()
+        rest = _bare(m.group("rest"))
+        if not rest:  # ``:=`` closes the line; the term is on the next one that is not a comment
+            for k in range(j + 1, len(lines)):
+                s = lines[k].strip()
+                if s and not s.startswith("--"):
+                    rest = _bare(s)
+                    break
         if rest.startswith("sorry"):
             return True
         if rest == "by" or rest.startswith("by "):
-            after = rest[2:].strip()
+            after = _bare(rest[2:])
             if after:
                 return after.startswith("sorry")
             for k in range(j + 1, len(lines)):
                 s = lines[k].strip()
                 if not s or s.startswith("--"):
                     continue
-                return s.startswith("sorry")
+                return _bare(s).startswith("sorry")
             return False
         return False
     return False

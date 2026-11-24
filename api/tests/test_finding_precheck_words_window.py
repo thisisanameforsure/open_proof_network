@@ -84,6 +84,22 @@ def test_explainers_and_signatures_are_words_too(harness: Harness) -> None:
     assert r.json()["graph_commit"] == BOT
 
 
+LITERATURE = f"{NODES}/{OTHER}/literature/20261124T144108Z-carol.yaml"
+
+
+def test_a_literature_record_is_words_too(harness: Harness) -> None:
+    """Testers 2026-11-24 (Reed's conjecture, graph #2019): the tester's own literature record
+    merged at 14:39Z and every skeleton precheck on the target answered ``products-pending`` for
+    75 minutes. A literature record says what is known about a statement; no node's status, no
+    supersession and no hole plan reads it (``graph.derive_statuses``, ``shelving.derive``), so it
+    is words to a plan (F06-Q24's follow-up)."""
+    token = harness.token_for("code_alice", "alice-p")
+    window(harness, [LITERATURE, GLOSS])
+    r = precheck(harness, token, skeleton())
+    assert r.status_code == 202, r.text
+    assert r.json()["graph_commit"] == BOT
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -94,7 +110,6 @@ def test_explainers_and_signatures_are_words_too(harness: Harness) -> None:
         f"{NODES}/{NODE}/annex/{'3' * 64}.md",  # a skeleton's citation reads annexes
         f"{NODES}/{OTHER}/status/20261027T101500Z-carol.yaml",
         f"{NODES}/{OTHER}/shelving/20261027T101500Z-carol.yaml",
-        f"{NODES}/{OTHER}/literature/20261027T101500Z-carol.yaml",
         f"{NODES}/{OTHER}/withdrawals/20261027T101500Z-carol.yaml",
         f"{NODES}/{OTHER}/defects/20261027T101500Z-carol.yaml",
         f"{NODES}/{OTHER}/gloss",  # a file named like the directory is not in it

@@ -1,0 +1,25 @@
+F14-T32 — every catalog row gets a target id of its own (2026-11-24)
+
+Found reading why Artin's primitive roots and Green 17's parts were never imported: their ids
+were `i` and `ii`, which Oppermann's parts already held. wave.target_id_for named a row by its
+declaration's last segment; over the catalog 28 ids were claimed by 404 rows (376 shadowed):
+`conjecture` (138 rows), `conjecture-1`, `conjecture-2`, `upper`, `lower`, `prime`, `weak-b-s-d`
+and more. The admission workflow's skip list also never worked: it read `t["id"]` of an index
+whose rows carry `target_id`, inside a process substitution whose failure was lost.
+
+Also found: T25's `--` collapse left two live ids the rule no longer computes;
+`buchi-problem--m5` was imported a second time as `buchi-problem-m5` (graph #1903). That
+duplicate is on the record and is the owner's to retire.
+
+Holders (docs/lean_conjecture_holders.json), each matched by statement text:
+  i, ii → Oppermann's parts (MATCH; Artin's and Green's differ)
+  distinct-prop-lt, simple-prop-lt → riemannZeta.* (the live statements have no hχ binder)
+  buchi-problem--m5, no-complete-disjoint--n-p-pair → their rows (pre-T25 ids)
+
+Red first (seam at today's behaviour, then the defect): gate/tests/test_finding_wave_id_collisions.py
+— two rows both `i`, no refusal, the held legacy id respelled. 8 passed after. Two ids the old rule
+produced outside the grammar (`reed-conjecture-δ-6-ω-2`, `«167»`) are respelled only where invalid.
+Against the live graph: 441 registry targets, every one some row's assigned id except the duplicate
+`buchi-problem-m5`; the workflow's new skip script lists 440 live rows and leaves Artin's and
+Green's parts to draft.
+Verification: `uv run --frozen python -m pytest gate/tests/test_finding_wave_id_collisions.py`

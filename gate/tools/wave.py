@@ -36,6 +36,7 @@ import json
 import re
 import shutil
 import sys
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -774,12 +775,106 @@ _SUBSCRIPTS = str.maketrans("₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₖₗₘ
 def target_id_for(row: dict[str, Any]) -> str:
     """The target id: `erdos-<n>`, or the declaration's short name in kebab case; a subscript in
     the registry's name (`moment_is_equiv₃`) becomes the plain letter the id grammar allows
-    (F14-T19)."""
+    (F14-T19). A row the catalog-wide assignment has named carries its id (F14-T32)."""
+    if row.get("target_id"):
+        return str(row["target_id"])
     if row["kind"] == "erdos":
         return f"erdos-{row['key'].split(':', 1)[1]}"
     decl = str(row["decl"]).rsplit(".", 1)[-1].translate(_SUBSCRIPTS)
     kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", decl).replace("_", "-").lower()
-    return re.sub(r"-{2,}", "-", kebab).strip("-")  # `_M5` → `--m5` on the live record (T25)
+    short = re.sub(r"-{2,}", "-", kebab).strip("-")  # `_M5` → `--m5` on the live record (T25)
+    # F14-T32: only an id the grammar refuses is respelled, so no id that could be live moves:
+    # a Greek letter by its name (`reed_conjecture_δ_6_ω_2`), anything else outside it dropped
+    # (`«167»`).
+    return short if _ID_RE.fullmatch(short) else _kebab(_ascii(decl))
+
+
+class WaveError(Exception):
+    """A catalog the driver cannot name targets for without guessing."""
+
+
+HOLDERS = ROOT / "docs" / "lean_conjecture_holders.json"
+
+
+def load_holders(path: Path = HOLDERS) -> dict[str, str]:
+    """The live ids the rule does not compute for their rows, each with the row it holds."""
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    return {k: str(v) for k, v in doc.items() if not k.startswith("_")}
+
+
+def assign_ids(
+    rows: list[dict[str, Any]], *, live: set[str], holders: dict[str, str]
+) -> dict[str, str]:
+    """Each draftable row's target id, by key (F14-T32).
+
+    A short id one row alone claims is the row's. Where several rows claim one, the row
+    ``holders`` names keeps it and every other row is named by its registry file and full
+    declaration (``qualified_id``). A row ``holders`` names under another id keeps that id: a
+    live id the rule no longer computes (T25 collapsed ``--`` after ``buchi-problem--m5``
+    landed, and the row was imported again as ``buchi-problem-m5``). A live id several rows
+    claim with no holder named, or a holder that is not among the claimants, is refused: a
+    wrong guess drafts the live statement again under a second id."""
+    claimants: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        if draftable_id(r):
+            claimants.setdefault(target_id_for(r), []).append(r)
+    held = {key: target_id for target_id, key in holders.items()}
+    out: dict[str, str] = {}
+    for short, group in claimants.items():
+        if len(group) == 1:  # a held row keeps its live id, whatever the rule now computes
+            out[group[0]["key"]] = held.get(group[0]["key"], short)
+            continue
+        holder = holders.get(short)
+        if holder is None and short in live:
+            msg = (
+                f"target id {short!r} is live and {len(group)} catalog rows claim it; name its "
+                f"holder in {HOLDERS.name} (the row whose declaration the live statement is)"
+            )
+            raise WaveError(msg)
+        if holder is not None and holder not in {r["key"] for r in group}:
+            msg = f"the holder {holder!r} named for {short!r} is not one of the rows that claim it"
+            raise WaveError(msg)
+        for r in group:
+            out[r["key"]] = short if r["key"] == holder else held.get(r["key"]) or qualified_id(r)
+    named: dict[str, str] = {}
+    for key, target_id in out.items():
+        if target_id in named:
+            msg = f"{key} and {named[target_id]} would both be target {target_id!r}"
+            raise WaveError(msg)
+        named[target_id] = key
+    return out
+
+
+_ID_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
+
+
+def _ascii(text: str) -> str:
+    """Greek letters by their names, separated; every other character outside ASCII dropped."""
+    out = []
+    for ch in text:
+        if ch.isascii():
+            out.append(ch)
+            continue
+        name = unicodedata.name(ch, "")
+        if name.startswith("GREEK"):
+            out.append(f"_{name.rsplit(' ', 1)[-1].lower()}_")
+    return "".join(out)
+
+
+def _kebab(text: str) -> str:
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "-", text.translate(_SUBSCRIPTS))
+    return re.sub(r"-{2,}", "-", re.sub(r"[^A-Za-z0-9]+", "-", text)).strip("-").lower()
+
+
+def qualified_id(row: dict[str, Any]) -> str:
+    """A shared short id's other claimants: the registry file (less ``FormalConjectures/`` and
+    ``.lean``) and the full declaration, in kebab case."""
+    path = str(row["file"]).removeprefix("FormalConjectures/").removesuffix(".lean")
+    return _kebab(f"{path}-{row['decl']}")
+
+
+def draftable_id(r: dict[str, Any]) -> bool:
+    return r["kind"] == "erdos" or bool(r.get("decl"))
 
 
 def theorem_name(row: dict[str, Any]) -> str:
@@ -1439,9 +1534,30 @@ def main(argv: list[str] | None = None) -> int:
         help="write the statement and record of a row refused for its witness alone under "
         "<out>/refused/<target-id>/, for the hand witness (F14-T21)",
     )
+    parser.add_argument(
+        "--live-index",
+        type=Path,
+        help="the graph's targets/index.json: a live id several rows claim needs a named holder "
+        "(F14-T32)",
+    )
     args = parser.parse_args(argv)
 
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
+    holders = load_holders()
+    live = set(holders)
+    if args.live_index is not None:
+        index = json.loads(args.live_index.read_text(encoding="utf-8"))
+        live |= {str(t["target_id"]) for t in index["targets"]}
+    # F14-T32: ids are assigned over the whole catalog, so a row's id does not depend on which
+    # rows this run drafts; each row carries its own into the draft.
+    try:
+        assigned = assign_ids(catalog["rows"], live=live, holders=holders)
+    except WaveError as exc:
+        sys.stderr.write(f"wave: {exc}\n")
+        return 1
+    for r in catalog["rows"]:
+        if r["key"] in assigned:
+            r["target_id"] = assigned[r["key"]]
     rows = {r["key"]: r for r in catalog["rows"]}
     chosen = [
         r

@@ -204,7 +204,9 @@ step 4 kernel-replay: pass
 signed by: service
 ```
 
-Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next section.
+Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next section. It
+is in the `202` answer to `POST /precheck` and nowhere else; `GET /precheck/<job>`, the poll,
+never repeats it, so a nonce not saved from that answer means a new tutorial precheck.
 
 ### Iterating fast: `POST /check`
 
@@ -1331,6 +1333,12 @@ theorem OpnProp.some_goal : P := by
 
 If that elaborates, the argument's architecture is kernel-checked even though none of its
 content is.
+
+**A hole whose type opens with implicit or instance binders** (`∀ {V : Type} [Fintype V], …`)
+is written `have h : ∀ {V : Type} [Fintype V], P V := no_implicit_lambda% sorry`. With a bare
+`sorry`, Lean elaborates it under those binders' lambdas, so step 4 finds a `sorry` that no
+`have` binds and refuses `hole-unnamed`, although the `have` is there. The fast check cannot
+tell the two apart; the label lines above the hole are read the same way either way.
 
 **A partial names its work in its own comments (D-12 v3.44), and is refused without them.**
 Before the first hole: one `-- approach: <one line>` saying what attack this decomposition
@@ -2492,8 +2500,9 @@ service before any pull request opens and by the gate again at the merge:
 **Through the service.** `POST /glosses` (MCP `submit_gloss`) takes `subject`, `text`, `licence`
 and optionally `supersedes` and `drafted_with`. `subject` is `{kind, node_id}` for a `statement`,
 `witness` or `relation` (with `lean_hash` if you want to name the text; the file as it stands
-otherwise), `{kind: "definition", target_id, module}` for a definition module (its path under
-`defs/`), or `{kind, node_id, proof}` for an explainer, `proof` being the artifact's hash
+otherwise), `{kind: "definition", target_id, module}` for a definition module (its file name
+under `defs/`, extension included: `{"kind": "definition", "target_id": "singmaster", "module":
+"Local.lean"}` for `targets/singmaster/defs/Local.lean`), or `{kind, node_id, proof}` for an explainer, `proof` being the artifact's hash
 as the chains and outlines list it. An explainer's `kind` is `proof`, `alternate` or `partial`,
 whichever `list_words_needed`'s row says; `proof` is the row's `lean_hash`, never a path.
 `{kind: "partial", node_id, module}` (no `proof`) is a gloss of the partial, its route's

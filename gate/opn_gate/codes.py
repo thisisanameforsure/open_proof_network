@@ -1450,7 +1450,9 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "gate",
         4,
         "A sorry in the partial is not bound by a `have`, so it names no child node.",
-        "Write every hole as `have <name> : <type> := sorry`.",
+        "Write every hole as `have <name> : <type> := sorry`; when the type opens with implicit "
+        "or instance binders (`∀ {x} [inst], …`), bind it `:= no_implicit_lambda% sorry`, since "
+        "a bare `sorry` is elaborated under their lambdas and no `have` binds it.",
     ),
     "hole-witness-ambiguous": (
         "gate",
