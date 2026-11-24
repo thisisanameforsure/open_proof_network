@@ -56,8 +56,11 @@ The check after it landed:
      planted `m + 0 = m`          → auto-implicit finding at `m` ("bound it as `{m : ℕ}`")
      planted `∀ (X : Type u), …`  → no finding (a universe is not an identifier)
      erdos-680 root (live)        → no finding
-   live-check.txt — the same through `POST /check`: HTTP 500 at 29.5 s, as was every `/check`
-   for the previous 30 hours. Not this change: see task-27.txt.
+   live-check.txt — the same through `POST /check`: first HTTP 500 at 29.5 s, as was every
+   `/check` for the previous 30 hours (not this change: task-27.txt). After T27 deployed (network
+   be479c90, api-deploy 45407409880, its smoke `hazards_status ran`), all three through the live
+   service: planted `m` → the auto-implicit finding; abc root (defs inlined) → none; erdos-623
+   root → none; plain `check` mode 200 in 1.1 s.
 
 Verification: `grep -L '"auto-implicit"' ../open_proof_network_graph/targets/*/gate-spec.json`
 prints nothing at graph origin/main.

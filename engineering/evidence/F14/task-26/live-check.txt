@@ -1,6 +1,13 @@
-== planted unbound name: HTTP 500 in 30s
-{"message": "Internal Server Error"}
-== abc root (defs inlined by the service): HTTP 500 in 30s
-{"message": "Internal Server Error"}
-== erdos-623 root (Type u): HTTP 500 in 30s
-{"message": "Internal Server Error"}
+POST /check mode hazards against https://api.openproofnetwork.org, network be479c90, graph bf3a84b607
+== planted unbound name: HTTP 200 in 6s, hazards_status ran
+   checkers: ['auto-implicit', 'div-zero', 'int-trunc', 'junk-value', 'nat-sub', 'off-by-one-range', 'unused-binder']
+   findings: [{"checker": "auto-implicit", "location": "m", "message": "`m` is not declared: autoImplicit bound it as `{m : ℕ}`, an implicit binder the author never wrote; declare it, or correct the name if a constant was meant"}]
+== abc root (defs inlined by the service): HTTP 200 in 12s, hazards_status ran
+   checkers: ['auto-implicit', 'div-zero', 'int-trunc', 'junk-value', 'nat-sub', 'off-by-one-range', 'unused-binder']
+   findings: []
+== erdos-623 root (Type u): HTTP 200 in 4s, hazards_status ran
+   checkers: ['auto-implicit', 'div-zero', 'int-trunc', 'junk-value', 'nat-sub', 'off-by-one-range', 'unused-binder']
+   findings: []
+ronment_total_time_us":155625,"environment_pool_size":64,"_predicted_warmness":"warm","_actual_env_warm_state":"warm"}},"dropped_warnings":[],"log_id":"01M86XR6CGZS169F9F8NSFRAFH"}
+HTTP 200 1.121239s
+
