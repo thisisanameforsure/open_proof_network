@@ -32,3 +32,10 @@ OPN_GRAPH_CHECKOUT at a detached worktree of graph origin/main b6c40d0031: 6 pas
 test_finding_unheld_host_reads.listings counts tree reads beside Contents listings (one host read per head)
 test_mcp_errors.test_partial_bundle_never_served injects its failure into the per-directory walk, the path
 that can still fail part-way (a tree the host truncates); R10 unchanged
+
+== Live, after deploy (network 90a7bf07, api-deploy 45501643717 success), the owner's Chrome, signed in ==
+review page erdos-257: window.OPN.session resolved in 4935 ms (cold function included): signed_in true,
+login thisisanameforsure, stewards [erdos-1094, erdos-257], 16 review questions waiting; header shows the
+login, My problems, Sign out; 8 answer boxes (one under each question) and the sign form drawn.
+/me/: "Questions waiting for your answer" lists 16 (8 on erdos-1094, 8 on erdos-257).
+Screenshots read: task-33-live-review.jpg, task-33-live-me.jpg.

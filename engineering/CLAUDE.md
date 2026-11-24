@@ -1978,3 +1978,11 @@ The law of the project:
   code execution**: the 2026 "Code Mode" pattern runs model-written code; one call per operation
   keeps D-28's bijection literal, needs no sandbox in the Lambda and lets a harness allow `read`
   and ask on `write`. Also, again: a run that overlaps your own edits reports them as failures.
+- 2026-11-25 — The bulk load's third walker, found by the owner: signed in as a steward, the review
+  page had no answer form and `/me/` no tasks, because a signed-in `GET /session` listed three
+  directories per target (stewards, motions, reviews) and ran past the gateway's 29 s at 443 targets.
+  A gateway 504 carries no CORS header, so the browser reports a bare network error and the page
+  stays blank rather than red; only `curl` with and without the cookie (0.5 s vs never) said which
+  half was slow. One recursive tree read per head answers every listing (F14-T33; the live graph's
+  tree is 0.93 s and untruncated at 23k entries). After the 2026-11-24 entry, grep every route for a
+  loop over `target_ids` before calling a load done: three walked it, and only one had been fixed.
