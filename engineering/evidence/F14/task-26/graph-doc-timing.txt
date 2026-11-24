@@ -1,3 +1,8 @@
 targets in the live index at bf3a84b607 : 443
 in series: 60 reads in 34.3s -> 572 ms each, 253s projected for 443
 concurrent (16 workers): 443 reads in 13.3s, statuses [200]
+--- after F14-T27's shared raw client (one client per process)
+in series, shared client: 60 reads in 41.5s -> 692 ms each
+concurrent, shared client (16 workers): 443 reads in 18.7s, statuses [200]
+CPU per read, 30 reads: new client each 20.9 ms; shared client 2.5 ms; x9
+projected CPU for 443 reads: 9.3s new-client vs 1.1s shared (a 512 MB Lambda has ~0.3 vCPU)

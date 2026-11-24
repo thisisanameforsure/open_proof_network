@@ -35,6 +35,8 @@ GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"  # noqa: S105 â
 GITHUB_USER_URL = "https://api.github.com/user"
 GITHUB_API = "https://api.github.com"
 RAW_URL = "https://raw.githubusercontent.com/{repo}/{ref}/{path}"
+#: Open connections the shared raw-host client keeps (F14-T27): one per prefetch worker, and more.
+RAW_CONNECTIONS = 32
 API_ACCEPT = "application/vnd.github+json"
 API_VERSION = "2022-11-28"
 TIMEOUT_S = 10.0
@@ -429,6 +431,20 @@ class HttpxGitHost:
         self._token_lock = threading.Lock()
         # F07-T47: the budget the host last reported, from the headers of any API answer.
         self._budget: HostBudget | None = None
+        # F14-T27: one client for the raw host, kept for the process. A client per file paid a
+        # fresh SSL context and TLS handshake on every read, which on a Lambda's fraction of a
+        # vCPU made 443 graph.json reads outrun 29 s even across 16 threads.
+        self._raw: httpx.Client | None = None
+        self._raw_lock = threading.Lock()
+
+    def _raw_client(self) -> httpx.Client:
+        with self._raw_lock:
+            if self._raw is None:
+                self._raw = httpx.Client(
+                    timeout=TIMEOUT_S,
+                    limits=httpx.Limits(max_connections=RAW_CONNECTIONS),
+                )
+            return self._raw
 
     def budget(self) -> HostBudget | None:
         return self._budget
@@ -507,8 +523,7 @@ class HttpxGitHost:
         url = RAW_URL.format(repo=repo, ref=ref, path=path)
         headers = {"If-None-Match": etag} if etag else {}
         try:
-            with httpx.Client(timeout=TIMEOUT_S) as http:
-                resp = http.get(url, headers=headers)
+            resp = self._raw_client().get(url, headers=headers)
         except httpx.HTTPError as exc:
             msg = f"fetching {path} from {repo}@{ref} failed: {type(exc).__name__}"
             raise GitHostError(msg) from exc

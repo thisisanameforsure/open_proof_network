@@ -29,4 +29,18 @@ Measured against the live graph (graph-doc-timing.txt, from this laptop):
   concurrent, 16 workers: 443 reads in 13.3 s, all 200
   The Lambda's own reads were ~65 ms each (log above), so ~2 s there.
 
-Verification: `uv run --frozen python -m pytest api/tests/test_finding_graph_doc_serial.py`
+Verification: `uv run --frozen python -m pytest api/tests/test_finding_graph_doc_serial.py api/tests/test_finding_raw_client_per_fetch.py`
+
+Deployed as network 00833d42 (api-deploy 45404296853): the smoke's `POST /check` mode hazards still
+answered 500. The Lambda's log for it (request 16565c51, 13:32:03Z–13:32:28Z) read all 443 graph.json
+this time (372 before) but at ~17 a second across 16 threads, slower per read than the 65 ms in
+series: the reads were CPU-bound. `HttpxGitHost.fetch_raw` built a new `httpx.Client` per file, a
+fresh SSL context and TLS handshake each time, on a fraction of one vCPU.
+
+Second half, red first: api/tests/test_finding_raw_client_per_fetch.py counted 20 clients for 20
+reads and 64 for 64 concurrent reads; `HttpxGitHost` now keeps one raw-host client for the process
+(lazy, under a lock; 32 connections). 3 passed after, a 304 and a connect failure answering as before.
+
+Measured (graph-doc-timing.txt, this laptop): CPU per read 20.9 ms with a new client each, 2.5 ms
+shared (x9); 443 reads 9.3 s of CPU against 1.1 s. Wall time from here is bounded by this laptop's
+~600 ms path to GitHub either way, so it is not the measure.
