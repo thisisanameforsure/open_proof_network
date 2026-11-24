@@ -1953,3 +1953,18 @@ The law of the project:
   harness carries activated scoped notation between modules (`open scoped Nat` made `φ` a token in
   a sibling), so judge a failure that also fails under defaults as the harness's, and plant
   controls that pass the default and fail strict before believing a clean run.
+- 2026-11-24 (later) — Two agents on new imports (singmaster, Reed's ω Δ χ) found the products had
+  not rendered for an hour, and the fixes landed the same day (F14-T28–T32, graph re-pins 32997cc6
+  and 94339aa1). Three things worth keeping. **Profile before choosing a design**: I proposed
+  "render only what changed" from the symptom (an 18-minute render starving between merges); one
+  cProfile over 40 live targets showed 236 of 244 s re-parsing all 295 attestations on each of nine
+  `load_target` calls a target, so a per-file cache keyed by size and mtime took a render from 18
+  minutes to 73 seconds and the incremental design was never needed. **A short id is a shared
+  namespace**: naming targets by a declaration's last segment gave 28 ids to 404 catalog rows
+  (`i` for three different problems, `conjecture` for 138), so the bulk load silently skipped
+  every row whose id another row held; and the workflow's skip list had never worked at all
+  (`t["id"]` on rows carrying `target_id`, inside a process substitution whose failure is lost).
+  Feed a list to a loop from a file, never from `<(…)`. **A rename of a naming rule duplicates the
+  record**: T25's `--` collapse made `buchi-problem--m5` compute as `buchi-problem-m5`, which was
+  imported again (#1903). Any change to how an id is computed needs the live ids it no longer
+  produces named (`docs/lean_conjecture_holders.json`) before the next run.

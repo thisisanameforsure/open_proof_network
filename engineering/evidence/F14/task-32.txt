@@ -23,3 +23,22 @@ Against the live graph: 441 registry targets, every one some row's assigned id e
 `buchi-problem-m5`; the workflow's new skip script lists 440 live rows and leaves Artin's and
 Green's parts to draft.
 Verification: `uv run --frozen python -m pytest gate/tests/test_finding_wave_id_collisions.py`
+
+The import (2026-11-24, after re-pin 94339aa1 to network 34cf1e62): the 30 newly named rows scoring
+at least 0 (the earlier runs' rule; the other 346 shadowed rows score below it) dispatched as
+wave-admit 45453530310, 4 shards. The driver drafted 4 and refused 26 by the known classes
+(cross-file statements, Artin's parts among them: they rest on the Riemann Hypothesis file; files
+whose definitions leave an answer as `sorry`; variants). All 4 were admitted in the sandbox
+(task-32-run4-REPORT.md), with auto-implicit in the checker list.
+
+Reading the admitted drafts before import (R13) found two that must not land: the
+`DirichletCharacter` rows carried the `riemannZeta` statement, byte for byte the live
+distinct-prop-lt and simple-prop-lt. wave.extract fell back to the short name and took the first
+theorem by it. Red first (test_a_short_name_two_declarations_share_is_refused: it returned the
+riemannZeta proposition), then an ambiguous short name is refused by name; 10 passed. Across the
+live record only those two targets' files hold a short name twice, and the live ones are the
+riemannZeta rows, as the holders map says.
+
+Opened (gate/tools/wave_open.py, from a fresh worktree at origin/main): graph #2024
+other-smarandache-wellin-prime-conjecture and #2025 wikipedia-sierpinski-number-selfridge-conjecture.
+The two DirichletCharacter drafts were withheld.

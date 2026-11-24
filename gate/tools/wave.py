@@ -889,7 +889,7 @@ BINDERS_BEFORE_COLON = (
 )
 
 
-def extract(text: str, decl: str) -> tuple[str | None, str, str]:
+def extract(text: str, decl: str) -> tuple[str | None, str, str]:  # noqa: PLR0911 — one per refusal
     """The main statement's proposition, how it was taken (``as stated`` / ``adapted``) and the
     binders before its colon (empty for none), or ``None`` and why it cannot be taken as it
     stands. Binders before the colon are kept as the registry writes them: the draft is refused
@@ -898,12 +898,20 @@ def extract(text: str, decl: str) -> tuple[str | None, str, str]:
     # name is the one to find; the short name is only the fallback for a namespaced file.
     m = None
     for name in dict.fromkeys((decl, decl.rsplit(".", 1)[-1])):
-        m = re.search(
-            rf"^theorem\s+{re.escape(name)}(?![\w.'])(?P<rest>[\s\S]*?):=\s*(?:by\s+)?sorry",
-            text,
-            re.M,
+        found = list(
+            re.finditer(
+                rf"^theorem\s+{re.escape(name)}(?![\w.'])(?P<rest>[\s\S]*?):=\s*(?:by\s+)?sorry",
+                text,
+                re.M,
+            )
         )
-        if m is not None:
+        # F14-T32: the short name is the fallback for a namespaced file, and only when one
+        # theorem has it; two (`riemannZeta.distinct_prop_lt`, `DirichletCharacter.…`) would
+        # take the first for both rows and import one statement twice under two names.
+        if len(found) > 1:
+            return None, f"{len(found)} theorems named `{name}` in the file: curate by hand", ""
+        if found:
+            m = found[0]
             break
     if m is None:
         return None, f"no `theorem {decl} ... := by sorry` in the registry file", ""

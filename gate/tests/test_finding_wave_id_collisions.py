@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001 — the fixtures are Lean source, with its double-struck letters
 """Finding wave-id-collisions (2026-11-24): the bulk load never drafted 376 open statements.
 
 ``wave.target_id_for`` named a row by its declaration's last segment, so every registry row
@@ -106,3 +107,39 @@ def test_the_catalog_gives_every_draftable_row_an_id_of_its_own() -> None:
     assert all(ID_RE.match(v) and len(v) <= 200 for v in values)
     for target_id, key in holders.items():
         assert ids[key] == target_id
+
+
+# --- the declaration a distinct id names (the admission run of 2026-11-24) ---------------------
+
+TWO_NAMESPACES = """\
+namespace riemannZeta
+
+theorem distinct_prop_lt : ∃ c > (1 : ℝ), c = c := by
+  sorry
+
+end riemannZeta
+
+namespace DirichletCharacter
+
+theorem distinct_prop_lt (hχ : χ.IsPrimitive) : ∃ c > (2 : ℝ), c = c := by
+  sorry
+
+end DirichletCharacter
+"""
+
+
+def test_a_short_name_two_declarations_share_is_refused() -> None:
+    """Given ids of their own, the two ``DirichletCharacter`` rows were drafted and admitted, but
+    each carried the ``riemannZeta`` statement: the extractor fell back to the short name and
+    took the first theorem by it, so the import would have put the live statement on the record a
+    second time under another target's name. An ambiguous short name is refused by name."""
+    prop, how, _ = wave.extract(TWO_NAMESPACES, "DirichletCharacter.distinct_prop_lt")
+    assert prop is None
+    assert "distinct_prop_lt" in how and "2" in how
+
+
+def test_a_short_name_one_declaration_holds_is_still_found() -> None:
+    text = TWO_NAMESPACES.split("namespace DirichletCharacter", maxsplit=1)[0]
+    prop, how, _ = wave.extract(text, "riemannZeta.distinct_prop_lt")
+    assert prop == "∃ c > (1 : ℝ), c = c"
+    assert how == "as stated"
