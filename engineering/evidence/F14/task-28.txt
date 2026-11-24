@@ -1,0 +1,27 @@
+F14-T28 — each attestation parsed once per process (2026-11-24)
+
+Found by the 2026-11-24 testers: products on singmaster and reed-omega-delta-chi-… had not
+rendered for over an hour. render.yml run 45420442037 rendered in 18 min (15:01–15:19), was refused
+at the push because main had moved, re-rendered everything (15:36, 15:54), and hit the job's
+60-minute timeout at 16:00:48. Reed's skeleton was refused `products-pending` for 75 minutes.
+
+Profile (cProfile over products.generate, live graph 6d6ee88b at network 90807562, scanner off,
+this laptop): 40 of 443 targets in 244.3 s, 6.11 s a target. 236 s of it in
+graph.load_attestations: 360 load_target calls for 40 targets (9 a target, via qa.root_node and the
+fidelity grades), each reading and schema-validating all 295 attestation files — 106,561
+schemas.load_json calls. Cost ~ targets x attestations x 9.
+
+Red first: gate/tests/test_finding_attestations_reparsed.py — 108 parses for 12 files over 9 calls
+(assert 108 == 12). Four companions pin what must not change: a new file is read, a deleted one is
+gone, a changed file (other size; same size, later mtime) is read again, two graphs do not share
+entries, a malformed file is still a GraphError. 5 passed after.
+
+Fix: graph.load_attestations keeps each parsed document by resolved path with the size and mtime_ns
+it was parsed at; the directory is listed on every call, a file is parsed again only when it changes.
+
+After (same profile, all 443 targets): 207.6 s, 0.47 s a target (x13). What remains is YAML in the
+fidelity grades and load_target's nine calls a target; not needed for the render to fit between
+merges, so left.
+
+Gate fast tier 4190 passed; ruff and mypy clean.
+Verification: `uv run --frozen python -m pytest gate/tests/test_finding_attestations_reparsed.py`

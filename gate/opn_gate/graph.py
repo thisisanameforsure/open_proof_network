@@ -229,18 +229,36 @@ class TargetGraph:
 # --- loading ----------------------------------------------------------------------------------
 
 
+#: F14-T28: each attestation as last parsed, by resolved path, with the size and modification time
+#: it was parsed at. ``load_target`` runs several times a target and each run read every
+#: attestation on the graph, so after the bulk load a render spent 236 of every 244 seconds here.
+_ATTESTATIONS: dict[Path, tuple[int, int, dict[str, Any]]] = {}
+
+
 def load_attestations(graph_root: Path) -> list[tuple[str, dict[str, Any]]]:
-    """Every committed attestation, by file name; a malformed one is a graph defect."""
+    """Every committed attestation, by file name; a malformed one is a graph defect.
+
+    Each file is parsed and validated once per process and again only when its size or
+    modification time changes, so a file written, rewritten or removed between calls is seen as
+    it is. The documents are shared between callers, which only read them."""
     out: list[tuple[str, dict[str, Any]]] = []
     att_dir = graph_root / "attestations"
     if not att_dir.is_dir():
         return out
     for path in sorted(p for p in att_dir.iterdir() if p.suffix == ".json"):
+        key = path.resolve()
+        stat = path.stat()
+        cached = _ATTESTATIONS.get(key)
+        if cached is not None and cached[:2] == (stat.st_size, stat.st_mtime_ns):
+            out.append((path.name, cached[2]))
+            continue
         try:
-            out.append((path.name, schemas.load_json(path)))
+            doc = schemas.load_json(path)
         except schemas.SchemaError as exc:
             msg = f"attestation {path} is malformed: {exc}"
             raise GraphError(msg) from exc
+        _ATTESTATIONS[key] = (stat.st_size, stat.st_mtime_ns, doc)
+        out.append((path.name, doc))
     return out
 
 
