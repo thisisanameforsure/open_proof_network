@@ -17,6 +17,7 @@ import json
 import logging
 import time
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -138,6 +139,38 @@ def committed(ctx: Context, path: str) -> bytes:
     if cached.body is None:
         raise ApiError(503, "graph-unreachable", f"cannot read {path} from the graph")
     return cached.body
+
+
+#: How many committed files ``prefetch`` reads at once. The raw host opens one HTTPS connection
+#: per file, about 65 ms each from the Lambda; 443 targets read in series were 29 s (2026-11-24).
+PREFETCH_WORKERS = 16
+
+
+def prefetch(ctx: Context, paths: Iterable[str]) -> None:
+    """Warm the committed-file cache for ``paths`` concurrently, so a caller that then reads each
+    one through ``committed`` finds it fresh (graph-doc-serial, 2026-11-24: after the bulk load,
+    a cold ``graph_doc`` was 443 reads in series and every ``POST /check`` timed out).
+
+    The generation is settled once, before any thread starts, so the threads only read files.
+    A file that cannot be read is left alone here: the caller's own ``committed`` read reports
+    it, exactly as it would have without the prefetch (C7)."""
+    generation(ctx)
+    now = time.monotonic()
+    window = ctx.settings.frontier_max_stale_s
+    wanted = []
+    for path in dict.fromkeys(paths):
+        entry = ctx.files.get(path)
+        if entry is None or entry.body is None or now - entry.fetched_at >= window:
+            wanted.append(path)
+    if len(wanted) < 2:  # one file needs no pool
+        return
+
+    def read(path: str) -> None:
+        with contextlib.suppress(ApiError):
+            committed(ctx, path)
+
+    with ThreadPoolExecutor(max_workers=min(PREFETCH_WORKERS, len(wanted))) as pool:
+        list(pool.map(read, wanted))
 
 
 def is_active(claim: Claim, now: str) -> bool:

@@ -1,0 +1,7 @@
+checkers from graph origin/main targets/erdos-680/gate-spec.json: ['auto-implicit', 'div-zero', 'int-trunc', 'junk-value', 'nat-sub', 'off-by-one-range', 'unused-binder']
+== planted unbound name: 11s
+verdict: {"checkers": ["auto-implicit", "div-zero", "int-trunc", "junk-value", "nat-sub", "off-by-one-range", "unused-binder"], "findings": [{"checker": "auto-implicit", "location": "m", "message": "`m` is not declared: autoImplicit bound it as `{m : ℕ}`, an implicit binder the author never wrote; declare it, or correct the name if a constant was meant"}], "capped": false}
+== planted universe name: 2s
+verdict: {"checkers": ["auto-implicit", "div-zero", "int-trunc", "junk-value", "nat-sub", "off-by-one-range", "unused-binder"], "findings": [], "capped": false}
+== erdos-680 root (live): 3s
+verdict: {"checkers": ["auto-implicit", "div-zero", "int-trunc", "junk-value", "nat-sub", "off-by-one-range", "unused-binder"], "findings": [], "capped": false}

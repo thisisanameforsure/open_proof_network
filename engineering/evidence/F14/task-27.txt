@@ -1,0 +1,32 @@
+F14-T27 — graph_doc reads the targets concurrently (2026-11-24)
+
+Found while running T26's check after it landed: every `POST /check` answered HTTP 500 at
+29.5 s (API Gateway's integration limit), plain `check` mode included.
+
+Lambda log (opn-api-api, request 30a793dd, 13:11:53Z–13:12:17Z): 372 GETs of
+`targets/<id>/graph.json` from raw.githubusercontent.com in 24 s, then
+`platform.report ... status: timeout`. `precheck.graph_doc` reads every target in the index
+through `frontier.committed`, one file at a time, and `HttpxGitHost.fetch_raw` opens a new
+HTTPS connection per file. The bulk load took the index from 32 targets to 443.
+
+Timeouts in the last 30 hours: 2026-11-23 14Z 2, 16Z 1, 17Z 2, 18Z 7, 21Z 1; 2026-11-24 13Z 9
+(this session's probes). No POST route appears in the access log over the window; the read
+routes (submissions, claims, frontier) never call graph_doc and were answering.
+
+Red first: api/tests/test_finding_graph_doc_serial.py — the fake host counts graph.json reads in
+flight; with 40 targets `graph_doc` had at most 1 (`assert 1 >= 4`). Two companions pinned what
+must not change (every target's nodes returned; an unreadable graph.json is still
+`503 graph-unreachable`) and passed before and after.
+
+Fix: `frontier.prefetch(ctx, paths)` settles the generation once, then warms the cache for the
+stale or missing paths with 16 threads; `graph_doc` prefetches its targets' graph.json before its
+unchanged serial loop. A file that cannot be read is left for that loop to report.
+
+After: the three tests pass; api fast tier 2484 passed; ruff clean; mypy api clean.
+
+Measured against the live graph (graph-doc-timing.txt, from this laptop):
+  in series: 572 ms a read, 253 s projected for 443
+  concurrent, 16 workers: 443 reads in 13.3 s, all 200
+  The Lambda's own reads were ~65 ms each (log above), so ~2 s there.
+
+Verification: `uv run --frozen python -m pytest api/tests/test_finding_graph_doc_serial.py`

@@ -1,0 +1,2308 @@
+[
+ {
+  "target": "agrawal-conjecture",
+  "decl": "agrawal_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "AgrawalConjecture"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Polynomial"
+  ]
+ },
+ {
+  "target": "andrica-conjecture",
+  "decl": "andrica_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Andrica"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "balanced-primes",
+  "decl": "balanced_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "BalancedPrimes"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "balanced-primes-order",
+  "decl": "balanced_primes_order",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "BalancedPrimes"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "beaver-math-olympiad-problem-1",
+  "decl": "beaver_math_olympiad_problem_1",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "BeaverMathOlympiad"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "beaver-math-olympiad-problem-2-antihydra",
+  "decl": "beaver_math_olympiad_problem_2_antihydra",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "BeaverMathOlympiad"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "beaver-math-olympiad-problem-5",
+  "decl": "beaver_math_olympiad_problem_5",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "BeaverMathOlympiad"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "beaver-math-olympiad-problem-8",
+  "decl": "beaver_math_olympiad_problem_8",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "BeaverMathOlympiad"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "beck-fiala-conjecture",
+  "decl": "beck_fiala_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "BeckFiala"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "collatz-like",
+  "decl": "CollatzLike",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Arxiv.«2107.12475»"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "cookson-hills-series-converges",
+  "decl": "cookson_hills_series_converges",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "FlintCooksonHills"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "determinantal-conjecture",
+  "decl": "determinantal_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "DeterminantalConjecture"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-1029",
+  "decl": "erdos_1029",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1029"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-1035",
+  "decl": "erdos_1035",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1035"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-11",
+  "decl": "erdos_11",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos11"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-1122",
+  "decl": "erdos_1122",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1122"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Topology"
+  ]
+ },
+ {
+  "target": "erdos-1158",
+  "decl": "erdos_1158",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1158"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-1159",
+  "decl": "erdos_1159",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1159"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Configuration"
+  ]
+ },
+ {
+  "target": "erdos-1168",
+  "decl": "erdos_1168",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1168"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Cardinal",
+   "Ordinal",
+   "SimpleGraph"
+  ]
+ },
+ {
+  "target": "erdos-1178",
+  "decl": "erdos_1178",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1178"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-1199",
+  "decl": "erdos_1199",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1199"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Pointwise"
+  ]
+ },
+ {
+  "target": "erdos-1206",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1206"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-1209",
+  "decl": "b",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos1209"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat",
+   "Set"
+  ]
+ },
+ {
+  "target": "erdos-137",
+  "decl": "erdos_137",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos137"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-15",
+  "decl": "erdos_15",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos15"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Topology"
+  ]
+ },
+ {
+  "target": "erdos-159",
+  "decl": "erdos_159",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos159"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-197",
+  "decl": "erdos_197",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos197"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Set"
+  ]
+ },
+ {
+  "target": "erdos-203",
+  "decl": "erdos_203",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos203"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-233",
+  "decl": "erdos_233",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos233"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Real"
+  ]
+ },
+ {
+  "target": "erdos-244",
+  "decl": "erdos_244",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos244"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-25",
+  "decl": "erdos_25",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos25"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Finset",
+   "Nat",
+   "Real",
+   "Set",
+   "Topology"
+  ]
+ },
+ {
+  "target": "erdos-273",
+  "decl": "erdos_273",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos273"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-279",
+  "decl": "erdos_279",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos279"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-288",
+  "decl": "erdos_288",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos288"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-312",
+  "decl": "erdos_312",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos312"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-352",
+  "decl": "erdos_352",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos352"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "EuclideanGeometry",
+   "ProbabilityTheory"
+  ]
+ },
+ {
+  "target": "erdos-365",
+  "decl": "ii",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos365"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-383",
+  "decl": "erdos_383",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos383"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-388",
+  "decl": "erdos_388",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos388"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-389",
+  "decl": "erdos_389",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos389"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-39",
+  "decl": "erdos_39",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos39"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-396",
+  "decl": "erdos_396",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos396"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat"
+  ]
+ },
+ {
+  "target": "erdos-462",
+  "decl": "erdos_462",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos462"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "BigOperators",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-463",
+  "decl": "erdos_463",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos463"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-470",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos470"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-478",
+  "decl": "erdos_478",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos478"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-479",
+  "decl": "erdos_479",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos479"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-495",
+  "decl": "erdos_495",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos495"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-510",
+  "decl": "erdos_510",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos510"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Finset",
+   "Real"
+  ]
+ },
+ {
+  "target": "erdos-517",
+  "decl": "erdos_517",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos517"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Set",
+   "Topology"
+  ]
+ },
+ {
+  "target": "erdos-544",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos544"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-562",
+  "decl": "erdos_562",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos562"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Combinatorics",
+   "Filter",
+   "Real"
+  ]
+ },
+ {
+  "target": "erdos-564",
+  "decl": "erdos_564",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos564"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Combinatorics",
+   "Filter",
+   "Real"
+  ]
+ },
+ {
+  "target": "erdos-568",
+  "decl": "erdos_568",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos568"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-60",
+  "decl": "erdos_60",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos60"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Real",
+   "SimpleGraph"
+  ]
+ },
+ {
+  "target": "erdos-623",
+  "decl": "erdos_623",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos623"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Cardinal",
+   "Filter",
+   "Ordinal",
+   "Real",
+   "Set"
+  ]
+ },
+ {
+  "target": "erdos-644",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos644"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-65",
+  "decl": "ii",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos65"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-653",
+  "decl": "erdos_653",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos653"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "EuclideanGeometry",
+   "Filter",
+   "Finset"
+  ]
+ },
+ {
+  "target": "erdos-657",
+  "decl": "erdos_657",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos657"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "EuclideanGeometry",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-66",
+  "decl": "erdos_66",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos66"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "AdditiveCombinatorics",
+   "Filter",
+   "Topology"
+  ]
+ },
+ {
+  "target": "erdos-663",
+  "decl": "erdos_663",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos663"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "BigOperators",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-665",
+  "decl": "erdos_665",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos665"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-676",
+  "decl": "erdos_676",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos676"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-677",
+  "decl": "erdos_677",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos677"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Finset"
+  ]
+ },
+ {
+  "target": "erdos-680",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos680"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "erdos-686",
+  "decl": "erdos_686",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos686"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-719",
+  "decl": "erdos_719",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos719"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-734",
+  "decl": "erdos_734",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos734"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-773",
+  "decl": "erdos_773",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos773"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-81",
+  "decl": "erdos_81",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos81"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "SimpleGraph"
+  ]
+ },
+ {
+  "target": "erdos-826",
+  "decl": "erdos_826",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos826"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "ArithmeticFunction.sigma"
+  ]
+ },
+ {
+  "target": "erdos-828",
+  "decl": "erdos_828",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos828"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat"
+  ]
+ },
+ {
+  "target": "erdos-830",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos830"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "ArithmeticFunction.sigma",
+   "Classical",
+   "Filter",
+   "Real"
+  ]
+ },
+ {
+  "target": "erdos-855",
+  "decl": "erdos_855",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos855"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Nat.Prime"
+  ]
+ },
+ {
+  "target": "erdos-87",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos87"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-913",
+  "decl": "erdos_913",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos913"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "erdos-938",
+  "decl": "erdos_938",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos938"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat"
+  ]
+ },
+ {
+  "target": "erdos-940",
+  "decl": "erdos_940",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos940"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "erdos-943",
+  "decl": "erdos_943",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos943"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "AdditiveCombinatorics",
+   "Filter",
+   "Nat"
+  ]
+ },
+ {
+  "target": "erdos-949",
+  "decl": "erdos_949",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos949"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Cardinal",
+   "Filter",
+   "Pointwise",
+   "Topology"
+  ]
+ },
+ {
+  "target": "erdos-985",
+  "decl": "erdos_985",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Erdos985"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "eulers-sum-of-powers-conjecture",
+  "decl": "eulers_sum_of_powers_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "EulerSumOfPowers"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "exists-fermat-not-squarefree",
+  "decl": "exists_fermat_not_squarefree",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Fermat"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "exists-is-wall-sun-sun-prime",
+  "decl": "exists_isWallSunSunPrime",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WallSunSun"
+  ],
+  "variables": [
+   "variable {d : ℤ} [Fact <| Squarefree d] [Fact <| d ≠ 1]",
+   "variable {K L : Type*} [Field K] [Field L] [Algebra K L]",
+   "variable (K L) in",
+   "variable {K : Type*} [Field K] [NumberField K]",
+   "variable (K) in"
+  ],
+  "graph_opens": [
+   "Algebra",
+   "NumberField",
+   "NumberTheorySymbols"
+  ]
+ },
+ {
+  "target": "exists-is-wieferich-prime-and-is-mirimanoff-prime",
+  "decl": "exists_isWieferichPrime_and_isMirimanoffPrime",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WieferichMirimanoffPrime"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "exists-is-wieferich-prime-base-47",
+  "decl": "exists_isWieferichPrimeBase_47",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WieferichPrime"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "exists-k",
+  "decl": "exists_k",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "OeisA34693"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "exists-k-stronger",
+  "decl": "exists_k_stronger",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "OeisA34693"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "exists-magic-square-squares",
+  "decl": "exists_magic_square_squares",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "MagicSquares"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "exists-nowhere-dense-spectral-set",
+  "decl": "exists_nowhereDense_spectralSet",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "NowhereDenseSpectralSet"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "MeasureTheory"
+  ]
+ },
+ {
+  "target": "exists-semi-magic-square-cubes",
+  "decl": "exists_semi_magic_square_cubes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "MagicSquares"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "exp-add-pi-transcendental",
+  "decl": "exp_add_pi_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "exp-exp-transcendental",
+  "decl": "exp_exp_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "exp-mul-pi-transcendental",
+  "decl": "exp_mul_pi_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "exp-pow-pi-sq-transcendental",
+  "decl": "exp_pow_pi_sq_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "extended-sierpinski-problem",
+  "decl": "extended_sierpinski_problem",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "SierpinskiNumber"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "feit-thompson-primes",
+  "decl": "feit_thompson_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "FeitThompsonPrimeConjecture"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "fermat-number-are-composite",
+  "decl": "fermat_number_are_composite",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Fermat"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "fib-primes-infinite",
+  "decl": "fib_primes_infinite",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "FibonacciPrimes"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "four",
+  "decl": "four",
+  "missing_opens": [],
+  "missing_namespaces": [],
+  "variables": [
+   "variable {E : Type*} [PseudoEMetricSpace E]"
+  ],
+  "graph_opens": [
+   "Bornology",
+   "Borsuk",
+   "EuclideanGeometry",
+   "Metric"
+  ]
+ },
+ {
+  "target": "four-exponentials-conjecture",
+  "decl": "four_exponentials_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Exponentials"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Complex"
+  ]
+ },
+ {
+  "target": "generalized-twin-primes",
+  "decl": "generalized_twin_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Dickson"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Polynomial"
+  ]
+ },
+ {
+  "target": "green-15",
+  "decl": "green_15",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green15"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "NNReal",
+   "Set"
+  ]
+ },
+ {
+  "target": "green-29",
+  "decl": "green_29",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green29"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Pointwise"
+  ]
+ },
+ {
+  "target": "green-33",
+  "decl": "green_33",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green33"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Pointwise"
+  ]
+ },
+ {
+  "target": "green-45",
+  "decl": "green_45",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green45"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "green-60",
+  "decl": "green_60",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green60"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Pointwise"
+  ]
+ },
+ {
+  "target": "green-61",
+  "decl": "green_61",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green61"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Pointwise",
+   "Topology"
+  ]
+ },
+ {
+  "target": "green-62",
+  "decl": "green_62",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green62"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "green-64",
+  "decl": "green_64",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Green64"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "ArithmeticFunction",
+   "ArithmeticFunction.Omega"
+  ]
+ },
+ {
+  "target": "grimm-conjecture",
+  "decl": "grimm_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Grimm"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Function"
+  ]
+ },
+ {
+  "target": "grimm-conjecture-weak",
+  "decl": "grimm_conjecture_weak",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Grimm"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Function"
+  ]
+ },
+ {
+  "target": "has-unique-extension-of-forall",
+  "decl": "hasUniqueExtension_of_forall",
+  "missing_opens": [],
+  "missing_namespaces": [],
+  "variables": [
+   "variable {R : Type*} [Semiring R]"
+  ],
+  "graph_opens": [
+   "DiophantineTuple"
+  ]
+ },
+ {
+  "target": "homogeneous-space-exists-surjective",
+  "decl": "homogeneousSpace_exists_surjective",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Homogeneous"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Cardinal",
+   "Filter",
+   "Set",
+   "TopologicalSpace",
+   "Topology"
+  ]
+ },
+ {
+  "target": "i",
+  "decl": "i",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Oppermann"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Finset"
+  ]
+ },
+ {
+  "target": "ii",
+  "decl": "ii",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Oppermann"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Finset"
+  ]
+ },
+ {
+  "target": "infinite-cousin-primes",
+  "decl": "infinite_cousin_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Dickson"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Polynomial"
+  ]
+ },
+ {
+  "target": "infinite-fermat-composite",
+  "decl": "infinite_fermat_composite",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Fermat"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "infinite-fermat-primes",
+  "decl": "infinite_fermat_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Fermat"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "infinite-is-wall-sun-sun-prime",
+  "decl": "infinite_isWallSunSunPrime",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WallSunSun"
+  ],
+  "variables": [
+   "variable {d : ℤ} [Fact <| Squarefree d] [Fact <| d ≠ 1]",
+   "variable {K L : Type*} [Field K] [Field L] [Algebra K L]",
+   "variable (K L) in",
+   "variable {K : Type*} [Field K] [NumberField K]",
+   "variable (K) in"
+  ],
+  "graph_opens": [
+   "Algebra",
+   "NumberField",
+   "NumberTheorySymbols"
+  ]
+ },
+ {
+  "target": "infinite-is-wieferich-prime",
+  "decl": "infinite_isWieferichPrime",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WieferichPrime"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "infinite-is-wieferich-prime-base",
+  "decl": "infinite_isWieferichPrimeBase",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WieferichPrime"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "infinite-prime-sq-add-one",
+  "decl": "infinite_prime_sq_add_one",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PrimesAndPerfectSquares"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "infinite-safe-primes",
+  "decl": "infinite_safe_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Dickson"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Polynomial"
+  ]
+ },
+ {
+  "target": "infinite-sexy-primes",
+  "decl": "infinite_sexy_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Dickson"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Polynomial"
+  ]
+ },
+ {
+  "target": "infinitely-many-even-perfect",
+  "decl": "infinitely_many_even_perfect",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PerfectNumbers"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat"
+  ]
+ },
+ {
+  "target": "infinitely-many-perfect",
+  "decl": "infinitely_many_perfect",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PerfectNumbers"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat"
+  ]
+ },
+ {
+  "target": "infinitely-many-proth-primes-multiplier-three",
+  "decl": "infinitely_many_proth_primes_multiplier_three",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "ProthPrime"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "infinitely-many-woodall-primes",
+  "decl": "infinitely_many_woodall_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WoodallPrimes"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "irrational-eleven",
+  "decl": "irrational_eleven",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "RiemannZetaValues"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "irrational-ln-pi",
+  "decl": "irrational_ln_pi",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Irrational"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "irrational-nine",
+  "decl": "irrational_nine",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "RiemannZetaValues"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "irrational-odd",
+  "decl": "irrational_odd",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "RiemannZetaValues"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "irrational-pi-to-pi",
+  "decl": "irrational_pi_to_pi",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Irrational"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "irrational-seven",
+  "decl": "irrational_seven",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "RiemannZetaValues"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "is-equidistributed-modulo-one-three-halves-pow",
+  "decl": "isEquidistributedModuloOne_three_halves_pow",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Equidistribution"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Topology"
+  ]
+ },
+ {
+  "target": "is-mirimanoff-prime-iff",
+  "decl": "isMirimanoffPrime_iff",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WieferichMirimanoffPrime"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "is-poly-time-prime-factors-list",
+  "decl": "isPolyTime_primeFactorsList",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PolyTime"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "ComplexityTheory"
+  ]
+ },
+ {
+  "target": "is-sum-of-three-cubes-iff-mod-9",
+  "decl": "isSumOfThreeCubes_iff_mod_9",
+  "missing_opens": [],
+  "missing_namespaces": [],
+  "variables": [
+   "variable {R : Type*} [Ring R]"
+  ],
+  "graph_opens": [
+   "SumOfThreeCubes"
+  ]
+ },
+ {
+  "target": "is-wieferich-prime-iff",
+  "decl": "isWieferichPrime_iff",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "WieferichPrime"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "kourovka-20-51",
+  "decl": "kourovka_20_51",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Kourovka.«20.51»"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "kourovka-8-8b",
+  "decl": "kourovka_8_8b",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Kourovka.«8.8»"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "kummer-vandiver",
+  "decl": "kummer_vandiver",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "KummerVandiver"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "CyclotomicField",
+   "IsCyclotomicExtension",
+   "NumberField"
+  ]
+ },
+ {
+  "target": "lagarias-criterion-rhs",
+  "decl": "lagarias_criterion_rhs",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "RiemannHypothesis"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "ArithmeticFunction.sigma",
+   "CompactlySupported",
+   "ContDiff",
+   "Convolution",
+   "MeasureTheory",
+   "Real"
+  ]
+ },
+ {
+  "target": "lander-parkin-selfridge",
+  "decl": "lander_parkin_selfridge",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LanderParkinSelfridge"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "latin-tableau-conjecture",
+  "decl": "LatinTableauConjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LatinTableau",
+   "LatinTableau.SimpleGraph"
+  ],
+  "variables": [
+   "variable {α : Type*} [DecidableEq α]"
+  ],
+  "graph_opens": []
+ },
+ {
+  "target": "lebesgue-nagell",
+  "decl": "lebesgue_nagell",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LebesgueNagell"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "legendre-conjecture",
+  "decl": "legendre_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LegendreConjecture"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "lehmer-totient",
+  "decl": "lehmer_totient",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LehmerTotient"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "lemoine-conjecture",
+  "decl": "lemoine_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Lemoine"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "lennon-pittel-conjecture",
+  "decl": "lennon_pittel_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LennonPittel"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Topology"
+  ]
+ },
+ {
+  "target": "littlewood-conjecture",
+  "decl": "littlewood_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LittlewoodConjecture"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "mathoverflow-17560",
+  "decl": "mathoverflow_17560",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Mathoverflow17560"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "mathoverflow-21003",
+  "decl": "mathoverflow_21003",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Mathoverflow21003"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Polynomial"
+  ]
+ },
+ {
+  "target": "no-power-partition-number",
+  "decl": "noPowerPartitionNumber",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "OeisA41"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat"
+  ]
+ },
+ {
+  "target": "odd-order-latin-square-transversal",
+  "decl": "oddOrderLatinSquareTransversal",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LatinSquare"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "odd-perfect-number-conjecture",
+  "decl": "odd_perfect_number_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PerfectNumbers"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Nat"
+  ]
+ },
+ {
+  "target": "oppermann-conjecture",
+  "decl": "oppermann_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Oppermann"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "Finset"
+  ]
+ },
+ {
+  "target": "opposite-parity-amicable",
+  "decl": "opposite_parity_amicable",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "AmicableNumbers"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "padic-littlewood-conjecture",
+  "decl": "padic_littlewood_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "LittlewoodConjecture"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter"
+  ]
+ },
+ {
+  "target": "parkin-shanks",
+  "decl": "parkin_shanks",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PartitionParity"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter",
+   "Nat",
+   "Polynomial",
+   "Real",
+   "Topology"
+  ]
+ },
+ {
+  "target": "pi-pow-exp-transcendental",
+  "decl": "pi_pow_exp_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "pi-pow-pi-pow-pi-pow-pi-not-integer",
+  "decl": "pi_pow_pi_pow_pi_pow_pi_not_integer",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "pi-pow-pi-pow-pi-pow-pi-transcendental",
+  "decl": "pi_pow_pi_pow_pi_pow_pi_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "pi-pow-pi-pow-pi-transcendental",
+  "decl": "pi_pow_pi_pow_pi_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "pi-pow-pi-transcendental",
+  "decl": "pi_pow_pi_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "pi-pow-sqrt-two-transcendental",
+  "decl": "pi_pow_sqrt_two_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "pillais-conjecture",
+  "decl": "pillais_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Catalan"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "polynomial",
+  "decl": "polynomial",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PartitionParity"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Asymptotics",
+   "Filter",
+   "Nat",
+   "Polynomial",
+   "Real",
+   "Topology"
+  ]
+ },
+ {
+  "target": "prime-sierpinski-problem",
+  "decl": "prime_sierpinski_problem",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "SierpinskiNumber"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "prime-triplets",
+  "decl": "prime_triplets",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "PrimeTriplets"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "problem-10-1",
+  "decl": "problem_10_1",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Bugeaud01"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "problem-10-2",
+  "decl": "problem_10_2",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Bugeaud01"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "problem-10-3",
+  "decl": "problem_10_3",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Bugeaud01"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "problem-10-8",
+  "decl": "problem_10_8",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Bugeaud08"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "projective-module-is-stably-free",
+  "decl": "projective_module_isStablyFree",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Arxiv.«math.0703548»"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Classical"
+  ]
+ },
+ {
+  "target": "rational-7-tuple",
+  "decl": "rational_7_tuple",
+  "missing_opens": [],
+  "missing_namespaces": [],
+  "variables": [
+   "variable {R : Type*} [Semiring R]"
+  ],
+  "graph_opens": [
+   "DiophantineTuple"
+  ]
+ },
+ {
+  "target": "reed-omega-delta-chi-conjecture-for-finite-graphs",
+  "decl": "reed_omega_delta_chi_conjecture_for_finite_graphs",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "ReedOmegaDeltaChi"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Finset"
+  ]
+ },
+ {
+  "target": "regularprime-conjecture",
+  "decl": "regularprime_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [],
+  "variables": [
+   "variable (p : ℕ)"
+  ],
+  "graph_opens": [
+   "NumberField",
+   "RegularPrimes"
+  ]
+ },
+ {
+  "target": "relatively-prime-amicable",
+  "decl": "relatively_prime_amicable",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "AmicableNumbers"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "rlog-pi-transcendental",
+  "decl": "rlog_pi_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "rlog-rlog-two-transcendental",
+  "decl": "rlog_rlog_two_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "robin-criterion-rhs",
+  "decl": "robin_criterion_rhs",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "RiemannHypothesis"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "ArithmeticFunction.sigma",
+   "CompactlySupported",
+   "ContDiff",
+   "Convolution",
+   "MeasureTheory",
+   "Real"
+  ]
+ },
+ {
+  "target": "second-moment-one-extra-worker",
+  "decl": "second_moment_one_extra_worker",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Arxiv.«1701.08900»"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Filter",
+   "StableMarriage.Unbalanced",
+   "Topology"
+  ]
+ },
+ {
+  "target": "sin-exp-transcendental",
+  "decl": "sin_exp_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "stability-threshold-tight",
+  "decl": "stability_threshold_tight",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "FanelliMoscardelli"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "total-coloring-conjecture",
+  "decl": "total_coloring_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "TotalColoringConjecture"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "SimpleGraph"
+  ]
+ },
+ {
+  "target": "transcendental-catalan-constant",
+  "decl": "transcendental_catalanConstant",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "transcendental-gompertz-constant",
+  "decl": "transcendental_gompertzConstant",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Transcendental"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Real"
+  ]
+ },
+ {
+  "target": "twin-primes",
+  "decl": "twin_primes",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "TwinPrimes"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "two-five-perfect",
+  "decl": "twoFivePerfect",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Superperfect"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "ArithmeticFunction.sigma"
+  ]
+ },
+ {
+  "target": "two-pow-three-pow-transcendental",
+  "decl": "two_pow_three_pow_transcendental",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Exponentials"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "Complex"
+  ]
+ },
+ {
+  "target": "variant",
+  "decl": "variant",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "FibonacciPrimes"
+  ],
+  "variables": [],
+  "graph_opens": []
+ },
+ {
+  "target": "vizing-conjecture",
+  "decl": "vizing_conjecture",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "VizingConjecture"
+  ],
+  "variables": [],
+  "graph_opens": [
+   "SimpleGraph"
+  ]
+ },
+ {
+  "target": "waldschmidt",
+  "decl": "waldschmidt",
+  "missing_opens": [],
+  "missing_namespaces": [
+   "Bugeaud01"
+  ],
+  "variables": [],
+  "graph_opens": []
+ }
+]

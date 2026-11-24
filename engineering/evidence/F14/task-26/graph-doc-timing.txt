@@ -1,0 +1,3 @@
+targets in the live index at bf3a84b607 : 443
+in series: 60 reads in 34.3s -> 572 ms each, 253s projected for 443
+concurrent (16 workers): 443 reads in 13.3s, statuses [200]

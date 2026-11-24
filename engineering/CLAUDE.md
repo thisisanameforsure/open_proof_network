@@ -1935,3 +1935,21 @@ The law of the project:
   Also: the actor tests read the graph's `merge.yml` from a named branch before `origin/main`, so a
   workflow change is developed on a graph worktree branch, committed there (a `git show
   branch:path` reads commits, not the working tree), and the branch name goes first in `REFS`.
+- 2026-11-24 — Checked that the 411 bulk-loaded statements are pinned down: all 411 are the
+  registry's declaration text for text, 1,647 of 1,684 `defs/` files are the registry's text or an
+  in-order subset (the rest differ only by removals and seven `local notation`s made global), no
+  definition holds `sorry`/`axiom`/`opaque`, and a strict elaboration (`autoImplicit` and
+  `relaxedAutoImplicit` off, as the registry's lakefile sets them) refused only erdos-623's
+  `Type u`, where the port dropped `universe u` (same meaning). The gap it found is the gate's:
+  **no target on the graph listed `auto-implicit` in `hazard_checkers`**, so a missed port of a
+  definition would have elaborated as a silent `∀ {foo}` (switched on for all 443, F14-T26, Q19).
+  Checking the switch live found the bigger thing: no `POST` had answered for 30 hours, because
+  `graph_doc` read 443 `graph.json` files in series and the Lambda dies at 29 s (F14-T27). A load
+  that multiplies the record's size is a load test of every route that walks it; read the
+  Lambda's timeouts after one. Two mechanics worth keeping: on this
+  8 GiB laptop every separate `lean` that imports Mathlib re-reads 7 GB of oleans (~6 min each, 3 s
+  of CPU), and the amd64 gate image is slower still under emulation; one `lean --run` process that
+  imports once and elaborates each file with `IO.processCommands` checked all 411 in ~75 min. That
+  harness carries activated scoped notation between modules (`open scoped Nat` made `φ` a token in
+  a sibling), so judge a failure that also fails under defaults as the harness's, and plant
+  controls that pass the default and fail strict before believing a clean run.

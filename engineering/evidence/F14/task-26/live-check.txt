@@ -1,0 +1,6 @@
+== planted unbound name: HTTP 500 in 30s
+{"message": "Internal Server Error"}
+== abc root (defs inlined by the service): HTTP 500 in 30s
+{"message": "Internal Server Error"}
+== erdos-623 root (Type u): HTTP 500 in 30s
+{"message": "Internal Server Error"}

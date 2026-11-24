@@ -1,0 +1,3288 @@
+{
+ "same": [
+  {
+   "target": "abc",
+   "key": "fc:FormalConjectures/Wikipedia/ABC.lean#abc",
+   "file": "FormalConjectures/Wikipedia/ABC.lean",
+   "decl": "abc",
+   "graph": "(ε : ℝ) (hε : 0 < ε) : {(a, b, c) : ℕ × ℕ × ℕ | 0 < a ∧ 0 < b ∧ 0 < c ∧ ({a, b, c} : Set ℕ).Pairwise Nat.Coprime ∧ a + b = c ∧ (radical <| a * b * c : ℝ)^(1 + ε) < c}.Finite",
+   "upstream": "(ε : ℝ) (hε : 0 < ε) : {(a, b, c) : ℕ × ℕ × ℕ | 0 < a ∧ 0 < b ∧ 0 < c ∧ ({a, b, c} : Set ℕ).Pairwise Nat.Coprime ∧ a + b = c ∧ (radical <| a * b * c : ℝ)^(1 + ε) < c}.Finite"
+  },
+  {
+   "target": "agrawal-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Agrawal.lean#agrawal_conjecture",
+   "file": "FormalConjectures/Wikipedia/Agrawal.lean",
+   "decl": "agrawal_conjecture",
+   "graph": ": ∀ (n r : ℕ), n > 1 → r > 0 → n.gcd r = 1 → let R",
+   "upstream": ": ∀ (n r : ℕ), n > 1 → r > 0 → n.gcd r = 1 → let R"
+  },
+  {
+   "target": "algebraic-independent-e-pi",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#algebraicIndependent_e_pi",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "algebraicIndependent_e_pi",
+   "graph": ": AlgebraicIndependent ℚ ![e, π]",
+   "upstream": ": AlgebraicIndependent ℚ ![e, π]"
+  },
+  {
+   "target": "andrica-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Andrica.lean#andrica_conjecture",
+   "file": "FormalConjectures/Wikipedia/Andrica.lean",
+   "decl": "andrica_conjecture",
+   "graph": "(n : ℕ) : Real.sqrt ((n+1).nth Nat.Prime) - Real.sqrt (n.nth Nat.Prime) < 1",
+   "upstream": "(n : ℕ) : Real.sqrt ((n+1).nth Nat.Prime) - Real.sqrt (n.nth Nat.Prime) < 1"
+  },
+  {
+   "target": "babai-seress-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/DiameterSimpleFiniteGroups.lean#babai_seress_conjecture",
+   "file": "FormalConjectures/Wikipedia/DiameterSimpleFiniteGroups.lean",
+   "decl": "babai_seress_conjecture",
+   "graph": ": ∃ C : ℕ, ∀ (G : Type) [Group G] [Fintype G] [IsSimpleGroup G], (∃ a b : G, a * b ≠ b * a) → (groupDiam G : ℝ) ≤ (Real.log (Fintype.card G : ℝ)) ^ C",
+   "upstream": ": ∃ C : ℕ, ∀ (G : Type) [Group G] [Fintype G] [IsSimpleGroup G], (∃ a b : G, a * b ≠ b * a) → (groupDiam G : ℝ) ≤ (Real.log (Fintype.card G : ℝ)) ^ C"
+  },
+  {
+   "target": "babai-seress-conjecture-alternating",
+   "key": "fc:FormalConjectures/Wikipedia/DiameterSimpleFiniteGroups.lean#babai_seress_conjecture_alternating",
+   "file": "FormalConjectures/Wikipedia/DiameterSimpleFiniteGroups.lean",
+   "decl": "babai_seress_conjecture_alternating",
+   "graph": ": ∃ C : ℕ, ∀ n : ℕ, (groupDiam (alternatingGroup (Fin n)) : ℝ) ≤ (n : ℝ) ^ C",
+   "upstream": ": ∃ C : ℕ, ∀ n : ℕ, (groupDiam (alternatingGroup (Fin n)) : ℝ) ≤ (n : ℝ) ^ C"
+  },
+  {
+   "target": "balanced-primes",
+   "key": "fc:FormalConjectures/Wikipedia/BalancedPrimes.lean#balanced_primes",
+   "file": "FormalConjectures/Wikipedia/BalancedPrimes.lean",
+   "decl": "balanced_primes",
+   "graph": ": {n : ℕ | Prime ((Nat.nth Prime n + Nat.nth Prime (n + 2)) / 2)}.Infinite",
+   "upstream": ": {n : ℕ | Prime ((Nat.nth Prime n + Nat.nth Prime (n + 2)) / 2)}.Infinite"
+  },
+  {
+   "target": "balanced-primes-order",
+   "key": "fc:FormalConjectures/Wikipedia/BalancedPrimes.lean#balanced_primes_order",
+   "file": "FormalConjectures/Wikipedia/BalancedPrimes.lean",
+   "decl": "balanced_primes_order",
+   "graph": ": ∀ k > 0, {n : ℕ | k ≤ n ∧ 2 * k * Nat.nth Prime n = ∑ i ∈ .Ioc 0 k, ((n - i).nth Prime + (n + i).nth Prime)}.Infinite",
+   "upstream": ": ∀ k > 0, {n : ℕ | k ≤ n ∧ 2 * k * Nat.nth Prime n = ∑ i ∈ .Ioc 0 k, ((n - i).nth Prime + (n + i).nth Prime)}.Infinite"
+  },
+  {
+   "target": "beal-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/BealConjecture.lean#beal_conjecture",
+   "file": "FormalConjectures/Wikipedia/BealConjecture.lean",
+   "decl": "beal_conjecture",
+   "graph": ": bealConjecture",
+   "upstream": ": bealConjecture"
+  },
+  {
+   "target": "beaver-math-olympiad-problem-1",
+   "key": "fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_1",
+   "file": "FormalConjectures/Other/BeaverMathOlympiad.lean",
+   "decl": "beaver_math_olympiad_problem_1",
+   "graph": ": ∀ᵉ (a : ℕ → ℕ) (b : ℕ → ℕ) (a_ini : a 0 = 1) (a_rec : ∀ n, a (n + 1) = if b n ≤ a n then a n - b n else 2 * a n + 1) (b_ini : b 0 = 2) (b_rec : ∀ n, b (n + 1) = if b n ≤ a n then 4 * b n + 2 else b n - a n), ∃ i, a i = b i",
+   "upstream": ": ∀ᵉ (a : ℕ → ℕ) (b : ℕ → ℕ) (a_ini : a 0 = 1) (a_rec : ∀ n, a (n + 1) = if b n ≤ a n then a n - b n else 2 * a n + 1) (b_ini : b 0 = 2) (b_rec : ∀ n, b (n + 1) = if b n ≤ a n then 4 * b n + 2 else b n - a n), ∃ i, a i = b i"
+  },
+  {
+   "target": "beaver-math-olympiad-problem-2-antihydra",
+   "key": "fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_2_antihydra",
+   "file": "FormalConjectures/Other/BeaverMathOlympiad.lean",
+   "decl": "beaver_math_olympiad_problem_2_antihydra",
+   "graph": "(a : ℕ → ℕ) (b : ℕ → ℤ) (a_ini : a 0 = 8) (a_rec : ∀ n, a (n + 1) = (3 * a n) / 2) (b_ini : b 0 = 0) (b_rec : ∀ n, b (n + 1) = if a n % 2 = 0 then b n + 2 else b n - 1) : ∀ n, b n ≥ 0",
+   "upstream": "(a : ℕ → ℕ) (b : ℕ → ℤ) (a_ini : a 0 = 8) (a_rec : ∀ n, a (n + 1) = (3 * a n) / 2) (b_ini : b 0 = 0) (b_rec : ∀ n, b (n + 1) = if a n % 2 = 0 then b n + 2 else b n - 1) : ∀ n, b n ≥ 0"
+  },
+  {
+   "target": "beaver-math-olympiad-problem-5",
+   "key": "fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_5",
+   "file": "FormalConjectures/Other/BeaverMathOlympiad.lean",
+   "decl": "beaver_math_olympiad_problem_5",
+   "graph": ": ∀ (a b f : ℕ → ℕ), ∀ᵉ (hf : f = fun x ↦ 10 * 2 ^ x - 1) (a_ini : a 0 = 0) (b_ini : b 0 = 5) (a_rec : ∀ n, a (n + 1) = if f (a n) ≤ b n then a n + 1 else a n) (b_rec : ∀ n, b (n+1) = if f (a n) ≤ b n then b n - f (a n) else 3 * b n + a n + 5), ∃ i, b i = f (a i) - 1",
+   "upstream": ": ∀ (a b f : ℕ → ℕ), ∀ᵉ (hf : f = fun x ↦ 10 * 2 ^ x - 1) (a_ini : a 0 = 0) (b_ini : b 0 = 5) (a_rec : ∀ n, a (n + 1) = if f (a n) ≤ b n then a n + 1 else a n) (b_rec : ∀ n, b (n+1) = if f (a n) ≤ b n then b n - f (a n) else 3 * b n + a n + 5), ∃ i, b i = f (a i) - 1"
+  },
+  {
+   "target": "beaver-math-olympiad-problem-8",
+   "key": "fc:FormalConjectures/Other/BeaverMathOlympiad.lean#beaver_math_olympiad_problem_8",
+   "file": "FormalConjectures/Other/BeaverMathOlympiad.lean",
+   "decl": "beaver_math_olympiad_problem_8",
+   "graph": ": ∀ᵉ (a : ℕ → ℤ) (b : ℕ → ℤ) (a_ini : a 0 = 10) (a_rec : ∀ n, a (n + 1) = if b n / 2 < a n then a n - b n / 2 - 3 else 3 * a n + 5) (b_ini : b 0 = 12) (b_rec : ∀ n, b (n + 1) = if b n / 2 < a n then 3 * ((b n + 1) / 2) + 6 else b n - 2 * a n), ∃ i, a i = b i / 2 + 1",
+   "upstream": ": ∀ᵉ (a : ℕ → ℤ) (b : ℕ → ℤ) (a_ini : a 0 = 10) (a_rec : ∀ n, a (n + 1) = if b n / 2 < a n then a n - b n / 2 - 3 else 3 * a n + 5) (b_ini : b 0 = 12) (b_rec : ∀ n, b (n + 1) = if b n / 2 < a n then 3 * ((b n + 1) / 2) + 6 else b n - 2 * a n), ∃ i, a i = b i / 2 + 1"
+  },
+  {
+   "target": "beck-fiala-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/BeckFialaConjecture.lean#beck_fiala_conjecture",
+   "file": "FormalConjectures/Wikipedia/BeckFialaConjecture.lean",
+   "decl": "beck_fiala_conjecture",
+   "graph": ": ∃ C : ℝ, 0 < C ∧ ∀ (n m t : ℕ) (S : Fin m → Finset (Fin n)), (∀ j, (Finset.univ.filter fun i => j ∈ S i).card ≤ t) → ∃ χ : Fin n → ℝ, (∀ j, χ j = 1 ∨ χ j = -1) ∧ ∀ i, |∑ j ∈ S i, χ j| ≤ C * Real.sqrt t",
+   "upstream": ": ∃ C : ℝ, 0 < C ∧ ∀ (n m t : ℕ) (S : Fin m → Finset (Fin n)), (∀ j, (Finset.univ.filter fun i => j ∈ S i).card ≤ t) → ∃ χ : Fin n → ℝ, (∀ j, χ j = 1 ∨ χ j = -1) ∧ ∀ i, |∑ j ∈ S i, χ j| ≤ C * Real.sqrt t"
+  },
+  {
+   "target": "brennan-universal-spectrum-bounded",
+   "key": "fc:FormalConjectures/Wikipedia/Brennanconjecture.lean#brennan_universalSpectrumBounded",
+   "file": "FormalConjectures/Wikipedia/Brennanconjecture.lean",
+   "decl": "brennan_universalSpectrumBounded",
+   "graph": ": universalSpectrumBounded (-2) = 1",
+   "upstream": ": universalSpectrumBounded (-2) = 1"
+  },
+  {
+   "target": "buchi-problem",
+   "key": "fc:FormalConjectures/Wikipedia/Buchi.lean#buchi_problem",
+   "file": "FormalConjectures/Wikipedia/Buchi.lean",
+   "decl": "buchi_problem",
+   "graph": ": ∃ M : ℕ, 1 ≤ M ∧ IsBuchi M",
+   "upstream": ": ∃ M : ℕ, 1 ≤ M ∧ IsBuchi M"
+  },
+  {
+   "target": "buchi-problem-m5",
+   "key": "fc:FormalConjectures/Wikipedia/Buchi.lean#buchi_problem_M5",
+   "file": "FormalConjectures/Wikipedia/Buchi.lean",
+   "decl": "buchi_problem_M5",
+   "graph": ": IsBuchi 5",
+   "upstream": ": IsBuchi 5"
+  },
+  {
+   "target": "butson-hadamard-fourth-roots-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/ButsonHadamardMatrix.lean#butson_hadamard_fourth_roots_conjecture",
+   "file": "FormalConjectures/Wikipedia/ButsonHadamardMatrix.lean",
+   "decl": "butson_hadamard_fourth_roots_conjecture",
+   "graph": "(m : ℕ) (hm : 1 ≤ m) : ∃ M, IsButsonHadamard (n := 2 * m) 4 M",
+   "upstream": "(m : ℕ) (hm : 1 ≤ m) : ∃ M, IsButsonHadamard (n := 2 * m) 4 M"
+  },
+  {
+   "target": "c6a-eq-half",
+   "key": "fc:FormalConjectures/OptimizationConstants/6a.lean#c6a_eq_half",
+   "file": "FormalConjectures/OptimizationConstants/6a.lean",
+   "decl": "c6a_eq_half",
+   "graph": ": C6a = 1 / 2",
+   "upstream": ": C6a = 1 / 2"
+  },
+  {
+   "target": "c6a-lower-bound-improved",
+   "key": "fc:FormalConjectures/OptimizationConstants/6a.lean#c6a_lower_bound_improved",
+   "file": "FormalConjectures/OptimizationConstants/6a.lean",
+   "decl": "c6a_lower_bound_improved",
+   "graph": ": 0.38272 < C6a",
+   "upstream": ": 0.38272 < C6a"
+  },
+  {
+   "target": "c6a-upper-bound-improved",
+   "key": "fc:FormalConjectures/OptimizationConstants/6a.lean#c6a_upper_bound_improved",
+   "file": "FormalConjectures/OptimizationConstants/6a.lean",
+   "decl": "c6a_upper_bound_improved",
+   "graph": ": C6a < 1 / 2",
+   "upstream": ": C6a < 1 / 2"
+  },
+  {
+   "target": "catalans-mersenne-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Mersenne.lean#catalans_mersenne_conjecture",
+   "file": "FormalConjectures/Wikipedia/Mersenne.lean",
+   "decl": "catalans_mersenne_conjecture",
+   "graph": ": ∀ n ≥ 5, Nat.Prime (catalanMersenne n)",
+   "upstream": ": ∀ n ≥ 5, Nat.Prime (catalanMersenne n)"
+  },
+  {
+   "target": "center-column-frequency-half",
+   "key": "fc:FormalConjectures/Other/Rule30.lean#centerColumn_frequency_half",
+   "file": "FormalConjectures/Other/Rule30.lean",
+   "decl": "centerColumn_frequency_half",
+   "graph": ": {t : ℕ | centerColumn t}.HasDensity (1 / 2)",
+   "upstream": ": {t : ℕ | centerColumn t}.HasDensity (1 / 2)"
+  },
+  {
+   "target": "center-column-not-eventually-periodic",
+   "key": "fc:FormalConjectures/Other/Rule30.lean#centerColumn_not_eventually_periodic",
+   "file": "FormalConjectures/Other/Rule30.lean",
+   "decl": "centerColumn_not_eventually_periodic",
+   "graph": ": ¬ ∃ p : ℕ, 0 < p ∧ ∃ N : ℕ, ∀ t : ℕ, N ≤ t → centerColumn (t + p) = centerColumn t",
+   "upstream": ": ¬ ∃ p : ℕ, 0 < p ∧ ∃ N : ℕ, ∀ t : ℕ, N ≤ t → centerColumn (t + p) = centerColumn t"
+  },
+  {
+   "target": "charmichael-totient",
+   "key": "fc:FormalConjectures/Wikipedia/CarmichaelTotient.lean#charmichaelTotient",
+   "file": "FormalConjectures/Wikipedia/CarmichaelTotient.lean",
+   "decl": "charmichaelTotient",
+   "graph": ": ∀ ⦃n : ℕ⦄, 0 < n → CarmichaelTotientFor n",
+   "upstream": ": ∀ ⦃n : ℕ⦄, 0 < n → CarmichaelTotientFor n"
+  },
+  {
+   "target": "class-number-problem",
+   "key": "fc:FormalConjectures/Wikipedia/ClassNumberProblem.lean#class_number_problem",
+   "file": "FormalConjectures/Wikipedia/ClassNumberProblem.lean",
+   "decl": "class_number_problem",
+   "graph": ": { d : ℤ | Squarefree d ∧ d > 1 ∧ IsClassNumberOne d }.Infinite",
+   "upstream": ": { d : ℤ | Squarefree d ∧ d > 1 ∧ IsClassNumberOne d }.Infinite"
+  },
+  {
+   "target": "collatz-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/CollatzConjecture.lean#collatz_conjecture",
+   "file": "FormalConjectures/Wikipedia/CollatzConjecture.lean",
+   "decl": "collatz_conjecture",
+   "graph": "(n : ℕ) (hn : n > 0) : ∃ m, collatzStep^[m] n = 1",
+   "upstream": "(n : ℕ) (hn : n > 0) : ∃ m, collatzStep^[m] n = 1"
+  },
+  {
+   "target": "collatz-like",
+   "key": "fc:FormalConjectures/Arxiv/2107.12475/CollatzLike.lean#CollatzLike",
+   "file": "FormalConjectures/Arxiv/2107.12475/CollatzLike.lean",
+   "decl": "CollatzLike",
+   "graph": "(n : ℕ) (hn : 8 < n) : 2 ∈ Nat.digits 3 (2^n)",
+   "upstream": "(n : ℕ) (hn : 8 < n) : 2 ∈ Nat.digits 3 (2^n)"
+  },
+  {
+   "target": "conjecture-4-4",
+   "key": "fc:FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean#conjecture_4_4",
+   "file": "FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean",
+   "decl": "conjecture_4_4",
+   "graph": "(n : ℕ) : ∀ᶠ (k : ℕ) in Filter.atTop, k.Prime → Odd k → n * k < S k",
+   "upstream": "(n : ℕ) : ∀ᶠ (k : ℕ) in Filter.atTop, k.Prime → Odd k → n * k < S k"
+  },
+  {
+   "target": "conjecture-one",
+   "key": "fc:FormalConjectures/Arxiv/1102.4662/AtiyahSutcliffe.lean#conjecture_one",
+   "file": "FormalConjectures/Arxiv/1102.4662/AtiyahSutcliffe.lean",
+   "decl": "conjecture_one",
+   "graph": "{n : ℕ} (x : Fin n → Point) (hx : Function.Injective x) : LinearIndependent ℂ (pointPolynomial x)",
+   "upstream": "{n : ℕ} (x : Fin n → Point) (hx : Function.Injective x) : LinearIndependent ℂ (pointPolynomial x)"
+  },
+  {
+   "target": "cookson-hills-series-converges",
+   "key": "fc:FormalConjectures/Wikipedia/FlintCooksonHills.lean#cookson_hills_series_converges",
+   "file": "FormalConjectures/Wikipedia/FlintCooksonHills.lean",
+   "decl": "cookson_hills_series_converges",
+   "graph": ": Summable (fun n : ℕ => 1 / ((((n + 1) : ℝ)^3) * (Real.cos (n + 1)^2)))",
+   "upstream": ": Summable (fun n : ℕ => 1 / ((((n + 1) : ℝ)^3) * (Real.cos (n + 1)^2)))"
+  },
+  {
+   "target": "curling-number-conjecture",
+   "key": "fc:FormalConjectures/Arxiv/0912.2382/CurlingNumberConjecture.lean#curling_number_conjecture",
+   "file": "FormalConjectures/Arxiv/0912.2382/CurlingNumberConjecture.lean",
+   "decl": "curling_number_conjecture",
+   "graph": "(S₀ : List ℤ) (h : S₀ ≠ []) : ∃ m, k (S S₀ m) = 1",
+   "upstream": "(S₀ : List ℤ) (h : S₀ ≠ []) : ∃ m, k (S S₀ m) = 1"
+  },
+  {
+   "target": "density-of-hyperbolicity",
+   "key": "fc:FormalConjectures/Wikipedia/Mandelbrot.lean#density_of_hyperbolicity",
+   "file": "FormalConjectures/Wikipedia/Mandelbrot.lean",
+   "decl": "density_of_hyperbolicity",
+   "graph": ": mandelbrotSet ⊆ closure {c | ∃ m z, IsAttractingCycle (fun z ↦ z ^ 2 + c) m z}",
+   "upstream": ": mandelbrotSet ⊆ closure {c | ∃ m z, IsAttractingCycle (fun z ↦ z ^ 2 + c) m z}"
+  },
+  {
+   "target": "determinantal-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/DeterminantalConjecture.lean#determinantal_conjecture",
+   "file": "FormalConjectures/Wikipedia/DeterminantalConjecture.lean",
+   "decl": "determinantal_conjecture",
+   "graph": "(n : Type) [Fintype n] [DecidableEq n] (d1 d2 : n → ℂ) (U1 U2 : unitary (Matrix n n ℂ)) : (U1 * Matrix.diagonal d1 * star U1 + U2 * Matrix.diagonal d2 * star U2).det ∈ convexHull ℝ { ∏ i, (d1 i + d2 (σ i)) | σ : Equiv.Perm n }",
+   "upstream": "(n : Type) [Fintype n] [DecidableEq n] (d1 d2 : n → ℂ) (U1 U2 : unitary (Matrix n n ℂ)) : (U1 * Matrix.diagonal d1 * star U1 + U2 * Matrix.diagonal d2 * star U2).det ∈ convexHull ℝ { ∏ i, (d1 i + d2 (σ i)) | σ : Equiv.Perm n }"
+  },
+  {
+   "target": "dirichlet-divisor-problem",
+   "key": "fc:FormalConjectures/Wikipedia/DirichletDivisorProblem.lean#dirichlet_divisor_problem",
+   "file": "FormalConjectures/Wikipedia/DirichletDivisorProblem.lean",
+   "decl": "dirichlet_divisor_problem",
+   "graph": ": ∀ ε > (0 : ℝ), divisorError =O[atTop] fun x => x ^ ((1 : ℝ) / 4 + ε)",
+   "upstream": ": ∀ ε > (0 : ℝ), divisorError =O[atTop] fun x => x ^ ((1 : ℝ) / 4 + ε)"
+  },
+  {
+   "target": "distinct-prop-lt",
+   "key": "fc:FormalConjectures/Paper/RiemannZetaZeros.lean#DirichletCharacter.distinct_prop_lt",
+   "file": "FormalConjectures/Paper/RiemannZetaZeros.lean",
+   "decl": "distinct_prop_lt",
+   "graph": ": ∃ c > (3 - montgomeryTaylorConst⁻¹) / 2, ∃ o : ℝ → ℝ, o =o[atTop] (1 : ℝ → ℝ) ∧ ∀ T > 0, (c - o T) * N riemannZeta T (2 * T) ≤ Nd riemannZeta T (2 * T)",
+   "upstream": ": ∃ c > (3 - montgomeryTaylorConst⁻¹) / 2, ∃ o : ℝ → ℝ, o =o[atTop] (1 : ℝ → ℝ) ∧ ∀ T > 0, (c - o T) * N riemannZeta T (2 * T) ≤ Nd riemannZeta T (2 * T)"
+  },
+  {
+   "target": "dubner-conjecture",
+   "key": "fc:FormalConjectures/Paper/Dubner.lean#dubner_conjecture",
+   "file": "FormalConjectures/Paper/Dubner.lean",
+   "decl": "dubner_conjecture",
+   "graph": "(n : ℕ) (hn : 4208 < n) (h : Even n) : ∃ p q : ℕ, IsTwinPrime p ∧ IsTwinPrime q ∧ p + q = n",
+   "upstream": "(n : ℕ) (hn : 4208 < n) (h : Even n) : ∃ p q : ℕ, IsTwinPrime p ∧ IsTwinPrime q ∧ p + q = n"
+  },
+  {
+   "target": "elliott-halberstam",
+   "key": "fc:FormalConjectures/Wikipedia/ElliottHalberstamConjecture.lean#elliott_halberstam",
+   "file": "FormalConjectures/Wikipedia/ElliottHalberstamConjecture.lean",
+   "decl": "elliott_halberstam",
+   "graph": "(θ : ℝ) (hθ : θ < 1) (A : ℝ) (hA : 0 < A) : ∃ C > (0 : ℝ), ∀ x : ℕ, 2 < x → ∑ q ∈ Finset.Icc 1 ⌊(x : ℝ) ^ θ⌋₊, E x q ≤ C * x / Real.log x ^ A",
+   "upstream": "(θ : ℝ) (hθ : θ < 1) (A : ℝ) (hA : 0 < A) : ∃ C > (0 : ℝ), ∀ x : ℕ, 2 < x → ∑ q ∈ Finset.Icc 1 ⌊(x : ℝ) ^ θ⌋₊, E x q ≤ C * x / Real.log x ^ A"
+  },
+  {
+   "target": "erdos-10",
+   "key": "erdos:10",
+   "file": "FormalConjectures/ErdosProblems/10.lean",
+   "decl": "erdos_10",
+   "graph": ": ∃ k, ∀ᶠ n : ℕ in atTop, n ∈ sumPrimeAndTwoPows k",
+   "upstream": ": ∃ k, ∀ᶠ n : ℕ in atTop, n ∈ sumPrimeAndTwoPows k"
+  },
+  {
+   "target": "erdos-100",
+   "key": "erdos:100",
+   "file": "FormalConjectures/ErdosProblems/100.lean",
+   "decl": "erdos_100",
+   "graph": ": ∃ C > (0 : ℝ), ∀ᶠ n in atTop, ∀ A : Finset ℝ², A.card = n → DistancesSeparated A → diam (A : Set ℝ²) > C * n",
+   "upstream": ": ∃ C > (0 : ℝ), ∀ᶠ n in atTop, ∀ A : Finset ℝ², A.card = n → DistancesSeparated A → diam (A : Set ℝ²) > C * n"
+  },
+  {
+   "target": "erdos-1004",
+   "key": "erdos:1004",
+   "file": "FormalConjectures/ErdosProblems/1004.lean",
+   "decl": "erdos_1004",
+   "graph": ": ∀ c > (0 : ℝ), ∀ᶠ x in atTop, ∃ n ≤ x, IsDistinctTotientRun n ⌊(Real.log (x : ℝ)) ^ c⌋₊",
+   "upstream": ": ∀ c > (0 : ℝ), ∀ᶠ x in atTop, ∃ n ≤ x, IsDistinctTotientRun n ⌊(Real.log (x : ℝ)) ^ c⌋₊"
+  },
+  {
+   "target": "erdos-101",
+   "key": "erdos:101",
+   "file": "FormalConjectures/ErdosProblems/101.lean",
+   "decl": "erdos_101",
+   "graph": ": (fun n => (numLinesWithFourPointMax n : ℝ)) =o[atTop] (fun n => (n : ℝ)^2)",
+   "upstream": ": (fun n => (numLinesWithFourPointMax n : ℝ)) =o[atTop] (fun n => (n : ℝ)^2)"
+  },
+  {
+   "target": "erdos-1029",
+   "key": "erdos:1029",
+   "file": "FormalConjectures/ErdosProblems/1029.lean",
+   "decl": "erdos_1029",
+   "graph": ": Tendsto (fun k : ℕ ↦ (SimpleGraph.diagonalRamsey k : ℝ) / ((k : ℝ) * (2 : ℝ) ^ ((k : ℝ) / 2))) atTop atTop",
+   "upstream": ": Tendsto (fun k : ℕ ↦ (SimpleGraph.diagonalRamsey k : ℝ) / ((k : ℝ) * (2 : ℝ) ^ ((k : ℝ) / 2))) atTop atTop"
+  },
+  {
+   "target": "erdos-103",
+   "key": "erdos:103",
+   "file": "FormalConjectures/ErdosProblems/103.lean",
+   "decl": "erdos_103",
+   "graph": ": Tendsto h atTop (nhds ⊤)",
+   "upstream": ": Tendsto h atTop (nhds ⊤)"
+  },
+  {
+   "target": "erdos-1035",
+   "key": "erdos:1035",
+   "file": "FormalConjectures/ErdosProblems/1035.lean",
+   "decl": "erdos_1035",
+   "graph": ": ∃ c > 0, ∀ n : ℕ, ∀ (G : SimpleGraph (Fin (2 ^ n))) [DecidableRel G.Adj], (∀ v, (G.degree v : ℝ) > (1 - c) * 2 ^ n) → (SimpleGraph.hypercube n).IsContained G",
+   "upstream": ": ∃ c > 0, ∀ n : ℕ, ∀ (G : SimpleGraph (Fin (2 ^ n))) [DecidableRel G.Adj], (∀ v, (G.degree v : ℝ) > (1 - c) * 2 ^ n) → (SimpleGraph.hypercube n).IsContained G"
+  },
+  {
+   "target": "erdos-104",
+   "key": "erdos:104",
+   "file": "FormalConjectures/ErdosProblems/104.lean",
+   "decl": "erdos_104",
+   "graph": ": (fun n : ℕ => (maxUnitCircleCount n : ℝ)) =o[atTop] (fun n : ℕ => (n : ℝ) ^ 2)",
+   "upstream": ": (fun n : ℕ => (maxUnitCircleCount n : ℝ)) =o[atTop] (fun n : ℕ => (n : ℝ) ^ 2)"
+  },
+  {
+   "target": "erdos-1052",
+   "key": "erdos:1052",
+   "file": "FormalConjectures/ErdosProblems/1052.lean",
+   "decl": "erdos_1052",
+   "graph": ": {n | IsUnitaryPerfect n}.Finite",
+   "upstream": ": {n | IsUnitaryPerfect n}.Finite"
+  },
+  {
+   "target": "erdos-1059",
+   "key": "erdos:1059",
+   "file": "FormalConjectures/ErdosProblems/1059.lean",
+   "decl": "erdos_1059",
+   "graph": ": Set.Infinite {p | p.Prime ∧ AllFactorialSubtractionsComposite p}",
+   "upstream": ": Set.Infinite {p | p.Prime ∧ AllFactorialSubtractionsComposite p}"
+  },
+  {
+   "target": "erdos-1061",
+   "key": "erdos:1061",
+   "file": "FormalConjectures/ErdosProblems/1061.lean",
+   "decl": "erdos_1061",
+   "graph": ": ∃ c : ℝ, 0 < c ∧ S ~[atTop] (fun x : ℝ ↦ c * x)",
+   "upstream": ": ∃ c : ℝ, 0 < c ∧ S ~[atTop] (fun x : ℝ ↦ c * x)"
+  },
+  {
+   "target": "erdos-1062",
+   "key": "erdos:1062",
+   "file": "FormalConjectures/ErdosProblems/1062.lean",
+   "decl": "ii",
+   "graph": ": ∃ l, Tendsto (fun n => (f n : ℝ) / n) atTop (𝓝 l) ∧ Irrational l",
+   "upstream": ": ∃ l, Tendsto (fun n => (f n : ℝ) / n) atTop (𝓝 l) ∧ Irrational l"
+  },
+  {
+   "target": "erdos-1087",
+   "key": "erdos:1087",
+   "file": "FormalConjectures/ErdosProblems/1087.lean",
+   "decl": "erdos_1087",
+   "graph": ": ∀ ε > (0 : ℝ), (fun n : ℕ ↦ (f n : ℝ)) =O[atTop] fun n : ℕ ↦ (n : ℝ) ^ (3 + ε)",
+   "upstream": ": ∀ ε > (0 : ℝ), (fun n : ℕ ↦ (f n : ℝ)) =O[atTop] fun n : ℕ ↦ (n : ℝ) ^ (3 + ε)"
+  },
+  {
+   "target": "erdos-1093",
+   "key": "erdos:1093",
+   "file": "FormalConjectures/ErdosProblems/1093.lean",
+   "decl": "i",
+   "graph": ": {x : ℕ × ℕ | let k := x.1; let n := x.2; 2 * k ≤ n ∧ deficiency n k = 1 ∧ ∀ p, p.Prime → (p ∣ choose n k) → k < p}.Infinite",
+   "upstream": ": {x : ℕ × ℕ | let k := x.1; let n := x.2; 2 * k ≤ n ∧ deficiency n k = 1 ∧ ∀ p, p.Prime → (p ∣ choose n k) → k < p}.Infinite"
+  },
+  {
+   "target": "erdos-11",
+   "key": "erdos:11",
+   "file": "FormalConjectures/ErdosProblems/11.lean",
+   "decl": "erdos_11",
+   "graph": ": ∀ᶠ n : ℕ in atTop, Odd n → ∃ k l : ℕ, Squarefree k ∧ n = k + 2 ^ l",
+   "upstream": ": ∀ᶠ n : ℕ in atTop, Odd n → ∃ k l : ℕ, Squarefree k ∧ n = k + 2 ^ l"
+  },
+  {
+   "target": "erdos-1101",
+   "key": "erdos:1101",
+   "file": "FormalConjectures/ErdosProblems/1101.lean",
+   "decl": "i",
+   "graph": ": ¬ ∃ u, IsGood u ∧ ∃ k : ℕ, (fun n => (u n : ℝ)) =O[atTop] (fun n => (n : ℝ) ^ k)",
+   "upstream": ": ¬ ∃ u, IsGood u ∧ ∃ k : ℕ, (fun n => (u n : ℝ)) =O[atTop] (fun n => (n : ℝ) ^ k)"
+  },
+  {
+   "target": "erdos-1111",
+   "key": "erdos:1111",
+   "file": "FormalConjectures/ErdosProblems/1111.lean",
+   "decl": "erdos_1111",
+   "graph": ": ∀ t c : ℕ, 1 ≤ t → 1 ≤ c → ∃ d : ℕ, 1 ≤ d ∧ ∀ (V : Type*) [Finite V] (G : SimpleGraph V), (d : ℕ∞) ≤ G.chromaticNumber → G.CliqueFree t → ∃ A B : Set V, Anticomplete G A B ∧ (c : ℕ∞) ≤ (G.induce A).chromaticNumber ∧ (c : ℕ∞) ≤ (G.induce B).chromaticNumber",
+   "upstream": ": ∀ t c : ℕ, 1 ≤ t → 1 ≤ c → ∃ d : ℕ, 1 ≤ d ∧ ∀ (V : Type*) [Finite V] (G : SimpleGraph V), (d : ℕ∞) ≤ G.chromaticNumber → G.CliqueFree t → ∃ A B : Set V, Anticomplete G A B ∧ (c : ℕ∞) ≤ (G.induce A).chromaticNumber ∧ (c : ℕ∞) ≤ (G.induce B).chromaticNumber"
+  },
+  {
+   "target": "erdos-1113",
+   "key": "erdos:1113",
+   "file": "FormalConjectures/ErdosProblems/1113.lean",
+   "decl": "erdos_1113",
+   "graph": ": ∃ k, k.IsSierpinskiNumber ∧ ¬ HasFinitePrimeCoveringSet k",
+   "upstream": ": ∃ k, k.IsSierpinskiNumber ∧ ¬ HasFinitePrimeCoveringSet k"
+  },
+  {
+   "target": "erdos-1122",
+   "key": "erdos:1122",
+   "file": "FormalConjectures/ErdosProblems/1122.lean",
+   "decl": "erdos_1122",
+   "graph": ": ∀ f : ℕ → ℝ, (∀ᵉ (a > 0) (b > 0), a.Coprime b → f (a * b) = f a + f b) → {n | 1 ≤ n ∧ f (n + 1) < f n}.HasDensity 0 → ∃ c : ℝ, ∀ n > 0, f n = c * Real.log n",
+   "upstream": ": ∀ f : ℕ → ℝ, (∀ᵉ (a > 0) (b > 0), a.Coprime b → f (a * b) = f a + f b) → {n | 1 ≤ n ∧ f (n + 1) < f n}.HasDensity 0 → ∃ c : ℝ, ∀ n > 0, f n = c * Real.log n"
+  },
+  {
+   "target": "erdos-1142",
+   "key": "erdos:1142",
+   "file": "FormalConjectures/ErdosProblems/1142.lean",
+   "decl": "erdos_1142",
+   "graph": ": Infinite { n | Erdos1142Prop n }",
+   "upstream": ": Infinite { n | Erdos1142Prop n }"
+  },
+  {
+   "target": "erdos-1146",
+   "key": "erdos:1146",
+   "file": "FormalConjectures/ErdosProblems/1146.lean",
+   "decl": "erdos_1146",
+   "graph": ": IsEssentialComponent { k | ∃ m n : ℕ, k = 2 ^ m * 3 ^ n }",
+   "upstream": ": IsEssentialComponent { k | ∃ m n : ℕ, k = 2 ^ m * 3 ^ n }"
+  },
+  {
+   "target": "erdos-1158",
+   "key": "erdos:1158",
+   "file": "FormalConjectures/ErdosProblems/1158.lean",
+   "decl": "erdos_1158",
+   "graph": ": ∀ t r : ℕ, 2 ≤ t → 2 ≤ r → ∀ ε : ℝ, 0 < ε → ∀ᶠ n : ℕ in atTop, (n : ℝ) ^ ((t : ℝ) - (r : ℝ) ^ (1 - (t : ℝ)) - ε) ≤ (Hypergraph.partiteExtremalNumber n t r : ℝ)",
+   "upstream": ": ∀ t r : ℕ, 2 ≤ t → 2 ≤ r → ∀ ε : ℝ, 0 < ε → ∀ᶠ n : ℕ in atTop, (n : ℝ) ^ ((t : ℝ) - (r : ℝ) ^ (1 - (t : ℝ)) - ε) ≤ (Hypergraph.partiteExtremalNumber n t r : ℝ)"
+  },
+  {
+   "target": "erdos-1159",
+   "key": "erdos:1159",
+   "file": "FormalConjectures/ErdosProblems/1159.lean",
+   "decl": "erdos_1159",
+   "graph": ": ∃ C : ℕ, 1 < C ∧ ∀ (P L : Type) (_ : Membership P L) (_ : Fintype P) (_ : Fintype L), ∀ _ : ProjectivePlane P L, ∃ S : Set P, ∀ l : L, 1 ≤ (S ∩ {p : P | p ∈ l}).ncard ∧ (S ∩ {p : P | p ∈ l}).ncard ≤ C",
+   "upstream": ": ∃ C : ℕ, 1 < C ∧ ∀ (P L : Type) (_ : Membership P L) (_ : Fintype P) (_ : Fintype L), ∀ _ : ProjectivePlane P L, ∃ S : Set P, ∀ l : L, 1 ≤ (S ∩ {p : P | p ∈ l}).ncard ∧ (S ∩ {p : P | p ∈ l}).ncard ≤ C"
+  },
+  {
+   "target": "erdos-1168",
+   "key": "erdos:1168",
+   "file": "FormalConjectures/ErdosProblems/1168.lean",
+   "decl": "erdos_1168",
+   "graph": ": ¬ CardinalCountableColorRamsey (ℵ_ (ω + 1))",
+   "upstream": ": ¬ CardinalCountableColorRamsey (ℵ_ (ω + 1))"
+  },
+  {
+   "target": "erdos-1178",
+   "key": "erdos:1178",
+   "file": "FormalConjectures/ErdosProblems/1178.lean",
+   "decl": "erdos_1178",
+   "graph": ": ∀ r e : ℕ, 3 ≤ r → 3 ≤ e → Hypergraph.sparseConfigurationThreshold r e = (((r - 2) * e + 3 : ℕ) : ℕ∞)",
+   "upstream": ": ∀ r e : ℕ, 3 ≤ r → 3 ≤ e → Hypergraph.sparseConfigurationThreshold r e = (((r - 2) * e + 3 : ℕ) : ℕ∞)"
+  },
+  {
+   "target": "erdos-1199",
+   "key": "erdos:1199",
+   "file": "FormalConjectures/ErdosProblems/1199.lean",
+   "decl": "erdos_1199",
+   "graph": ": ∀ (color : ℕ → Fin 2), ∃ (A : Set ℕ), A.Infinite ∧ ∀ n ∈ (A+A), ∀ m ∈ (A+A), color n = color m",
+   "upstream": ": ∀ (color : ℕ → Fin 2), ∃ (A : Set ℕ), A.Infinite ∧ ∀ n ∈ (A+A), ∀ m ∈ (A+A), color n = color m"
+  },
+  {
+   "target": "erdos-120",
+   "key": "erdos:120",
+   "file": "FormalConjectures/ErdosProblems/120.lean",
+   "decl": "erdos_120",
+   "graph": ": ∀ A : Set ℝ, A.Infinite → Erdos120For A",
+   "upstream": ": ∀ A : Set ℝ, A.Infinite → Erdos120For A"
+  },
+  {
+   "target": "erdos-1203",
+   "key": "erdos:1203",
+   "file": "FormalConjectures/ErdosProblems/1203.lean",
+   "decl": "erdos_1203",
+   "graph": ": Tendsto F atTop atTop",
+   "upstream": ": Tendsto F atTop atTop"
+  },
+  {
+   "target": "erdos-1206",
+   "key": "erdos:1206",
+   "file": "FormalConjectures/ErdosProblems/1206.lean",
+   "decl": "i",
+   "graph": ": ∃ c : ℝ, 0 < c ∧ ∀ᶠ N in Filter.atTop, ∃ S : Finset ℕ, S ⊆ (Finset.Icc 1 N).image (fun n => n ^ 3) ∧ IsSidon (S : Set ℕ) ∧ c * (N : ℝ) ≤ (S.card : ℝ)",
+   "upstream": ": ∃ c : ℝ, 0 < c ∧ ∀ᶠ N in Filter.atTop, ∃ S : Finset ℕ, S ⊆ (Finset.Icc 1 N).image (fun n => n ^ 3) ∧ IsSidon (S : Set ℕ) ∧ c * (N : ℝ) ≤ (S.card : ℝ)"
+  },
+  {
+   "target": "erdos-1209",
+   "key": "erdos:1209",
+   "file": "FormalConjectures/ErdosProblems/1209.lean",
+   "decl": "b",
+   "graph": ": ∃ n : ℕ, ∀ k : ℕ, Squarefree (n + 2 ^ (2 ^ k))",
+   "upstream": ": ∃ n : ℕ, ∀ k : ℕ, Squarefree (n + 2 ^ (2 ^ k))"
+  },
+  {
+   "target": "erdos-1221",
+   "key": "erdos:1221",
+   "file": "FormalConjectures/ErdosProblems/1221.lean",
+   "decl": "i",
+   "graph": ": ∀ K : ℝ, ∀ᶠ r : ℕ in atTop, ENNReal.ofReal ((r : ℝ) + K) < bigLambda r",
+   "upstream": ": ∀ K : ℝ, ∀ᶠ r : ℕ in atTop, ENNReal.ofReal ((r : ℝ) + K) < bigLambda r"
+  },
+  {
+   "target": "erdos-137",
+   "key": "erdos:137",
+   "file": "FormalConjectures/ErdosProblems/137.lean",
+   "decl": "erdos_137",
+   "graph": ": ∃ k ≥ 3, ∃ n, (∏ x ∈ Finset.Ioc n (n + k), x).Powerful",
+   "upstream": ": ∃ k ≥ 3, ∃ n, (∏ x ∈ Finset.Ioc n (n + k), x).Powerful"
+  },
+  {
+   "target": "erdos-15",
+   "key": "erdos:15",
+   "file": "FormalConjectures/ErdosProblems/15.lean",
+   "decl": "erdos_15",
+   "graph": ": ∃ l : ℝ, Tendsto (fun N => ∑ k ∈ Finset.range N, (-1 : ℝ) ^ (k + 1) * (k + 1) / (k.nth Nat.Prime)) atTop (𝓝 l)",
+   "upstream": ": ∃ l : ℝ, Tendsto (fun N => ∑ k ∈ Finset.range N, (-1 : ℝ) ^ (k + 1) * (k + 1) / (k.nth Nat.Prime)) atTop (𝓝 l)"
+  },
+  {
+   "target": "erdos-153",
+   "key": "erdos:153",
+   "file": "FormalConjectures/ErdosProblems/153.lean",
+   "decl": "erdos_153",
+   "graph": ": Tendsto f atTop atTop",
+   "upstream": ": Tendsto f atTop atTop"
+  },
+  {
+   "target": "erdos-156",
+   "key": "erdos:156",
+   "file": "FormalConjectures/ErdosProblems/156.lean",
+   "decl": "erdos_156",
+   "graph": ": (fun N ↦ (minMaximalSidonSet N : ℝ)) =O[atTop] (fun N ↦ (N : ℝ) ^ (1 / 3 : ℝ))",
+   "upstream": ": (fun N ↦ (minMaximalSidonSet N : ℝ)) =O[atTop] (fun N ↦ (N : ℝ) ^ (1 / 3 : ℝ))"
+  },
+  {
+   "target": "erdos-159",
+   "key": "erdos:159",
+   "file": "FormalConjectures/ErdosProblems/159.lean",
+   "decl": "erdos_159",
+   "graph": ": ∃ (c : ℝ) (_ : 0 < c) (C : ℝ), ∀ (n : ℕ), 1 ≤ n → (SimpleGraph.graphRamsey (SimpleGraph.cycleGraph 4) (SimpleGraph.completeGraph (Fin n)) : ℝ) ≤ C * (n : ℝ) ^ (2 - c)",
+   "upstream": ": ∃ (c : ℝ) (_ : 0 < c) (C : ℝ), ∀ (n : ℕ), 1 ≤ n → (SimpleGraph.graphRamsey (SimpleGraph.cycleGraph 4) (SimpleGraph.completeGraph (Fin n)) : ℝ) ≤ C * (n : ℝ) ^ (2 - c)"
+  },
+  {
+   "target": "erdos-162",
+   "key": "erdos:162",
+   "file": "FormalConjectures/ErdosProblems/162.lean",
+   "decl": "erdos_162",
+   "graph": "(α : ℝ) (h0 : 0 ≤ α) (h1 : α < 1 / 2) : ∃ c : ℝ, (fun n : ℕ ↦ (F n α : ℝ)) ~[atTop] (fun n : ℕ ↦ c * Real.log n)",
+   "upstream": "(α : ℝ) (h0 : 0 ≤ α) (h1 : α < 1 / 2) : ∃ c : ℝ, (fun n : ℕ ↦ (F n α : ℝ)) ~[atTop] (fun n : ℕ ↦ c * Real.log n)"
+  },
+  {
+   "target": "erdos-17",
+   "key": "erdos:17",
+   "file": "FormalConjectures/ErdosProblems/17.lean",
+   "decl": "erdos_17",
+   "graph": ": {p : ℕ | IsClusterPrime p}.Infinite",
+   "upstream": ": {p : ℕ | IsClusterPrime p}.Infinite"
+  },
+  {
+   "target": "erdos-197",
+   "key": "erdos:197",
+   "file": "FormalConjectures/ErdosProblems/197.lean",
+   "decl": "erdos_197",
+   "graph": ": ∃ A B : Set ℕ, IsCompl A B ∧ (∃ f : ℕ ≃ A, ¬HasMonotoneAP (Subtype.val ∘ f) 3) ∧ (∃ g : ℕ ≃ B, ¬HasMonotoneAP (Subtype.val ∘ g) 3)",
+   "upstream": ": ∃ A B : Set ℕ, IsCompl A B ∧ (∃ f : ℕ ≃ A, ¬HasMonotoneAP (Subtype.val ∘ f) 3) ∧ (∃ g : ℕ ≃ B, ¬HasMonotoneAP (Subtype.val ∘ g) 3)"
+  },
+  {
+   "target": "erdos-20",
+   "key": "erdos:20",
+   "file": "FormalConjectures/ErdosProblems/20.lean",
+   "decl": "erdos_20",
+   "graph": ": ∃ (c : ℕ → ℕ), ∀ n k, n > 0 → f n k < (c k) ^ n",
+   "upstream": ": ∃ (c : ℕ → ℕ), ∀ n k, n > 0 → f n k < (c k) ^ n"
+  },
+  {
+   "target": "erdos-200",
+   "key": "erdos:200",
+   "file": "FormalConjectures/ErdosProblems/200.lean",
+   "decl": "erdos_200",
+   "graph": ": (fun n => (longestPrimeArithmeticProgressions n : ℝ)) =o[atTop] (fun n => log n)",
+   "upstream": ": (fun n => (longestPrimeArithmeticProgressions n : ℝ)) =o[atTop] (fun n => log n)"
+  },
+  {
+   "target": "erdos-203",
+   "key": "erdos:203",
+   "file": "FormalConjectures/ErdosProblems/203.lean",
+   "decl": "erdos_203",
+   "graph": ": ∃ m, m.Coprime 6 ∧ ∀ k l, ¬ (2^k * 3^l * m + 1).Prime",
+   "upstream": ": ∃ m, m.Coprime 6 ∧ ∀ k l, ¬ (2^k * 3^l * m + 1).Prime"
+  },
+  {
+   "target": "erdos-213",
+   "key": "erdos:213",
+   "file": "FormalConjectures/ErdosProblems/213.lean",
+   "decl": "erdos_213",
+   "graph": ": ∀ n : ℕ, n ≥ 4 → Erdos213For n",
+   "upstream": ": ∀ n : ℕ, n ≥ 4 → Erdos213For n"
+  },
+  {
+   "target": "erdos-233",
+   "key": "erdos:233",
+   "file": "FormalConjectures/ErdosProblems/233.lean",
+   "decl": "erdos_233",
+   "graph": ": (fun N => ((∑ n ∈ Finset.range N, (primeGap n) ^ 2) : ℝ)) =O[atTop] fun N => N * (log N)^2",
+   "upstream": ": (fun N => ((∑ n ∈ Finset.range N, (primeGap n) ^ 2) : ℝ)) =O[atTop] fun N => N * (log N)^2"
+  },
+  {
+   "target": "erdos-236",
+   "key": "erdos:236",
+   "file": "FormalConjectures/ErdosProblems/236.lean",
+   "decl": "erdos_236",
+   "graph": ": (fun n => (f n : ℝ)) =o[atTop] (fun n => Real.log (n : ℝ))",
+   "upstream": ": (fun n => (f n : ℝ)) =o[atTop] (fun n => Real.log (n : ℝ))"
+  },
+  {
+   "target": "erdos-241",
+   "key": "erdos:241",
+   "file": "FormalConjectures/ErdosProblems/241.lean",
+   "decl": "erdos_241",
+   "graph": ": (fun N ↦ (f N 3 : ℝ)) ~[atTop] (fun N ↦ (N : ℝ) ^ ((1 : ℝ) / 3))",
+   "upstream": ": (fun N ↦ (f N 3 : ℝ)) ~[atTop] (fun N ↦ (N : ℝ) ^ ((1 : ℝ) / 3))"
+  },
+  {
+   "target": "erdos-244",
+   "key": "erdos:244",
+   "file": "FormalConjectures/ErdosProblems/244.lean",
+   "decl": "erdos_244",
+   "graph": ": ∀ C > (1 : ℝ), 0 < { p + ⌊C ^ k⌋₊ | (p) (k) (_ : p.Prime) }.lowerDensity",
+   "upstream": ": ∀ C > (1 : ℝ), 0 < { p + ⌊C ^ k⌋₊ | (p) (k) (_ : p.Prime) }.lowerDensity"
+  },
+  {
+   "target": "erdos-25",
+   "key": "erdos:25",
+   "file": "FormalConjectures/ErdosProblems/25.lean",
+   "decl": "erdos_25",
+   "graph": ": ∀ (seq_n : ℕ → ℕ) (seq_a : ℕ → ℤ), (∀ i, 0 < seq_n i) → StrictMono seq_n → ∃ d, Set.HasLogDensity { x : ℕ | ∀ i, (x : ℤ) < seq_n i ∨ ¬((x : ℤ) ≡ seq_a i [ZMOD seq_n i]) } d",
+   "upstream": ": ∀ (seq_n : ℕ → ℕ) (seq_a : ℕ → ℤ), (∀ i, 0 < seq_n i) → StrictMono seq_n → ∃ d, Set.HasLogDensity { x : ℕ | ∀ i, (x : ℤ) < seq_n i ∨ ¬((x : ℤ) ≡ seq_a i [ZMOD seq_n i]) } d"
+  },
+  {
+   "target": "erdos-263",
+   "key": "erdos:263",
+   "file": "FormalConjectures/ErdosProblems/263.lean",
+   "decl": "i",
+   "graph": ": IsIrrationalitySequence (fun n : ℕ => 2 ^ 2 ^ n)",
+   "upstream": ": IsIrrationalitySequence (fun n : ℕ => 2 ^ 2 ^ n)"
+  },
+  {
+   "target": "erdos-264",
+   "key": "erdos:264",
+   "file": "FormalConjectures/ErdosProblems/264.lean",
+   "decl": "ii",
+   "graph": ": IsIrrationalitySequence Nat.factorial",
+   "upstream": ": IsIrrationalitySequence Nat.factorial"
+  },
+  {
+   "target": "erdos-273",
+   "key": "erdos:273",
+   "file": "FormalConjectures/ErdosProblems/273.lean",
+   "decl": "erdos_273",
+   "graph": ": ∃ c : StrictCoveringSystem ℤ, ∀ i, ∃ (p : ℕ), p.Prime ∧ 5 ≤ p ∧ c.moduli i = Ideal.span {↑(p - 1)}",
+   "upstream": ": ∃ c : StrictCoveringSystem ℤ, ∀ i, ∃ (p : ℕ), p.Prime ∧ 5 ≤ p ∧ c.moduli i = Ideal.span {↑(p - 1)}"
+  },
+  {
+   "target": "erdos-274",
+   "key": "erdos:274",
+   "file": "FormalConjectures/ErdosProblems/274.lean",
+   "decl": "erdos_274",
+   "graph": ": ∃ (G : Type*) (_ : Group G), 1 < ENat.card G ∧ ∃ (ι : Type*) (_ : Fintype ι) (P : Group.ExactCovering G ι), 1 < Fintype.card ι ∧ ∀ i j, i ≠ j → #(P.parts i) ≠ #(P.parts j)",
+   "upstream": ": ∃ (G : Type*) (_ : Group G), 1 < ENat.card G ∧ ∃ (ι : Type*) (_ : Fintype ι) (P : Group.ExactCovering G ι), 1 < Fintype.card ι ∧ ∀ i j, i ≠ j → #(P.parts i) ≠ #(P.parts j)"
+  },
+  {
+   "target": "erdos-276",
+   "key": "erdos:276",
+   "file": "FormalConjectures/ErdosProblems/276.lean",
+   "decl": "erdos_276",
+   "graph": ": ∃ (a : ℕ → ℕ), IsLucasSequence a ∧ (∀ k, (a k).Composite) ∧ (∀ n > 1, ∃ k, Nat.gcd n (a k) = 1)",
+   "upstream": ": ∃ (a : ℕ → ℕ), IsLucasSequence a ∧ (∀ k, (a k).Composite) ∧ (∀ n > 1, ∃ k, Nat.gcd n (a k) = 1)"
+  },
+  {
+   "target": "erdos-279",
+   "key": "erdos:279",
+   "file": "FormalConjectures/ErdosProblems/279.lean",
+   "decl": "erdos_279",
+   "graph": ": ∀ k : Nat, k ≥ 3 → ∃ a : Nat → Nat, ∃ N : Nat, (∀ p : Nat, p.Prime → a p < p) ∧ ∀ n ≥ N, ∃ p : Nat, ∃ t ≥ k, p.Prime ∧ n = a p + t * p",
+   "upstream": ": ∀ k : Nat, k ≥ 3 → ∃ a : Nat → Nat, ∃ N : Nat, (∀ p : Nat, p.Prime → a p < p) ∧ ∀ n ≥ N, ∃ p : Nat, ∃ t ≥ k, p.Prime ∧ n = a p + t * p"
+  },
+  {
+   "target": "erdos-288",
+   "key": "erdos:288",
+   "file": "FormalConjectures/ErdosProblems/288.lean",
+   "decl": "erdos_288",
+   "graph": ": Set.Finite { I : Fin 2 → ℕ+ × ℕ+ | ∀ j, (I j).1 ≤ (I j).2 ∧ ∃ n : ℕ+, (∑ j : Fin 2, ∑ nⱼ ∈ Set.Icc (I j).1 (I j).2, (nⱼ⁻¹ : ℚ)) = n }",
+   "upstream": ": Set.Finite { I : Fin 2 → ℕ+ × ℕ+ | ∀ j, (I j).1 ≤ (I j).2 ∧ ∃ n : ℕ+, (∑ j : Fin 2, ∑ nⱼ ∈ Set.Icc (I j).1 (I j).2, (nⱼ⁻¹ : ℚ)) = n }"
+  },
+  {
+   "target": "erdos-291",
+   "key": "erdos:291",
+   "file": "FormalConjectures/ErdosProblems/291.lean",
+   "decl": "i",
+   "graph": ": { n : ℕ | Nat.gcd (a n) (L n) = 1 }.Infinite",
+   "upstream": ": { n : ℕ | Nat.gcd (a n) (L n) = 1 }.Infinite"
+  },
+  {
+   "target": "erdos-295",
+   "key": "erdos:295",
+   "file": "FormalConjectures/ErdosProblems/295.lean",
+   "decl": "erdos_295",
+   "graph": ": Filter.atTop.Tendsto (fun N => k N - (rexp 1 - 1)*N) Filter.atTop",
+   "upstream": ": Filter.atTop.Tendsto (fun N => k N - (rexp 1 - 1)*N) Filter.atTop"
+  },
+  {
+   "target": "erdos-30",
+   "key": "erdos:30",
+   "file": "FormalConjectures/ErdosProblems/30.lean",
+   "decl": "erdos_30",
+   "graph": ": ∀ᵉ (ε > 0), (fun N => h N - (N : Real).sqrt) =O[atTop] fun N => (N : ℝ)^(ε : ℝ)",
+   "upstream": ": ∀ᵉ (ε > 0), (fun N => h N - (N : Real).sqrt) =O[atTop] fun N => (N : ℝ)^(ε : ℝ)"
+  },
+  {
+   "target": "erdos-312",
+   "key": "erdos:312",
+   "file": "FormalConjectures/ErdosProblems/312.lean",
+   "decl": "erdos_312",
+   "graph": ": ∃ (c : ℝ), 0 < c ∧ ∀ (K : ℝ), 1 < K → ∃ (N₀ : ℕ), ∀ (n : ℕ) (a : Fin n → ℕ), (n ≥ N₀ ∧ (∑ i : Fin n, (a i : ℝ)⁻¹) > K) → ∃ (S : Finset (Fin n)), 1 - Real.exp (-(c * K)) < (∑ i ∈ S, (a i : ℝ)⁻¹) ∧ ∑ i ∈ S, (a i : ℝ)⁻¹ ≤ 1",
+   "upstream": ": ∃ (c : ℝ), 0 < c ∧ ∀ (K : ℝ), 1 < K → ∃ (N₀ : ℕ), ∀ (n : ℕ) (a : Fin n → ℕ), (n ≥ N₀ ∧ (∑ i : Fin n, (a i : ℝ)⁻¹) > K) → ∃ (S : Finset (Fin n)), 1 - Real.exp (-(c * K)) < (∑ i ∈ S, (a i : ℝ)⁻¹) ∧ ∑ i ∈ S, (a i : ℝ)⁻¹ ≤ 1"
+  },
+  {
+   "target": "erdos-313",
+   "key": "erdos:313",
+   "file": "FormalConjectures/ErdosProblems/313.lean",
+   "decl": "erdos_313",
+   "graph": ": erdos313Solutions.Infinite",
+   "upstream": ": erdos313Solutions.Infinite"
+  },
+  {
+   "target": "erdos-322",
+   "key": "erdos:322",
+   "file": "FormalConjectures/ErdosProblems/322.lean",
+   "decl": "erdos_322",
+   "graph": ": ∀ k : ℕ, 3 ≤ k → ∃ c > (0 : ℝ), {n : ℕ | (n : ℝ) ^ c < representationCount k n}.Infinite",
+   "upstream": ": ∀ k : ℕ, 3 ≤ k → ∃ c > (0 : ℝ), {n : ℕ | (n : ℝ) ^ c < representationCount k n}.Infinite"
+  },
+  {
+   "target": "erdos-323",
+   "key": "erdos:323",
+   "file": "FormalConjectures/ErdosProblems/323.lean",
+   "decl": "i",
+   "graph": ": ∀ k ≥ 1, ∀ ε > (0 : ℝ), (fun (x : ℕ) ↦ (x : ℝ) ^ (1 - ε)) =O[atTop] (fun (x : ℕ) ↦ (f k k x : ℝ))",
+   "upstream": ": ∀ k ≥ 1, ∀ ε > (0 : ℝ), (fun (x : ℕ) ↦ (x : ℝ) ^ (1 - ε)) =O[atTop] (fun (x : ℕ) ↦ (f k k x : ℝ))"
+  },
+  {
+   "target": "erdos-345",
+   "key": "erdos:345",
+   "file": "FormalConjectures/ErdosProblems/345.lean",
+   "decl": "erdos_345",
+   "graph": ": {k : ℕ | 0 < k ∧ ∃ a b : ℕ, IsLeast (thresholds (kthPowers k)) a ∧ IsLeast (thresholds (kthPowers (k + 1))) b ∧ b < a}.Infinite",
+   "upstream": ": {k : ℕ | 0 < k ∧ ∃ a b : ℕ, IsLeast (thresholds (kthPowers k)) a ∧ IsLeast (thresholds (kthPowers (k + 1))) b ∧ b < a}.Infinite"
+  },
+  {
+   "target": "erdos-352",
+   "key": "erdos:352",
+   "file": "FormalConjectures/ErdosProblems/352.lean",
+   "decl": "erdos_352",
+   "graph": ": ∃ c > (0: ℝ), ∀ A : Set ℝ², MeasurableSet A → ℙ A ≥ c.toEReal → (∃ t : Affine.Triangle ℝ ℝ², (∀ p : Fin 3, t.points p ∈ A) ∧ EuclideanGeometry.triangle_area (t.points 0) (t.points 1) (t.points 2) = 1)",
+   "upstream": ": ∃ c > (0: ℝ), ∀ A : Set ℝ², MeasurableSet A → ℙ A ≥ c.toEReal → (∃ t : Affine.Triangle ℝ ℝ², (∀ p : Fin 3, t.points p ∈ A) ∧ EuclideanGeometry.triangle_area (t.points 0) (t.points 1) (t.points 2) = 1)"
+  },
+  {
+   "target": "erdos-365",
+   "key": "erdos:365",
+   "file": "FormalConjectures/ErdosProblems/365.lean",
+   "decl": "ii",
+   "graph": ": ∃ C : ℝ, 0 < C ∧ ∃ k : ℕ, ∀ᶠ x : ℕ in Filter.atTop, ({n : ℕ | 0 < n ∧ n ≤ x ∧ Nat.Powerful n ∧ Nat.Powerful (n + 1)}.ncard : ℝ) ≤ C * (Real.log x) ^ k",
+   "upstream": ": ∃ C : ℝ, 0 < C ∧ ∃ k : ℕ, ∀ᶠ x : ℕ in Filter.atTop, ({n : ℕ | 0 < n ∧ n ≤ x ∧ Nat.Powerful n ∧ Nat.Powerful (n + 1)}.ncard : ℝ) ≤ C * (Real.log x) ^ k"
+  },
+  {
+   "target": "erdos-373",
+   "key": "erdos:373",
+   "file": "FormalConjectures/ErdosProblems/373.lean",
+   "decl": "erdos_373",
+   "graph": ": S.Finite",
+   "upstream": ": S.Finite"
+  },
+  {
+   "target": "erdos-377",
+   "key": "erdos:377",
+   "file": "FormalConjectures/ErdosProblems/377.lean",
+   "decl": "erdos_377",
+   "graph": ": ∃ C > (0 : ℝ), ∀ (n : ℕ), sumInvPrimesNotDvdCentralBinom n ≤ C",
+   "upstream": ": ∃ C > (0 : ℝ), ∀ (n : ℕ), sumInvPrimesNotDvdCentralBinom n ≤ C"
+  },
+  {
+   "target": "erdos-383",
+   "key": "erdos:383",
+   "file": "FormalConjectures/ErdosProblems/383.lean",
+   "decl": "erdos_383",
+   "graph": ": ∀ k, {p : ℕ | p.Prime ∧ Nat.maxPrimeFac (∏ i ∈ Finset.Icc 0 k, (p ^ 2 + i)) = p}.Infinite",
+   "upstream": ": ∀ k, {p : ℕ | p.Prime ∧ Nat.maxPrimeFac (∏ i ∈ Finset.Icc 0 k, (p ^ 2 + i)) = p}.Infinite"
+  },
+  {
+   "target": "erdos-385",
+   "key": "erdos:385",
+   "file": "FormalConjectures/ErdosProblems/385.lean",
+   "decl": "i",
+   "graph": ": ∀ᶠ n in atTop, n < F n",
+   "upstream": ": ∀ᶠ n in atTop, n < F n"
+  },
+  {
+   "target": "erdos-388",
+   "key": "erdos:388",
+   "file": "FormalConjectures/ErdosProblems/388.lean",
+   "decl": "erdos_388",
+   "graph": ": {(m₁, k₁, m₂, k₂) : ℕ × ℕ × ℕ × ℕ | 3 < k₁ ∧ 3 < k₂ ∧ m₁ + k₁ ≤ m₂ ∧ ∏ i ∈ Finset.Icc 1 k₁, (m₁ + i) = ∏ j ∈ Finset.Icc 1 k₂, (m₂ + j)}.Finite",
+   "upstream": ": {(m₁, k₁, m₂, k₂) : ℕ × ℕ × ℕ × ℕ | 3 < k₁ ∧ 3 < k₂ ∧ m₁ + k₁ ≤ m₂ ∧ ∏ i ∈ Finset.Icc 1 k₁, (m₁ + i) = ∏ j ∈ Finset.Icc 1 k₂, (m₂ + j)}.Finite"
+  },
+  {
+   "target": "erdos-389",
+   "key": "erdos:389",
+   "file": "FormalConjectures/ErdosProblems/389.lean",
+   "decl": "erdos_389",
+   "graph": ": ∀ n ≥ 1, ∃ k ≥ 1, ∏ i ∈ Finset.range k, (n + i) ∣ ∏ i ∈ Finset.range k, (n + k + i)",
+   "upstream": ": ∀ n ≥ 1, ∃ k ≥ 1, ∏ i ∈ Finset.range k, (n + i) ∣ ∏ i ∈ Finset.range k, (n + k + i)"
+  },
+  {
+   "target": "erdos-39",
+   "key": "erdos:39",
+   "file": "FormalConjectures/ErdosProblems/39.lean",
+   "decl": "erdos_39",
+   "graph": ": ∃ (A : Set ℕ), A.Infinite ∧ IsSidon A ∧ ∀ᵉ (ε > (0 : ℝ)), (· ^ (1 / 2 - ε) : ℕ → ℝ) =O[atTop] fun N => (((Set.Icc 1 N) ∩ A).ncard : ℝ)",
+   "upstream": ": ∃ (A : Set ℕ), A.Infinite ∧ IsSidon A ∧ ∀ᵉ (ε > (0 : ℝ)), (· ^ (1 / 2 - ε) : ℕ → ℝ) =O[atTop] fun N => (((Set.Icc 1 N) ∩ A).ncard : ℝ)"
+  },
+  {
+   "target": "erdos-396",
+   "key": "erdos:396",
+   "file": "FormalConjectures/ErdosProblems/396.lean",
+   "decl": "erdos_396",
+   "graph": ": ∀ k : ℕ, ∃ n : ℕ, descFactorial n (k + 1) ∣ centralBinom n",
+   "upstream": ": ∀ k : ℕ, ∃ n : ℕ, descFactorial n (k + 1) ∣ centralBinom n"
+  },
+  {
+   "target": "erdos-414",
+   "key": "erdos:414",
+   "file": "FormalConjectures/ErdosProblems/414.lean",
+   "decl": "erdos_414",
+   "graph": ": ∀ᵉ (m > 0) (n > 0), ∃ i j, h^[i] m = h^[j] n",
+   "upstream": ": ∀ᵉ (m > 0) (n > 0), ∃ i j, h^[i] m = h^[j] n"
+  },
+  {
+   "target": "erdos-420",
+   "key": "erdos:420",
+   "file": "FormalConjectures/ErdosProblems/420.lean",
+   "decl": "i",
+   "graph": ": ∀ᶠ C : ℝ in atTop, Tendsto (F fun m ↦ Real.log m ^ C) atTop atTop",
+   "upstream": ": ∀ᶠ C : ℝ in atTop, Tendsto (F fun m ↦ Real.log m ^ C) atTop atTop"
+  },
+  {
+   "target": "erdos-430",
+   "key": "erdos:430",
+   "file": "FormalConjectures/ErdosProblems/430.lean",
+   "decl": "erdos_430",
+   "graph": ": ∀ᶠ n in atTop, ¬ ∀ m ∈ terms n, m.Prime",
+   "upstream": ": ∀ᶠ n in atTop, ¬ ∀ m ∈ terms n, m.Prime"
+  },
+  {
+   "target": "erdos-445",
+   "key": "erdos:445",
+   "file": "FormalConjectures/ErdosProblems/445.lean",
+   "decl": "erdos_445",
+   "graph": ": ∀ c : ℝ, c > 1 / 2 → ∀ᶠ p : ℕ in atTop, p.Prime → ∀ n : ℕ, Erdos445Prop c p n",
+   "upstream": ": ∀ c : ℝ, c > 1 / 2 → ∀ᶠ p : ℕ in atTop, p.Prime → ∀ n : ℕ, Erdos445Prop c p n"
+  },
+  {
+   "target": "erdos-454",
+   "key": "erdos:454",
+   "file": "FormalConjectures/ErdosProblems/454.lean",
+   "decl": "erdos_454",
+   "graph": ": limsup (fun n => (f n - 2 * n.nth Prime : ℕ∞)) atTop = ⊤",
+   "upstream": ": limsup (fun n => (f n - 2 * n.nth Prime : ℕ∞)) atTop = ⊤"
+  },
+  {
+   "target": "erdos-461",
+   "key": "erdos:461",
+   "file": "FormalConjectures/ErdosProblems/461.lean",
+   "decl": "erdos_461",
+   "graph": ": ∃ c : ℝ, 0 < c ∧ ∀ n t : ℕ, c * (t : ℝ) ≤ (f n t : ℝ)",
+   "upstream": ": ∃ c : ℝ, 0 < c ∧ ∀ n t : ℕ, c * (t : ℝ) ≤ (f n t : ℝ)"
+  },
+  {
+   "target": "erdos-462",
+   "key": "erdos:462",
+   "file": "FormalConjectures/ErdosProblems/462.lean",
+   "decl": "erdos_462",
+   "graph": ": ∃ C c : ℝ, 0 < C ∧ 0 < c ∧ ∀ᶠ x : ℕ in atTop, c ≤ ∑ n ∈ Finset.Icc x ⌊(x : ℝ) + C * Real.sqrt x * (Real.log x) ^ 2⌋₊, (n.minFac : ℝ) / n",
+   "upstream": ": ∃ C c : ℝ, 0 < C ∧ 0 < c ∧ ∀ᶠ x : ℕ in atTop, c ≤ ∑ n ∈ Finset.Icc x ⌊(x : ℝ) + C * Real.sqrt x * (Real.log x) ^ 2⌋₊, (n.minFac : ℝ) / n"
+  },
+  {
+   "target": "erdos-463",
+   "key": "erdos:463",
+   "file": "FormalConjectures/ErdosProblems/463.lean",
+   "decl": "erdos_463",
+   "graph": ": ∃ (f : ℕ → ℕ) (_ : Tendsto f atTop atTop), ∀ᶠ n in atTop, ∃ m, m.Composite ∧ n + f n < m ∧ m < n + m.minFac",
+   "upstream": ": ∃ (f : ℕ → ℕ) (_ : Tendsto f atTop atTop), ∀ᶠ n in atTop, ∃ m, m.Composite ∧ n + f n < m ∧ m < n + m.minFac"
+  },
+  {
+   "target": "erdos-467",
+   "key": "erdos:467",
+   "file": "FormalConjectures/ErdosProblems/467.lean",
+   "decl": "erdos_467",
+   "graph": ": ∀ᶠ x in atTop, ∃ residue : ℕ → ℕ, ∃ A B : Finset ℕ, PrimePartitionUpTo x A B ∧ CongruenceCover x residue A B",
+   "upstream": ": ∀ᶠ x in atTop, ∃ residue : ℕ → ℕ, ∃ A B : Finset ℕ, PrimePartitionUpTo x A B ∧ CongruenceCover x residue A B"
+  },
+  {
+   "target": "erdos-470",
+   "key": "erdos:470",
+   "file": "FormalConjectures/ErdosProblems/470.lean",
+   "decl": "i",
+   "graph": ": ∃ n : ℕ, n.Weird ∧ Odd n",
+   "upstream": ": ∃ n : ℕ, n.Weird ∧ Odd n"
+  },
+  {
+   "target": "erdos-472",
+   "key": "erdos:472",
+   "file": "FormalConjectures/ErdosProblems/472.lean",
+   "decl": "erdos_472",
+   "graph": ": ∃ m : ℕ, ∃ q : ℕ → ℕ, UlamPrimeExtension m q",
+   "upstream": ": ∃ m : ℕ, ∃ q : ℕ → ℕ, UlamPrimeExtension m q"
+  },
+  {
+   "target": "erdos-478",
+   "key": "erdos:478",
+   "file": "FormalConjectures/ErdosProblems/478.lean",
+   "decl": "erdos_478",
+   "graph": ": Filter.Tendsto (fun p : ℕ => (((Finset.Ico 1 p).image (fun k => Nat.factorial k % p)).card : ℝ) / p) (Filter.atTop ⊓ Filter.principal {p : ℕ | p.Prime}) (nhds (1 - 1 / Real.exp 1))",
+   "upstream": ": Filter.Tendsto (fun p : ℕ => (((Finset.Ico 1 p).image (fun k => Nat.factorial k % p)).card : ℝ) / p) (Filter.atTop ⊓ Filter.principal {p : ℕ | p.Prime}) (nhds (1 - 1 / Real.exp 1))"
+  },
+  {
+   "target": "erdos-479",
+   "key": "erdos:479",
+   "file": "FormalConjectures/ErdosProblems/479.lean",
+   "decl": "erdos_479",
+   "graph": ": ∀ᵉ (k : ℤ) (k ≠ 1), { n : ℕ | (2 : ℤ) ^ n ≡ k [ZMOD (n : ℤ)] }.Infinite",
+   "upstream": ": ∀ᵉ (k : ℤ) (k ≠ 1), { n : ℕ | (2 : ℤ) ^ n ≡ k [ZMOD (n : ℤ)] }.Infinite"
+  },
+  {
+   "target": "erdos-483",
+   "key": "erdos:483",
+   "file": "FormalConjectures/ErdosProblems/483.lean",
+   "decl": "erdos_483",
+   "graph": ": ∃ C : ℝ, 0 < C ∧ ∀ k : ℕ, 0 < k → ∃ N : ℕ, (N : ℝ) < C ^ k ∧ Forces k N",
+   "upstream": ": ∃ C : ℝ, 0 < C ∧ ∀ k : ℕ, 0 < k → ∃ N : ℕ, (N : ℝ) < C ^ k ∧ Forces k N"
+  },
+  {
+   "target": "erdos-495",
+   "key": "erdos:495",
+   "file": "FormalConjectures/ErdosProblems/495.lean",
+   "decl": "erdos_495",
+   "graph": ": ∀ α β : ℝ, liminf (fun n : ℕ ↦ (n : ℝ) * distToNearestInt (n * α) * distToNearestInt (n * β)) atTop = 0",
+   "upstream": ": ∀ α β : ℝ, liminf (fun n : ℕ ↦ (n : ℝ) * distToNearestInt (n * α) * distToNearestInt (n * β)) atTop = 0"
+  },
+  {
+   "target": "erdos-5",
+   "key": "erdos:5",
+   "file": "FormalConjectures/ErdosProblems/5.lean",
+   "decl": "erdos_5",
+   "graph": ": ∀ C : ℝ, 0 ≤ C → ∃ n : ℕ → ℕ, StrictMono n ∧ Tendsto (fun i => normalizedGap (n i)) atTop (𝓝 C)",
+   "upstream": ": ∀ C : ℝ, 0 ≤ C → ∃ n : ℕ → ℕ, StrictMono n ∧ Tendsto (fun i => normalizedGap (n i)) atTop (𝓝 C)"
+  },
+  {
+   "target": "erdos-510",
+   "key": "erdos:510",
+   "file": "FormalConjectures/ErdosProblems/510.lean",
+   "decl": "erdos_510",
+   "graph": ": ∃ (c : ℝ) (hc : 0 < c), ∀ᶠ N in atTop, ∀ (A : Finset ℕ), 0 ∉ A → #A = N → ∃ θ, ∑ n ∈ A, cos (n * θ) < -c * sqrt N",
+   "upstream": ": ∃ (c : ℝ) (hc : 0 < c), ∀ᶠ N in atTop, ∀ (A : Finset ℕ), 0 ∉ A → #A = N → ∃ θ, ∑ n ∈ A, cos (n * θ) < -c * sqrt N"
+  },
+  {
+   "target": "erdos-517",
+   "key": "erdos:517",
+   "file": "FormalConjectures/ErdosProblems/517.lean",
+   "decl": "erdos_517",
+   "graph": ": ∀ {f : ℂ → ℂ} {n : ℕ → ℕ} (hn : HasFabryGaps n) {a : ℕ → ℂ} (ha : ∀ k, a k ≠ 0) (hf : ∀ z, HasSum (fun k => a k * z ^ n k) (f z)) (z : ℂ), {x : ℂ | f x = z}.Infinite",
+   "upstream": ": ∀ {f : ℂ → ℂ} {n : ℕ → ℕ} (hn : HasFabryGaps n) {a : ℕ → ℂ} (ha : ∀ k, a k ≠ 0) (hf : ∀ z, HasSum (fun k => a k * z ^ n k) (f z)) (z : ℂ), {x : ℂ | f x = z}.Infinite"
+  },
+  {
+   "target": "erdos-544",
+   "key": "erdos:544",
+   "file": "FormalConjectures/ErdosProblems/544.lean",
+   "decl": "i",
+   "graph": ": Tendsto (fun k : ℕ ↦ (SimpleGraph.classicalRamsey 3 (k + 1) : ℝ) - (SimpleGraph.classicalRamsey 3 k : ℝ)) atTop atTop",
+   "upstream": ": Tendsto (fun k : ℕ ↦ (SimpleGraph.classicalRamsey 3 (k + 1) : ℝ) - (SimpleGraph.classicalRamsey 3 k : ℝ)) atTop atTop"
+  },
+  {
+   "target": "erdos-545",
+   "key": "erdos:545",
+   "file": "FormalConjectures/ErdosProblems/545.lean",
+   "decl": "erdos_545",
+   "graph": ": ∀ᶠ m : ℕ in atTop, ∀ (n t : ℕ), t < n → m = n.choose 2 + t → ∀ (V : Type) [Fintype V] (G : SimpleGraph V) [DecidableRel G.Adj], (∀ v, 0 < G.degree v) → G.edgeSet.ncard = m → SimpleGraph.diagonalGraphRamsey G ≤ SimpleGraph.diagonalGraphRamsey (knPlusTEdges n t)",
+   "upstream": ": ∀ᶠ m : ℕ in atTop, ∀ (n t : ℕ), t < n → m = n.choose 2 + t → ∀ (V : Type) [Fintype V] (G : SimpleGraph V) [DecidableRel G.Adj], (∀ v, 0 < G.degree v) → G.edgeSet.ncard = m → SimpleGraph.diagonalGraphRamsey G ≤ SimpleGraph.diagonalGraphRamsey (knPlusTEdges n t)"
+  },
+  {
+   "target": "erdos-562",
+   "key": "erdos:562",
+   "file": "FormalConjectures/ErdosProblems/562.lean",
+   "decl": "erdos_562",
+   "graph": ": ∀ r ≥ 3, (fun n ↦ log^[r - 1] (hypergraphRamsey r n)) =Θ[atTop] (fun n ↦ (n : ℝ))",
+   "upstream": ": ∀ r ≥ 3, (fun n ↦ log^[r - 1] (hypergraphRamsey r n)) =Θ[atTop] (fun n ↦ (n : ℝ))"
+  },
+  {
+   "target": "erdos-563",
+   "key": "erdos:563",
+   "file": "FormalConjectures/ErdosProblems/563.lean",
+   "decl": "erdos_563",
+   "graph": ": ∀ (α : ℝ), 0 ≤ α → α < 1 / 2 → ∃ (c : ℝ), 0 < c ∧ Tendsto (fun n : ℕ => (F n α : ℝ) / Real.log n) atTop (nhds c)",
+   "upstream": ": ∀ (α : ℝ), 0 ≤ α → α < 1 / 2 → ∃ (c : ℝ), 0 < c ∧ Tendsto (fun n : ℕ => (F n α : ℝ) / Real.log n) atTop (nhds c)"
+  },
+  {
+   "target": "erdos-564",
+   "key": "erdos:564",
+   "file": "FormalConjectures/ErdosProblems/564.lean",
+   "decl": "erdos_564",
+   "graph": ": ∃ c > (0 : ℝ), ∀ᶠ n : ℕ in atTop, (2 : ℝ) ^ (2 : ℝ) ^ (c * n) ≤ hypergraphRamsey 3 n",
+   "upstream": ": ∃ c > (0 : ℝ), ∀ᶠ n : ℕ in atTop, (2 : ℝ) ^ (2 : ℝ) ^ (c * n) ≤ hypergraphRamsey 3 n"
+  },
+  {
+   "target": "erdos-567",
+   "key": "erdos:567",
+   "file": "FormalConjectures/ErdosProblems/567.lean",
+   "decl": "i",
+   "graph": ": IsRamseySizeLinear Q3",
+   "upstream": ": IsRamseySizeLinear Q3"
+  },
+  {
+   "target": "erdos-568",
+   "key": "erdos:568",
+   "file": "FormalConjectures/ErdosProblems/568.lean",
+   "decl": "erdos_568",
+   "graph": ": ∀ (V : Type) [Fintype V] (G : SimpleGraph V), (∃ c₁ > (0 : ℝ), ∀ (n : ℕ) (T : SimpleGraph (Fin n)), T.IsTree → (SimpleGraph.graphRamsey G T : ℝ) ≤ c₁ * n) → (∃ c₂ > (0 : ℝ), ∀ (n : ℕ), (SimpleGraph.graphRamsey G (SimpleGraph.completeGraph (Fin n)) : ℝ) ≤ c₂ * (n : ℝ) ^ 2) → G.IsRamseySizeLinear",
+   "upstream": ": ∀ (V : Type) [Fintype V] (G : SimpleGraph V), (∃ c₁ > (0 : ℝ), ∀ (n : ℕ) (T : SimpleGraph (Fin n)), T.IsTree → (SimpleGraph.graphRamsey G T : ℝ) ≤ c₁ * n) → (∃ c₂ > (0 : ℝ), ∀ (n : ℕ), (SimpleGraph.graphRamsey G (SimpleGraph.completeGraph (Fin n)) : ℝ) ≤ c₂ * (n : ℝ) ^ 2) → G.IsRamseySizeLinear"
+  },
+  {
+   "target": "erdos-573",
+   "key": "erdos:573",
+   "file": "FormalConjectures/ErdosProblems/573.lean",
+   "decl": "erdos_573",
+   "graph": ": (fun n : ℕ ↦ (cycleExtremalNumber {3, 4} n : ℝ)) ~[atTop] fun n : ℕ ↦ ((n : ℝ) / 2) ^ (3 / 2 : ℝ)",
+   "upstream": ": (fun n : ℕ ↦ (cycleExtremalNumber {3, 4} n : ℝ)) ~[atTop] fun n : ℕ ↦ ((n : ℝ) / 2) ^ (3 / 2 : ℝ)"
+  },
+  {
+   "target": "erdos-588",
+   "key": "erdos:588",
+   "file": "FormalConjectures/ErdosProblems/588.lean",
+   "decl": "erdos_588",
+   "graph": ": ∀ k : ℕ, 4 ≤ k → (fun n : ℕ ↦ (numLinesWithPointsMax k n : ℝ)) =o[atTop] (fun n : ℕ ↦ (n : ℝ) ^ 2)",
+   "upstream": ": ∀ k : ℕ, 4 ≤ k → (fun n : ℕ ↦ (numLinesWithPointsMax k n : ℝ)) =o[atTop] (fun n : ℕ ↦ (n : ℝ) ^ 2)"
+  },
+  {
+   "target": "erdos-595",
+   "key": "erdos:595",
+   "file": "FormalConjectures/ErdosProblems/595.lean",
+   "decl": "erdos_595",
+   "graph": ": ∃ (V : Type*) (_ : Infinite V) (G : SimpleGraph V), G.CliqueFree 4 ∧ ¬IsCountableUnionOfTriangleFree G",
+   "upstream": ": ∃ (V : Type*) (_ : Infinite V) (G : SimpleGraph V), G.CliqueFree 4 ∧ ¬IsCountableUnionOfTriangleFree G"
+  },
+  {
+   "target": "erdos-60",
+   "key": "erdos:60",
+   "file": "FormalConjectures/ErdosProblems/60.lean",
+   "decl": "erdos_60",
+   "graph": ": ∃ c : ℝ, c > 0 ∧ ∀ᶠ n : ℕ in atTop, ∀ (G : SimpleGraph (Fin n)) [DecidableRel G.Adj], (extremalNumber n (cycleGraph 4) < G.edgeFinset.card) → (c * Real.sqrt (n : ℝ) ≤ ({ H' : G.Subgraph | Nonempty (H'.coe ≃g cycleGraph 4) }.ncard : ℝ))",
+   "upstream": ": ∃ c : ℝ, c > 0 ∧ ∀ᶠ n : ℕ in atTop, ∀ (G : SimpleGraph (Fin n)) [DecidableRel G.Adj], (extremalNumber n (cycleGraph 4) < G.edgeFinset.card) → (c * Real.sqrt (n : ℝ) ≤ ({ H' : G.Subgraph | Nonempty (H'.coe ≃g cycleGraph 4) }.ncard : ℝ))"
+  },
+  {
+   "target": "erdos-61",
+   "key": "erdos:61",
+   "file": "FormalConjectures/ErdosProblems/61.lean",
+   "decl": "erdos_61",
+   "graph": ": ∀ {α : Type*} [Fintype α] [DecidableEq α] (H : SimpleGraph α), ∃ c > (0 : ℝ), IsErdosHajnalLowerBound H (fun n : ℕ => (n : ℝ) ^ c)",
+   "upstream": ": ∀ {α : Type*} [Fintype α] [DecidableEq α] (H : SimpleGraph α), ∃ c > (0 : ℝ), IsErdosHajnalLowerBound H (fun n : ℕ => (n : ℝ) ^ c)"
+  },
+  {
+   "target": "erdos-623",
+   "key": "erdos:623",
+   "file": "FormalConjectures/ErdosProblems/623.lean",
+   "decl": "erdos_623",
+   "graph": ": ∀ (X : Type u) (hX : #X = ℵ_ ω) (f : Finset X → X), (∀ A : Finset X, f A ∉ A) → (∃ Y : Set X, Set.Infinite Y ∧ (∀ (B : Finset X), ↑B ⊆ Y → f B ∉ Y))",
+   "upstream": ": ∀ (X : Type u) (hX : #X = ℵ_ ω) (f : Finset X → X), (∀ A : Finset X, f A ∉ A) → (∃ Y : Set X, Set.Infinite Y ∧ (∀ (B : Finset X), ↑B ⊆ Y → f B ∉ Y))"
+  },
+  {
+   "target": "erdos-624",
+   "key": "erdos:624",
+   "file": "FormalConjectures/ErdosProblems/624.lean",
+   "decl": "erdos_624",
+   "graph": ": atTop.Tendsto (fun n : ℕ => H n - Real.logb 2 (n : ℝ)) atTop",
+   "upstream": ": atTop.Tendsto (fun n : ℕ => H n - Real.logb 2 (n : ℝ)) atTop"
+  },
+  {
+   "target": "erdos-642",
+   "key": "erdos:642",
+   "file": "FormalConjectures/ErdosProblems/642.lean",
+   "decl": "erdos_642",
+   "graph": ": (fun n : ℕ => (maxEdges n : ℝ)) =O[atTop] (fun n : ℕ => (n : ℝ))",
+   "upstream": ": (fun n : ℕ => (maxEdges n : ℝ)) =O[atTop] (fun n : ℕ => (n : ℝ))"
+  },
+  {
+   "target": "erdos-644",
+   "key": "erdos:644",
+   "file": "FormalConjectures/ErdosProblems/644.lean",
+   "decl": "i",
+   "graph": ": (fun k ↦ ((Hypergraph.subfamilyTransversalBound k 7 2).toNat : ℝ)) ~[atTop] (fun k ↦ (3 / 4 : ℝ) * k)",
+   "upstream": ": (fun k ↦ ((Hypergraph.subfamilyTransversalBound k 7 2).toNat : ℝ)) ~[atTop] (fun k ↦ (3 / 4 : ℝ) * k)"
+  },
+  {
+   "target": "erdos-65",
+   "key": "erdos:65",
+   "file": "FormalConjectures/ErdosProblems/65.lean",
+   "decl": "ii",
+   "graph": ": ∀ (k : ℝ) (hk : 0 < k), ∀ (n : ℕ) (V : Type) [Fintype V] (G : SimpleGraph V), 0 < n → Fintype.card V = n → (G.edgeSet.ncard : ℝ) = k * n → ∀ (A B : Type) [Fintype A] [Fintype B], Fintype.card (A ⊕ B) = n → ((completeBipartiteGraph A B).edgeSet.ncard : ℝ) = k * n → (∑ᶠ a ∈ (completeBipartiteGraph A B).cycleLengths, (1 : ℝ) / a) ≤ (∑ᶠ a ∈ G.cycleLengths, (1 : ℝ) / a)",
+   "upstream": ": ∀ (k : ℝ) (hk : 0 < k), ∀ (n : ℕ) (V : Type) [Fintype V] (G : SimpleGraph V), 0 < n → Fintype.card V = n → (G.edgeSet.ncard : ℝ) = k * n → ∀ (A B : Type) [Fintype A] [Fintype B], Fintype.card (A ⊕ B) = n → ((completeBipartiteGraph A B).edgeSet.ncard : ℝ) = k * n → (∑ᶠ a ∈ (completeBipartiteGraph A B).cycleLengths, (1 : ℝ) / a) ≤ (∑ᶠ a ∈ G.cycleLengths, (1 : ℝ) / a)"
+  },
+  {
+   "target": "erdos-653",
+   "key": "erdos:653",
+   "file": "FormalConjectures/ErdosProblems/653.lean",
+   "decl": "erdos_653",
+   "graph": ": ∃ o : ℕ → ℝ, o =o[atTop] (1 : ℕ → ℝ) ∧ ∀ᶠ n in atTop, (1 - o n) * n ≤ maximalDistinctDistancesFrom n",
+   "upstream": ": ∃ o : ℕ → ℝ, o =o[atTop] (1 : ℕ → ℝ) ∧ ∀ᶠ n in atTop, (1 - o n) * n ≤ maximalDistinctDistancesFrom n"
+  },
+  {
+   "target": "erdos-657",
+   "key": "erdos:657",
+   "file": "FormalConjectures/ErdosProblems/657.lean",
+   "decl": "erdos_657",
+   "graph": ": ∃ f : ℕ → ℝ, Tendsto f atTop atTop ∧ ∀ n : ℕ, ∀ A : Finset ℝ², A.card = n → (A : Set ℝ²).IsIsoscelesFree → f n * (n : ℝ) ≤ (distinctDistances A : ℝ)",
+   "upstream": ": ∃ f : ℕ → ℝ, Tendsto f atTop atTop ∧ ∀ n : ℕ, ∀ A : Finset ℝ², A.card = n → (A : Set ℝ²).IsIsoscelesFree → f n * (n : ℝ) ≤ (distinctDistances A : ℝ)"
+  },
+  {
+   "target": "erdos-66",
+   "key": "erdos:66",
+   "file": "FormalConjectures/ErdosProblems/66.lean",
+   "decl": "erdos_66",
+   "graph": ": ∃ (A : Set ℕ) (c : ℝ), c ≠ 0 ∧ Tendsto (fun n ↦ (sumRep A n : ℝ) / Real.log n) atTop (𝓝 c)",
+   "upstream": ": ∃ (A : Set ℕ) (c : ℝ), c ≠ 0 ∧ Tendsto (fun n ↦ (sumRep A n : ℝ) / Real.log n) atTop (𝓝 c)"
+  },
+  {
+   "target": "erdos-663",
+   "key": "erdos:663",
+   "file": "FormalConjectures/ErdosProblems/663.lean",
+   "decl": "erdos_663",
+   "graph": ": ∀ k ≥ 2, ∃ error : ℕ → ℝ, error =o[atTop] (fun _ ↦ (1 : ℝ)) ∧ ∀ᶠ n in atTop, let P : ℕ",
+   "upstream": ": ∀ k ≥ 2, ∃ error : ℕ → ℝ, error =o[atTop] (fun _ ↦ (1 : ℝ)) ∧ ∀ᶠ n in atTop, let P : ℕ"
+  },
+  {
+   "target": "erdos-665",
+   "key": "erdos:665",
+   "file": "FormalConjectures/ErdosProblems/665.lean",
+   "decl": "erdos_665",
+   "graph": ": ∃ C : ℝ, 0 < C ∧ ∀ᶠ n : ℕ in atTop, ∃ H : Finset (Finset (Fin n)), H.IsPairwiseBalancedDesign ∧ ∀ e ∈ H, e.card < n ∧ Real.sqrt n - C < e.card",
+   "upstream": ": ∃ C : ℝ, 0 < C ∧ ∀ᶠ n : ℕ in atTop, ∃ H : Finset (Finset (Fin n)), H.IsPairwiseBalancedDesign ∧ ∀ e ∈ H, e.card < n ∧ Real.sqrt n - C < e.card"
+  },
+  {
+   "target": "erdos-676",
+   "key": "erdos:676",
+   "file": "FormalConjectures/ErdosProblems/676.lean",
+   "decl": "erdos_676",
+   "graph": ": ∀ᶠ n in atTop, ∃ a p b : ℕ, p.Prime ∧ 1 ≤ a ∧ b < p ∧ n = a * p ^ 2 + b",
+   "upstream": ": ∀ᶠ n in atTop, ∃ a p b : ℕ, p.Prime ∧ 1 ≤ a ∧ b < p ∧ n = a * p ^ 2 + b"
+  },
+  {
+   "target": "erdos-677",
+   "key": "erdos:677",
+   "file": "FormalConjectures/ErdosProblems/677.lean",
+   "decl": "erdos_677",
+   "graph": ": ∀ (m n k : ℕ), k > 0 → m ≥ n + k → lcmInterval m k ≠ lcmInterval n k",
+   "upstream": ": ∀ (m n k : ℕ), k > 0 → m ≥ n + k → lcmInterval m k ≠ lcmInterval n k"
+  },
+  {
+   "target": "erdos-680",
+   "key": "erdos:680",
+   "file": "FormalConjectures/ErdosProblems/680.lean",
+   "decl": "i",
+   "graph": ": ∀ᶠ (n : ℕ) in .atTop, ∃ k ≠ 0, (n + k).minFac > k^2 + 1",
+   "upstream": ": ∀ᶠ (n : ℕ) in .atTop, ∃ k ≠ 0, (n + k).minFac > k^2 + 1"
+  },
+  {
+   "target": "erdos-681",
+   "key": "erdos:681",
+   "file": "FormalConjectures/ErdosProblems/681.lean",
+   "decl": "erdos_681",
+   "graph": ": ∀ᶠ n in .atTop, ∃ k > 0, (n + k).Composite ∧ ∀ p, IsLPF p (n + k) → p > k ^ 2",
+   "upstream": ": ∀ᶠ n in .atTop, ∃ k > 0, (n + k).Composite ∧ ∀ p, IsLPF p (n + k) → p > k ^ 2"
+  },
+  {
+   "target": "erdos-685",
+   "key": "erdos:685",
+   "file": "FormalConjectures/ErdosProblems/685.lean",
+   "decl": "i",
+   "graph": ": ∀ ε > (0 : ℝ), ∀ δ > (0 : ℝ), ∀ᶠ n : ℕ in atTop, ∀ k : ℕ, (n : ℝ) ^ ε < (k : ℝ) → (k : ℝ) ≤ (n : ℝ) ^ (1 - ε) → |(ω (n.choose k) : ℝ) - (k : ℝ) * primeRecipSum k n| ≤ δ * ((k : ℝ) * primeRecipSum k n)",
+   "upstream": ": ∀ ε > (0 : ℝ), ∀ δ > (0 : ℝ), ∀ᶠ n : ℕ in atTop, ∀ k : ℕ, (n : ℝ) ^ ε < (k : ℝ) → (k : ℝ) ≤ (n : ℝ) ^ (1 - ε) → |(ω (n.choose k) : ℝ) - (k : ℝ) * primeRecipSum k n| ≤ δ * ((k : ℝ) * primeRecipSum k n)"
+  },
+  {
+   "target": "erdos-686",
+   "key": "erdos:686",
+   "file": "FormalConjectures/ErdosProblems/686.lean",
+   "decl": "erdos_686",
+   "graph": ": ∀ N ≥ (2 : ℕ), ∃ᵉ (k ≥ 2) (n : ℕ) (m ≥ n + k), (N : ℚ) = (∏ i ∈ Finset.Icc 1 k, (m + i)) / (∏ i ∈ Finset.Icc 1 k, (n + i))",
+   "upstream": ": ∀ N ≥ (2 : ℕ), ∃ᵉ (k ≥ 2) (n : ℕ) (m ≥ n + k), (N : ℚ) = (∏ i ∈ Finset.Icc 1 k, (m + i)) / (∏ i ∈ Finset.Icc 1 k, (n + i))"
+  },
+  {
+   "target": "erdos-704",
+   "key": "erdos:704",
+   "file": "FormalConjectures/ErdosProblems/704.lean",
+   "decl": "ii",
+   "graph": ": ∃ L : ℝ, Tendsto (fun n : ℕ ↦ ((unitDistanceGraph n).chromaticNumber.toNat : ℝ) ^ (1 / (n : ℝ))) atTop (𝓝 L)",
+   "upstream": ": ∃ L : ℝ, Tendsto (fun n : ℕ ↦ ((unitDistanceGraph n).chromaticNumber.toNat : ℝ) ^ (1 / (n : ℝ))) atTop (𝓝 L)"
+  },
+  {
+   "target": "erdos-711",
+   "key": "erdos:711",
+   "file": "FormalConjectures/ErdosProblems/711.lean",
+   "decl": "i",
+   "graph": ": ∃ error : ℕ → ℝ, error =o[atTop] (fun _ ↦ (1 : ℝ)) ∧ ∀ᶠ n in atTop, ∀ m, ∃ L, HasDivisibleDistinctTuple n m L ∧ (L : ℝ) ≤ Real.rpow n (1 + error n)",
+   "upstream": ": ∃ error : ℕ → ℝ, error =o[atTop] (fun _ ↦ (1 : ℝ)) ∧ ∀ᶠ n in atTop, ∀ m, ∃ L, HasDivisibleDistinctTuple n m L ∧ (L : ℝ) ≤ Real.rpow n (1 + error n)"
+  },
+  {
+   "target": "erdos-719",
+   "key": "erdos:719",
+   "file": "FormalConjectures/ErdosProblems/719.lean",
+   "decl": "erdos_719",
+   "graph": ": ∀ r : ℕ, 2 ≤ r → ∀ (n : ℕ) (H : Finset (Finset (Fin n))), H.IsUniform r → ∃ D : Finset (Finset (Fin n)), H.IsCompleteHypergraphDecomposition r D ∧ D.card ≤ Hypergraph.cliqueExtremalNumber n r (r + 1)",
+   "upstream": ": ∀ r : ℕ, 2 ≤ r → ∀ (n : ℕ) (H : Finset (Finset (Fin n))), H.IsUniform r → ∃ D : Finset (Finset (Fin n)), H.IsCompleteHypergraphDecomposition r D ∧ D.card ≤ Hypergraph.cliqueExtremalNumber n r (r + 1)"
+  },
+  {
+   "target": "erdos-734",
+   "key": "erdos:734",
+   "file": "FormalConjectures/ErdosProblems/734.lean",
+   "decl": "erdos_734",
+   "graph": ": ∃ C : ℝ, 0 < C ∧ ∀ᶠ n : ℕ in atTop, ∃ H : Finset (Finset (Fin n)), H.IsPairwiseBalancedDesign ∧ (∀ e ∈ H, e.card < n) ∧ ∀ t : ℕ, ({e ∈ H | e.card = t}.card : ℝ) ≤ C * Real.sqrt n",
+   "upstream": ": ∃ C : ℝ, 0 < C ∧ ∀ᶠ n : ℕ in atTop, ∃ H : Finset (Finset (Fin n)), H.IsPairwiseBalancedDesign ∧ (∀ e ∈ H, e.card < n) ∧ ∀ t : ℕ, ({e ∈ H | e.card = t}.card : ℝ) ≤ C * Real.sqrt n"
+  },
+  {
+   "target": "erdos-761",
+   "key": "erdos:761",
+   "file": "FormalConjectures/ErdosProblems/761.lean",
+   "decl": "i",
+   "graph": ": ∀ k : ℕ, ∃ m : ℕ, ∀ (V : Type*) [Finite V] (G : SimpleGraph V), (m : ℕ∞) ≤ G.chromaticNumber → (k : ℕ∞) ≤ dichromaticNumber G",
+   "upstream": ": ∀ k : ℕ, ∃ m : ℕ, ∀ (V : Type*) [Finite V] (G : SimpleGraph V), (m : ℕ∞) ≤ G.chromaticNumber → (k : ℕ∞) ≤ dichromaticNumber G"
+  },
+  {
+   "target": "erdos-770",
+   "key": "erdos:770",
+   "file": "FormalConjectures/ErdosProblems/770.lean",
+   "decl": "i",
+   "graph": ": ∀ p : ℕ, p.Prime → ∃ a, HasDensity {n | h n = p} a",
+   "upstream": ": ∀ p : ℕ, p.Prime → ∃ a, HasDensity {n | h n = p} a"
+  },
+  {
+   "target": "erdos-773",
+   "key": "erdos:773",
+   "file": "FormalConjectures/ErdosProblems/773.lean",
+   "decl": "erdos_773",
+   "graph": ": ∀ ε > (0 : ℝ), ∀ᶠ N : ℕ in atTop, (N : ℝ) ^ (1 - ε) ≤ (Finset.maxSidonSubsetCard (Finset.image (fun n : ℕ => n ^ 2) (Finset.Icc 1 N)) : ℝ)",
+   "upstream": ": ∀ ε > (0 : ℝ), ∀ᶠ N : ℕ in atTop, (N : ℝ) ^ (1 - ε) ≤ (Finset.maxSidonSubsetCard (Finset.image (fun n : ℕ => n ^ 2) (Finset.Icc 1 N)) : ℝ)"
+  },
+  {
+   "target": "erdos-78",
+   "key": "erdos:78",
+   "file": "FormalConjectures/ErdosProblems/78.lean",
+   "decl": "erdos_78",
+   "graph": ": ∃ c > (0 : ℝ), ∃ adj : List Bool × ℕ × ℕ → Bool, IsPolyTime adj ∧ ∀ᶠ n in atTop, NoHomogeneousSet (explicitGraph adj n) ⌈c * log n⌉₊",
+   "upstream": ": ∃ c > (0 : ℝ), ∃ adj : List Bool × ℕ × ℕ → Bool, IsPolyTime adj ∧ ∀ᶠ n in atTop, NoHomogeneousSet (explicitGraph adj n) ⌈c * log n⌉₊"
+  },
+  {
+   "target": "erdos-782",
+   "key": "erdos:782",
+   "file": "FormalConjectures/ErdosProblems/782.lean",
+   "decl": "i",
+   "graph": ": ∃ C : ℕ, 0 < C ∧ ∀ k : ℕ, ContainsQuasiProgression {n : ℕ | IsSquare n} C k",
+   "upstream": ": ∃ C : ℕ, 0 < C ∧ ∀ k : ℕ, ContainsQuasiProgression {n : ℕ | IsSquare n} C k"
+  },
+  {
+   "target": "erdos-81",
+   "key": "erdos:81",
+   "file": "FormalConjectures/ErdosProblems/81.lean",
+   "decl": "erdos_81",
+   "graph": ": ∃ C : ℝ, ∀ n : ℕ, ∀ G : SimpleGraph (Fin n), G.IsChordal → ∃ P : Finset (Finset (Fin n)), G.IsCliqueEdgePartition P ∧ (P.card : ℝ) ≤ (n : ℝ) ^ 2 / 6 + C * n",
+   "upstream": ": ∃ C : ℝ, ∀ n : ℕ, ∀ G : SimpleGraph (Fin n), G.IsChordal → ∃ P : Finset (Finset (Fin n)), G.IsCliqueEdgePartition P ∧ (P.card : ℝ) ≤ (n : ℝ) ^ 2 / 6 + C * n"
+  },
+  {
+   "target": "erdos-810",
+   "key": "erdos:810",
+   "file": "FormalConjectures/ErdosProblems/810.lean",
+   "decl": "erdos_810",
+   "graph": ": ∃ ε > 0, ∀ᶠ n in atTop, ∃ G : SimpleGraph (Fin n), ∃ color : Fin n → Fin n → Fin n, ε * (n : ℝ) ^ 2 ≤ (G.edgeSet.ncard : ℝ) ∧ C4RainbowColoring G color",
+   "upstream": ": ∃ ε > 0, ∀ᶠ n in atTop, ∃ G : SimpleGraph (Fin n), ∃ color : Fin n → Fin n → Fin n, ε * (n : ℝ) ^ 2 ≤ (G.edgeSet.ncard : ℝ) ∧ C4RainbowColoring G color"
+  },
+  {
+   "target": "erdos-813",
+   "key": "erdos:813",
+   "file": "FormalConjectures/ErdosProblems/813.lean",
+   "decl": "erdos_813",
+   "graph": ": ∃ c₁ > (0 : ℝ), ∃ c₂ > (0 : ℝ), (fun n : ℕ ↦ (n : ℝ) ^ (1 / 3 + c₁ : ℝ)) =O[atTop] (fun n ↦ (h n : ℝ)) ∧ (fun n : ℕ ↦ (h n : ℝ)) =O[atTop] (fun n : ℕ ↦ (n : ℝ) ^ (1 / 2 - c₂ : ℝ))",
+   "upstream": ": ∃ c₁ > (0 : ℝ), ∃ c₂ > (0 : ℝ), (fun n : ℕ ↦ (n : ℝ) ^ (1 / 3 + c₁ : ℝ)) =O[atTop] (fun n ↦ (h n : ℝ)) ∧ (fun n : ℕ ↦ (h n : ℝ)) =O[atTop] (fun n : ℕ ↦ (n : ℝ) ^ (1 / 2 - c₂ : ℝ))"
+  },
+  {
+   "target": "erdos-820",
+   "key": "erdos:820",
+   "file": "FormalConjectures/ErdosProblems/820.lean",
+   "decl": "erdos_820",
+   "graph": ": {n : ℕ | H n = 3}.Infinite",
+   "upstream": ": {n : ℕ | H n = 3}.Infinite"
+  },
+  {
+   "target": "erdos-826",
+   "key": "erdos:826",
+   "file": "FormalConjectures/ErdosProblems/826.lean",
+   "decl": "erdos_826",
+   "graph": ": ∃ C > (0 : ℝ), { n | ∀ k ≥ 1, σ 0 (n + k) ≤ C * k }.Infinite",
+   "upstream": ": ∃ C > (0 : ℝ), { n | ∀ k ≥ 1, σ 0 (n + k) ≤ C * k }.Infinite"
+  },
+  {
+   "target": "erdos-828",
+   "key": "erdos:828",
+   "file": "FormalConjectures/ErdosProblems/828.lean",
+   "decl": "erdos_828",
+   "graph": ": ∀ a : ℤ, Set.Infinite {n : ℕ | ↑(φ n) ∣ n + a}",
+   "upstream": ": ∀ a : ℤ, Set.Infinite {n : ℕ | ↑(φ n) ∣ n + a}"
+  },
+  {
+   "target": "erdos-829",
+   "key": "erdos:829",
+   "file": "FormalConjectures/ErdosProblems/829.lean",
+   "decl": "erdos_829",
+   "graph": ": ∃ C : ℕ, (fun n : ℕ => (sumRep cubes n : ℝ)) =O[atTop] (fun n : ℕ => (Real.log n) ^ C)",
+   "upstream": ": ∃ C : ℕ, (fun n : ℕ => (sumRep cubes n : ℝ)) =O[atTop] (fun n : ℕ => (Real.log n) ^ C)"
+  },
+  {
+   "target": "erdos-830",
+   "key": "erdos:830",
+   "file": "FormalConjectures/ErdosProblems/830.lean",
+   "decl": "i",
+   "graph": ": {(a, b) | IsAmicable a b}.Infinite",
+   "upstream": ": {(a, b) | IsAmicable a b}.Infinite"
+  },
+  {
+   "target": "erdos-85",
+   "key": "erdos:85",
+   "file": "FormalConjectures/ErdosProblems/85.lean",
+   "decl": "erdos_85",
+   "graph": ": ∀ᶠ n in atTop, f n ≤ f (n + 1)",
+   "upstream": ": ∀ᶠ n in atTop, f n ≤ f (n + 1)"
+  },
+  {
+   "target": "erdos-853",
+   "key": "erdos:853",
+   "file": "FormalConjectures/ErdosProblems/853.lean",
+   "decl": "i",
+   "graph": ": atTop.Tendsto r atTop",
+   "upstream": ": atTop.Tendsto r atTop"
+  },
+  {
+   "target": "erdos-855",
+   "key": "erdos:855",
+   "file": "FormalConjectures/ErdosProblems/855.lean",
+   "decl": "erdos_855",
+   "graph": ": ∀ᶠ (xy : ℕ × ℕ) in atTop ×ˢ atTop, π (xy.1 + xy.2) ≤ π xy.1 + π xy.2",
+   "upstream": ": ∀ᶠ (xy : ℕ × ℕ) in atTop ×ˢ atTop, π (xy.1 + xy.2) ≤ π xy.1 + π xy.2"
+  },
+  {
+   "target": "erdos-859",
+   "key": "erdos:859",
+   "file": "FormalConjectures/ErdosProblems/859.lean",
+   "decl": "erdos_859",
+   "graph": ": ∃ c₁ > 0, ∃ c₂ > (0 : ℝ), ∃ d : ℕ → ℝ, (∀ t > 0, (DivisorSumSet t).HasDensity (d t)) ∧ (fun (t : ℕ) ↦ d t) ~[atTop] (fun t ↦ c₁ / Real.log t ^ c₂)",
+   "upstream": ": ∃ c₁ > 0, ∃ c₂ > (0 : ℝ), ∃ d : ℕ → ℝ, (∀ t > 0, (DivisorSumSet t).HasDensity (d t)) ∧ (fun (t : ℕ) ↦ d t) ~[atTop] (fun t ↦ c₁ / Real.log t ^ c₂)"
+  },
+  {
+   "target": "erdos-87",
+   "key": "erdos:87",
+   "file": "FormalConjectures/ErdosProblems/87.lean",
+   "decl": "i",
+   "graph": ": ∀ ε > (0 : ℝ), ε < 1 → ∀ᶠ k : ℕ in atTop, ∀ (V : Type) [Fintype V] (G : SimpleGraph V), G.chromaticNumber = (k : ℕ∞) → (SimpleGraph.diagonalGraphRamsey G : ℝ) > (1 - ε) ^ k * (SimpleGraph.diagonalRamsey k : ℝ)",
+   "upstream": ": ∀ ε > (0 : ℝ), ε < 1 → ∀ᶠ k : ℕ in atTop, ∀ (V : Type) [Fintype V] (G : SimpleGraph V), G.chromaticNumber = (k : ℕ∞) → (SimpleGraph.diagonalGraphRamsey G : ℝ) > (1 - ε) ^ k * (SimpleGraph.diagonalRamsey k : ℝ)"
+  },
+  {
+   "target": "erdos-873",
+   "key": "erdos:873",
+   "file": "FormalConjectures/ErdosProblems/873.lean",
+   "decl": "erdos_873",
+   "graph": ": ∀ᵉ (a : ℕ → ℕ) (ε > (0 : ℝ)), 0 < a 0 → StrictMono a → ∃ k, ∀ X > 0, F a X k < (X^ε).toEReal",
+   "upstream": ": ∀ᵉ (a : ℕ → ℕ) (ε > (0 : ℝ)), 0 < a 0 → StrictMono a → ∃ k, ∀ X > 0, F a X k < (X^ε).toEReal"
+  },
+  {
+   "target": "erdos-883",
+   "key": "erdos:883",
+   "file": "FormalConjectures/ErdosProblems/883.lean",
+   "decl": "i",
+   "graph": ": ∀ (n : ℕ) (A : Finset ℕ), A ⊆ Finset.Icc 1 n → n / 2 + n / 3 - n / 6 < A.card → ∀ l : ℕ, Odd l → 3 ≤ l → l ≤ n / 3 + 1 → l ∈ (coprimeGraph.induce (A : Set ℕ)).oddCycleLengths",
+   "upstream": ": ∀ (n : ℕ) (A : Finset ℕ), A ⊆ Finset.Icc 1 n → n / 2 + n / 3 - n / 6 < A.card → ∀ l : ℕ, Odd l → 3 ≤ l → l ≤ n / 3 + 1 → l ∈ (coprimeGraph.induce (A : Set ℕ)).oddCycleLengths"
+  },
+  {
+   "target": "erdos-886",
+   "key": "erdos:886",
+   "file": "FormalConjectures/ErdosProblems/886.lean",
+   "decl": "erdos_886",
+   "graph": ": ∀ ε > 0, ∃ K : ℕ, ∀ᶠ n in atTop, (Erdos886Divisors n ε 1).card ≤ K",
+   "upstream": ": ∀ ε > 0, ∃ K : ℕ, ∀ᶠ n in atTop, (Erdos886Divisors n ε 1).card ≤ K"
+  },
+  {
+   "target": "erdos-889",
+   "key": "erdos:889",
+   "file": "FormalConjectures/ErdosProblems/889.lean",
+   "decl": "erdos_889",
+   "graph": ": Tendsto v₀ atTop (𝓝 ⊤)",
+   "upstream": ": Tendsto v₀ atTop (𝓝 ⊤)"
+  },
+  {
+   "target": "erdos-890",
+   "key": "erdos:890",
+   "file": "FormalConjectures/ErdosProblems/890.lean",
+   "decl": "a",
+   "graph": ": ∀ k ≥ 1, liminf (fun n ↦ (∑ i ∈ range k, (ω_gt k (n + i) : EReal))) atTop ≤ k",
+   "upstream": ": ∀ k ≥ 1, liminf (fun n ↦ (∑ i ∈ range k, (ω_gt k (n + i) : EReal))) atTop ≤ k"
+  },
+  {
+   "target": "erdos-893",
+   "key": "erdos:893",
+   "file": "FormalConjectures/ErdosProblems/893.lean",
+   "decl": "erdos_893",
+   "graph": ": Tendsto (fun n : ℕ => (f (2 * n) : ℝ) / (f n : ℝ)) atTop atTop",
+   "upstream": ": Tendsto (fun n : ℕ => (f (2 * n) : ℝ) / (f n : ℝ)) atTop atTop"
+  },
+  {
+   "target": "erdos-9",
+   "key": "erdos:9",
+   "file": "FormalConjectures/ErdosProblems/9.lean",
+   "decl": "erdos_9",
+   "graph": ": 0 < Erdos9A.upperDensity",
+   "upstream": ": 0 < Erdos9A.upperDensity"
+  },
+  {
+   "target": "erdos-91",
+   "key": "erdos:91",
+   "file": "FormalConjectures/ErdosProblems/91.lean",
+   "decl": "erdos_91",
+   "graph": ": ∀ᶠ n : ℕ in atTop, ¬ UniqueMinimizer n",
+   "upstream": ": ∀ᶠ n : ℕ in atTop, ¬ UniqueMinimizer n"
+  },
+  {
+   "target": "erdos-913",
+   "key": "erdos:913",
+   "file": "FormalConjectures/ErdosProblems/913.lean",
+   "decl": "erdos_913",
+   "graph": ": { n | Set.InjOn (n * (n + 1)).factorization (n * (n + 1)).primeFactors }.Infinite",
+   "upstream": ": { n | Set.InjOn (n * (n + 1)).factorization (n * (n + 1)).primeFactors }.Infinite"
+  },
+  {
+   "target": "erdos-930",
+   "key": "erdos:930",
+   "file": "FormalConjectures/ErdosProblems/930.lean",
+   "decl": "erdos_930",
+   "graph": ": ∀ r > 0, ∃ k, ∀ I₁ I₂ : Fin r → ℕ, (∀ i : Fin r, 0 < I₁ i ∧ I₁ i + k ≤ I₂ i + 1) → (∀ i j : Fin r, i < j → I₂ i < I₁ j) → ¬ IsPower (∏ i : Fin r, ∏ m ∈ Icc (I₁ i) (I₂ i), m)",
+   "upstream": ": ∀ r > 0, ∃ k, ∀ I₁ I₂ : Fin r → ℕ, (∀ i : Fin r, 0 < I₁ i ∧ I₁ i + k ≤ I₂ i + 1) → (∀ i j : Fin r, i < j → I₂ i < I₁ j) → ¬ IsPower (∏ i : Fin r, ∏ m ∈ Icc (I₁ i) (I₂ i), m)"
+  },
+  {
+   "target": "erdos-933",
+   "key": "erdos:933",
+   "file": "FormalConjectures/ErdosProblems/933.lean",
+   "decl": "erdos_933",
+   "graph": ": atTop.limsup (fun n : ℕ ↦ ((((2 ^ k n * 3 ^ l n : ℕ) : ℝ) / ((n : ℝ) * Real.log (n : ℝ))) : EReal)) = ⊤",
+   "upstream": ": atTop.limsup (fun n : ℕ ↦ ((((2 ^ k n * 3 ^ l n : ℕ) : ℝ) / ((n : ℝ) * Real.log (n : ℝ))) : EReal)) = ⊤"
+  },
+  {
+   "target": "erdos-938",
+   "key": "erdos:938",
+   "file": "FormalConjectures/ErdosProblems/938.lean",
+   "decl": "erdos_938",
+   "graph": ": {P : Finset ℕ | (P : Set ℕ).IsAPOfLength 3 ∧ ∃ k, P = {nth Powerful k, nth Powerful (k + 1), nth Powerful (k + 2)}}.Finite",
+   "upstream": ": {P : Finset ℕ | (P : Set ℕ).IsAPOfLength 3 ∧ ∃ k, P = {nth Powerful k, nth Powerful (k + 1), nth Powerful (k + 2)}}.Finite"
+  },
+  {
+   "target": "erdos-940",
+   "key": "erdos:940",
+   "file": "FormalConjectures/ErdosProblems/940.lean",
+   "decl": "erdos_940",
+   "graph": ": ∀ r ≥ 3, {n : ℕ | ∃ (S : Multiset ℕ), S.card ≤ r ∧ (∀ s ∈ S, r.Full s) ∧ n = S.sum}.HasDensity 0",
+   "upstream": ": ∀ r ≥ 3, {n : ℕ | ∃ (S : Multiset ℕ), S.card ≤ r ∧ (∀ s ∈ S, r.Full s) ∧ n = S.sum}.HasDensity 0"
+  },
+  {
+   "target": "erdos-942",
+   "key": "erdos:942",
+   "file": "FormalConjectures/ErdosProblems/942.lean",
+   "decl": "erdos_942",
+   "graph": ": ∃ c > 0, ∃ (o : ℕ → ℝ), o =o[atTop] (1 : ℕ → ℝ) ∧ (∀ᶠ n in atTop, erdos_942.h n < (Real.log n) ^ (c + o n)) ∧ {n | erdos_942.h n > (Real.log n) ^ (c - o n)}.Infinite",
+   "upstream": ": ∃ c > 0, ∃ (o : ℕ → ℝ), o =o[atTop] (1 : ℕ → ℝ) ∧ (∀ᶠ n in atTop, erdos_942.h n < (Real.log n) ^ (c + o n)) ∧ {n | erdos_942.h n > (Real.log n) ^ (c - o n)}.Infinite"
+  },
+  {
+   "target": "erdos-943",
+   "key": "erdos:943",
+   "file": "FormalConjectures/ErdosProblems/943.lean",
+   "decl": "erdos_943",
+   "graph": ": ∃ (o : ℕ → ℝ), o =o[atTop] (1 : ℕ → ℝ) ∧ ∀ᶠ n in atTop, (sumRep Powerful n) ≤ (n : ℝ)^(o n)",
+   "upstream": ": ∃ (o : ℕ → ℝ), o =o[atTop] (1 : ℕ → ℝ) ∧ ∀ᶠ n in atTop, (sumRep Powerful n) ≤ (n : ℝ)^(o n)"
+  },
+  {
+   "target": "erdos-945",
+   "key": "erdos:945",
+   "file": "FormalConjectures/ErdosProblems/945.lean",
+   "decl": "erdos_945",
+   "graph": ": Erdos945Prop",
+   "upstream": ": Erdos945Prop"
+  },
+  {
+   "target": "erdos-949",
+   "key": "erdos:949",
+   "file": "FormalConjectures/ErdosProblems/949.lean",
+   "decl": "erdos_949",
+   "graph": ": ∀ S : Set ℝ, (∀ a ∈ S, ∀ b ∈ S, a + b ∉ S) → ∃ A ⊆ Sᶜ, #A = 𝔠 ∧ A + A ⊆ Sᶜ",
+   "upstream": ": ∀ S : Set ℝ, (∀ a ∈ S, ∀ b ∈ S, a + b ∉ S) → ∃ A ⊆ Sᶜ, #A = 𝔠 ∧ A + A ⊆ Sᶜ"
+  },
+  {
+   "target": "erdos-96",
+   "key": "erdos:96",
+   "file": "FormalConjectures/ErdosProblems/96.lean",
+   "decl": "erdos_96",
+   "graph": ": (fun n => (maxConvexUnitDistances n : ℝ)) =O[atTop] fun n => (n : ℝ)",
+   "upstream": ": (fun n => (maxConvexUnitDistances n : ℝ)) =O[atTop] fun n => (n : ℝ)"
+  },
+  {
+   "target": "erdos-962",
+   "key": "erdos:962",
+   "file": "FormalConjectures/ErdosProblems/962.lean",
+   "decl": "erdos_962",
+   "graph": ": ∃ ε : ℕ → ℝ, (∀ δ > 0, ∀ᶠ n in atTop, |ε n| < δ) ∧ ∀ᶠ n : ℕ in atTop, log (k n : ℝ) ≤ rpow (log n) ((1 : ℝ) / 2 + ε n)",
+   "upstream": ": ∃ ε : ℕ → ℝ, (∀ δ > 0, ∀ᶠ n in atTop, |ε n| < δ) ∧ ∀ᶠ n : ℕ in atTop, log (k n : ℝ) ≤ rpow (log n) ((1 : ℝ) / 2 + ε n)"
+  },
+  {
+   "target": "erdos-971",
+   "key": "erdos:971",
+   "file": "FormalConjectures/ErdosProblems/971.lean",
+   "decl": "erdos_971",
+   "graph": ": ∃ c > (0 : ℝ), ∃ C > (0 : ℝ), ∀ᶠ d in atTop, C * (d.totient : ℝ) ≤ #{a < d | a.Coprime d ∧ (leastCongruentPrime a d : ℝ) > (1 + c) * d.totient * log d}",
+   "upstream": ": ∃ c > (0 : ℝ), ∃ C > (0 : ℝ), ∀ᶠ d in atTop, C * (d.totient : ℝ) ≤ #{a < d | a.Coprime d ∧ (leastCongruentPrime a d : ℝ) > (1 + c) * d.totient * log d}"
+  },
+  {
+   "target": "erdos-972",
+   "key": "erdos:972",
+   "file": "FormalConjectures/ErdosProblems/972.lean",
+   "decl": "erdos_972",
+   "graph": ": ∀ α > 1, Irrational α → (primeSet α).Infinite",
+   "upstream": ": ∀ α > 1, Irrational α → (primeSet α).Infinite"
+  },
+  {
+   "target": "erdos-979",
+   "key": "erdos:979",
+   "file": "FormalConjectures/ErdosProblems/979.lean",
+   "decl": "erdos_979",
+   "graph": ": ∀ k ≥ 2, Filter.limsup (fun n => (solutionSet n k).encard) Filter.atTop = ⊤",
+   "upstream": ": ∀ k ≥ 2, Filter.limsup (fun n => (solutionSet n k).encard) Filter.atTop = ⊤"
+  },
+  {
+   "target": "erdos-98",
+   "key": "erdos:98",
+   "file": "FormalConjectures/ErdosProblems/98.lean",
+   "decl": "erdos_98",
+   "graph": ": Tendsto (fun n : ℕ ↦ ((h n : ℝ) / (n : ℝ))) atTop atTop",
+   "upstream": ": Tendsto (fun n : ℕ ↦ ((h n : ℝ) / (n : ℝ))) atTop atTop"
+  },
+  {
+   "target": "erdos-985",
+   "key": "erdos:985",
+   "file": "FormalConjectures/ErdosProblems/985.lean",
+   "decl": "erdos_985",
+   "graph": ": ∀ᵉ (p : ℕ) (hp_prime : p.Prime) (hp_nontrivial : p ≠ 2), ∃ q, q.Prime ∧ q < p ∧ orderOf (q : ZMod p) = p - 1",
+   "upstream": ": ∀ᵉ (p : ℕ) (hp_prime : p.Prime) (hp_nontrivial : p ≠ 2), ∃ q, q.Prime ∧ q < p ∧ orderOf (q : ZMod p) = p - 1"
+  },
+  {
+   "target": "erdos-99",
+   "key": "erdos:99",
+   "file": "FormalConjectures/ErdosProblems/99.lean",
+   "decl": "erdos_99",
+   "graph": ": ∀ᶠ n in Filter.atTop, ∀ A : Finset ℝ², A.card = n → HasMinDist1 A → (IsMinOn (fun B: Finset ℝ² => diam (B : Set ℝ²)) {B : Finset ℝ² | B.card = n ∧ HasMinDist1 B} A) → ∃ᵉ (p ∈ A) (q ∈ A) (r ∈ A), FormsEquilateralTriangle p q r",
+   "upstream": ": ∀ᶠ n in Filter.atTop, ∀ A : Finset ℝ², A.card = n → HasMinDist1 A → (IsMinOn (fun B: Finset ℝ² => diam (B : Set ℝ²)) {B : Finset ℝ² | B.card = n ∧ HasMinDist1 B} A) → ∃ᵉ (p ∈ A) (q ∈ A) (r ∈ A), FormsEquilateralTriangle p q r"
+  },
+  {
+   "target": "erdos-996",
+   "key": "erdos:996",
+   "file": "FormalConjectures/ErdosProblems/996.lean",
+   "decl": "erdos_996",
+   "graph": ": ∃ (C : ℝ), 0 < C ∧ ∀ (f : Lp ℂ 2 (haarAddCircle (T := 1))) (n : ℕ → ℕ), IsLacunary n → (fun k => (eLpNorm (⇑f - fourierPartial f k) 2 (haarAddCircle (T := 1))).toReal) =O[atTop] (fun k => 1 / (log (log (log k))) ^ C) → ∀ᵐ x, Tendsto (fun N => (∑ k ∈ .range N, f (n k • x)) / N) atTop (𝓝 (∫ t, f t ∂haarAddCircle))",
+   "upstream": ": ∃ (C : ℝ), 0 < C ∧ ∀ (f : Lp ℂ 2 (haarAddCircle (T := 1))) (n : ℕ → ℕ), IsLacunary n → (fun k => (eLpNorm (⇑f - fourierPartial f k) 2 (haarAddCircle (T := 1))).toReal) =O[atTop] (fun k => 1 / (log (log (log k))) ^ C) → ∀ᵐ x, Tendsto (fun N => (∑ k ∈ .range N, f (n k • x)) / N) atTop (𝓝 (∫ t, f t ∂haarAddCircle))"
+  },
+  {
+   "target": "erdos-moser-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/ErdosMoser.lean#erdos_moser_conjecture",
+   "file": "FormalConjectures/Wikipedia/ErdosMoser.lean",
+   "decl": "erdos_moser_conjecture",
+   "graph": ": ∀ k m : ℕ, 0 < k → 0 < m → powerSum k m = m ^ k → k = 1 ∧ m = 3",
+   "upstream": ": ∀ k m : ℕ, 0 < k → 0 < m → powerSum k m = m ^ k → k = 1 ∧ m = 3"
+  },
+  {
+   "target": "erdos-ulam-problem",
+   "key": "fc:FormalConjectures/Wikipedia/ErdosUlamProblem.lean#erdos_ulam_problem",
+   "file": "FormalConjectures/Wikipedia/ErdosUlamProblem.lean",
+   "decl": "erdos_ulam_problem",
+   "graph": ": ∃ S : Set (EuclideanSpace ℝ (Fin 2)), Dense S ∧ PairwiseRationalDistances S",
+   "upstream": ": ∃ S : Set (EuclideanSpace ℝ (Fin 2)), Dense S ∧ PairwiseRationalDistances S"
+  },
+  {
+   "target": "error-is-big-o",
+   "key": "fc:FormalConjectures/Wikipedia/GaussCircleProblem.lean#error_isBigO",
+   "file": "FormalConjectures/Wikipedia/GaussCircleProblem.lean",
+   "decl": "error_isBigO",
+   "graph": ": ∃ (o : ℝ → ℝ) (_ : Tendsto o atTop (𝓝 0)), E =O[atTop] fun r => r ^ (1/2 + o r)",
+   "upstream": ": ∃ (o : ℝ → ℝ) (_ : Tendsto o atTop (𝓝 0)), E =O[atTop] fun r => r ^ (1/2 + o r)"
+  },
+  {
+   "target": "error-term-improvement",
+   "key": "fc:FormalConjectures/Wikipedia/PowerfulNumbersDensity.lean#error_term_improvement",
+   "file": "FormalConjectures/Wikipedia/PowerfulNumbersDensity.lean",
+   "decl": "error_term_improvement",
+   "graph": ": ∃ δ > (0 : ℝ), (fun x : ℝ => (Q x : ℝ) - A * x ^ ((1 : ℝ) / 2) - B * x ^ ((1 : ℝ) / 3)) =O[atTop] fun x => x ^ ((1 : ℝ) / 6 - δ)",
+   "upstream": ": ∃ δ > (0 : ℝ), (fun x : ℝ => (Q x : ℝ) - A * x ^ ((1 : ℝ) / 2) - B * x ^ ((1 : ℝ) / 3)) =O[atTop] fun x => x ^ ((1 : ℝ) / 6 - δ)"
+  },
+  {
+   "target": "eulers-sum-of-powers-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/EulerSumOfPowers.lean#eulers_sum_of_powers_conjecture",
+   "file": "FormalConjectures/Wikipedia/EulerSumOfPowers.lean",
+   "decl": "eulers_sum_of_powers_conjecture",
+   "graph": "(n k b : ℕ) (hn : 1 < n) (hk : 5 < k) (a : Fin n → ℕ) (ha : ∀ i, a i > 0) (hsum : ∑ i, (a i) ^ k = b ^ k) : k ≤ n",
+   "upstream": "(n k b : ℕ) (hn : 1 < n) (hk : 5 < k) (a : Fin n → ℕ) (ha : ∀ i, a i > 0) (hsum : ∑ i, (a i) ^ k = b ^ k) : k ≤ n"
+  },
+  {
+   "target": "exists-almost-perfect-not-power-of-two",
+   "key": "fc:FormalConjectures/Wikipedia/AlmostPerfectNumbers.lean#exists_almost_perfect_not_power_of_two",
+   "file": "FormalConjectures/Wikipedia/AlmostPerfectNumbers.lean",
+   "decl": "exists_almost_perfect_not_power_of_two",
+   "graph": ": ∃ n : ℕ, AlmostPerfect n ∧ ¬ ∃ k : ℕ, n = 2^k",
+   "upstream": ": ∃ n : ℕ, AlmostPerfect n ∧ ¬ ∃ k : ℕ, n = 2^k"
+  },
+  {
+   "target": "exists-fermat-not-squarefree",
+   "key": "fc:FormalConjectures/Wikipedia/Fermat.lean#exists_fermat_not_squarefree",
+   "file": "FormalConjectures/Wikipedia/Fermat.lean",
+   "decl": "exists_fermat_not_squarefree",
+   "graph": ": ∃ n : ℕ, ¬Squarefree n.fermatNumber",
+   "upstream": ": ∃ n : ℕ, ¬Squarefree n.fermatNumber"
+  },
+  {
+   "target": "exists-is-wall-sun-sun-prime",
+   "key": "fc:FormalConjectures/Wikipedia/WallSunSun.lean#exists_isWallSunSunPrime",
+   "file": "FormalConjectures/Wikipedia/WallSunSun.lean",
+   "decl": "exists_isWallSunSunPrime",
+   "graph": ": ∃ p, IsWallSunSunPrime p",
+   "upstream": ": ∃ p, IsWallSunSunPrime p"
+  },
+  {
+   "target": "exists-is-wieferich-prime-and-is-mirimanoff-prime",
+   "key": "fc:FormalConjectures/Wikipedia/WieferichMirimanoffPrime.lean#exists_isWieferichPrime_and_isMirimanoffPrime",
+   "file": "FormalConjectures/Wikipedia/WieferichMirimanoffPrime.lean",
+   "decl": "exists_isWieferichPrime_and_isMirimanoffPrime",
+   "graph": ": ∃ p : ℕ, IsWieferichPrime p ∧ IsMirimanoffPrime p",
+   "upstream": ": ∃ p : ℕ, IsWieferichPrime p ∧ IsMirimanoffPrime p"
+  },
+  {
+   "target": "exists-is-wieferich-prime-base-47",
+   "key": "fc:FormalConjectures/Wikipedia/WieferichPrime.lean#exists_isWieferichPrimeBase_47",
+   "file": "FormalConjectures/Wikipedia/WieferichPrime.lean",
+   "decl": "exists_isWieferichPrimeBase_47",
+   "graph": ": ∃ p, IsWieferichPrimeBase 47 p",
+   "upstream": ": ∃ p, IsWieferichPrimeBase 47 p"
+  },
+  {
+   "target": "exists-k",
+   "key": "fc:FormalConjectures/OEIS/34693.lean#exists_k",
+   "file": "FormalConjectures/OEIS/34693.lean",
+   "decl": "exists_k",
+   "graph": "{n : ℕ} (hn : 1 < n) : ∃ k < n, (n * k + 1).Prime",
+   "upstream": "{n : ℕ} (hn : 1 < n) : ∃ k < n, (n * k + 1).Prime"
+  },
+  {
+   "target": "exists-k-stronger",
+   "key": "fc:FormalConjectures/OEIS/34693.lean#exists_k_stronger",
+   "file": "FormalConjectures/OEIS/34693.lean",
+   "decl": "exists_k_stronger",
+   "graph": "{n : ℕ} (hn : 0 < n) : ∃ k : ℕ, k < 1 + (Real.nthRoot 4 n) ^ 3 ∧ (n * k + 1).Prime",
+   "upstream": "{n : ℕ} (hn : 0 < n) : ∃ k : ℕ, k < 1 + (Real.nthRoot 4 n) ^ 3 ∧ (n * k + 1).Prime"
+  },
+  {
+   "target": "exists-magic-square-squares",
+   "key": "fc:FormalConjectures/Wikipedia/MagicSquares.lean#exists_magic_square_squares",
+   "file": "FormalConjectures/Wikipedia/MagicSquares.lean",
+   "decl": "exists_magic_square_squares",
+   "graph": ": ∃ m : Fin 3 → Fin 3 → ℕ, ∃ t : ℕ, m.Injective2 ∧ (∀ i j, 0 < (m i j) ∧ IsSquare (m i j)) ∧ (∀ i, ∑ j, m i j = t) ∧ (∀ j, ∑ i, m i j = t) ∧ m 0 0 + m 1 1 + m 2 2 = t ∧ m 0 2 + m 1 1 + m 2 0 = t",
+   "upstream": ": ∃ m : Fin 3 → Fin 3 → ℕ, ∃ t : ℕ, m.Injective2 ∧ (∀ i j, 0 < (m i j) ∧ IsSquare (m i j)) ∧ (∀ i, ∑ j, m i j = t) ∧ (∀ j, ∑ i, m i j = t) ∧ m 0 0 + m 1 1 + m 2 2 = t ∧ m 0 2 + m 1 1 + m 2 0 = t"
+  },
+  {
+   "target": "exists-nowhere-dense-spectral-set",
+   "key": "fc:FormalConjectures/Arxiv/2209.04540/SpectralSetsAndWeakTiling.lean#exists_nowhereDense_spectralSet",
+   "file": "FormalConjectures/Arxiv/2209.04540/SpectralSetsAndWeakTiling.lean",
+   "decl": "exists_nowhereDense_spectralSet",
+   "graph": ": ∃ d : ℕ, 2 ≤ d ∧ ∃ Ω : Set (Fin d → ℝ), Bornology.IsBounded Ω ∧ MeasurableSet Ω ∧ IsNowhereDense Ω ∧ 0 < volume Ω ∧ isSpectral Ω",
+   "upstream": ": ∃ d : ℕ, 2 ≤ d ∧ ∃ Ω : Set (Fin d → ℝ), Bornology.IsBounded Ω ∧ MeasurableSet Ω ∧ IsNowhereDense Ω ∧ 0 < volume Ω ∧ isSpectral Ω"
+  },
+  {
+   "target": "exists-quasiperfect",
+   "key": "fc:FormalConjectures/Wikipedia/QuasiperfectNumbers.lean#exists_quasiperfect",
+   "file": "FormalConjectures/Wikipedia/QuasiperfectNumbers.lean",
+   "decl": "exists_quasiperfect",
+   "graph": ": ∃ n, Quasiperfect n",
+   "upstream": ": ∃ n, Quasiperfect n"
+  },
+  {
+   "target": "exists-semi-magic-square-cubes",
+   "key": "fc:FormalConjectures/Wikipedia/MagicSquares.lean#exists_semi_magic_square_cubes",
+   "file": "FormalConjectures/Wikipedia/MagicSquares.lean",
+   "decl": "exists_semi_magic_square_cubes",
+   "graph": ": ∃ m : Fin 3 → Fin 3 → ℕ, ∃ t : ℕ, m.Injective2 ∧ (∀ i j, ∃ n : ℕ, 0 < n ∧ m i j = n ^ 3) ∧ (∀ i, ∑ j, m i j = t) ∧ (∀ j, ∑ i, m i j = t)",
+   "upstream": ": ∃ m : Fin 3 → Fin 3 → ℕ, ∃ t : ℕ, m.Injective2 ∧ (∀ i j, ∃ n : ℕ, 0 < n ∧ m i j = n ^ 3) ∧ (∀ i, ∑ j, m i j = t) ∧ (∀ j, ∑ i, m i j = t)"
+  },
+  {
+   "target": "exists-thabit-amicable-exponent-gt-seven",
+   "key": "fc:FormalConjectures/Wikipedia/ThabitNumber.lean#exists_thabit_amicable_exponent_gt_seven",
+   "file": "FormalConjectures/Wikipedia/ThabitNumber.lean",
+   "decl": "exists_thabit_amicable_exponent_gt_seven",
+   "graph": ": ∃ n > 7, (thabitNumber (n - 1)).Prime ∧ (thabitNumber n).Prime ∧ (9 * 2 ^ (2 * n - 1) - 1).Prime",
+   "upstream": ": ∃ n > 7, (thabitNumber (n - 1)).Prime ∧ (thabitNumber n).Prime ∧ (9 * 2 ^ (2 * n - 1) - 1).Prime"
+  },
+  {
+   "target": "exp-add-pi-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_add_pi_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "exp_add_pi_transcendental",
+   "graph": ": Transcendental ℚ (exp 1 + π)",
+   "upstream": ": Transcendental ℚ (exp 1 + π)"
+  },
+  {
+   "target": "exp-exp-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_exp_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "exp_exp_transcendental",
+   "graph": ": Transcendental ℚ (exp (exp 1))",
+   "upstream": ": Transcendental ℚ (exp (exp 1))"
+  },
+  {
+   "target": "exp-mul-pi-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_mul_pi_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "exp_mul_pi_transcendental",
+   "graph": ": Transcendental ℚ (exp 1 * π)",
+   "upstream": ": Transcendental ℚ (exp 1 * π)"
+  },
+  {
+   "target": "exp-pow-pi-sq-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#exp_pow_pi_sq_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "exp_pow_pi_sq_transcendental",
+   "graph": ": Transcendental ℚ (exp (π ^ 2))",
+   "upstream": ": Transcendental ℚ (exp (π ^ 2))"
+  },
+  {
+   "target": "extended-sierpinski-problem",
+   "key": "fc:FormalConjectures/Wikipedia/SierpinskiNumber.lean#extended_sierpinski_problem",
+   "file": "FormalConjectures/Wikipedia/SierpinskiNumber.lean",
+   "decl": "extended_sierpinski_problem",
+   "graph": ": IsLeast {k | k.IsSierpinskiNumber ∧ ∃ k', k'.IsSierpinskiNumber ∧ k' < k} 271129",
+   "upstream": ": IsLeast {k | k.IsSierpinskiNumber ∧ ∃ k', k'.IsSierpinskiNumber ∧ k' < k} 271129"
+  },
+  {
+   "target": "feit-thompson-primes",
+   "key": "fc:FormalConjectures/Wikipedia/FeitThompsonPrimeConjecture.lean#feit_thompson_primes",
+   "file": "FormalConjectures/Wikipedia/FeitThompsonPrimeConjecture.lean",
+   "decl": "feit_thompson_primes",
+   "graph": "(p q : ℕ) (hp : p.Prime) (hq : q.Prime) (h : p < q) : ¬ (q ^ p - 1) / (q - 1) ∣ (p ^ q - 1) / (p - 1)",
+   "upstream": "(p q : ℕ) (hp : p.Prime) (hq : q.Prime) (h : p < q) : ¬ (q ^ p - 1) / (q - 1) ∣ (p ^ q - 1) / (p - 1)"
+  },
+  {
+   "target": "fermat-catalan",
+   "key": "fc:FormalConjectures/Wikipedia/FermatCatalanConjecture.lean#fermat_catalan",
+   "file": "FormalConjectures/Wikipedia/FermatCatalanConjecture.lean",
+   "decl": "fermat_catalan",
+   "graph": ": fermatCatalanConjecture",
+   "upstream": ": fermatCatalanConjecture"
+  },
+  {
+   "target": "fermat-number-are-composite",
+   "key": "fc:FormalConjectures/Wikipedia/Fermat.lean#fermat_number_are_composite",
+   "file": "FormalConjectures/Wikipedia/Fermat.lean",
+   "decl": "fermat_number_are_composite",
+   "graph": ": ∀ n > 4, ¬Prime n.fermatNumber",
+   "upstream": ": ∀ n > 4, ¬Prime n.fermatNumber"
+  },
+  {
+   "target": "fib-primes-infinite",
+   "key": "fc:FormalConjectures/Wikipedia/FibonacciPrimes.lean#fib_primes_infinite",
+   "file": "FormalConjectures/Wikipedia/FibonacciPrimes.lean",
+   "decl": "fib_primes_infinite",
+   "graph": ": {n : ℕ | (∃ m : ℕ, m.fib = n) ∧ n.Prime}.Infinite",
+   "upstream": ": {n : ℕ | (∃ m : ℕ, m.fib = n) ∧ n.Prime}.Infinite"
+  },
+  {
+   "target": "firoozbakht-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Firoozbakht.lean#firoozbakht_conjecture",
+   "file": "FormalConjectures/Wikipedia/Firoozbakht.lean",
+   "decl": "firoozbakht_conjecture",
+   "graph": "(n : ℕ) : firoozbakhtSeq (n+1) < firoozbakhtSeq n",
+   "upstream": "(n : ℕ) : firoozbakhtSeq (n+1) < firoozbakhtSeq n"
+  },
+  {
+   "target": "four",
+   "key": "fc:FormalConjectures/Wikipedia/BorsukConjecture.lean#borsuk_conjecture.four",
+   "file": "FormalConjectures/Wikipedia/BorsukConjecture.lean",
+   "decl": "four",
+   "graph": ": BorsukConjecture 4",
+   "upstream": ": BorsukConjecture 4"
+  },
+  {
+   "target": "four-exponentials-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Exponentials.lean#four_exponentials_conjecture",
+   "file": "FormalConjectures/Wikipedia/Exponentials.lean",
+   "decl": "four_exponentials_conjecture",
+   "graph": "(x : Fin 2 → ℂ) (y : Fin 2 → ℂ) (h1 : LinearIndependent ℚ x) (h2 : LinearIndependent ℚ y) : ∃ i j : Fin 2, Transcendental ℚ (exp (x i * y j))",
+   "upstream": "(x : Fin 2 → ℂ) (y : Fin 2 → ℂ) (h1 : LinearIndependent ℚ x) (h2 : LinearIndependent ℚ y) : ∃ i j : Fin 2, Transcendental ℚ (exp (x i * y j))"
+  },
+  {
+   "target": "generalized-twin-primes",
+   "key": "fc:FormalConjectures/Wikipedia/Dickson.lean#generalized_twin_primes",
+   "file": "FormalConjectures/Wikipedia/Dickson.lean",
+   "decl": "generalized_twin_primes",
+   "graph": "(k : ℕ) (hk : 0 < k) : Infinite {p : ℕ | p.Prime ∧ (p + 2 * k).Prime}",
+   "upstream": "(k : ℕ) (hk : 0 < k) : Infinite {p : ℕ | p.Prime ∧ (p + 2 * k).Prime}"
+  },
+  {
+   "target": "gilbreath-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Gilbreath.lean#gilbreath_conjecture",
+   "file": "FormalConjectures/Wikipedia/Gilbreath.lean",
+   "decl": "gilbreath_conjecture",
+   "graph": "(k : ℕ+) : d k 0 = 1",
+   "upstream": "(k : ℕ+) : d k 0 = 1"
+  },
+  {
+   "target": "goodman-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/GoodmanConjecture.lean#goodman_conjecture",
+   "file": "FormalConjectures/Wikipedia/GoodmanConjecture.lean",
+   "decl": "goodman_conjecture",
+   "graph": "(f : ℂ → ℂ) (p n : ℕ) (hf : IsPValent f p) (hf' : IsNormalized f) (hn : p < n) : ‖coeff f n‖ ≤ goodmanBound f p n",
+   "upstream": "(f : ℂ → ℂ) (p n : ℕ) (hf : IsPValent f p) (hf' : IsNormalized f) (hn : p < n) : ‖coeff f n‖ ≤ goodmanBound f p n"
+  },
+  {
+   "target": "green-15",
+   "key": "fc:FormalConjectures/GreensOpenProblems/15.lean#green_15",
+   "file": "FormalConjectures/GreensOpenProblems/15.lean",
+   "decl": "green_15",
+   "graph": ": ∃ K : ℝ≥0, ∃ f : ℕ → ℤ, LipschitzWith K f ∧ IsAPOfLengthFree {((n, f n) : ℤ × ℤ) | (n : ℕ)} 3",
+   "upstream": ": ∃ K : ℝ≥0, ∃ f : ℕ → ℤ, LipschitzWith K f ∧ IsAPOfLengthFree {((n, f n) : ℤ × ℤ) | (n : ℕ)} 3"
+  },
+  {
+   "target": "green-18",
+   "key": "fc:FormalConjectures/GreensOpenProblems/18.lean#green_18",
+   "file": "FormalConjectures/GreensOpenProblems/18.lean",
+   "decl": "green_18",
+   "graph": ": ∀ α > 0, ∃ c > 0, ∃ m₀ : ℕ, ∀ (G : Type*) [Group G] [Fintype G] [DecidableEq G] (A : Finset (G × G)), Fintype.card G ≥ m₀ → (A.card : ℝ) ≥ α * (Fintype.card G) ^ 2 → (numNaiveCorners A : ℝ) ≥ c * (Fintype.card G) ^ 3",
+   "upstream": ": ∀ α > 0, ∃ c > 0, ∃ m₀ : ℕ, ∀ (G : Type*) [Group G] [Fintype G] [DecidableEq G] (A : Finset (G × G)), Fintype.card G ≥ m₀ → (A.card : ℝ) ≥ α * (Fintype.card G) ^ 2 → (numNaiveCorners A : ℝ) ≥ c * (Fintype.card G) ^ 3"
+  },
+  {
+   "target": "green-2",
+   "key": "fc:FormalConjectures/GreensOpenProblems/2.lean#green_2",
+   "file": "FormalConjectures/GreensOpenProblems/2.lean",
+   "decl": "green_2",
+   "graph": ": ∀ᶠ n : ℕ in atTop, ∀ A : Finset ℤ, A.card = n → (maxRestrictedSumAvoidingSubsetSize A : ℝ) ≥ (Real.log n) ^ 100",
+   "upstream": ": ∀ᶠ n : ℕ in atTop, ∀ A : Finset ℤ, A.card = n → (maxRestrictedSumAvoidingSubsetSize A : ℝ) ≥ (Real.log n) ^ 100"
+  },
+  {
+   "target": "green-29",
+   "key": "fc:FormalConjectures/GreensOpenProblems/29.lean#green_29",
+   "file": "FormalConjectures/GreensOpenProblems/29.lean",
+   "decl": "green_29",
+   "graph": ": ∃ C c : ℝ, 0 < C ∧ 0 < c ∧ ∀ {G : Type*} [Group G] [DecidableEq G] (K : ℝ) (A : Finset G), 1 ≤ K → IsApproximateSubgroup K (A : Set G) → ∃ S : Finset G, C * K ^ (-c) * (A.card : ℝ) ≤ (S.card : ℝ) ∧ S ^ 8 ⊆ A ^ 4",
+   "upstream": ": ∃ C c : ℝ, 0 < C ∧ 0 < c ∧ ∀ {G : Type*} [Group G] [DecidableEq G] (K : ℝ) (A : Finset G), 1 ≤ K → IsApproximateSubgroup K (A : Set G) → ∃ S : Finset G, C * K ^ (-c) * (A.card : ℝ) ≤ (S.card : ℝ) ∧ S ^ 8 ⊆ A ^ 4"
+  },
+  {
+   "target": "green-33",
+   "key": "fc:FormalConjectures/GreensOpenProblems/33.lean#green_33",
+   "file": "FormalConjectures/GreensOpenProblems/33.lean",
+   "decl": "green_33",
+   "graph": ": ∀ ε : ℝ, 0 < ε → ∃ᶠ q : ℕ+ in atTop, ∃ A : Finset (ZMod q), A + A = Finset.univ ∧ |((A.card : ℝ) / Real.sqrt q - Real.sqrt 2)| < ε",
+   "upstream": ": ∀ ε : ℝ, 0 < ε → ∃ᶠ q : ℕ+ in atTop, ∃ A : Finset (ZMod q), A + A = Finset.univ ∧ |((A.card : ℝ) / Real.sqrt q - Real.sqrt 2)| < ε"
+  },
+  {
+   "target": "green-36",
+   "key": "fc:FormalConjectures/GreensOpenProblems/36.lean#green_36",
+   "file": "FormalConjectures/GreensOpenProblems/36.lean",
+   "decl": "green_36",
+   "graph": ": ∀ ε > (0 : ℝ), ∃ᶠ n in atTop, ∃ (H : Type) (_ : AddCommGroup H) (_ : Finite H) (A B : Fin n → Finset H), (n : ℝ) ^ (2 - ε) ≤ Nat.card H ∧ Nat.card H ≤ (n : ℝ) ^ (2 + ε) ∧ (∀ i, (n : ℝ) ^ (2 - ε) ≤ (A i).card * (B i).card) ∧ Green36Property A B",
+   "upstream": ": ∀ ε > (0 : ℝ), ∃ᶠ n in atTop, ∃ (H : Type) (_ : AddCommGroup H) (_ : Finite H) (A B : Fin n → Finset H), (n : ℝ) ^ (2 - ε) ≤ Nat.card H ∧ Nat.card H ≤ (n : ℝ) ^ (2 + ε) ∧ (∀ i, (n : ℝ) ^ (2 - ε) ≤ (A i).card * (B i).card) ∧ Green36Property A B"
+  },
+  {
+   "target": "green-39",
+   "key": "fc:FormalConjectures/GreensOpenProblems/39.lean#green_39",
+   "file": "FormalConjectures/GreensOpenProblems/39.lean",
+   "decl": "green_39",
+   "graph": ": Tendsto (fun p : {q : ℕ // q.Prime} ↦ let k := Nat.sqrt p let c := 100 * k (proportionCoverable p k c : ℝ)) atTop (𝓝 1)",
+   "upstream": ": Tendsto (fun p : {q : ℕ // q.Prime} ↦ let k := Nat.sqrt p let c := 100 * k (proportionCoverable p k c : ℝ)) atTop (𝓝 1)"
+  },
+  {
+   "target": "green-45",
+   "key": "fc:FormalConjectures/GreensOpenProblems/45.lean#green_45",
+   "file": "FormalConjectures/GreensOpenProblems/45.lean",
+   "decl": "green_45",
+   "graph": ": ∀ᶠ N in .atTop, ∃ a : ℕ → ℕ, ∀ m ∈ Finset.Icc 1 N, 10 ≤ (Finset.Icc 1 N |>.filter fun p => p.Prime ∧ a p ≡ m [MOD p]).card",
+   "upstream": ": ∀ᶠ N in .atTop, ∃ a : ℕ → ℕ, ∀ m ∈ Finset.Icc 1 N, 10 ≤ (Finset.Icc 1 N |>.filter fun p => p.Prime ∧ a p ≡ m [MOD p]).card"
+  },
+  {
+   "target": "green-60",
+   "key": "fc:FormalConjectures/GreensOpenProblems/60.lean#green_60",
+   "file": "FormalConjectures/GreensOpenProblems/60.lean",
+   "decl": "green_60",
+   "graph": ": ∃ c > (0 : ℝ), ∀ (A : Finset ℕ), (∀ a ∈ A, IsSquare a) → 2 ≤ A.card → ((A + A).card : ℝ) ≥ (A.card : ℝ) ^ (1 + c)",
+   "upstream": ": ∃ c > (0 : ℝ), ∀ (A : Finset ℕ), (∀ a ∈ A, IsSquare a) → 2 ≤ A.card → ((A + A).card : ℝ) ≥ (A.card : ℝ) ^ (1 + c)"
+  },
+  {
+   "target": "green-61",
+   "key": "fc:FormalConjectures/GreensOpenProblems/61.lean#green_61",
+   "file": "FormalConjectures/GreensOpenProblems/61.lean",
+   "decl": "green_61",
+   "graph": ": ∃ f : ℕ → ℝ, Tendsto f atTop (𝓝 0) ∧ ∀ n : ℕ, n ≥ 1 → ∀ (A : Finset ℕ), (Finset.Icc 1 n).image (· ^ 2) ⊆ A + A → (n : ℝ) ^ (1 - f n) ≤ A.card",
+   "upstream": ": ∃ f : ℕ → ℝ, Tendsto f atTop (𝓝 0) ∧ ∀ n : ℕ, n ≥ 1 → ∀ (A : Finset ℕ), (Finset.Icc 1 n).image (· ^ 2) ⊆ A + A → (n : ℝ) ^ (1 - f n) ≤ A.card"
+  },
+  {
+   "target": "green-62",
+   "key": "fc:FormalConjectures/GreensOpenProblems/62.lean#green_62",
+   "file": "FormalConjectures/GreensOpenProblems/62.lean",
+   "decl": "green_62",
+   "graph": ": ∀ᶠ p in atTop, p.Prime → let A",
+   "upstream": ": ∀ᶠ p in atTop, p.Prime → let A"
+  },
+  {
+   "target": "green-64",
+   "key": "fc:FormalConjectures/GreensOpenProblems/64.lean#green_64",
+   "file": "FormalConjectures/GreensOpenProblems/64.lean",
+   "decl": "green_64",
+   "graph": ": {p : ℕ | p.Prime ∧ Odd (Ω (p - 2))}.Infinite",
+   "upstream": ": {p : ℕ | p.Prime ∧ Odd (Ω (p - 2))}.Infinite"
+  },
+  {
+   "target": "green-66",
+   "key": "fc:FormalConjectures/GreensOpenProblems/66.lean#green_66",
+   "file": "FormalConjectures/GreensOpenProblems/66.lean",
+   "decl": "green_66",
+   "graph": ": ∀ᶠ X : ℝ in atTop, ∃ n : ℕ, IsSumOfTwoSquares n ∧ (n : ℝ) ∈ Set.Icc (X - (1 / 10 : ℝ) * X ^ (1 / 4 : ℝ)) X",
+   "upstream": ": ∀ᶠ X : ℝ in atTop, ∃ n : ℕ, IsSumOfTwoSquares n ∧ (n : ℝ) ∈ Set.Icc (X - (1 / 10 : ℝ) * X ^ (1 / 4 : ℝ)) X"
+  },
+  {
+   "target": "green-70",
+   "key": "fc:FormalConjectures/GreensOpenProblems/70.lean#green_70",
+   "file": "FormalConjectures/GreensOpenProblems/70.lean",
+   "decl": "green_70",
+   "graph": ": ∀ k ℓ : ℕ, ∃ n₀ : ℕ, ∀ P : Finset (ℝ × ℝ), n₀ ≤ #P → HasCollinear k P ∨ HasMutuallyVisible ℓ P",
+   "upstream": ": ∀ k ℓ : ℕ, ∃ n₀ : ℕ, ∀ P : Finset (ℝ × ℝ), n₀ ≤ #P → HasCollinear k P ∨ HasMutuallyVisible ℓ P"
+  },
+  {
+   "target": "green-75",
+   "key": "fc:FormalConjectures/GreensOpenProblems/75.lean#green_75",
+   "file": "FormalConjectures/GreensOpenProblems/75.lean",
+   "decl": "green_75",
+   "graph": ": ∀ X : Finset (ℝ × ℝ), 2 ≤ #X → ∃ p ∈ X, ∃ q ∈ X, p ≠ q ∧ imbalance X p q ≤ 100",
+   "upstream": ": ∀ X : Finset (ℝ × ℝ), 2 ≤ #X → ∃ p ∈ X, ∃ q ∈ X, p ≠ q ∧ imbalance X p q ≤ 100"
+  },
+  {
+   "target": "green-76",
+   "key": "fc:FormalConjectures/GreensOpenProblems/76.lean#green_76",
+   "file": "FormalConjectures/GreensOpenProblems/76.lean",
+   "decl": "green_76",
+   "graph": ": ∀ A : Finset (ℝ × ℝ), ∃ A', #A' ≤ #A / 2 ∧ HitsRichRectangles 1000 A A'",
+   "upstream": ": ∀ A : Finset (ℝ × ℝ), ∃ A', #A' ≤ #A / 2 ∧ HitsRichRectangles 1000 A A'"
+  },
+  {
+   "target": "green-86",
+   "key": "fc:FormalConjectures/GreensOpenProblems/86.lean#green_86",
+   "file": "FormalConjectures/GreensOpenProblems/86.lean",
+   "decl": "green_86",
+   "graph": ": ∀ c : ℝ, 0 < c → ∃ n₀ : ℕ, ∀ A : Finset ℤ, n₀ ≤ #A → ∃ θ : ℝ, ∀ t : ℝ, (numInInterval A θ t : ℝ) ≤ (#A : ℝ) ^ c",
+   "upstream": ": ∀ c : ℝ, 0 < c → ∃ n₀ : ℕ, ∀ A : Finset ℤ, n₀ ≤ #A → ∃ θ : ℝ, ∀ t : ℝ, (numInInterval A θ t : ℝ) ≤ (#A : ℝ) ^ c"
+  },
+  {
+   "target": "grimm-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Grimm.lean#grimm_conjecture",
+   "file": "FormalConjectures/Wikipedia/Grimm.lean",
+   "decl": "grimm_conjecture",
+   "graph": "(n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k) (h : ∀ i : Fin k, (n + i).Composite) : ∃ ps : Fin k ↪ ℕ, ∀ i : Fin k, (ps i).Prime ∧ ps i ∣ (n + i)",
+   "upstream": "(n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k) (h : ∀ i : Fin k, (n + i).Composite) : ∃ ps : Fin k ↪ ℕ, ∀ i : Fin k, (ps i).Prime ∧ ps i ∣ (n + i)"
+  },
+  {
+   "target": "grimm-conjecture-weak",
+   "key": "fc:FormalConjectures/Wikipedia/Grimm.lean#grimm_conjecture_weak",
+   "file": "FormalConjectures/Wikipedia/Grimm.lean",
+   "decl": "grimm_conjecture_weak",
+   "graph": "(n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k) (h : ∀ i : Fin k, (n + i).Composite) : ∃ ps : Fin k ↪ ℕ, ∀ i : Fin k, (ps i).Prime ∧ ∃ j : Fin k, ps i ∣ (n + j)",
+   "upstream": "(n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k) (h : ∀ i : Fin k, (n + i).Composite) : ∃ ps : Fin k ↪ ℕ, ∀ i : Fin k, (ps i).Prime ∧ ∃ j : Fin k, ps i ∣ (n + j)"
+  },
+  {
+   "target": "gyarfas-sumner-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/GyarfasSumnerConjecture.lean#gyarfas_sumner_conjecture",
+   "file": "FormalConjectures/Wikipedia/GyarfasSumnerConjecture.lean",
+   "decl": "gyarfas_sumner_conjecture",
+   "graph": ": ∀ {W : Type} [Fintype W] [DecidableEq W] (T : SimpleGraph W) [DecidableRel T.Adj], T.IsTree → ∃ f : ℕ → ℕ, IsChiBoundedBy T f",
+   "upstream": ": ∀ {W : Type} [Fintype W] [DecidableEq W] (T : SimpleGraph W) [DecidableRel T.Adj], T.IsTree → ∃ f : ℕ → ℕ, IsChiBoundedBy T f"
+  },
+  {
+   "target": "hadamard-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Hadamard.lean#HadamardConjecture",
+   "file": "FormalConjectures/Wikipedia/Hadamard.lean",
+   "decl": "HadamardConjecture",
+   "graph": "(k : ℕ) : ∃ M, IsHadamard (n := 4 * k) M",
+   "upstream": "(k : ℕ) : ∃ M, IsHadamard (n := 4 * k) M"
+  },
+  {
+   "target": "hall-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Hall.lean#hall_conjecture",
+   "file": "FormalConjectures/Wikipedia/Hall.lean",
+   "decl": "hall_conjecture",
+   "graph": ": HallConjectureExp 2⁻¹",
+   "upstream": ": HallConjectureExp 2⁻¹"
+  },
+  {
+   "target": "has-unique-extension-of-forall",
+   "key": "fc:FormalConjectures/Wikipedia/DiophantineTuple.lean#hasUniqueExtension_of_forall",
+   "file": "FormalConjectures/Wikipedia/DiophantineTuple.lean",
+   "decl": "hasUniqueExtension_of_forall",
+   "graph": ": HasUniqueExtensionOfForall",
+   "upstream": ": HasUniqueExtensionOfForall"
+  },
+  {
+   "target": "homogeneous-space-exists-surjective",
+   "key": "fc:FormalConjectures/Paper/Homogenous.lean#homogeneousSpace_exists_surjective",
+   "file": "FormalConjectures/Paper/Homogenous.lean",
+   "decl": "homogeneousSpace_exists_surjective",
+   "graph": ": ∀ (X : Type) (_ : TopologicalSpace X), T2Space X → CompactSpace X → ∃ (Y : Type) (_ : TopologicalSpace Y), T2Space Y ∧ CompactSpace Y ∧ HomogeneousSpace Y ∧ ∃ f : Y → X, Continuous f ∧ f.Surjective",
+   "upstream": ": ∀ (X : Type) (_ : TopologicalSpace X), T2Space X → CompactSpace X → ∃ (Y : Type) (_ : TopologicalSpace Y), T2Space Y ∧ CompactSpace Y ∧ HomogeneousSpace Y ∧ ∃ f : Y → X, Continuous f ∧ f.Surjective"
+  },
+  {
+   "target": "idoneal-numbers-completeness",
+   "key": "fc:FormalConjectures/Wikipedia/IdonealCompleteness.lean#idoneal_numbers_completeness",
+   "file": "FormalConjectures/Wikipedia/IdonealCompleteness.lean",
+   "decl": "idoneal_numbers_completeness",
+   "graph": ": ∀ n : ℕ, IsIdoneal n → n ∈ knownIdonealNumbers",
+   "upstream": ": ∀ n : ℕ, IsIdoneal n → n ∈ knownIdonealNumbers"
+  },
+  {
+   "target": "infinite-club-exists",
+   "key": "fc:FormalConjectures/Wikipedia/SolitaryNumber.lean#infinite_club_exists",
+   "file": "FormalConjectures/Wikipedia/SolitaryNumber.lean",
+   "decl": "infinite_club_exists",
+   "graph": ": ∃ n, 0 < n ∧ {m : ℕ | Friendly m n}.Infinite",
+   "upstream": ": ∃ n, 0 < n ∧ {m : ℕ | Friendly m n}.Infinite"
+  },
+  {
+   "target": "infinite-cousin-primes",
+   "key": "fc:FormalConjectures/Wikipedia/Dickson.lean#infinite_cousin_primes",
+   "file": "FormalConjectures/Wikipedia/Dickson.lean",
+   "decl": "infinite_cousin_primes",
+   "graph": ": Infinite {p : ℕ | Prime p ∧ Prime (p + 4)}",
+   "upstream": ": Infinite {p : ℕ | Prime p ∧ Prime (p + 4)}"
+  },
+  {
+   "target": "infinite-fermat-composite",
+   "key": "fc:FormalConjectures/Wikipedia/Fermat.lean#infinite_fermat_composite",
+   "file": "FormalConjectures/Wikipedia/Fermat.lean",
+   "decl": "infinite_fermat_composite",
+   "graph": ": Infinite {n : ℕ | ¬Prime n.fermatNumber}",
+   "upstream": ": Infinite {n : ℕ | ¬Prime n.fermatNumber}"
+  },
+  {
+   "target": "infinite-fermat-primes",
+   "key": "fc:FormalConjectures/Wikipedia/Fermat.lean#infinite_fermat_primes",
+   "file": "FormalConjectures/Wikipedia/Fermat.lean",
+   "decl": "infinite_fermat_primes",
+   "graph": ": Infinite {n : ℕ | Prime n.fermatNumber}",
+   "upstream": ": Infinite {n : ℕ | Prime n.fermatNumber}"
+  },
+  {
+   "target": "infinite-is-wall-sun-sun-prime",
+   "key": "fc:FormalConjectures/Wikipedia/WallSunSun.lean#infinite_isWallSunSunPrime",
+   "file": "FormalConjectures/Wikipedia/WallSunSun.lean",
+   "decl": "infinite_isWallSunSunPrime",
+   "graph": ": {p : ℕ | IsWallSunSunPrime p}.Infinite",
+   "upstream": ": {p : ℕ | IsWallSunSunPrime p}.Infinite"
+  },
+  {
+   "target": "infinite-is-wieferich-prime",
+   "key": "fc:FormalConjectures/Wikipedia/WieferichPrime.lean#infinite_isWieferichPrime",
+   "file": "FormalConjectures/Wikipedia/WieferichPrime.lean",
+   "decl": "infinite_isWieferichPrime",
+   "graph": ": {p : ℕ | IsWieferichPrime p}.Infinite",
+   "upstream": ": {p : ℕ | IsWieferichPrime p}.Infinite"
+  },
+  {
+   "target": "infinite-is-wieferich-prime-base",
+   "key": "fc:FormalConjectures/Wikipedia/WieferichPrime.lean#infinite_isWieferichPrimeBase",
+   "file": "FormalConjectures/Wikipedia/WieferichPrime.lean",
+   "decl": "infinite_isWieferichPrimeBase",
+   "graph": ": ∀ a : ℕ, {p : ℕ | IsWieferichPrimeBase a p}.Infinite",
+   "upstream": ": ∀ a : ℕ, {p : ℕ | IsWieferichPrimeBase a p}.Infinite"
+  },
+  {
+   "target": "infinite-pell-number-primes",
+   "key": "fc:FormalConjectures/Wikipedia/Pell.lean#infinite_pellNumber_primes",
+   "file": "FormalConjectures/Wikipedia/Pell.lean",
+   "decl": "infinite_pellNumber_primes",
+   "graph": ": Infinite {n : ℕ | Prime (pellNumber n)}",
+   "upstream": ": Infinite {n : ℕ | Prime (pellNumber n)}"
+  },
+  {
+   "target": "infinite-prime-euclid-numbers",
+   "key": "fc:FormalConjectures/Wikipedia/Euclid.lean#infinite_prime_euclid_numbers",
+   "file": "FormalConjectures/Wikipedia/Euclid.lean",
+   "decl": "infinite_prime_euclid_numbers",
+   "graph": ": {n | (Euclid n).Prime}.Infinite",
+   "upstream": ": {n | (Euclid n).Prime}.Infinite"
+  },
+  {
+   "target": "infinite-prime-sq-add-one",
+   "key": "fc:FormalConjectures/Wikipedia/PrimesAndPerfectSquares.lean#infinite_prime_sq_add_one",
+   "file": "FormalConjectures/Wikipedia/PrimesAndPerfectSquares.lean",
+   "decl": "infinite_prime_sq_add_one",
+   "graph": ": {n : ℕ | Prime (n^2 + 1)}.Infinite",
+   "upstream": ": {n : ℕ | Prime (n^2 + 1)}.Infinite"
+  },
+  {
+   "target": "infinite-safe-primes",
+   "key": "fc:FormalConjectures/Wikipedia/Dickson.lean#infinite_safe_primes",
+   "file": "FormalConjectures/Wikipedia/Dickson.lean",
+   "decl": "infinite_safe_primes",
+   "graph": ": Infinite {p : ℕ | Prime p ∧ Prime (2 * p + 1)}",
+   "upstream": ": Infinite {p : ℕ | Prime p ∧ Prime (2 * p + 1)}"
+  },
+  {
+   "target": "infinite-sexy-primes",
+   "key": "fc:FormalConjectures/Wikipedia/Dickson.lean#infinite_sexy_primes",
+   "file": "FormalConjectures/Wikipedia/Dickson.lean",
+   "decl": "infinite_sexy_primes",
+   "graph": ": Infinite {p : ℕ | Prime p ∧ Prime (p + 6)}",
+   "upstream": ": Infinite {p : ℕ | Prime p ∧ Prime (p + 6)}"
+  },
+  {
+   "target": "infinitely-many-betrothed",
+   "key": "fc:FormalConjectures/Wikipedia/BetrothedNumbers.lean#infinitely_many_betrothed",
+   "file": "FormalConjectures/Wikipedia/BetrothedNumbers.lean",
+   "decl": "infinitely_many_betrothed",
+   "graph": ": {p : ℕ × ℕ | p.1 < p.2 ∧ IsBetrothed p.1 p.2}.Infinite",
+   "upstream": ": {p : ℕ × ℕ | p.1 < p.2 ∧ IsBetrothed p.1 p.2}.Infinite"
+  },
+  {
+   "target": "infinitely-many-even-perfect",
+   "key": "fc:FormalConjectures/Wikipedia/PerfectNumbers.lean#infinitely_many_even_perfect",
+   "file": "FormalConjectures/Wikipedia/PerfectNumbers.lean",
+   "decl": "infinitely_many_even_perfect",
+   "graph": ": {n : ℕ | Perfect n ∧ Even n}.Infinite",
+   "upstream": ": {n : ℕ | Perfect n ∧ Even n}.Infinite"
+  },
+  {
+   "target": "infinitely-many-factorial-primes",
+   "key": "fc:FormalConjectures/Wikipedia/FactorialPrime.lean#infinitely_many_factorial_primes",
+   "file": "FormalConjectures/Wikipedia/FactorialPrime.lean",
+   "decl": "infinitely_many_factorial_primes",
+   "graph": ": Set.Infinite {p : ℕ | IsFactorialPrime p}",
+   "upstream": ": Set.Infinite {p : ℕ | IsFactorialPrime p}"
+  },
+  {
+   "target": "infinitely-many-first-kind-chains",
+   "key": "fc:FormalConjectures/Arxiv/1104.1579/CunninghamChain.lean#infinitely_many_firstKind_chains",
+   "file": "FormalConjectures/Arxiv/1104.1579/CunninghamChain.lean",
+   "decl": "infinitely_many_firstKind_chains",
+   "graph": "(k : ℕ) (hk : 0 < k) : Set.Infinite {p : ℕ | IsFirstKindChainOfLength p k}",
+   "upstream": "(k : ℕ) (hk : 0 < k) : Set.Infinite {p : ℕ | IsFirstKindChainOfLength p k}"
+  },
+  {
+   "target": "infinitely-many-leinster-groups",
+   "key": "fc:FormalConjectures/Wikipedia/LeinsterGroup.lean#infinitely_many_leinster_groups",
+   "file": "FormalConjectures/Wikipedia/LeinsterGroup.lean",
+   "decl": "infinitely_many_leinster_groups",
+   "graph": ": ¬∃ n : ℕ, ∀ G : Type, ∀ (_ : Group G) (_ : Fintype G), IsLeinster G → Fintype.card G < n",
+   "upstream": ": ¬∃ n : ℕ, ∀ G : Type, ∀ (_ : Group G) (_ : Fintype G), IsLeinster G → Fintype.card G < n"
+  },
+  {
+   "target": "infinitely-many-perfect",
+   "key": "fc:FormalConjectures/Wikipedia/PerfectNumbers.lean#infinitely_many_perfect",
+   "file": "FormalConjectures/Wikipedia/PerfectNumbers.lean",
+   "decl": "infinitely_many_perfect",
+   "graph": ": {n : ℕ | Perfect n}.Infinite",
+   "upstream": ": {n : ℕ | Perfect n}.Infinite"
+  },
+  {
+   "target": "infinitely-many-pierpont-primes",
+   "key": "fc:FormalConjectures/Wikipedia/PierpontPrime.lean#infinitely_many_pierpont_primes",
+   "file": "FormalConjectures/Wikipedia/PierpontPrime.lean",
+   "decl": "infinitely_many_pierpont_primes",
+   "graph": ": Set.Infinite {p : ℕ | IsPierpontPrime p}",
+   "upstream": ": Set.Infinite {p : ℕ | IsPierpontPrime p}"
+  },
+  {
+   "target": "infinitely-many-proth-primes",
+   "key": "fc:FormalConjectures/Wikipedia/ProthPrime.lean#infinitely_many_proth_primes",
+   "file": "FormalConjectures/Wikipedia/ProthPrime.lean",
+   "decl": "infinitely_many_proth_primes",
+   "graph": ": {N : ℕ | IsProthPrime N}.Infinite",
+   "upstream": ": {N : ℕ | IsProthPrime N}.Infinite"
+  },
+  {
+   "target": "infinitely-many-proth-primes-multiplier-three",
+   "key": "fc:FormalConjectures/Wikipedia/ProthPrime.lean#infinitely_many_proth_primes_multiplier_three",
+   "file": "FormalConjectures/Wikipedia/ProthPrime.lean",
+   "decl": "infinitely_many_proth_primes_multiplier_three",
+   "graph": ": {n : ℕ | 2 ≤ n ∧ (3 * 2 ^ n + 1).Prime}.Infinite",
+   "upstream": ": {n : ℕ | 2 ≤ n ∧ (3 * 2 ^ n + 1).Prime}.Infinite"
+  },
+  {
+   "target": "infinitely-many-repunit-primes",
+   "key": "fc:FormalConjectures/Wikipedia/RepunitPrime.lean#infinitely_many_repunit_primes",
+   "file": "FormalConjectures/Wikipedia/RepunitPrime.lean",
+   "decl": "infinitely_many_repunit_primes",
+   "graph": ": {n : ℕ | (repunit10 n).Prime}.Infinite",
+   "upstream": ": {n : ℕ | (repunit10 n).Prime}.Infinite"
+  },
+  {
+   "target": "infinitely-many-second-kind-chains",
+   "key": "fc:FormalConjectures/Arxiv/1104.1579/CunninghamChain.lean#infinitely_many_secondKind_chains",
+   "file": "FormalConjectures/Arxiv/1104.1579/CunninghamChain.lean",
+   "decl": "infinitely_many_secondKind_chains",
+   "graph": "(k : ℕ) (hk : 0 < k) : Set.Infinite {p : ℕ | IsSecondKindChainOfLength p k}",
+   "upstream": "(k : ℕ) (hk : 0 < k) : Set.Infinite {p : ℕ | IsSecondKindChainOfLength p k}"
+  },
+  {
+   "target": "infinitely-many-thabit-primes",
+   "key": "fc:FormalConjectures/Wikipedia/ThabitNumber.lean#infinitely_many_thabit_primes",
+   "file": "FormalConjectures/Wikipedia/ThabitNumber.lean",
+   "decl": "infinitely_many_thabit_primes",
+   "graph": ": {n : ℕ | (thabitNumber n).Prime}.Infinite",
+   "upstream": ": {n : ℕ | (thabitNumber n).Prime}.Infinite"
+  },
+  {
+   "target": "infinitely-many-wilson-primes",
+   "key": "fc:FormalConjectures/Wikipedia/WilsonPrime.lean#infinitely_many_wilson_primes",
+   "file": "FormalConjectures/Wikipedia/WilsonPrime.lean",
+   "decl": "infinitely_many_wilson_primes",
+   "graph": ": Set.Infinite {p : ℕ | IsWilsonPrime p}",
+   "upstream": ": Set.Infinite {p : ℕ | IsWilsonPrime p}"
+  },
+  {
+   "target": "infinitely-many-woodall-primes",
+   "key": "fc:FormalConjectures/Wikipedia/WoodalPrimes.lean#infinitely_many_woodall_primes",
+   "file": "FormalConjectures/Wikipedia/WoodalPrimes.lean",
+   "decl": "infinitely_many_woodall_primes",
+   "graph": ": {k : ℕ | 1 < k ∧ (k * 2 ^ k - 1).Prime}.Infinite",
+   "upstream": ": {k : ℕ | 1 < k ∧ (k * 2 ^ k - 1).Prime}.Infinite"
+  },
+  {
+   "target": "infinitude-question",
+   "key": "fc:FormalConjectures/Wikipedia/Emirp.lean#infinitude_question",
+   "file": "FormalConjectures/Wikipedia/Emirp.lean",
+   "decl": "infinitude_question",
+   "graph": ": {p : ℕ | IsEmirp p}.Infinite",
+   "upstream": ": {p : ℕ | IsEmirp p}.Infinite"
+  },
+  {
+   "target": "irrational-algebraic-absolutely-normal",
+   "key": "fc:FormalConjectures/Wikipedia/AlgebraicNormality.lean#irrational_algebraic_absolutely_normal",
+   "file": "FormalConjectures/Wikipedia/AlgebraicNormality.lean",
+   "decl": "irrational_algebraic_absolutely_normal",
+   "graph": ": ∀ x : ℝ, IsIrrationalAlgebraic x → IsAbsolutelyNormal x",
+   "upstream": ": ∀ x : ℝ, IsIrrationalAlgebraic x → IsAbsolutelyNormal x"
+  },
+  {
+   "target": "irrational-e-plus-pi",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_e_plus_pi",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "irrational_e_plus_pi",
+   "graph": ": Irrational (e + π)",
+   "upstream": ": Irrational (e + π)"
+  },
+  {
+   "target": "irrational-e-times-pi",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_e_times_pi",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "irrational_e_times_pi",
+   "graph": ": Irrational (e * π)",
+   "upstream": ": Irrational (e * π)"
+  },
+  {
+   "target": "irrational-e-to-e",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_e_to_e",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "irrational_e_to_e",
+   "graph": ": Irrational (e ^ e)",
+   "upstream": ": Irrational (e ^ e)"
+  },
+  {
+   "target": "irrational-eleven",
+   "key": "fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_eleven",
+   "file": "FormalConjectures/Wikipedia/RiemannZetaValues.lean",
+   "decl": "irrational_eleven",
+   "graph": ": ∃ x, Irrational x ∧ riemannZeta 11 = x",
+   "upstream": ": ∃ x, Irrational x ∧ riemannZeta 11 = x"
+  },
+  {
+   "target": "irrational-euler-mascheroni-constant",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_eulerMascheroniConstant",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "irrational_eulerMascheroniConstant",
+   "graph": ": Irrational eulerMascheroniConstant",
+   "upstream": ": Irrational eulerMascheroniConstant"
+  },
+  {
+   "target": "irrational-ln-pi",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_ln_pi",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "irrational_ln_pi",
+   "graph": ": Irrational (log π)",
+   "upstream": ": Irrational (log π)"
+  },
+  {
+   "target": "irrational-nine",
+   "key": "fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_nine",
+   "file": "FormalConjectures/Wikipedia/RiemannZetaValues.lean",
+   "decl": "irrational_nine",
+   "graph": ": ∃ x, Irrational x ∧ riemannZeta 9 = x",
+   "upstream": ": ∃ x, Irrational x ∧ riemannZeta 9 = x"
+  },
+  {
+   "target": "irrational-odd",
+   "key": "fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_odd",
+   "file": "FormalConjectures/Wikipedia/RiemannZetaValues.lean",
+   "decl": "irrational_odd",
+   "graph": "(n : ℕ) (hn : 0 < n) : ∃ x, Irrational x ∧ riemannZeta (2 * n + 1) = x",
+   "upstream": "(n : ℕ) (hn : 0 < n) : ∃ x, Irrational x ∧ riemannZeta (2 * n + 1) = x"
+  },
+  {
+   "target": "irrational-pi-to-e",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_pi_to_e",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "irrational_pi_to_e",
+   "graph": ": Irrational (π ^ e)",
+   "upstream": ": Irrational (π ^ e)"
+  },
+  {
+   "target": "irrational-pi-to-pi",
+   "key": "fc:FormalConjectures/Wikipedia/Irrational.lean#irrational_pi_to_pi",
+   "file": "FormalConjectures/Wikipedia/Irrational.lean",
+   "decl": "irrational_pi_to_pi",
+   "graph": ": Irrational (π ^ π)",
+   "upstream": ": Irrational (π ^ π)"
+  },
+  {
+   "target": "irrational-seven",
+   "key": "fc:FormalConjectures/Wikipedia/RiemannZetaValues.lean#irrational_seven",
+   "file": "FormalConjectures/Wikipedia/RiemannZetaValues.lean",
+   "decl": "irrational_seven",
+   "graph": ": ∃ x, Irrational x ∧ riemannZeta 7 = x",
+   "upstream": ": ∃ x, Irrational x ∧ riemannZeta 7 = x"
+  },
+  {
+   "target": "irving-leather-pow-two",
+   "key": "fc:FormalConjectures/Paper/IrvingLeatherStableMatchings.lean#irving_leather_pow_two",
+   "file": "FormalConjectures/Paper/IrvingLeatherStableMatchings.lean",
+   "decl": "irving_leather_pow_two",
+   "graph": "(k : ℕ) : maxStableMatchings (2 ^ k) = irvingLeatherCount k",
+   "upstream": "(k : ℕ) : maxStableMatchings (2 ^ k) = irvingLeatherCount k"
+  },
+  {
+   "target": "is-equidistributed-modulo-one-three-halves-pow",
+   "key": "fc:FormalConjectures/Books/UniformDistributionOfSequences/Equidistribution.lean#isEquidistributedModuloOne_three_halves_pow",
+   "file": "FormalConjectures/Books/UniformDistributionOfSequences/Equidistribution.lean",
+   "decl": "isEquidistributedModuloOne_three_halves_pow",
+   "graph": ": IsEquidistributedModuloOne (fun n => (3 / 2 : ℝ)^n)",
+   "upstream": ": IsEquidistributedModuloOne (fun n => (3 / 2 : ℝ)^n)"
+  },
+  {
+   "target": "is-lychrel10-196",
+   "key": "fc:FormalConjectures/Wikipedia/LychrelNumbers.lean#isLychrel10_196",
+   "file": "FormalConjectures/Wikipedia/LychrelNumbers.lean",
+   "decl": "isLychrel10_196",
+   "graph": ": IsLychrel10 196",
+   "upstream": ": IsLychrel10 196"
+  },
+  {
+   "target": "is-mirimanoff-prime-iff",
+   "key": "fc:FormalConjectures/Wikipedia/WieferichMirimanoffPrime.lean#isMirimanoffPrime_iff",
+   "file": "FormalConjectures/Wikipedia/WieferichMirimanoffPrime.lean",
+   "decl": "isMirimanoffPrime_iff",
+   "graph": ": ∀ p, IsMirimanoffPrime p ↔ p = 11 ∨ p = 1006003",
+   "upstream": ": ∀ p, IsMirimanoffPrime p ↔ p = 11 ∨ p = 1006003"
+  },
+  {
+   "target": "is-poly-time-prime-factors-list",
+   "key": "fc:FormalConjectures/Wikipedia/IntegerFactorization.lean#isPolyTime_primeFactorsList",
+   "file": "FormalConjectures/Wikipedia/IntegerFactorization.lean",
+   "decl": "isPolyTime_primeFactorsList",
+   "graph": ": IsPolyTime Nat.primeFactorsList",
+   "upstream": ": IsPolyTime Nat.primeFactorsList"
+  },
+  {
+   "target": "is-poly-time-square-root-sum",
+   "key": "fc:FormalConjectures/Wikipedia/SquareRootSum.lean#isPolyTime_squareRootSum",
+   "file": "FormalConjectures/Wikipedia/SquareRootSum.lean",
+   "decl": "isPolyTime_squareRootSum",
+   "graph": ": IsPolyTime (Function.uncurry squareRootSum)",
+   "upstream": ": IsPolyTime (Function.uncurry squareRootSum)"
+  },
+  {
+   "target": "is-poly-time-square-root-sum-two-sided",
+   "key": "fc:FormalConjectures/Wikipedia/SquareRootSum.lean#isPolyTime_squareRootSumTwoSided",
+   "file": "FormalConjectures/Wikipedia/SquareRootSum.lean",
+   "decl": "isPolyTime_squareRootSumTwoSided",
+   "graph": ": IsPolyTime (Function.uncurry squareRootSumTwoSided)",
+   "upstream": ": IsPolyTime (Function.uncurry squareRootSumTwoSided)"
+  },
+  {
+   "target": "is-spectral-right-of-product-of-convex-body",
+   "key": "fc:FormalConjectures/Arxiv/2209.04540/SpectralSetsAndWeakTiling.lean#isSpectral_right_of_product_of_convexBody",
+   "file": "FormalConjectures/Arxiv/2209.04540/SpectralSetsAndWeakTiling.lean",
+   "decl": "isSpectral_right_of_product_of_convexBody",
+   "graph": ": ∀ (n m : ℕ), 0 < n → 0 < m → spectralProductImpliesRightSpectral n m",
+   "upstream": ": ∀ (n m : ℕ), 0 < n → 0 < m → spectralProductImpliesRightSpectral n m"
+  },
+  {
+   "target": "is-sum-of-three-cubes-iff-mod-9",
+   "key": "fc:FormalConjectures/Wikipedia/SumOfThreeCubes.lean#isSumOfThreeCubes_iff_mod_9",
+   "file": "FormalConjectures/Wikipedia/SumOfThreeCubes.lean",
+   "decl": "isSumOfThreeCubes_iff_mod_9",
+   "graph": ": ∀ n : ℤ, IsSumOfThreeCubes n ↔ ¬(n ≡ 4 [ZMOD 9] ∨ n ≡ 5 [ZMOD 9])",
+   "upstream": ": ∀ n : ℤ, IsSumOfThreeCubes n ↔ ¬(n ≡ 4 [ZMOD 9] ∨ n ≡ 5 [ZMOD 9])"
+  },
+  {
+   "target": "is-ten-solitary",
+   "key": "fc:FormalConjectures/Wikipedia/SolitaryNumber.lean#is_ten_solitary",
+   "file": "FormalConjectures/Wikipedia/SolitaryNumber.lean",
+   "decl": "is_ten_solitary",
+   "graph": ": IsSolitary 10",
+   "upstream": ": IsSolitary 10"
+  },
+  {
+   "target": "is-wieferich-prime-iff",
+   "key": "fc:FormalConjectures/Wikipedia/WieferichPrime.lean#isWieferichPrime_iff",
+   "file": "FormalConjectures/Wikipedia/WieferichPrime.lean",
+   "decl": "isWieferichPrime_iff",
+   "graph": ": ∀ p, IsWieferichPrime p ↔ p = 1093 ∨ p = 3511",
+   "upstream": ": ∀ p, IsWieferichPrime p ↔ p = 1093 ∨ p = 3511"
+  },
+  {
+   "target": "juggler-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/JugglerConjecture.lean#juggler_conjecture",
+   "file": "FormalConjectures/Wikipedia/JugglerConjecture.lean",
+   "decl": "juggler_conjecture",
+   "graph": "(n : ℕ) (hn : n > 0) : ∃ m, jugglerStep^[m] n = 1",
+   "upstream": "(n : ℕ) (hn : n > 0) : ∃ m, jugglerStep^[m] n = 1"
+  },
+  {
+   "target": "kakeya-set-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Kakeya.lean#kakeya_set_conjecture",
+   "file": "FormalConjectures/Wikipedia/Kakeya.lean",
+   "decl": "kakeya_set_conjecture",
+   "graph": "(n : ℕ) (hn : n > 0) : KakeyaSetConjectureDim n",
+   "upstream": "(n : ℕ) (hn : n > 0) : KakeyaSetConjectureDim n"
+  },
+  {
+   "target": "kourovka-1-35c",
+   "key": "fc:FormalConjectures/Kourovka/1_35c.lean#kourovka_1_35c",
+   "file": "FormalConjectures/Kourovka/1_35c.lean",
+   "decl": "kourovka_1_35c",
+   "graph": ": ∃ (G : Type) (_ : Group G), IsSimpleGroup G ∧ ProOrderable G",
+   "upstream": ": ∃ (G : Type) (_ : Group G), IsSimpleGroup G ∧ ProOrderable G"
+  },
+  {
+   "target": "kourovka-20-51",
+   "key": "fc:FormalConjectures/Kourovka/20_51.lean#kourovka_20_51",
+   "file": "FormalConjectures/Kourovka/20_51.lean",
+   "decl": "kourovka_20_51",
+   "graph": ": ∀ t > 3, Odd t → ∃ (G : Type) (_ : Group G), Finite G ∧ (∃ a b : G, a * b ≠ b * a) ∧ Odd (Nat.card G) ∧ Nat.card (ConjClasses G) = t",
+   "upstream": ": ∀ t > 3, Odd t → ∃ (G : Type) (_ : Group G), Finite G ∧ (∃ a b : G, a * b ≠ b * a) ∧ Odd (Nat.card G) ∧ Nat.card (ConjClasses G) = t"
+  },
+  {
+   "target": "kourovka-8-8b",
+   "key": "fc:FormalConjectures/Kourovka/8_8.lean#kourovka_8_8b",
+   "file": "FormalConjectures/Kourovka/8_8.lean",
+   "decl": "kourovka_8_8b",
+   "graph": ": ∃ (G : Type) (_ : Group G), ¬ IsCyclic G ∧ Group.IsFinitelyPresented G ∧ ∃ a : G, ∀ g : G, ∃ n : ℤ, IsConj g (a ^ n)",
+   "upstream": ": ∃ (G : Type) (_ : Group G), ¬ IsCyclic G ∧ Group.IsFinitelyPresented G ∧ ∃ a : G, ∀ g : G, ∃ n : ℤ, IsConj g (a ^ n)"
+  },
+  {
+   "target": "kummer-vandiver",
+   "key": "fc:FormalConjectures/Wikipedia/KummerVandiver.lean#kummer_vandiver",
+   "file": "FormalConjectures/Wikipedia/KummerVandiver.lean",
+   "decl": "kummer_vandiver",
+   "graph": "(p : ℕ+) (hp : p.Prime) : ¬ ↑p ∣ (classNumber (maximalRealSubfield (CyclotomicField p ℚ)))",
+   "upstream": "(p : ℕ+) (hp : p.Prime) : ¬ ↑p ∣ (classNumber (maximalRealSubfield (CyclotomicField p ℚ)))"
+  },
+  {
+   "target": "lagarias-criterion-rhs",
+   "key": "fc:FormalConjectures/Paper/RiemannHypothesisEquivalents.lean#lagarias_criterion_rhs",
+   "file": "FormalConjectures/Paper/RiemannHypothesisEquivalents.lean",
+   "decl": "lagarias_criterion_rhs",
+   "graph": "{n : ℕ} (hn : 1 < n) : σ 1 n < harmonic n + exp (harmonic n) * log (harmonic n)",
+   "upstream": "{n : ℕ} (hn : 1 < n) : σ 1 n < harmonic n + exp (harmonic n) * log (harmonic n)"
+  },
+  {
+   "target": "lander-parkin-selfridge",
+   "key": "fc:FormalConjectures/Wikipedia/LanderParkinAndSelfridgeConjecture.lean#lander_parkin_selfridge",
+   "file": "FormalConjectures/Wikipedia/LanderParkinAndSelfridgeConjecture.lean",
+   "decl": "lander_parkin_selfridge",
+   "graph": ": ∀ (k n m : ℕ) (x : Fin n → ℕ) (y : Fin m → ℕ), 0 < n → 0 < m → (∀ i, 0 < x i) → (∀ j, 0 < y j) → (∀ i j, x i ≠ y j) → ∑ i, x i ^ k = ∑ j, y j ^ k → k ≤ n + m",
+   "upstream": ": ∀ (k n m : ℕ) (x : Fin n → ℕ) (y : Fin m → ℕ), 0 < n → 0 < m → (∀ i, 0 < x i) → (∀ j, 0 < y j) → (∀ i j, x i ≠ y j) → ∑ i, x i ^ k = ∑ j, y j ^ k → k ≤ n + m"
+  },
+  {
+   "target": "large-steiner-systems",
+   "key": "fc:FormalConjectures/Wikipedia/SteinerSystem.lean#large_steiner_systems",
+   "file": "FormalConjectures/Wikipedia/SteinerSystem.lean",
+   "decl": "large_steiner_systems",
+   "graph": ": Nonempty LargeSteinerSystemWitness",
+   "upstream": ": Nonempty LargeSteinerSystemWitness"
+  },
+  {
+   "target": "latin-tableau-conjecture",
+   "key": "fc:FormalConjectures/Paper/LatinTableau.lean#LatinTableauConjecture",
+   "file": "FormalConjectures/Paper/LatinTableau.lean",
+   "decl": "LatinTableauConjecture",
+   "graph": "(μ : YoungDiagram) : μ.toSimpleGraph.CDSColorable",
+   "upstream": "(μ : YoungDiagram) : μ.toSimpleGraph.CDSColorable"
+  },
+  {
+   "target": "lebesgue-nagell",
+   "key": "fc:FormalConjectures/Wikipedia/Catalan.lean#lebesgue_nagell",
+   "file": "FormalConjectures/Wikipedia/Catalan.lean",
+   "decl": "lebesgue_nagell",
+   "graph": "(p : ℕ) (hp : p.Prime) (hodd : Odd p) (x y : ℤ) : x ^ 2 - 2 = y ^ p ↔ (x = 1 ∨ x = -1) ∧ y = -1",
+   "upstream": "(p : ℕ) (hp : p.Prime) (hodd : Odd p) (x y : ℤ) : x ^ 2 - 2 = y ^ p ↔ (x = 1 ∨ x = -1) ∧ y = -1"
+  },
+  {
+   "target": "legendre-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/LegendreConjecture.lean#legendre_conjecture",
+   "file": "FormalConjectures/Wikipedia/LegendreConjecture.lean",
+   "decl": "legendre_conjecture",
+   "graph": ": ∀ n ≥ 1, ∃ p ∈ Set.Ioo (n ^ 2) ((n + 1) ^ 2), Nat.Prime p",
+   "upstream": ": ∀ n ≥ 1, ∃ p ∈ Set.Ioo (n ^ 2) ((n + 1) ^ 2), Nat.Prime p"
+  },
+  {
+   "target": "lehmer-ramanujan-tau",
+   "key": "fc:FormalConjectures/Wikipedia/RamanujanTau.lean#lehmer_ramanujan_tau",
+   "file": "FormalConjectures/Wikipedia/RamanujanTau.lean",
+   "decl": "lehmer_ramanujan_tau",
+   "graph": ": ∀ n > 0, τ n ≠ 0",
+   "upstream": ": ∀ n > 0, τ n ≠ 0"
+  },
+  {
+   "target": "lehmer-totient",
+   "key": "fc:FormalConjectures/Wikipedia/LehmerTotient.lean#lehmer_totient",
+   "file": "FormalConjectures/Wikipedia/LehmerTotient.lean",
+   "decl": "lehmer_totient",
+   "graph": ": ∃ n > 1, ¬Prime n ∧ Nat.totient n ∣ n - 1",
+   "upstream": ": ∃ n > 1, ¬Prime n ∧ Nat.totient n ∣ n - 1"
+  },
+  {
+   "target": "lemoine-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Lemoine.lean#lemoine_conjecture",
+   "file": "FormalConjectures/Wikipedia/Lemoine.lean",
+   "decl": "lemoine_conjecture",
+   "graph": "(n : ℕ) (hn : 6 < n) (odd : Odd n) : ∃ (p q : ℕ), p.Prime ∧ q.Prime ∧ p + 2 * q = n",
+   "upstream": "(n : ℕ) (hn : 6 < n) (odd : Odd n) : ∃ (p q : ℕ), p.Prime ∧ q.Prime ∧ p + 2 * q = n"
+  },
+  {
+   "target": "lemoine-conjecture-extension",
+   "key": "fc:FormalConjectures/Wikipedia/Lemoine.lean#lemoine_conjecture_extension",
+   "file": "FormalConjectures/Wikipedia/Lemoine.lean",
+   "decl": "lemoine_conjecture_extension",
+   "graph": "(n : ℕ) (hn : 8 < n) (odd : Odd n) : ∃ (p q r s a b : ℕ), OddPrime p ∧ OddPrime q ∧ OddPrime r ∧ OddPrime s ∧ p + 2 * q = n ∧ 2 + p * q = 2 ^ a + r ∧ 2 * p + q = 2 ^ b + s",
+   "upstream": "(n : ℕ) (hn : 8 < n) (odd : Odd n) : ∃ (p q r s a b : ℕ), OddPrime p ∧ OddPrime q ∧ OddPrime r ∧ OddPrime s ∧ p + 2 * q = n ∧ 2 + p * q = 2 ^ a + r ∧ 2 * p + q = 2 ^ b + s"
+  },
+  {
+   "target": "lennon-pittel-conjecture",
+   "key": "fc:FormalConjectures/Paper/LennonPittelStableMatchings.lean#lennon_pittel_conjecture",
+   "file": "FormalConjectures/Paper/LennonPittelStableMatchings.lean",
+   "decl": "lennon_pittel_conjecture",
+   "graph": "(ε : ℕ → ℝ) (hε_pos : ∀ n, 0 < ε n) (hε_antitone : Antitone ε) (hε_tendsto : Tendsto ε atTop (𝓝 0)) : Tendsto (fun n ↦ (StableMarriage.uniformProfile n).toMeasure {p | (StableMarriage.numStableMatchings p : ℝ) ≥ ε n * StableMarriage.expectedNumStableMatchings n}) atTop (𝓝 1)",
+   "upstream": "(ε : ℕ → ℝ) (hε_pos : ∀ n, 0 < ε n) (hε_antitone : Antitone ε) (hε_tendsto : Tendsto ε atTop (𝓝 0)) : Tendsto (fun n ↦ (StableMarriage.uniformProfile n).toMeasure {p | (StableMarriage.numStableMatchings p : ℝ) ≥ ε n * StableMarriage.expectedNumStableMatchings n}) atTop (𝓝 1)"
+  },
+  {
+   "target": "littlewood-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/LittlewoodConjecture.lean#littlewood_conjecture",
+   "file": "FormalConjectures/Wikipedia/LittlewoodConjecture.lean",
+   "decl": "littlewood_conjecture",
+   "graph": "(α β : ℝ) : atTop.liminf (fun (n : ℕ) ↦ n * distToNearestInt (n * α) * distToNearestInt (n * β)) = 0",
+   "upstream": "(α β : ℝ) : atTop.liminf (fun (n : ℕ) ↦ n * distToNearestInt (n * α) * distToNearestInt (n * β)) = 0"
+  },
+  {
+   "target": "m-l-c",
+   "key": "fc:FormalConjectures/Wikipedia/Mandelbrot.lean#MLC",
+   "file": "FormalConjectures/Wikipedia/Mandelbrot.lean",
+   "decl": "MLC",
+   "graph": ": LocallyConnectedSpace mandelbrotSet",
+   "upstream": ": LocallyConnectedSpace mandelbrotSet"
+  },
+  {
+   "target": "m-l-c-general-exponent",
+   "key": "fc:FormalConjectures/Wikipedia/Mandelbrot.lean#MLC_general_exponent",
+   "file": "FormalConjectures/Wikipedia/Mandelbrot.lean",
+   "decl": "MLC_general_exponent",
+   "graph": "(n : ℕ) : LocallyConnectedSpace (multibrotSet n)",
+   "upstream": "(n : ℕ) : LocallyConnectedSpace (multibrotSet n)"
+  },
+  {
+   "target": "manickam-miklos-singhi-conjecture",
+   "key": "fc:FormalConjectures/Paper/ManickamMiklosSinghiConjecture.lean#manickam_miklos_singhi_conjecture",
+   "file": "FormalConjectures/Paper/ManickamMiklosSinghiConjecture.lean",
+   "decl": "manickam_miklos_singhi_conjecture",
+   "graph": ": ∀ (n k : ℕ), 1 ≤ k → 4 * k ≤ n → ∀ x : Fin n → ℝ, ∑ i, x i = 0 → (n - 1).choose (k - 1) ≤ nonnegSubsetCount n k x",
+   "upstream": ": ∀ (n k : ℕ), 1 ≤ k → 4 * k ≤ n → ∀ x : Fin n → ℝ, ∑ i, x i = 0 → (n - 1).choose (k - 1) ≤ nonnegSubsetCount n k x"
+  },
+  {
+   "target": "mathoverflow-17560",
+   "key": "fc:FormalConjectures/Mathoverflow/17560.lean#mathoverflow_17560",
+   "file": "FormalConjectures/Mathoverflow/17560.lean",
+   "decl": "mathoverflow_17560",
+   "graph": "{x : ℝ} (hx : ∃ m : ℕ, (2 : ℝ) ^ x = m) (hx' : ∃ m : ℕ, (3 : ℝ) ^ x = m) : ∃ m : ℕ, x = m",
+   "upstream": "{x : ℝ} (hx : ∃ m : ℕ, (2 : ℝ) ^ x = m) (hx' : ∃ m : ℕ, (3 : ℝ) ^ x = m) : ∃ m : ℕ, x = m"
+  },
+  {
+   "target": "mathoverflow-21003",
+   "key": "fc:FormalConjectures/Mathoverflow/21003.lean#mathoverflow_21003",
+   "file": "FormalConjectures/Mathoverflow/21003.lean",
+   "decl": "mathoverflow_21003",
+   "graph": ": ∃ f : MvPolynomial (Fin 2) ℚ, Function.Bijective fun x ↦ f.eval x",
+   "upstream": ": ∃ f : MvPolynomial (Fin 2) ℚ, Function.Bijective fun x ↦ f.eval x"
+  },
+  {
+   "target": "maximal-length-le-strong",
+   "key": "fc:FormalConjectures/Arxiv/1609.08688/sIncreasingrTuples.lean#maximalLength_le_strong",
+   "file": "FormalConjectures/Arxiv/1609.08688/sIncreasingrTuples.lean",
+   "decl": "maximalLength_le_strong",
+   "graph": "(n : ℕ) : F n ≤ Real.sqrt n ^ 3",
+   "upstream": "(n : ℕ) : F n ≤ Real.sqrt n ^ 3"
+  },
+  {
+   "target": "new-mersenne-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Mersenne.lean#new_mersenne_conjecture",
+   "file": "FormalConjectures/Wikipedia/Mersenne.lean",
+   "decl": "new_mersenne_conjecture",
+   "graph": "(p : ℕ) (hp : Odd p) : NewMersenneConjectureStatement p",
+   "upstream": "(p : ℕ) (hp : Odd p) : NewMersenneConjectureStatement p"
+  },
+  {
+   "target": "no-complete-disjoint-co-n-p-pair",
+   "key": "fc:FormalConjectures/Paper/DisjointNPPairs.lean#no_complete_disjoint_coNP_pair",
+   "file": "FormalConjectures/Paper/DisjointNPPairs.lean",
+   "decl": "no_complete_disjoint_coNP_pair",
+   "graph": ": ¬∃ A B : DecisionProblem, IsCompleteCoNPPair A B",
+   "upstream": ": ¬∃ A B : DecisionProblem, IsCompleteCoNPPair A B"
+  },
+  {
+   "target": "no-lychrel-numbers-base10",
+   "key": "fc:FormalConjectures/Wikipedia/LychrelNumbers.lean#no_lychrel_numbers_base10",
+   "file": "FormalConjectures/Wikipedia/LychrelNumbers.lean",
+   "decl": "no_lychrel_numbers_base10",
+   "graph": ": ∀ n : ℕ, 0 < n → ¬ IsLychrel10 n",
+   "upstream": ": ∀ n : ℕ, 0 < n → ¬ IsLychrel10 n"
+  },
+  {
+   "target": "no-power-partition-number",
+   "key": "fc:FormalConjectures/OEIS/41.lean#noPowerPartitionNumber",
+   "file": "FormalConjectures/OEIS/41.lean",
+   "decl": "noPowerPartitionNumber",
+   "graph": ": ∀ k, ¬IsPerfectPower (partitionNumber k)",
+   "upstream": ": ∀ k, ¬IsPerfectPower (partitionNumber k)"
+  },
+  {
+   "target": "np-inter-conp-no-complete-language",
+   "key": "fc:FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean#np_inter_conp_no_complete_language",
+   "file": "FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean",
+   "decl": "np_inter_conp_no_complete_language",
+   "graph": ": ¬∃ L : DecisionProblem, IsCompleteFor (NP ∩ coNP) L",
+   "upstream": ": ¬∃ L : DecisionProblem, IsCompleteFor (NP ∩ coNP) L"
+  },
+  {
+   "target": "odd-order-latin-square-transversal",
+   "key": "fc:FormalConjectures/Paper/LatinSquare.lean#oddOrderLatinSquareTransversal",
+   "file": "FormalConjectures/Paper/LatinSquare.lean",
+   "decl": "oddOrderLatinSquareTransversal",
+   "graph": ": ∀ (n : ℕ), Odd n → ∀ (L : LatinSquare n), ∃ σ, IsTransversal L σ",
+   "upstream": ": ∀ (n : ℕ), Odd n → ∀ (L : LatinSquare n), ∃ σ, IsTransversal L σ"
+  },
+  {
+   "target": "odd-perfect-number-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/PerfectNumbers.lean#odd_perfect_number_conjecture",
+   "file": "FormalConjectures/Wikipedia/PerfectNumbers.lean",
+   "decl": "odd_perfect_number_conjecture",
+   "graph": "(n : ℕ) (hn : Perfect n) : Even n",
+   "upstream": "(n : ℕ) (hn : Perfect n) : Even n"
+  },
+  {
+   "target": "oppermann-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Oppermann.lean#oppermann_conjecture",
+   "file": "FormalConjectures/Wikipedia/Oppermann.lean",
+   "decl": "oppermann_conjecture",
+   "graph": "(x : ℕ) (hx : 2 ≤ x) : (∃ p ∈ Ioo (x * (x - 1)) (x^2), p.Prime) ∧ (∃ p ∈ Ioo (x^2) (x * (x + 1)), p.Prime)",
+   "upstream": "(x : ℕ) (hx : 2 ≤ x) : (∃ p ∈ Ioo (x * (x - 1)) (x^2), p.Prime) ∧ (∃ p ∈ Ioo (x^2) (x * (x + 1)), p.Prime)"
+  },
+  {
+   "target": "opposite-parity-amicable",
+   "key": "fc:FormalConjectures/Wikipedia/AmicableNumbers.lean#opposite_parity_amicable",
+   "file": "FormalConjectures/Wikipedia/AmicableNumbers.lean",
+   "decl": "opposite_parity_amicable",
+   "graph": ": ∃ a b : ℕ, IsAmicable a b ∧ (Even a ↔ Odd b)",
+   "upstream": ": ∃ a b : ℕ, IsAmicable a b ∧ (Even a ↔ Odd b)"
+  },
+  {
+   "target": "padic-littlewood-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/LittlewoodConjecture.lean#padic_littlewood_conjecture",
+   "file": "FormalConjectures/Wikipedia/LittlewoodConjecture.lean",
+   "decl": "padic_littlewood_conjecture",
+   "graph": "(α : ℝ) (p : ℕ) (hp : p.Prime) : atTop.liminf (fun (n : ℕ) ↦ n * padicNorm p n * distToNearestInt (n * α)) = 0",
+   "upstream": "(α : ℝ) (p : ℕ) (hp : p.Prime) : atTop.liminf (fun (n : ℕ) ↦ n * padicNorm p n * distToNearestInt (n * α)) = 0"
+  },
+  {
+   "target": "parkin-shanks",
+   "key": "fc:FormalConjectures/Paper/PartitionParity.lean#parkin_shanks",
+   "file": "FormalConjectures/Paper/PartitionParity.lean",
+   "decl": "parkin_shanks",
+   "graph": ": {n : ℕ | Even (partitionNumber n)}.HasDensity (1 / 2) ∧ {n : ℕ | Odd (partitionNumber n)}.HasDensity (1 / 2)",
+   "upstream": ": {n : ℕ | Even (partitionNumber n)}.HasDensity (1 / 2) ∧ {n : ℕ | Odd (partitionNumber n)}.HasDensity (1 / 2)"
+  },
+  {
+   "target": "pi-pow-exp-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_exp_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "pi_pow_exp_transcendental",
+   "graph": ": Transcendental ℚ (π ^ (exp 1))",
+   "upstream": ": Transcendental ℚ (π ^ (exp 1))"
+  },
+  {
+   "target": "pi-pow-pi-pow-pi-pow-pi-not-integer",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_pow_pi_pow_pi_not_integer",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "pi_pow_pi_pow_pi_pow_pi_not_integer",
+   "graph": ": ¬ ∃ (n : ℤ), π ^ π ^ π ^ π = n",
+   "upstream": ": ¬ ∃ (n : ℤ), π ^ π ^ π ^ π = n"
+  },
+  {
+   "target": "pi-pow-pi-pow-pi-pow-pi-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_pow_pi_pow_pi_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "pi_pow_pi_pow_pi_pow_pi_transcendental",
+   "graph": ": Transcendental ℚ (π ^ (π ^ (π ^ π)))",
+   "upstream": ": Transcendental ℚ (π ^ (π ^ (π ^ π)))"
+  },
+  {
+   "target": "pi-pow-pi-pow-pi-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_pow_pi_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "pi_pow_pi_pow_pi_transcendental",
+   "graph": ": Transcendental ℚ (π ^ (π ^ π))",
+   "upstream": ": Transcendental ℚ (π ^ (π ^ π))"
+  },
+  {
+   "target": "pi-pow-pi-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_pi_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "pi_pow_pi_transcendental",
+   "graph": ": Transcendental ℚ (π ^ π)",
+   "upstream": ": Transcendental ℚ (π ^ π)"
+  },
+  {
+   "target": "pi-pow-sqrt-two-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#pi_pow_sqrt_two_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "pi_pow_sqrt_two_transcendental",
+   "graph": ": Transcendental ℚ (π ^ √2)",
+   "upstream": ": Transcendental ℚ (π ^ √2)"
+  },
+  {
+   "target": "pillais-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Catalan.lean#pillais_conjecture",
+   "file": "FormalConjectures/Wikipedia/Catalan.lean",
+   "decl": "pillais_conjecture",
+   "graph": "(a b c : ℕ) (ha : 0 < a) (hb : 0 < b) (hc : 0 < c) : { (x, y, m, n) : (ℕ × ℕ × ℕ × ℕ) | 1 < x ∧ 1 < y ∧ 1 < m ∧ 1 < n ∧ (m, n) ≠ (2, 2) ∧ a * x^n - b * y^m = c }.Finite",
+   "upstream": "(a b c : ℕ) (ha : 0 < a) (hb : 0 < b) (hc : 0 < c) : { (x, y, m, n) : (ℕ × ℕ × ℕ × ℕ) | 1 < x ∧ 1 < y ∧ 1 < m ∧ 1 < n ∧ (m, n) ≠ (2, 2) ∧ a * x^n - b * y^m = c }.Finite"
+  },
+  {
+   "target": "pollock-tetrahedral",
+   "key": "fc:FormalConjectures/Wikipedia/PollocksConjecture.lean#pollock_tetrahedral",
+   "file": "FormalConjectures/Wikipedia/PollocksConjecture.lean",
+   "decl": "pollock_tetrahedral",
+   "graph": "(N : ℕ) : ∃ f : Fin 5 → ℕ, N = ∑ i, tetrahedral (f i)",
+   "upstream": "(N : ℕ) : ∃ f : Fin 5 → ℕ, N = ∑ i, tetrahedral (f i)"
+  },
+  {
+   "target": "polynomial",
+   "key": "fc:FormalConjectures/Paper/PartitionParity.lean#ono.polynomial",
+   "file": "FormalConjectures/Paper/PartitionParity.lean",
+   "decl": "polynomial",
+   "graph": "(g : ℚ[X]) (hg : 0 < g.natDegree) (hint : ∀ n : ℕ, ∃ k : ℤ, g.eval (n : ℚ) = k) (hpos : ∀ᶠ n : ℕ in atTop, 0 < g.eval (n : ℚ)) : {n : ℕ | Even (partitionNumber ⌊g.eval (n : ℚ)⌋₊)}.Infinite ∧ {n : ℕ | Odd (partitionNumber ⌊g.eval (n : ℚ)⌋₊)}.Infinite",
+   "upstream": "(g : ℚ[X]) (hg : 0 < g.natDegree) (hint : ∀ n : ℕ, ∃ k : ℤ, g.eval (n : ℚ) = k) (hpos : ∀ᶠ n : ℕ in atTop, 0 < g.eval (n : ℚ)) : {n : ℕ | Even (partitionNumber ⌊g.eval (n : ℚ)⌋₊)}.Infinite ∧ {n : ℕ | Odd (partitionNumber ⌊g.eval (n : ℚ)⌋₊)}.Infinite"
+  },
+  {
+   "target": "prime-sierpinski-problem",
+   "key": "fc:FormalConjectures/Wikipedia/SierpinskiNumber.lean#prime_sierpinski_problem",
+   "file": "FormalConjectures/Wikipedia/SierpinskiNumber.lean",
+   "decl": "prime_sierpinski_problem",
+   "graph": ": IsLeast {k | k.IsSierpinskiNumber ∧ k.Prime} 271129",
+   "upstream": ": IsLeast {k | k.IsSierpinskiNumber ∧ k.Prime} 271129"
+  },
+  {
+   "target": "prime-triplets",
+   "key": "fc:FormalConjectures/Wikipedia/PrimeTriplets.lean#prime_triplets",
+   "file": "FormalConjectures/Wikipedia/PrimeTriplets.lean",
+   "decl": "prime_triplets",
+   "graph": ": {p : ℕ | Prime p ∧ (Prime (p + 2) ∨ Prime (p + 4)) ∧ Prime (p + 6)}.Infinite",
+   "upstream": ": {p : ℕ | Prime p ∧ (Prime (p + 2) ∨ Prime (p + 4)) ∧ Prime (p + 6)}.Infinite"
+  },
+  {
+   "target": "problem-10-1",
+   "key": "fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#problem_10_1",
+   "file": "FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean",
+   "decl": "problem_10_1",
+   "graph": ": ∃ (α ξ : ℝ), 1 < |α| ∧ Transcendental ℚ α ∧ 0 < ξ ∧ Filter.Tendsto (fun n : ℕ ↦ distToNearestInt (ξ * α ^ n)) Filter.atTop (nhds 0)",
+   "upstream": ": ∃ (α ξ : ℝ), 1 < |α| ∧ Transcendental ℚ α ∧ 0 < ξ ∧ Filter.Tendsto (fun n : ℕ ↦ distToNearestInt (ξ * α ^ n)) Filter.atTop (nhds 0)"
+  },
+  {
+   "target": "problem-10-2",
+   "key": "fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#problem_10_2",
+   "file": "FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean",
+   "decl": "problem_10_2",
+   "graph": ": ¬ Filter.Tendsto (fun n : ℕ ↦ distToNearestInt (Real.exp n)) Filter.atTop (nhds 0)",
+   "upstream": ": ¬ Filter.Tendsto (fun n : ℕ ↦ distToNearestInt (Real.exp n)) Filter.atTop (nhds 0)"
+  },
+  {
+   "target": "problem-10-3",
+   "key": "fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#problem_10_3",
+   "file": "FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean",
+   "decl": "problem_10_3",
+   "graph": ": ∃ c : ℝ, 0 < c ∧ ∀ n : ℕ, 1 ≤ n → Real.exp (-c * n) < distToNearestInt (Real.exp n)",
+   "upstream": ": ∃ c : ℝ, 0 < c ∧ ∀ n : ℕ, 1 ≤ n → Real.exp (-c * n) < distToNearestInt (Real.exp n)"
+  },
+  {
+   "target": "problem-10-6-variant-1",
+   "key": "fc:FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_6.lean#problem_10_6_variant_1",
+   "file": "FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_6.lean",
+   "decl": "problem_10_6_variant_1",
+   "graph": ": ∃ m : ℕ → ℕ, StrictMono m ∧ IsGenuinelySublacunary m ∧ ∀ ξ : ℝ, Irrational ξ → Dense (Set.range fun n => (↑(ξ * m n) : AddCircle (1 : ℝ)))",
+   "upstream": ": ∃ m : ℕ → ℕ, StrictMono m ∧ IsGenuinelySublacunary m ∧ ∀ ξ : ℝ, Irrational ξ → Dense (Set.range fun n => (↑(ξ * m n) : AddCircle (1 : ℝ)))"
+  },
+  {
+   "target": "problem-10-8",
+   "key": "fc:FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_8.lean#problem_10_8",
+   "file": "FormalConjectures/Books/BugeaudDistributionModuloOne/Problem10_8.lean",
+   "decl": "problem_10_8",
+   "graph": "(ξ : ℝ) (p : ℕ) (hp : p.Prime) : sInf {x : ℝ | ∃ q : ℕ, 1 ≤ q ∧ x = q * padicNorm p q * distToNearestInt (q * ξ)} = 0",
+   "upstream": "(ξ : ℝ) (p : ℕ) (hp : p.Prime) : sInf {x : ℝ | ∃ q : ℕ, 1 ≤ q ∧ x = q * padicNorm p q * distToNearestInt (q * ξ)} = 0"
+  },
+  {
+   "target": "projective-module-is-stably-free",
+   "key": "fc:FormalConjectures/Arxiv/math.0703548/FarrellJonesConsequences.lean#projective_module_isStablyFree",
+   "file": "FormalConjectures/Arxiv/math.0703548/FarrellJonesConsequences.lean",
+   "decl": "projective_module_isStablyFree",
+   "graph": "{G : Type*} [Group G] (hG : ∀ g : G, IsOfFinOrder g → g = 1) (M : Type*) [AddCommGroup M] [Module (MonoidAlgebra ℤ G) M] [Module.Finite (MonoidAlgebra ℤ G) M] [Module.Projective (MonoidAlgebra ℤ G) M] : Module.IsStablyFree (MonoidAlgebra ℤ G) M",
+   "upstream": "{G : Type*} [Group G] (hG : ∀ g : G, IsOfFinOrder g → g = 1) (M : Type*) [AddCommGroup M] [Module (MonoidAlgebra ℤ G) M] [Module.Finite (MonoidAlgebra ℤ G) M] [Module.Projective (MonoidAlgebra ℤ G) M] : Module.IsStablyFree (MonoidAlgebra ℤ G) M"
+  },
+  {
+   "target": "rational-7-tuple",
+   "key": "fc:FormalConjectures/Wikipedia/DiophantineTuple.lean#rational_7_tuple",
+   "file": "FormalConjectures/Wikipedia/DiophantineTuple.lean",
+   "decl": "rational_7_tuple",
+   "graph": ": ∃ t, IsRationalDiophantineTuple t ∧ t.card = 7",
+   "upstream": ": ∃ t, IsRationalDiophantineTuple t ∧ t.card = 7"
+  },
+  {
+   "target": "rational-distance-problem",
+   "key": "fc:FormalConjectures/Wikipedia/RationalDistanceProblem.lean#rational_distance_problem",
+   "file": "FormalConjectures/Wikipedia/RationalDistanceProblem.lean",
+   "decl": "rational_distance_problem",
+   "graph": ": ∃ P : ℝ² , ∀ i, ¬ Irrational (dist P (UnitSquareCorners i))",
+   "upstream": ": ∃ P : ℝ² , ∀ i, ¬ Irrational (dist P (UnitSquareCorners i))"
+  },
+  {
+   "target": "rectangles-cover-unit-square",
+   "key": "fc:FormalConjectures/Mathoverflow/34145.lean#rectangles_cover_unit_square",
+   "file": "FormalConjectures/Mathoverflow/34145.lean",
+   "decl": "rectangles_cover_unit_square",
+   "graph": ": ∃ c : Configuration, ∀ p ∈ unitSquare, ∃ n, p ∈ (c.rect n).toSet",
+   "upstream": ": ∃ c : Configuration, ∀ p ∈ unitSquare, ∃ n, p ∈ (c.rect n).toSet"
+  },
+  {
+   "target": "rectangles-pack-unit-square",
+   "key": "fc:FormalConjectures/Mathoverflow/34145.lean#rectangles_pack_unit_square",
+   "file": "FormalConjectures/Mathoverflow/34145.lean",
+   "decl": "rectangles_pack_unit_square",
+   "graph": ": ∃ c : Configuration, (∀ n, (c.rect n).toSet ⊆ unitSquare) ∧ c.IsPacking",
+   "upstream": ": ∃ c : Configuration, (∀ n, (c.rect n).toSet ⊆ unitSquare) ∧ c.IsPacking"
+  },
+  {
+   "target": "reed-omega-delta-chi-conjecture-for-finite-graphs",
+   "key": "fc:FormalConjectures/Paper/ReedOmegaDeltaChi.lean#reed_omega_delta_chi_conjecture_for_finite_graphs",
+   "file": "FormalConjectures/Paper/ReedOmegaDeltaChi.lean",
+   "decl": "reed_omega_delta_chi_conjecture_for_finite_graphs",
+   "graph": ": ∀ {V : Type} [Fintype V] [DecidableEq V] (G : SimpleGraph V) [DecidableRel G.Adj], let χ",
+   "upstream": ": ∀ {V : Type} [Fintype V] [DecidableEq V] (G : SimpleGraph V) [DecidableRel G.Adj], let χ"
+  },
+  {
+   "target": "regularprime-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/RegularPrimes.lean#regularprime_conjecture",
+   "file": "FormalConjectures/Wikipedia/RegularPrimes.lean",
+   "decl": "regularprime_conjecture",
+   "graph": ": RegularPrimeConjecture",
+   "upstream": ": RegularPrimeConjecture"
+  },
+  {
+   "target": "relatively-prime-amicable",
+   "key": "fc:FormalConjectures/Wikipedia/AmicableNumbers.lean#relatively_prime_amicable",
+   "file": "FormalConjectures/Wikipedia/AmicableNumbers.lean",
+   "decl": "relatively_prime_amicable",
+   "graph": ": ∃ a b : ℕ, IsAmicable a b ∧ a ≠ b ∧ a.Coprime b",
+   "upstream": ": ∃ a b : ℕ, IsAmicable a b ∧ a ≠ b ∧ a.Coprime b"
+  },
+  {
+   "target": "rlog-pi-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#rlog_pi_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "rlog_pi_transcendental",
+   "graph": ": Transcendental ℚ (log π)",
+   "upstream": ": Transcendental ℚ (log π)"
+  },
+  {
+   "target": "rlog-rlog-two-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#rlog_rlog_two_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "rlog_rlog_two_transcendental",
+   "graph": ": Transcendental ℚ ((2 : ℝ).log.log)",
+   "upstream": ": Transcendental ℚ ((2 : ℝ).log.log)"
+  },
+  {
+   "target": "robin-criterion-rhs",
+   "key": "fc:FormalConjectures/Paper/RiemannHypothesisEquivalents.lean#robin_criterion_rhs",
+   "file": "FormalConjectures/Paper/RiemannHypothesisEquivalents.lean",
+   "decl": "robin_criterion_rhs",
+   "graph": "{n : ℕ} (hn : n > 5040) : σ 1 n < exp eulerMascheroniConstant * n * log (log n)",
+   "upstream": "{n : ℕ} (hn : n > 5040) : σ 1 n < exp eulerMascheroniConstant * n * log (log n)"
+  },
+  {
+   "target": "rudins-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/RudinsConjecture.lean#rudins_conjecture",
+   "file": "FormalConjectures/Wikipedia/RudinsConjecture.lean",
+   "decl": "rudins_conjecture",
+   "graph": ": (fun N : ℕ => (Qmax N : ℝ)) =O[atTop] fun N : ℕ => Real.sqrt N",
+   "upstream": ": (fun N : ℕ => (Qmax N : ℝ)) =O[atTop] fun N : ℕ => Real.sqrt N"
+  },
+  {
+   "target": "rudins-conjecture-strong",
+   "key": "fc:FormalConjectures/Wikipedia/RudinsConjecture.lean#rudins_conjecture_strong",
+   "file": "FormalConjectures/Wikipedia/RudinsConjecture.lean",
+   "decl": "rudins_conjecture_strong",
+   "graph": "(N : ℕ) (hN : 6 ≤ N) : Q N 24 1 = Qmax N",
+   "upstream": "(N : ℕ) (hN : 6 ≤ N) : Q N 24 1 = Qmax N"
+  },
+  {
+   "target": "salzer-levine",
+   "key": "fc:FormalConjectures/Wikipedia/PollocksConjecture.lean#pollock_tetrahedral.salzer_levine",
+   "file": "FormalConjectures/Wikipedia/PollocksConjecture.lean",
+   "decl": "salzer_levine",
+   "graph": ": IsGreatest NotSumOfFourTetrahedral 343867",
+   "upstream": ": IsGreatest NotSumOfFourTetrahedral 343867"
+  },
+  {
+   "target": "same-parity-betrothed",
+   "key": "fc:FormalConjectures/Wikipedia/BetrothedNumbers.lean#same_parity_betrothed",
+   "file": "FormalConjectures/Wikipedia/BetrothedNumbers.lean",
+   "decl": "same_parity_betrothed",
+   "graph": ": ∃ m n : ℕ, m ≠ n ∧ IsBetrothed m n ∧ (Even m ↔ Even n)",
+   "upstream": ": ∃ m n : ℕ, m ≠ n ∧ IsBetrothed m n ∧ (Even m ↔ Even n)"
+  },
+  {
+   "target": "scholz-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/ScholzConjecture.lean#scholz_conjecture",
+   "file": "FormalConjectures/Wikipedia/ScholzConjecture.lean",
+   "decl": "scholz_conjecture",
+   "graph": ": ∀ (n : ℕ), 0 < n → ℓ(2 ^ n - 1) ≤ n - 1 + ℓ(n)",
+   "upstream": ": ∀ (n : ℕ), 0 < n → ℓ(2 ^ n - 1) ≤ n - 1 + ℓ(n)"
+  },
+  {
+   "target": "second-moment-one-extra-worker",
+   "key": "fc:FormalConjectures/Arxiv/1701.08900/SecondMoment.lean#second_moment_one_extra_worker",
+   "file": "FormalConjectures/Arxiv/1701.08900/SecondMoment.lean",
+   "decl": "second_moment_one_extra_worker",
+   "graph": ": ∃ C : ℝ, 0 < C ∧ ∀ᶠ n : ℕ in atTop, secondMomentNumStableMatchings n (n + 1) ≤ C * (expectedNumStableMatchings n (n + 1)) ^ 2",
+   "upstream": ": ∃ C : ℝ, 0 < C ∧ ∀ᶠ n : ℕ in atTop, secondMomentNumStableMatchings n (n + 1) ≤ C * (expectedNumStableMatchings n (n + 1)) ^ 2"
+  },
+  {
+   "target": "selfridge-seq-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Selfridge.lean#selfridge_seq_conjecture",
+   "file": "FormalConjectures/Wikipedia/Selfridge.lean",
+   "decl": "selfridge_seq_conjecture",
+   "graph": ": ¬ Monotone fermatFactors",
+   "upstream": ": ¬ Monotone fermatFactors"
+  },
+  {
+   "target": "simple-prop-lt",
+   "key": "fc:FormalConjectures/Paper/RiemannZetaZeros.lean#DirichletCharacter.simple_prop_lt",
+   "file": "FormalConjectures/Paper/RiemannZetaZeros.lean",
+   "decl": "simple_prop_lt",
+   "graph": ": ∃ c > 2 - montgomeryTaylorConst⁻¹, ∃ o : ℝ → ℝ, o =o[atTop] (1 : ℝ → ℝ) ∧ ∀ T > 0, (c - o T) * N riemannZeta T (2 * T) ≤ Ns riemannZeta T (2 * T)",
+   "upstream": ": ∃ c > 2 - montgomeryTaylorConst⁻¹, ∃ o : ℝ → ℝ, o =o[atTop] (1 : ℝ → ℝ) ∧ ∀ T > 0, (c - o T) * N riemannZeta T (2 * T) ≤ Ns riemannZeta T (2 * T)"
+  },
+  {
+   "target": "sin-exp-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#sin_exp_transcendental",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "sin_exp_transcendental",
+   "graph": ": Transcendental ℚ (Real.sin (exp 1))",
+   "upstream": ": Transcendental ℚ (Real.sin (exp 1))"
+  },
+  {
+   "target": "singmaster",
+   "key": "fc:FormalConjectures/Wikipedia/Singmaster.lean#singmaster",
+   "file": "FormalConjectures/Wikipedia/Singmaster.lean",
+   "decl": "singmaster",
+   "graph": ": ∃ (C : ℕ), ∀ (t : ℕ), t > 1 → (Singmaster.solutions t).Finite ∧ (Singmaster.solutions t).ncard ≤ C",
+   "upstream": ": ∃ (C : ℕ), ∀ (t : ℕ), t > 1 → (Singmaster.solutions t).Finite ∧ (Singmaster.solutions t).ncard ≤ C"
+  },
+  {
+   "target": "stability-threshold-tight",
+   "key": "fc:FormalConjectures/Paper/ApproximatelyStableMatching.lean#stability_threshold_tight",
+   "file": "FormalConjectures/Paper/ApproximatelyStableMatching.lean",
+   "decl": "stability_threshold_tight",
+   "graph": ": ∃ N₀ : ℕ, 3 ≤ N₀ ∧ ∀ N ≥ N₀, Roommates.stabilityThreshold N = (N + 1) / 2",
+   "upstream": ": ∃ N₀ : ℕ, 3 ≤ N₀ ∧ ∀ N ≥ N₀, Roommates.stabilityThreshold N = (N + 1) / 2"
+  },
+  {
+   "target": "tan-arctan-sum-not-integer",
+   "key": "fc:FormalConjectures/Arxiv/2607.05739/TanArctanSum.lean#tan_arctan_sum_not_integer",
+   "file": "FormalConjectures/Arxiv/2607.05739/TanArctanSum.lean",
+   "decl": "tan_arctan_sum_not_integer",
+   "graph": ": ∀ n : ℕ, 5 ≤ n → ¬ IsIntegerValue n",
+   "upstream": ": ∀ n : ℕ, 5 ≤ n → ¬ IsIntegerValue n"
+  },
+  {
+   "target": "taxicab-for-5-2-2",
+   "key": "fc:FormalConjectures/Wikipedia/Taxicab.lean#taxicab_for_5_2_2",
+   "file": "FormalConjectures/Wikipedia/Taxicab.lean",
+   "decl": "taxicab_for_5_2_2",
+   "graph": ": ∃ x : ℕ, IsTaxicabFor 5 2 2 x",
+   "upstream": ": ∃ x : ℕ, IsTaxicabFor 5 2 2 x"
+  },
+  {
+   "target": "taxicab-for-5-2-n",
+   "key": "fc:FormalConjectures/Wikipedia/Taxicab.lean#taxicab_for_5_2_n",
+   "file": "FormalConjectures/Wikipedia/Taxicab.lean",
+   "decl": "taxicab_for_5_2_n",
+   "graph": ": ∃ n : ℕ, n ≥ 2 ∧ (∃ x : ℕ, IsTaxicabFor 5 2 n x)",
+   "upstream": ": ∃ n : ℕ, n ≥ 2 ∧ (∃ x : ℕ, IsTaxicabFor 5 2 n x)"
+  },
+  {
+   "target": "tfnp-no-complete-problem",
+   "key": "fc:FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean#tfnp_no_complete_problem",
+   "file": "FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean",
+   "decl": "tfnp_no_complete_problem",
+   "graph": ": ¬∃ T : TFNPProblem, T.IsComplete",
+   "upstream": ": ¬∃ T : TFNPProblem, T.IsComplete"
+  },
+  {
+   "target": "total-coloring-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/TotalColoringConjecture.lean#total_coloring_conjecture",
+   "file": "FormalConjectures/Wikipedia/TotalColoringConjecture.lean",
+   "decl": "total_coloring_conjecture",
+   "graph": ": ∀ {V : Type} [Fintype V] [DecidableEq V] (G : SimpleGraph V) [DecidableRel G.Adj], G.totalChromaticNumber ≤ G.maxDegree + 2",
+   "upstream": ": ∀ {V : Type} [Fintype V] [DecidableEq V] (G : SimpleGraph V) [DecidableRel G.Adj], G.totalChromaticNumber ≤ G.maxDegree + 2"
+  },
+  {
+   "target": "transcendental-catalan-constant",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#transcendental_catalanConstant",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "transcendental_catalanConstant",
+   "graph": ": Transcendental ℚ catalanConstant",
+   "upstream": ": Transcendental ℚ catalanConstant"
+  },
+  {
+   "target": "transcendental-gompertz-constant",
+   "key": "fc:FormalConjectures/Wikipedia/Transcendental.lean#transcendental_gompertzConstant",
+   "file": "FormalConjectures/Wikipedia/Transcendental.lean",
+   "decl": "transcendental_gompertzConstant",
+   "graph": ": Transcendental ℚ gompertzConstant",
+   "upstream": ": Transcendental ℚ gompertzConstant"
+  },
+  {
+   "target": "twin-primes",
+   "key": "fc:FormalConjectures/Wikipedia/TwinPrimes.lean#twin_primes",
+   "file": "FormalConjectures/Wikipedia/TwinPrimes.lean",
+   "decl": "twin_primes",
+   "graph": ": {p : ℕ | Prime p ∧ Prime (p + 2)}.Infinite",
+   "upstream": ": {p : ℕ | Prime p ∧ Prime (p + 2)}.Infinite"
+  },
+  {
+   "target": "two-five-perfect",
+   "key": "fc:FormalConjectures/Wikipedia/Superperfectnumbers.lean#twoFivePerfect",
+   "file": "FormalConjectures/Wikipedia/Superperfectnumbers.lean",
+   "decl": "twoFivePerfect",
+   "graph": ": ¬ ∃ n, Nat.IsPerfectFor n 2 5",
+   "upstream": ": ¬ ∃ n, Nat.IsPerfectFor n 2 5"
+  },
+  {
+   "target": "two-pow-three-pow-transcendental",
+   "key": "fc:FormalConjectures/Wikipedia/Exponentials.lean#two_pow_three_pow_transcendental",
+   "file": "FormalConjectures/Wikipedia/Exponentials.lean",
+   "decl": "two_pow_three_pow_transcendental",
+   "graph": "(t : ℝ) (h : Irrational t) : Transcendental ℚ (2 ^ t : ℝ) ∨ Transcendental ℚ (3 ^ t : ℝ)",
+   "upstream": "(t : ℝ) (h : Irrational t) : Transcendental ℚ (2 ^ t : ℝ) ∨ Transcendental ℚ (3 ^ t : ℝ)"
+  },
+  {
+   "target": "up-no-complete-language",
+   "key": "fc:FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean#up_no_complete_language",
+   "file": "FormalConjectures/Paper/PudlakFiniteDomainConjectures.lean",
+   "decl": "up_no_complete_language",
+   "graph": ": ¬∃ L : DecisionProblem, IsCompleteFor UP L",
+   "upstream": ": ¬∃ L : DecisionProblem, IsCompleteFor UP L"
+  },
+  {
+   "target": "value-of-even-mul-succ-self-div-two",
+   "key": "fc:FormalConjectures/Paper/CatchUpConjecture.lean#value_of_even_mul_succ_self_div_two",
+   "file": "FormalConjectures/Paper/CatchUpConjecture.lean",
+   "decl": "value_of_even_mul_succ_self_div_two",
+   "graph": "(N : ℕ) (h_even : Even (N * (N + 1) / 2)) : value (.Icc 1 N) = .draw",
+   "upstream": "(N : ℕ) (h_even : Even (N * (N + 1) / 2)) : value (.Icc 1 N) = .draw"
+  },
+  {
+   "target": "variant",
+   "key": "fc:FormalConjectures/Wikipedia/FibonacciPrimes.lean#fib_primes_infinite.variant",
+   "file": "FormalConjectures/Wikipedia/FibonacciPrimes.lean",
+   "decl": "variant",
+   "graph": ": {n : ℕ | n.fib.Prime}.Infinite",
+   "upstream": ": {n : ℕ | n.fib.Prime}.Infinite"
+  },
+  {
+   "target": "variant-101",
+   "key": "fc:FormalConjectures/GreensOpenProblems/39.lean#green_39.variant_101",
+   "file": "FormalConjectures/GreensOpenProblems/39.lean",
+   "decl": "variant_101",
+   "graph": ": Tendsto (fun p : {q : ℕ // q.Prime} ↦ let k := Nat.sqrt p let c := ⌊1.01 * (k : ℝ)⌋₊ (proportionCoverable p k c : ℝ)) atTop (𝓝 1)",
+   "upstream": ": Tendsto (fun p : {q : ℕ // q.Prime} ↦ let k := Nat.sqrt p let c := ⌊1.01 * (k : ℝ)⌋₊ (proportionCoverable p k c : ℝ)) atTop (𝓝 1)"
+  },
+  {
+   "target": "vizing-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/VizingConjecture.lean#vizing_conjecture",
+   "file": "FormalConjectures/Wikipedia/VizingConjecture.lean",
+   "decl": "vizing_conjecture",
+   "graph": ": ∀ {α β : Type} [Fintype α] [Fintype β] [DecidableEq α] [DecidableEq β] (G : SimpleGraph α) (H : SimpleGraph β), G.dominationNumber * H.dominationNumber ≤ (G □ H).dominationNumber",
+   "upstream": ": ∀ {α β : Type} [Fintype α] [Fintype β] [DecidableEq α] [DecidableEq β] (G : SimpleGraph α) (H : SimpleGraph β), G.dominationNumber * H.dominationNumber ≤ (G □ H).dominationNumber"
+  },
+  {
+   "target": "volume-frontier-mandelbrot-set-eq-zero",
+   "key": "fc:FormalConjectures/Wikipedia/Mandelbrot.lean#volume_frontier_mandelbrotSet_eq_zero",
+   "file": "FormalConjectures/Wikipedia/Mandelbrot.lean",
+   "decl": "volume_frontier_mandelbrotSet_eq_zero",
+   "graph": ": volume (frontier mandelbrotSet) = 0",
+   "upstream": ": volume (frontier mandelbrotSet) = 0"
+  },
+  {
+   "target": "volume-frontier-multibrot-set-eq-zero",
+   "key": "fc:FormalConjectures/Wikipedia/Mandelbrot.lean#volume_frontier_multibrotSet_eq_zero",
+   "file": "FormalConjectures/Wikipedia/Mandelbrot.lean",
+   "decl": "volume_frontier_multibrotSet_eq_zero",
+   "graph": "{n : ℕ} : volume (frontier (multibrotSet n)) = 0",
+   "upstream": "{n : ℕ} : volume (frontier (multibrotSet n)) = 0"
+  },
+  {
+   "target": "waldschmidt",
+   "key": "fc:FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean#waldschmidt",
+   "file": "FormalConjectures/Books/BugeaudDistributionModuloOne/IntDistanceDistribution.lean",
+   "decl": "waldschmidt",
+   "graph": ": ∃ c : ℝ, 0 < c ∧ ∀ n : ℕ, 2 ≤ n → (n : ℝ) ^ (-c) < distToNearestInt (Real.exp n)",
+   "upstream": ": ∃ c : ℝ, 0 < c ∧ ∀ n : ℕ, 2 ≤ n → (n : ℝ) ^ (-c) < distToNearestInt (Real.exp n)"
+  },
+  {
+   "target": "weak-hall-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/Hall.lean#weak_hall_conjecture",
+   "file": "FormalConjectures/Wikipedia/Hall.lean",
+   "decl": "weak_hall_conjecture",
+   "graph": "(ε : ℝ) (hε : ε > 0) : HallConjectureExp (2⁻¹ - ε)",
+   "upstream": "(ε : ℝ) (hε : ε > 0) : HallConjectureExp (2⁻¹ - ε)"
+  },
+  {
+   "target": "weighing-matrix-conjecture",
+   "key": "fc:FormalConjectures/Wikipedia/WeighingMatrix.lean#weighing_matrix_conjecture",
+   "file": "FormalConjectures/Wikipedia/WeighingMatrix.lean",
+   "decl": "weighing_matrix_conjecture",
+   "graph": "(m w : ℕ) (hm : 1 ≤ m) (hw : w ≤ 4 * m) : ∃ W, IsWeighingMatrix (n := 4 * m) w W",
+   "upstream": "(m w : ℕ) (hm : 1 ≤ m) (hw : w ≤ 4 * m) : ∃ W, IsWeighingMatrix (n := 4 * m) w W"
+  },
+  {
+   "target": "wolstenholme-prime-infinite",
+   "key": "fc:FormalConjectures/Wikipedia/WolstenholmePrime.lean#wolstenholme_prime_infinite",
+   "file": "FormalConjectures/Wikipedia/WolstenholmePrime.lean",
+   "decl": "wolstenholme_prime_infinite",
+   "graph": ": {p : ℕ | IsWolstenholmePrime p}.Infinite",
+   "upstream": ": {p : ℕ | IsWolstenholmePrime p}.Infinite"
+  },
+  {
+   "target": "zagier-conjecture",
+   "key": "fc:FormalConjectures/Paper/ZagierMZV.lean#zagier_conjecture",
+   "file": "FormalConjectures/Paper/ZagierMZV.lean",
+   "decl": "zagier_conjecture",
+   "graph": ": ∀ n : ℕ, Module.finrank ℚ (mzvSpanOfWeight n) = zagierDim n",
+   "upstream": ": ∀ n : ℕ, Module.finrank ℚ (mzvSpanOfWeight n) = zagierDim n"
+  }
+ ],
+ "differs": [
+  {
+   "target": "i",
+   "key": "fc:FormalConjectures/GreensOpenProblems/17.lean#green_17.parts.i",
+   "file": "FormalConjectures/GreensOpenProblems/17.lean",
+   "decl": "i",
+   "graph": "(x : ℕ) (hx : 2 ≤ x) : ∃ p ∈ Ioo (x * (x - 1)) (x^2), p.Prime",
+   "upstream": ": (fun n : ℕ ↦ (maxFree n : ℝ) / 3 ^ n) =Θ[atTop] green_17.parts.i.answer"
+  },
+  {
+   "target": "ii",
+   "key": "fc:FormalConjectures/GreensOpenProblems/17.lean#green_17.parts.ii",
+   "file": "FormalConjectures/GreensOpenProblems/17.lean",
+   "decl": "ii",
+   "graph": "(x : ℕ) (hx : 2 ≤ x) : ∃ p ∈ Ioo (x^2) (x * (x + 1)), p.Prime",
+   "upstream": ": ∀ α : ℝ, 0 < α → ∃ c : ℝ, 0 < c ∧ ∀ᶠ n : ℕ in atTop, ∀ A : Finset (𝔽₃ n), α * 3 ^ n ≤ (A.card : ℝ) → c * 6 ^ n ≤ (numRestrictedAPs A : ℝ)"
+  }
+ ],
+ "unmatched": [
+  [
+   "buchi-problem--m5",
+   "rows=[]"
+  ],
+  [
+   "no-complete-disjoint--n-p-pair",
+   "rows=[]"
+  ]
+ ]
+}

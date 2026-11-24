@@ -1,0 +1,63 @@
+F14-T26 — the bulk load's statements checked strictly; every target runs `auto-implicit` (2026-11-24)
+
+Question (owner): do the newly imported statements carry all the code they need to pin them down?
+
+Checked against graph origin/main 51645d9738, the 411 targets added since 2026-11-22.
+
+1. Statement text (compare_upstream.py → compare_upstream.json)
+   Each root's `theorem Opn.<name> ... :=` against the registry declaration it came from
+   (formal-conjectures d8d031d), whitespace normalised: 411 / 411 identical. (`i`, `ii`,
+   `buchi-problem--m5`, `no-complete-disjoint--n-p-pair` compared by their target.yaml
+   upstream_path; see 5.)
+
+2. Scope (compare_scope.py, compare_scope2.py → compare_scope.json)
+   Every `open` in scope at the registry's theorem is open in the graph's statement: 0 of 411
+   missing one. 216 do not reopen the registry's own `namespace`; where that namespace defines
+   something the statement uses, 3 would have failed — it did not.
+
+3. Definitions (compare_defs.py → compare_defs.json)
+   1,684 defs/ files on the 411: 1,436 library modules identical to their registry source and
+   211 Local.lean an in-order subset of their registry file, module syntax and comments
+   aside. The 37 others: every added line is one of seven `local notation`/`local infix`
+   made global; every removed line is a proof, lemma, test, `#guard_msgs`, `#check`,
+   `set_option … in`, `meta section` or the `open Filter in` of a dropped theorem. No
+   definition body changed. Text scan: no `sorry`, `admit`, `axiom`, `opaque` outside comments
+   in any defs/ file; no `sorry` in any of the 411 Witness.lean.
+
+4. Strict elaboration (Strict.lean, manifest.py → strict-results.jsonl)
+   The registry's lakefile sets autoImplicit = false and relaxedAutoImplicit = false; the gate
+   elaborates with Lean's default (on), and no gate-spec listed the `auto-implicit` checker,
+   so a name a port missed would have elaborated as a silent implicit binder.
+   One `lean --run` process (Lean 4.33.1 arm64, Mathlib 0df444a oleans copied from the pinned
+   image 45db1664) imported Mathlib once and elaborated every target's defs/ in order and its
+   root statement, under the default and under strict options.
+   Controls: control1.lean (`radical m ≤ m`) and control2.lean (`radicl < 6`) each pass the
+   default and fail strict — the detector sees the silent case.
+   Result: 411 / 411 pass the default; 410 pass strict. erdos-623 fails strict on
+   "unknown universe level `u`": the port dropped the registry's `universe u` line, and the
+   graph auto-binds `u` as a universe parameter, which is the same statement.
+   Two module rows (erdos-942, error-term-improvement: FieldTheoryMilnorKTheory) fail under
+   both settings: the harness carries a sibling's `open scoped Nat` into the next module, so
+   `φ` became a token. The same file (sha df7ae97d) passes strict in the other 191 targets.
+
+5. Not imported: target ids `i` and `ii` are each claimed by three registry rows (Oppermann,
+   Artin's primitive roots, Green 17); Oppermann's took both, so four statements are missing.
+
+The switch (graph 5b343e8a68, pushed 2026-11-24 12:47Z by the gate owner):
+   `auto-implicit` added to hazard_checkers in all 443 targets' gate-spec.json — one inserted
+   line each, all 443 validated against gate-spec/v1 and `steps.hazards.check_config` before
+   the push. Step 6 runs at admission only (`admit.run`, `opn-gate hazards`), never on a proof
+   submission, so no merged node and no open pull request is affected. Gate push run
+   45396961872 success; render 45397020081 success, bot commit bf3a84b607.
+
+The check after it landed:
+   live-check-axle.txt — the service's own hosted hazards program (`checks.hazards_text`)
+   with the live spec's checker list, sent to AXLE lean-4.33.1:
+     planted `m + 0 = m`          → auto-implicit finding at `m` ("bound it as `{m : ℕ}`")
+     planted `∀ (X : Type u), …`  → no finding (a universe is not an identifier)
+     erdos-680 root (live)        → no finding
+   live-check.txt — the same through `POST /check`: HTTP 500 at 29.5 s, as was every `/check`
+   for the previous 30 hours. Not this change: see task-27.txt.
+
+Verification: `grep -L '"auto-implicit"' ../open_proof_network_graph/targets/*/gate-spec.json`
+prints nothing at graph origin/main.

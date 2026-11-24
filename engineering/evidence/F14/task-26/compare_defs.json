@@ -1,0 +1,37 @@
+[
+ [
+  "algebraic-independent-e-pi",
+  "Local.lean",
+  "notation \"e\" => exp 1"
+ ],
+ [
+  "butson-hadamard-fourth-roots-conjecture",
+  "ComputabilityTuringMachineNotation.lean",
+  "port: 'open Turing BusyBeaver' / upstream: 'meta section'"
+ ],
+ [
+  "erdos-100",
+  "Geometry2d.lean",
+  "port: \"theorem IsCcwConvexPolygon.sign_oangle' (hp : IsCcwConvexPolygon p) {i j k : Fin n}\" / upstream: 'set_option linter.docPrime false in'"
+ ],
+ [
+  "erdos-890",
+  "Local.lean",
+  "notation \"ω_gt\" => omegaGt"
+ ],
+ [
+  "erdos-979",
+  "FieldTheoryAbsoluteGaloisGroup.lean",
+  "port: 'notation \"G_K\" => absoluteGaloisGroup' / upstream: 'local notation \"G_K\" => absoluteGaloisGroup'"
+ ],
+ [
+  "maximal-length-le-strong",
+  "Local.lean",
+  "infix:50 \" <₂ \" => lt₂"
+ ],
+ [
+  "scholz-conjecture",
+  "Local.lean",
+  "notation \"ℓ(\" n \")\" => additionChainLength n"
+ ]
+]

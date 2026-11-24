@@ -337,9 +337,12 @@ def index_doc(ctx: Context) -> dict[str, Any]:
 
 
 def graph_doc(ctx: Context) -> dict[str, list[dict[str, Any]]]:
-    """Every target's nodes, from the committed ``targets/<id>/graph.json`` files."""
+    """Every target's nodes, from the committed ``targets/<id>/graph.json`` files, read
+    concurrently first (graph-doc-serial: 443 targets in series outran the Lambda's 29 s)."""
     out: dict[str, list[dict[str, Any]]] = {}
-    for target in index_doc(ctx).get("targets", []):
+    targets = index_doc(ctx).get("targets", [])
+    frontier.prefetch(ctx, [f"targets/{t['target_id']}/graph.json" for t in targets])
+    for target in targets:
         target_id = str(target["target_id"])
         doc = json.loads(frontier.committed(ctx, f"targets/{target_id}/graph.json"))
         out[target_id] = list(doc.get("nodes", []))
