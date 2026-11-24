@@ -38,7 +38,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from opn_api.mcp import auth, bijection, demarcate, reads, results, writes
+from opn_api.mcp import auth, bijection, demarcate, reads, results, surface, writes
 from opn_api.mcp.calls import Call, Tool, ToolError, error
 from opn_gate.products import PROTOCOL_VERSION
 
@@ -99,6 +99,15 @@ def urls(ctx: Context) -> dict[str, str]:
 #: The instructions in the words used when the tutorial node cannot be named.
 INSTRUCTIONS = instructions(auth.TUTORIAL_UNNAMED)
 
+#: F09-T78 (D-28 v3.50): what the three-tool surface adds in front of the instructions, whose
+#: names below are then operations rather than tools.
+SURFACE_LEAD = (
+    "This server has three tools. search finds operations by what they do and returns each "
+    "one's arguments; read runs one read operation and write one write operation, as "
+    '{"operation": <name>, "arguments": {...}}. Every name below is an operation. The earlier '
+    "surface, one tool per operation, is served at /mcp?surface=v1 for a transition window. "
+)
+
 
 class LazyInstructions:
     """Initialization options whose ``instructions`` are derived only when read. In stateless
@@ -123,9 +132,10 @@ class LiveServer(Server[Any, Any]):
     name the tutorial node from the committed graphs (tester finding 2026-09-27), so moving the
     ``tutorial`` flag moves the name."""
 
-    def __init__(self, ctx: Context) -> None:
+    def __init__(self, ctx: Context, *, legacy: bool = False) -> None:
         super().__init__(SERVER_NAME, version=PROTOCOL_VERSION, instructions=INSTRUCTIONS)
         self._ctx = ctx
+        self._legacy = legacy
 
     def create_initialization_options(
         self,
@@ -135,8 +145,10 @@ class LiveServer(Server[Any, Any]):
         base = super().create_initialization_options(
             notification_options, experimental_capabilities
         )
+        lead = "" if self._legacy else SURFACE_LEAD
         lazy = LazyInstructions(
-            base, lambda: instructions(auth.tutorial_phrase(self._ctx), **urls(self._ctx))
+            base,
+            lambda: lead + instructions(auth.tutorial_phrase(self._ctx), **urls(self._ctx)),
         )
         return cast("InitializationOptions", lazy)
 
@@ -259,78 +271,161 @@ def text_block(doc: dict[str, Any]) -> list[types.ContentBlock]:
     ]
 
 
-def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
-    """The SDK server over ``ctx``; ``host`` yields the application the write tools call."""
-    server: Server[Any, Any] = LiveServer(ctx)
+def bare_error(doc: dict[str, Any]) -> types.CallToolResult:
+    """An ``isError`` result of the three-tool surface (F09-T78) that names no operation."""
+    return types.CallToolResult(content=text_block(doc), structuredContent=doc, isError=True)
+
+
+async def run_operation(
+    ctx: Context, host: Callable[[], ASGIApp], tool: Tool, arguments: dict[str, Any]
+) -> tuple[list[types.ContentBlock], dict[str, Any]] | types.CallToolResult:
+    """One operation, as a named tool runs it and as ``read`` and ``write`` run it (F09-T78):
+    the arguments against its schema, the bearer gate (R2), the endpoint, the error envelope."""
+    name = tool.name
+    try:
+        jsonschema.validate(instance=arguments, schema=tool.input_schema)
+    except jsonschema.ValidationError as exc:
+        # F09-T10: the argument is named, as results.violations names a result's. The
+        # envelope is closed, so the path rides in the message.
+        where = "$" + "".join(f"[{p!r}]" for p in exc.absolute_path)
+        message = exc.message if where == "$" else f"{where}: {exc.message}"
+        if where == "$":
+            message += argument_hint(tool, arguments)
+        return error_result(name, error("arguments-invalid", message, "adapter").doc)
+    token = auth.bearer() if tool.forwards_bearer else None
+    if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
+        # A write answers in its envelope; a read of the caller's own records (F05-T14) in
+        # the read tools' error shape, with the same code, message and status.
+        body = auth.unauthorized(ctx)
+        refusal = (
+            writes.unauthorized(ctx)
+            if tool.write
+            else error(
+                str(body["error"]),
+                str(body["message"]),
+                "adapter",
+                status=auth.UNAUTHORIZED_STATUS,
+            )
+        )
+        return error_result(name, refusal.doc)
+    outer = OUTER.get()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(
+            app=host(),
+            raise_app_exceptions=False,
+            client=(outer.client_host if outer else "127.0.0.1", 0),
+        ),
+        base_url=ctx.settings.public_url,
+    ) as http:
+        call = Call(ctx, http, token=token)
+        try:
+            doc = await tool.handler(call, arguments)
+        except ToolError as failure:
+            return error_result(name, failure.doc)
+        except Exception as exc:  # C7: named, logged, never a partial answer
+            log.error("%s failed: %s", name, type(exc).__name__, exc_info=exc)
+            return error_result(
+                name, error("internal", f"{name} failed: {type(exc).__name__}", "adapter").doc
+            )
+        # Both halves, so the SDK still validates the structured half against the output
+        # schema and leaves the text as written (T18).
+        return text_block(doc), doc
+
+
+async def run_through(
+    ctx: Context, host: Callable[[], ASGIApp], kind: str, arguments: dict[str, Any]
+) -> types.CallToolResult:
+    """``read`` or ``write`` (F09-T78): one operation of that kind, its result its own. No output
+    schema is declared on the two tools, so the operation's is applied here, as the SDK applied
+    it to the named tool (R9)."""
+    name = arguments.get("operation")
+    tool = BY_NAME.get(name) if isinstance(name, str) else None
+    if tool is None:
+        return bare_error(surface.unknown_operation(str(name)).doc)
+    actual = "write" if tool.write else "read"
+    if actual != kind:
+        return bare_error(surface.kind_mismatch(tool.name, wanted=kind, actual=actual).doc)
+    args = arguments.get("arguments") or {}
+    if not isinstance(args, dict):
+        return error_result(
+            tool.name, error("arguments-invalid", "$['arguments']: not an object", "adapter").doc
+        )
+    answer = await run_operation(ctx, host, tool, args)
+    if isinstance(answer, types.CallToolResult):
+        return answer
+    content, doc = answer
+    problems = results.violations(tool.name, doc)
+    if problems:  # a bug in the adapter, never hidden from the caller (C7)
+        log.error("%s: result violates its schema: %s", tool.name, "; ".join(problems))
+        return bare_error(
+            error("internal", f"{tool.name} produced an unschematic result", "adapter").doc
+        )
+    return types.CallToolResult(content=content, structuredContent=doc)
+
+
+def build_server(
+    ctx: Context, host: Callable[[], ASGIApp], *, legacy: bool = False
+) -> Server[Any, Any]:
+    """The SDK server over ``ctx``; ``host`` yields the application the write tools call.
+    ``legacy`` serves the named tools (``/mcp?surface=v1``, F09-T78); otherwise the three."""
+    server: Server[Any, Any] = LiveServer(ctx, legacy=legacy)
 
     # The SDK's registration decorators are unannotated, hence the two ignores.
     @server.list_tools()  # type: ignore[untyped-decorator,no-untyped-call]
     async def list_tools() -> list[types.Tool]:
-        return [declare(t) for t in TOOLS]
+        return [declare(t) for t in TOOLS] if legacy else surface.declared()
 
     @server.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
     async def call_tool(
         name: str, arguments: dict[str, Any]
     ) -> tuple[list[types.ContentBlock], dict[str, Any]] | types.CallToolResult:
-        tool = BY_NAME.get(name)
-        if tool is None:
-            return error_result(
-                "server_info", error("tool-unknown", f"no such tool {name}", "adapter").doc
-            )
-        try:
-            jsonschema.validate(instance=arguments, schema=tool.input_schema)
-        except jsonschema.ValidationError as exc:
-            # F09-T10: the argument is named, as results.violations names a result's. The
-            # envelope is closed, so the path rides in the message.
-            where = "$" + "".join(f"[{p!r}]" for p in exc.absolute_path)
-            message = exc.message if where == "$" else f"{where}: {exc.message}"
-            if where == "$":
-                message += argument_hint(tool, arguments)
-            return error_result(name, error("arguments-invalid", message, "adapter").doc)
-        token = auth.bearer() if tool.forwards_bearer else None
-        if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
-            # A write answers in its envelope; a read of the caller's own records (F05-T14) in
-            # the read tools' error shape, with the same code, message and status.
-            body = auth.unauthorized(ctx)
-            refusal = (
-                writes.unauthorized(ctx)
-                if tool.write
-                else error(
-                    str(body["error"]),
-                    str(body["message"]),
-                    "adapter",
-                    status=auth.UNAUTHORIZED_STATUS,
-                )
-            )
-            return error_result(name, refusal.doc)
-        outer = OUTER.get()
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(
-                app=host(),
-                raise_app_exceptions=False,
-                client=(outer.client_host if outer else "127.0.0.1", 0),
-            ),
-            base_url=ctx.settings.public_url,
-        ) as http:
-            call = Call(ctx, http, token=token)
-            try:
-                doc = await tool.handler(call, arguments)
-            except ToolError as failure:
-                return error_result(name, failure.doc)
-            except Exception as exc:  # C7: named, logged, never a partial answer
-                log.error("%s failed: %s", name, type(exc).__name__, exc_info=exc)
+        if legacy:
+            tool = BY_NAME.get(name)
+            if tool is None:
                 return error_result(
-                    name, error("internal", f"{name} failed: {type(exc).__name__}", "adapter").doc
+                    "server_info", error("tool-unknown", f"no such tool {name}", "adapter").doc
                 )
-            # Both halves, so the SDK still validates the structured half against the output
-            # schema and leaves the text as written (T18).
-            return text_block(doc), doc
+            return await run_operation(ctx, host, tool, arguments)
+        return await run_surface(ctx, host, name, arguments)
 
     return server
 
 
+async def run_surface(
+    ctx: Context, host: Callable[[], ASGIApp], name: str, arguments: dict[str, Any]
+) -> types.CallToolResult:
+    """One call of the three-tool surface (F09-T78)."""
+    schema = (
+        surface.SEARCH_SCHEMA
+        if name == surface.SEARCH
+        else surface.call_schema(name)
+        if name in (surface.READ, surface.WRITE)
+        else None
+    )
+    if schema is None:
+        message = f"no such tool {name}; the tools are search, read and write"
+        return bare_error(error("tool-unknown", message, "adapter").doc)
+    try:
+        jsonschema.validate(instance=arguments, schema=schema)
+    except jsonschema.ValidationError as exc:
+        return bare_error(error("arguments-invalid", exc.message, "adapter").doc)
+    if name != surface.SEARCH:
+        return await run_through(ctx, host, name, arguments)
+    try:
+        doc = surface.search(TOOLS, TITLES, arguments)
+    except ToolError as failure:
+        return bare_error(failure.doc)
+    return types.CallToolResult(content=text_block(doc), structuredContent=doc)
+
+
 def new_manager(server: Server[Any, Any]) -> StreamableHTTPSessionManager:
     return StreamableHTTPSessionManager(app=server, json_response=True, stateless=True)
+
+
+def wants_legacy(scope: Scope) -> bool:
+    """``?surface=v1`` selects the named tools (F09-T78, D-28 v3.50's transition window)."""
+    query = scope.get("query_string", b"").decode("latin-1")
+    return "surface=v1" in query.split("&")
 
 
 class Mount:
@@ -338,7 +433,9 @@ class Mount:
 
     def __init__(self, ctx: Context, host: Callable[[], ASGIApp]) -> None:
         self.server = build_server(ctx, host)
+        self.legacy = build_server(ctx, host, legacy=True)  # /mcp?surface=v1 (F09-T78)
         self._manager: StreamableHTTPSessionManager | None = None
+        self._legacy_manager: StreamableHTTPSessionManager | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self.app: ASGIApp = AuthenticationMiddleware(
             AuthContextMiddleware(self._dispatch),
@@ -348,13 +445,14 @@ class Mount:
     @contextlib.asynccontextmanager
     async def running(self) -> AsyncIterator[None]:
         """Enter the session manager for the host's lifetime — the host lifespan calls this."""
-        manager = new_manager(self.server)
-        async with manager.run():
-            self._manager, self._loop = manager, asyncio.get_running_loop()
+        manager, legacy = new_manager(self.server), new_manager(self.legacy)
+        async with manager.run(), legacy.run():
+            self._manager, self._legacy_manager = manager, legacy
+            self._loop = asyncio.get_running_loop()
             try:
                 yield
             finally:
-                self._manager, self._loop = None, None
+                self._manager, self._legacy_manager, self._loop = None, None, None
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await self.app(scope, receive, send)
@@ -363,14 +461,15 @@ class Mount:
         conn = HTTPConnection(scope)
         outer = Outer(client_host=conn.client.host if conn.client else "unknown")
         token = OUTER.set(outer)
+        legacy = wants_legacy(scope)
         try:
-            manager = self._manager
+            manager = self._legacy_manager if legacy else self._manager
             if manager is not None and self._loop is asyncio.get_running_loop():
                 await manager.handle_request(scope, receive, send)
                 return
             # No lifespan runs on this loop (Mangum with lifespan off; a bare test client): a
             # manager for this request alone, which stateless mode makes the same thing (Q3).
-            manager = new_manager(self.server)
+            manager = new_manager(self.legacy if legacy else self.server)
             async with manager.run():
                 await manager.handle_request(scope, receive, send)
         finally:

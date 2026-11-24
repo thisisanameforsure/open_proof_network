@@ -3115,7 +3115,21 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "The MCP server has no tool by that name.",
-        "Call tools/list for the tool names.",
+        "Call tools/list for the tool names: search, read and write (or the named tools at "
+        "/mcp?surface=v1).",
+    ),
+    # F09-T78 (D-28 v3.50): the three-tool surface.
+    "operation-unknown": (
+        "api",
+        None,
+        "The MCP server has no operation by that name.",
+        "Call search with what you want to do, or with no arguments for every operation.",
+    ),
+    "operation-kind-mismatch": (
+        "api",
+        None,
+        "A write operation was called through read, or a read operation through write.",
+        "Call it through the tool its kind names (search gives each operation's kind).",
     ),
     "toolchain-missing": (
         "gate",

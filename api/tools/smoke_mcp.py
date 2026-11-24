@@ -3,7 +3,9 @@
     uv run python api/tools/smoke_mcp.py <api-url> [--read-only] [--token TOKEN]
 
 Read-only (what CI runs after a deploy): the SDK's Streamable HTTP client initializes a
-session at ``<api-url>/mcp``, the listed tools are exactly D-28's rows, ``server_info`` equals
+session at ``<api-url>/mcp``, the listed tools are search, read and write (F09-T78, D-28 v3.50),
+``search`` indexes exactly D-28's rows as operations and ``/mcp?surface=v1`` still lists them
+as tools; every operation below travels through ``read`` or ``write``; ``server_info`` equals
 ``GET /info.json``, ``list_frontier`` equals ``GET /frontier.json`` and validates, ``get_node``
 serves the tutorial node's bundle with its prose demarcated, every result validates against
 its ``mcp/<tool>/v1`` schema, and a write that needs a token, called without one, is the
@@ -44,16 +46,18 @@ from smoke import call  # the guarded caller the F05 smoke tool uses
 
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.auth import UNAUTHORIZED, UNAUTHORIZED_STATUS
-from opn_api.mcp.server import MCP_PATH, TOOLS
+from opn_api.mcp.server import BY_NAME, MCP_PATH, TOOLS
 from opn_gate import schemas
 
 TIMEOUT_S = 60
+SURFACE = ("search", "read", "write")
 PENDING = 2
 
 
 class Client:
     def __init__(self, base: str, token: str | None) -> None:
         self.url = f"{base}{MCP_PATH}"
+        self.legacy_url = f"{self.url}?surface=v1"  # F09-T78
         self.headers = {"Authorization": f"Bearer {token}"} if token else {}
         self.transcript: list[str] = []
 
@@ -64,19 +68,22 @@ class Client:
             ClientSession(r, w) as session,
         ):
             await session.initialize()
-            return await session.call_tool(name, arguments)
+            if name in SURFACE:
+                return await session.call_tool(name, arguments)
+            kind = "write" if BY_NAME[name].write else "read"  # F09-T78: an operation
+            return await session.call_tool(kind, {"operation": name, "arguments": arguments})
 
-    async def _tools(self) -> tuple[types.InitializeResult, list[types.Tool]]:
+    async def _tools(self, url: str) -> tuple[types.InitializeResult, list[types.Tool]]:
         async with (
             httpx.AsyncClient(headers=self.headers, timeout=TIMEOUT_S) as http,
-            streamable_http_client(self.url, http_client=http) as (r, w, _),
+            streamable_http_client(url, http_client=http) as (r, w, _),
             ClientSession(r, w) as session,
         ):
             init = await session.initialize()
             return init, (await session.list_tools()).tools
 
-    def tools(self) -> tuple[types.InitializeResult, list[types.Tool]]:
-        return asyncio.run(self._tools())
+    def tools(self, *, legacy: bool = False) -> tuple[types.InitializeResult, list[types.Tool]]:
+        return asyncio.run(self._tools(self.legacy_url if legacy else self.url))
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         """The structured content, after checking it validates; the transcript keeps a line."""
@@ -85,7 +92,7 @@ class Client:
         if doc is None:
             msg = f"{name}: no structured content: {result.content}"
             raise AssertionError(msg)
-        problems = results.violations(name, doc)
+        problems = [] if name in SURFACE else results.violations(name, doc)
         if problems:
             msg = f"{name}: result violates mcp/{name}/v1: {problems}"
             raise AssertionError(msg)
@@ -105,9 +112,19 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     print(f"initialize -> {init.serverInfo.name} {init.serverInfo.version}")
     names = sorted(t.name for t in tools)
     wanted = sorted(t.name for t in TOOLS)
-    print(f"tools/list -> {len(names)} tools")
-    if names != wanted:
-        problems.append(f"the tool surface is {names}, not {wanted}")
+    print(f"tools/list -> {len(names)} tools: {', '.join(names)}")
+    if names != sorted(SURFACE):
+        problems.append(f"the tool surface is {names}, not {sorted(SURFACE)}")
+    _, legacy = client.tools(legacy=True)
+    print(f"tools/list at ?surface=v1 -> {len(legacy)} tools")
+    if sorted(t.name for t in legacy) != wanted:
+        problems.append("the legacy surface does not list D-28's rows")
+    index = client.call("search")
+    index.pop("__is_error__")
+    indexed = sorted(o["name"] for o in index.get("operations", []))
+    print(f"search -> {len(indexed)} operations")
+    if indexed != wanted:
+        problems.append(f"search indexes {indexed}, not D-28's rows")
 
     info = client.call("server_info")
     status, plain = call(f"{base}/info.json")

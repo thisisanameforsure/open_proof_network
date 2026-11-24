@@ -1,0 +1,319 @@
+........................................................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+.......................................s................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+................................................................F....... [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+..................................................F..................... [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+.................................F..........FFF......................... [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+.....................................................sss..s.s........... [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+....................ssssssssssss.....ss........................s........ [ 92%]
+..ss....................................ss.s............................ [ 93%]
+.....................................s.................................. [ 94%]
+..s..................................................................... [ 95%]
+..............................................s................ssssss... [ 96%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+.................F.....................................................s [ 98%]
+ssss.....................................s.............................. [ 99%]
+.................                                                        [100%]
+=================================== FAILURES ===================================
+___________ test_the_generated_products_validate_and_carry_the_lemma ___________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-160/test_the_generated_products_va0')
+
+    def test_the_generated_products_validate_and_carry_the_lemma(tmp_path: Path) -> None:
+        """End to end over ``generate``: graph.json is v7 with the lemma, info.json says 3.36."""
+        import json  # noqa: PLC0415
+    
+        root = with_lemma(tmp_path)
+        built = products.generate(root, rendered_from="6" * 40, commit_time="2026-10-10T12:00:00Z")
+        gdoc = json.loads(built.files[Path("targets") / TARGET / "graph.json"])
+        [row] = [n for n in gdoc["nodes"] if n["node_id"] == ROOT_NODE]
+        assert row["lemmas"] == [{"hole": LEMMA_HOLE, "node": LEMMA}]
+        info = json.loads(built.files[Path("info.json")])
+>       assert info["protocol_version"] == "3.49" == products.PROTOCOL_VERSION
+E       AssertionError: assert '3.50' == '3.49'
+E         
+E         - 3.49
+E         + 3.50
+
+gate/tests/test_finding_graph_lemmas.py:181: AssertionError
+______________ test_the_entry_task_finds_reads_writes_and_submits ______________
+
+    def test_the_entry_task_finds_reads_writes_and_submits() -> None:
+        section = words_section()
+        entry = flat(section[section.index(ENTRY) : section.index("### Reading an outline")])
+        order = ("`list_words_needed(", "`get_node`", "`POST /glosses`", "`drafted_with`")
+        at = 0
+        for needle in order:
+            found = entry.find(needle, at)
+            assert found >= 0, f"{needle} is not after {entry[:at][-80:]!r}"
+            at = found
+>       assert '"name":"list_words_needed"' in entry  # the runnable call, through the MCP endpoint
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert '"name":"list_words_needed"' in '### Entry task: write the words for a statement The first task for an agent that does not want to start with a proof....t earns you credit ("Credit" below). Until it merges nothing may supersede it; watch it with `GET /submissions/<id>`. '
+
+gate/tests/test_finding_guide_words_entry.py:53: AssertionError
+_________________________ test_products_of_the_fixture _________________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-160/test_products_of_the_fixture0')
+
+    def test_products_of_the_fixture(tmp_path: Path) -> None:
+        """R4, R5, R9, R10 on the pristine fixture: two ready interior nodes, a blocked root."""
+        root = copy_graph(tmp_path, publish=True)
+        prod = generate(root)
+        assert sorted(p.as_posix() for p in prod.files) == [
+            "frontier.json",
+            "info.json",
+            "targets/index.json",
+            "targets/propositional/glosses.json",  # F20-R9
+            "targets/propositional/graph.json",
+            "targets/propositional/nodes/and-reassoc/CONTEXT.json",  # F10-R3
+            "targets/propositional/nodes/and-swap-reassoc/CONTEXT.json",
+            "targets/propositional/nodes/tutorial-and-swap/CONTEXT.json",
+        ]
+        g = loads(prod, "targets/propositional/graph.json")
+        assert g["root"] == ROOT_NODE and g["rendered_from"] == RENDERED
+        assert [(n["node_id"], n["status"]) for n in g["nodes"]] == [
+            ("and-reassoc", "ready"),
+            ("and-swap-reassoc", "blocked"),
+            ("tutorial-and-swap", "ready"),
+        ]
+        assert frontier_ids(prod) == ["and-reassoc", "tutorial-and-swap"]
+        entry = loads(prod, "frontier.json")["entries"][0]
+        assert entry["ready_since"] == NOW and entry["tags"] == {"deps": [], "library": []}
+        assert entry["claims"] == {"active": [], "history_count": 0}
+        assert entry["claimable"] is False  # no declaration; the root is not the tutorial (Q4, Q5)
+        idx = loads(prod, "targets/index.json")["targets"][0]
+        assert idx["status"] == "listed" and idx["claimable"] is False
+        assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
+        assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
+        info = loads(prod, "info.json")
+>       assert info["protocol_version"] == products.PROTOCOL_VERSION == "3.49"
+E       AssertionError: assert '3.50' == '3.49'
+E         
+E         - 3.49
+E         + 3.50
+
+gate/tests/test_products.py:315: AssertionError
+____________________________ test_golden[unproved] _____________________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-160/test_golden_unproved_0')
+state = 'unproved'
+
+    @pytest.mark.parametrize("state", STATES)
+    def test_golden(tmp_path: Path, state: str) -> None:
+        """AC11: the generated products equal the checked-in golden files, byte for byte."""
+        prod = generate(build_state(tmp_path, state))
+        expected = sorted(p.relative_to(GOLDEN / state) for p in (GOLDEN / state).rglob("*.json"))
+        assert sorted(prod.files) == expected, "the set of products changed; regenerate the goldens"
+        for rel, data in prod.files.items():
+            golden = (GOLDEN / state / rel).read_bytes()
+>           assert data == golden, f"{state}/{rel} differs from the golden file"
+E           AssertionError: unproved/info.json differs from the golden file
+E           assert b'{\n  "error...  }\n  }\n}\n' == b'{\n  "error...  }\n  }\n}\n'
+E             
+E             At index 70 diff: b'5' != b'4'
+E             Use -v to get more diff
+
+gate/tests/test_products.py:598: AssertionError
+_________________________ test_golden[interior-proved] _________________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-160/test_golden_interior_proved_0')
+state = 'interior-proved'
+
+    @pytest.mark.parametrize("state", STATES)
+    def test_golden(tmp_path: Path, state: str) -> None:
+        """AC11: the generated products equal the checked-in golden files, byte for byte."""
+        prod = generate(build_state(tmp_path, state))
+        expected = sorted(p.relative_to(GOLDEN / state) for p in (GOLDEN / state).rglob("*.json"))
+        assert sorted(prod.files) == expected, "the set of products changed; regenerate the goldens"
+        for rel, data in prod.files.items():
+            golden = (GOLDEN / state / rel).read_bytes()
+>           assert data == golden, f"{state}/{rel} differs from the golden file"
+E           AssertionError: interior-proved/info.json differs from the golden file
+E           assert b'{\n  "error...  }\n  }\n}\n' == b'{\n  "error...  }\n  }\n}\n'
+E             
+E             At index 70 diff: b'5' != b'4'
+E             Use -v to get more diff
+
+gate/tests/test_products.py:598: AssertionError
+_____________________________ test_golden[curated] _____________________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-160/test_golden_curated_0')
+state = 'curated'
+
+    @pytest.mark.parametrize("state", STATES)
+    def test_golden(tmp_path: Path, state: str) -> None:
+        """AC11: the generated products equal the checked-in golden files, byte for byte."""
+        prod = generate(build_state(tmp_path, state))
+        expected = sorted(p.relative_to(GOLDEN / state) for p in (GOLDEN / state).rglob("*.json"))
+        assert sorted(prod.files) == expected, "the set of products changed; regenerate the goldens"
+        for rel, data in prod.files.items():
+            golden = (GOLDEN / state / rel).read_bytes()
+>           assert data == golden, f"{state}/{rel} differs from the golden file"
+E           AssertionError: curated/info.json differs from the golden file
+E           assert b'{\n  "error...  }\n  }\n}\n' == b'{\n  "error...  }\n  }\n}\n'
+E             
+E             At index 70 diff: b'5' != b'4'
+E             Use -v to get more diff
+
+gate/tests/test_products.py:598: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:111 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-160/test_golden_curated_0/graph/targets/propositional/nodes/and-reassoc/attempts/2026-09-03-c.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-160/test_golden_curated_0/graph/targets/propositional/nodes/and-reassoc/attempts/2026-09-03-c.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 10:
+    outcome: [oops
+             ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1286 propositional/and-reassoc: attempt 2026-09-03-c.yaml does not validate (counted as invalid)
+_____________________________ test_t2_golden_pages _____________________________
+
+rendered = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_t2_golden_pages(rendered: dict[str, str]) -> None:
+        for rel in T2_PAGES:
+>           assert rendered[rel] == (GOLDEN / rel).read_text(encoding="utf-8"), rel
+E           AssertionError: docs/index.html
+E           assert '<!DOCTYPE ht...y>\n</html>\n' == '<!DOCTYPE ht...y>\n</html>\n'
+E             
+E             Skipping 68532 identical leading characters in diff, use -v to show
+E             - ss itself. Known limit (max_tools): The network&#x27;s MCP surface is 42 tools and Cursor&#x27;s documented cap is 40 across all servers (unverified; F16-Q14). A Cursor user with this server alone loses whichever two tools Cursor drops; fewer tools is a D-28 surface change and the owner&#x27;s call.</p><p>Cursor reads AGENTS.md beside its own rules (unverified against Cursor&#x27;s own docs).</p><p class="snippet-title">Add the server to the project <code>.cursor/mcp.json</code> (project)</p><pre class...
+E             
+E             ...Full output truncated (93 lines hidden), use '-vv' to show
+
+site/tests/test_render.py:315: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] site/tests/test_web_flows.py:44: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] gate/tests/test_defs_after_intake.py:301: this filesystem folds case; the two files cannot coexist here
+SKIPPED [11] site/tests/test_one_view.py:490: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_invite_errors.py:155: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [6] site/tests/test_finding_invite_errors.py:188: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [5] site/tests/test_finding_invite_errors.py:206: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_invite_path.py:179: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_invite_path.py:210: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_lemma_edge.py:262: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_literature_dispute.py:349: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_literature_dispute.py:422: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:117: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:131: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:183: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_panel_math_wrap.py:244: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_problems_by_topic.py:172: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_me_reviews.py:127: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:226: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:267: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:293: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:310: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:325: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_shelving_controls.py:271: could not import 'playwright.sync_api': No module named 'playwright'
+FAILED gate/tests/test_finding_graph_lemmas.py::test_the_generated_products_validate_and_carry_the_lemma
+FAILED gate/tests/test_finding_guide_words_entry.py::test_the_entry_task_finds_reads_writes_and_submits
+FAILED gate/tests/test_products.py::test_products_of_the_fixture - AssertionE...
+FAILED gate/tests/test_products.py::test_golden[unproved] - AssertionError: u...
+FAILED gate/tests/test_products.py::test_golden[interior-proved] - AssertionE...
+FAILED gate/tests/test_products.py::test_golden[curated] - AssertionError: cu...
+FAILED site/tests/test_render.py::test_t2_golden_pages - AssertionError: docs...
+7 failed, 7601 passed, 42 skipped, 283 deselected, 2 warnings in 695.15s (0:11:35)
+exit 1

@@ -21,6 +21,7 @@ from mcp_client import McpClient
 from test_mcp_frontier import commit_frontier, entry
 
 from opn_api import auth
+from opn_api.mcp import surface
 from opn_api.mcp.server import SERVER_NAME, TOOLS, declare
 from opn_gate import clients
 
@@ -33,12 +34,14 @@ LIVE_FRONTIER_ENTRIES = 38
 HEADROOM = 2
 
 
-def views() -> list[clients.ToolView]:
+def views(*, legacy: bool = False) -> list[clients.ToolView]:
+    """The tools a harness lists at ``/mcp``: since F09-T78 (D-28 v3.50) the three of the new
+    surface; ``legacy`` gives the named tools of ``/mcp?surface=v1``."""
     out = []
-    for tool in TOOLS:
-        declared = declare(tool)
+    declared_tools = [declare(t) for t in TOOLS] if legacy else surface.declared()
+    for declared in declared_tools:
         hint = declared.annotations.readOnlyHint if declared.annotations else None
-        out.append(clients.ToolView(tool.name, tool.input_schema, hint))
+        out.append(clients.ToolView(declared.name, declared.inputSchema, hint))
     return out
 
 

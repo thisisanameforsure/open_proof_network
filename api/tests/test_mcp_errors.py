@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from api_fakes import Harness
-from mcp_client import NODE, TARGET, McpClient, seed_node
+from mcp_client import LEGACY_PATH, NODE, TARGET, McpClient, seed_node
 
 from opn_api.mcp import results
 from opn_api.mcp.server import TOOLS
@@ -117,13 +117,16 @@ def test_arguments_refused_structured(harness: Harness) -> None:
         assert doc["source"] == "adapter", name
         assert doc["error"] in ("arguments-invalid", "filter-unknown"), name
         assert results.violations(name, doc) == []
-    unknown = client.call("no_such_tool", {})
+    # F09-T78: the named tools' unknown-name answer, on the legacy surface where names are tools.
+    unknown = McpClient(harness, path=LEGACY_PATH).call("no_such_tool", {})
     assert unknown.isError
     assert unknown.structuredContent == {
         "error": "tool-unknown",
         "message": "no such tool no_such_tool",
         "source": "adapter",
     }
+    # On the three-tool surface the name is an operation's.
+    assert client.failed("no_such_tool", {})["error"] == "operation-unknown"
 
 
 def test_get_schema_both_namespaces(harness: Harness) -> None:

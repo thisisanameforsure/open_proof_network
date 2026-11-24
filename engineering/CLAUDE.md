@@ -1968,3 +1968,13 @@ The law of the project:
   record**: T25's `--` collapse made `buchi-problem--m5` compute as `buchi-problem-m5`, which was
   imported again (#1903). Any change to how an id is computed needs the live ids it no longer
   produces named (`docs/lean_conjecture_holders.json`) before the next run.
+
+- 2026-11-25 — The MCP became three tools (search, read, write) over its 47 operations (F09-T78,
+  D-28 v3.50): `tools/list` 114,974 → 2,209 characters. Two things worth keeping. **Change the test
+  client, not the tests**: routing every named call in `mcp_client.py` through `read`/`write` made
+  the whole MCP suite the equivalence test of the new surface for free, and only three tests needed
+  restating, each for a reason worth reading (a raw JSON-RPC pin, the legacy unknown-tool answer,
+  the harness profile, which had silently kept measuring the old list). **Search + call, not
+  code execution**: the 2026 "Code Mode" pattern runs model-written code; one call per operation
+  keeps D-28's bijection literal, needs no sandbox in the Lambda and lets a harness allow `read`
+  and ask on `write`. Also, again: a run that overlaps your own edits reports them as failures.

@@ -94,8 +94,12 @@ def test_a_carried_proof_has_a_role() -> None:
     assert witness is not None and witness.role == "hole-witness"
 
 
-def test_protocol_version_is_3_49() -> None:
-    assert products.PROTOCOL_VERSION == "3.49"
+def test_protocol_version_follows_the_decisions_document() -> None:
+    """Pinned 3.49 at F32-T0; restated at F09-T78 (v3.50) to the rule it stood for."""
+    doc = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions.html"
+    meta = doc.read_text(encoding="utf-8").split('<p class="meta"><b>v', 1)[1]
+    documented = meta.split("</b>", 1)[0]
+    assert documented == products.PROTOCOL_VERSION
 
 
 def test_the_precheck_result_documents_holes_proof() -> None:

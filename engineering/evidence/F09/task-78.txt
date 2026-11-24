@@ -1,0 +1,17 @@
+F09-T78 — three tools over the operations (D-28 v3.50), 2026-11-24/25
+
+Red:   task-78-red.txt — 12 failed, 1 passed (the legacy test, since /mcp ignored the query).
+       Every failure was the missing tool ("tool-unknown"), not a test error.
+Green: uv run --frozen pytest api/tests/test_mcp_search_surface.py -> 13 passed.
+Suite: task-78-fast.txt — the clean full fast tier before the goldens: 7601 passed, 7 failed,
+       every failure the version bump (protocol 3.49 -> 3.50 in three product goldens, two tests
+       pinning 3.49) or an intended change (the guide's JSON-RPC call; the Docs page dropping
+       Cursor's max_tools known limit). Goldens regenerated; diffs: protocol_version only, and the
+       one Docs paragraph. The pre-commit hook's make verify is the final run.
+Size:  task-78-size.txt — tools/list at /mcp 3 tools, 2,209 chars; at ?surface=v1 47 tools,
+       114,974 chars. search {} 7,358 chars; a query returns 8 operations in full (9,882-18,208).
+Live:  task-78-smoke-local.txt — smoke_mcp.py --read-only against the local runner on the live
+       graph: initialize, 3 tools, 47 at ?surface=v1, search indexes 47, server_info == GET
+       /info.json, list_frontier == GET /frontier.json (602 entries). It then timed out in
+       get_node, which on this laptop walks every target's graph.json serially from the raw host
+       (same operation and code on both surfaces). AC15 is the deployed smoke.

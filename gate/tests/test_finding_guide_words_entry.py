@@ -50,7 +50,8 @@ def test_the_entry_task_finds_reads_writes_and_submits() -> None:
         found = entry.find(needle, at)
         assert found >= 0, f"{needle} is not after {entry[:at][-80:]!r}"
         at = found
-    assert '"name":"list_words_needed"' in entry  # the runnable call, through the MCP endpoint
+    # the runnable call, through the MCP endpoint's read tool (F09-T78, D-28 v3.50)
+    assert '"name":"read","arguments":{"operation":"list_words_needed"' in entry
     assert '"drafted_with":' in entry  # the runnable submission discloses its model
     assert "`409 duplicate-submission`" in entry and "one writer per file" in entry.lower()
     assert {"list_words_needed", "submit_gloss", "get_node"} <= set(server.BY_NAME)

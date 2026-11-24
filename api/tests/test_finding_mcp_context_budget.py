@@ -257,13 +257,15 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
     refusal is a tool result that says how to get one, and the HTTP status is 200."""
     seed_node(harness)
     arguments = {"node_id": NODE} if tool == "claim_node" else {}
+    # F09-T78: the operation travels through read or write; the pin is unchanged.
+    kind = "write" if tool == "claim_node" else "read"
     r = harness.client.post(
         MCP_PATH,
         json={
             "jsonrpc": "2.0",
             "id": 1,
             "method": "tools/call",
-            "params": {"name": tool, "arguments": arguments},
+            "params": {"name": kind, "arguments": {"operation": tool, "arguments": arguments}},
         },
         headers={"Accept": "application/json, text/event-stream"},
     )

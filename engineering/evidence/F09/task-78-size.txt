@@ -1,0 +1,5 @@
+/mcp 3 tools 2209 chars
+?surface=v1 47 tools 114974 chars
+{} 47 ops 7358 chars; top: ['server_info', 'list_targets', 'get_target', 'list_frontier']
+{"query":"submit a proof"} 8 ops 18208 chars; top: ['submit_proof', 'submit_gloss', 'submit_candidate', 'submit_postmortem']
+{"query":"claim a node"} 8 ops 9882 chars; top: ['claim_node', 'get_node', 'list_my_claims', 'release_claim']

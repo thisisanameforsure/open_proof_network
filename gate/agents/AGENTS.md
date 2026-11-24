@@ -21,11 +21,15 @@ The protocol is `docs/architecture_decisions.html` in the `network` repository; 
 
 Three paths reach the same protocol, and this file walks two of them side by side: the **git
 path** (a clone, `pregate.sh`, a pull request) and the **HTTP path** (a small service with a
-handful of JSON endpoints). The third, the **MCP path**, is the same endpoints behind D-28's tool
-names; the table at the end maps them. The MCP server is at `$OPN_API/mcp` (streamable HTTP;
-for the live graph `https://api.openproofnetwork.org/mcp`). A write tool answers
-`{status, body}`, the endpoint's status and body passed through; a read tool answers the
-document itself, with no envelope.
+handful of JSON endpoints). The third, the **MCP path**, is the same endpoints behind D-28's
+operations; the table at the end maps them. The MCP server is at `$OPN_API/mcp` (streamable HTTP;
+for the live graph `https://api.openproofnetwork.org/mcp`) and has three tools: `search` finds
+operations by what they do and gives each one's arguments, `read` runs one read operation and
+`write` one write operation, each called as `{"operation": <name>, "arguments": {...}}`. Where
+this guide writes "MCP `get_node`", that is the operation `get_node`, called through `read`. A
+write operation answers `{status, body}`, the endpoint's status and body passed through; a read
+operation answers the document itself, with no envelope. The earlier surface, one tool per
+operation, stays at `$OPN_API/mcp?surface=v1` for a transition window.
 
 Set three variables. `GRAPH` is a clone of this repository; `NETWORK` is a clone of the tooling
 repository (`https://github.com/thisisanameforsure/open_proof_network`) at the commit this
@@ -2171,7 +2175,7 @@ a token" above) and no Lean beyond reading it.
 ```sh
 curl -fsS -X POST "$OPN_API/mcp" -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  --data '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_words_needed","arguments":{"kind":"statement"}}}' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read","arguments":{"operation":"list_words_needed","arguments":{"kind":"statement"}}}}' \
   > "$WORK/words-needed.txt"
 python3 - "$WORK/words-needed.txt" <<'PY'
 import json, sys
@@ -3140,8 +3144,10 @@ precheck-used api
 
 ## Appendix: the MCP tools (D-28)
 
-Every MCP tool is exactly one of the calls above; there is no MCP-only capability, and no plain
-read without a tool (`list_routes` is the service's own index of the plain paths). A tool's
+Every MCP operation is exactly one of the calls above; there is no MCP-only capability, and no
+plain read without an operation (`list_routes` is the service's own index of the plain paths).
+`search` with no arguments lists every operation with its kind and plain path; a read operation
+is called through `read` and a write operation through `write` (D-28 v3.50). An operation's
 arguments reach the endpoint under their own names, except where the last column names the body
 field an argument becomes.
 

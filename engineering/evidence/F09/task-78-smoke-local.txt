@@ -1,0 +1,135 @@
+initialize -> open-proof-network 3.49
+tools/list -> 3 tools: read, search, write
+tools/list at ?surface=v1 -> 47 tools
+search -> 47 operations
+server_info -> protocol 3.49; GET /info.json 200
+list_frontier -> 602 entries; GET /frontier.json 200
+list_targets -> ['abc', 'agrawal-conjecture', 'algebraic-independent-e-pi', 'andrica-conjecture', 'babai-seress-conjecture', 'babai-seress-conjecture-alternating', 'balanced-primes', 'balanced-primes-order', 'beal-conjecture', 'beaver-math-olympiad-problem-1', 'beaver-math-olympiad-problem-2-antihydra', 'beaver-math-olympiad-problem-5', 'beaver-math-olympiad-problem-8', 'beck-fiala-conjecture', 'brennan-universal-spectrum-bounded', 'buchi-problem', 'buchi-problem--m5', 'buchi-problem-m5', 'butson-hadamard-fourth-roots-conjecture', 'c6a-eq-half', 'c6a-lower-bound-improved', 'c6a-upper-bound-improved', 'catalans-mersenne-conjecture', 'center-column-frequency-half', 'center-column-not-eventually-periodic', 'charmichael-totient', 'class-number-problem', 'collatz-conjecture', 'collatz-like', 'conjecture-4-4', 'conjecture-one', 'cookson-hills-series-converges', 'curling-number-conjecture', 'density-of-hyperbolicity', 'determinantal-conjecture', 'dirichlet-divisor-problem', 'distinct-prop-lt', 'dubner-conjecture', 'elliott-halberstam', 'erdos-10', 'erdos-100', 'erdos-1003', 'erdos-1004', 'erdos-101', 'erdos-1029', 'erdos-103', 'erdos-1035', 'erdos-104', 'erdos-1050', 'erdos-1052', 'erdos-1059', 'erdos-1061', 'erdos-1062', 'erdos-1065', 'erdos-1087', 'erdos-1093', 'erdos-1094', 'erdos-11', 'erdos-1101', 'erdos-1111', 'erdos-1113', 'erdos-1122', 'erdos-1142', 'erdos-1146', 'erdos-1158', 'erdos-1159', 'erdos-1168', 'erdos-1178', 'erdos-1199', 'erdos-120', 'erdos-1203', 'erdos-1206', 'erdos-1209', 'erdos-1221', 'erdos-137', 'erdos-15', 'erdos-153', 'erdos-156', 'erdos-159', 'erdos-162', 'erdos-17', 'erdos-172', 'erdos-197', 'erdos-20', 'erdos-200', 'erdos-203', 'erdos-212', 'erdos-213', 'erdos-233', 'erdos-236', 'erdos-241', 'erdos-244', 'erdos-25', 'erdos-251', 'erdos-257', 'erdos-263', 'erdos-264', 'erdos-273', 'erdos-274', 'erdos-276', 'erdos-279', 'erdos-288', 'erdos-291', 'erdos-295', 'erdos-30', 'erdos-312', 'erdos-313', 'erdos-322', 'erdos-323', 'erdos-324', 'erdos-345', 'erdos-352', 'erdos-365', 'erdos-373', 'erdos-376', 'erdos-377', 'erdos-383', 'erdos-385', 'erdos-388', 'erdos-389', 'erdos-39', 'erdos-396', 'erdos-402', 'erdos-406', 'erdos-410', 'erdos-412', 'erdos-414', 'erdos-417', 'erdos-420', 'erdos-430', 'erdos-445', 'erdos-454', 'erdos-461', 'erdos-462', 'erdos-463', 'erdos-467', 'erdos-470', 'erdos-472', 'erdos-478', 'erdos-479', 'erdos-483', 'erdos-495', 'erdos-5', 'erdos-51', 'erdos-510', 'erdos-517', 'erdos-52', 'erdos-544', 'erdos-545', 'erdos-562', 'erdos-563', 'erdos-564', 'erdos-567', 'erdos-568', 'erdos-573', 'erdos-588', 'erdos-595', 'erdos-60', 'erdos-61', 'erdos-623', 'erdos-624', 'erdos-642', 'erdos-644', 'erdos-65', 'erdos-653', 'erdos-657', 'erdos-66', 'erdos-663', 'erdos-665', 'erdos-676', 'erdos-677', 'erdos-68', 'erdos-680', 'erdos-681', 'erdos-685', 'erdos-686', 'erdos-69', 'erdos-704', 'erdos-711', 'erdos-719', 'erdos-727', 'erdos-734', 'erdos-761', 'erdos-770', 'erdos-773', 'erdos-78', 'erdos-782', 'erdos-81', 'erdos-810', 'erdos-813', 'erdos-820', 'erdos-826', 'erdos-828', 'erdos-829', 'erdos-830', 'erdos-849', 'erdos-85', 'erdos-850', 'erdos-853', 'erdos-855', 'erdos-859', 'erdos-87', 'erdos-873', 'erdos-883', 'erdos-886', 'erdos-889', 'erdos-890', 'erdos-893', 'erdos-9', 'erdos-91', 'erdos-913', 'erdos-930', 'erdos-931', 'erdos-933', 'erdos-938', 'erdos-940', 'erdos-942', 'erdos-943', 'erdos-945', 'erdos-949', 'erdos-952', 'erdos-96', 'erdos-962', 'erdos-971', 'erdos-972', 'erdos-979', 'erdos-98', 'erdos-985', 'erdos-99', 'erdos-996', 'erdos-moser-conjecture', 'erdos-ulam-problem', 'error-is-big-o', 'error-term-improvement', 'euclid-primes', 'eulers-sum-of-powers-conjecture', 'exists-almost-perfect-not-power-of-two', 'exists-fermat-not-squarefree', 'exists-is-wall-sun-sun-prime', 'exists-is-wieferich-prime-and-is-mirimanoff-prime', 'exists-is-wieferich-prime-base-47', 'exists-k', 'exists-k-stronger', 'exists-magic-square-squares', 'exists-nowhere-dense-spectral-set', 'exists-quasiperfect', 'exists-semi-magic-square-cubes', 'exists-thabit-amicable-exponent-gt-seven', 'exp-add-pi-transcendental', 'exp-exp-transcendental', 'exp-mul-pi-transcendental', 'exp-pow-pi-sq-transcendental', 'extended-sierpinski-problem', 'feit-thompson-primes', 'fermat-catalan', 'fermat-number-are-composite', 'fib-primes-infinite', 'firoozbakht-conjecture', 'flint-hills-series-converges', 'four', 'four-exponentials-conjecture', 'generalized-twin-primes', 'gilbreath-conjecture', 'goldbach', 'goodman-conjecture', 'green-15', 'green-18', 'green-2', 'green-29', 'green-33', 'green-36', 'green-39', 'green-45', 'green-58', 'green-60', 'green-61', 'green-62', 'green-64', 'green-66', 'green-70', 'green-75', 'green-76', 'green-86', 'grimm-conjecture', 'grimm-conjecture-weak', 'gyarfas-sumner-conjecture', 'hadamard-conjecture', 'hall-conjecture', 'has-unique-extension-of-forall', 'homogeneous-space-exists-surjective', 'i', 'idoneal-numbers-completeness', 'ii', 'infinite-club-exists', 'infinite-cousin-primes', 'infinite-fermat-composite', 'infinite-fermat-primes', 'infinite-is-wall-sun-sun-prime', 'infinite-is-wieferich-prime', 'infinite-is-wieferich-prime-base', 'infinite-pell-number-primes', 'infinite-prime-euclid-numbers', 'infinite-prime-sq-add-one', 'infinite-safe-primes', 'infinite-sexy-primes', 'infinitely-many-betrothed', 'infinitely-many-even-perfect', 'infinitely-many-factorial-primes', 'infinitely-many-first-kind-chains', 'infinitely-many-leinster-groups', 'infinitely-many-perfect', 'infinitely-many-pierpont-primes', 'infinitely-many-proth-primes', 'infinitely-many-proth-primes-multiplier-three', 'infinitely-many-repunit-primes', 'infinitely-many-second-kind-chains', 'infinitely-many-thabit-primes', 'infinitely-many-wilson-primes', 'infinitely-many-woodall-primes', 'infinitude-question', 'irrational-algebraic-absolutely-normal', 'irrational-e-plus-pi', 'irrational-e-times-pi', 'irrational-e-to-e', 'irrational-eleven', 'irrational-euler-mascheroni-constant', 'irrational-ln-pi', 'irrational-nine', 'irrational-odd', 'irrational-pi-to-e', 'irrational-pi-to-pi', 'irrational-seven', 'irving-leather-pow-two', 'is-equidistributed-modulo-one-three-halves-pow', 'is-lychrel10-196', 'is-mirimanoff-prime-iff', 'is-poly-time-prime-factors-list', 'is-poly-time-square-root-sum', 'is-poly-time-square-root-sum-two-sided', 'is-spectral-right-of-product-of-convex-body', 'is-sum-of-three-cubes-iff-mod-9', 'is-ten-solitary', 'is-wieferich-prime-iff', 'juggler-conjecture', 'kakeya-set-conjecture', 'kourovka-1-35c', 'kourovka-20-51', 'kourovka-8-8b', 'kummer-vandiver', 'lagarias-criterion-rhs', 'lander-parkin-selfridge', 'large-steiner-systems', 'latin-tableau-conjecture', 'lebesgue-nagell', 'legendre-conjecture', 'lehmer-ramanujan-tau', 'lehmer-totient', 'lemoine-conjecture', 'lemoine-conjecture-extension', 'lennon-pittel-conjecture', 'littlewood-conjecture', 'm-l-c', 'm-l-c-general-exponent', 'manickam-miklos-singhi-conjecture', 'mathoverflow-17560', 'mathoverflow-21003', 'maximal-length-le-strong', 'new-mersenne-conjecture', 'no-complete-disjoint--n-p-pair', 'no-complete-disjoint-co-n-p-pair', 'no-lychrel-numbers-base10', 'no-power-partition-number', 'np-inter-conp-no-complete-language', 'odd-order-latin-square-transversal', 'odd-perfect-number-conjecture', 'oppermann-conjecture', 'opposite-parity-amicable', 'other-smarandache-wellin-prime-conjecture', 'padic-littlewood-conjecture', 'parkin-shanks', 'pi-pow-exp-transcendental', 'pi-pow-pi-pow-pi-pow-pi-not-integer', 'pi-pow-pi-pow-pi-pow-pi-transcendental', 'pi-pow-pi-pow-pi-transcendental', 'pi-pow-pi-transcendental', 'pi-pow-sqrt-two-transcendental', 'pillais-conjecture', 'pollock-tetrahedral', 'polynomial', 'prime-sierpinski-problem', 'prime-triplets', 'problem-10-1', 'problem-10-2', 'problem-10-3', 'problem-10-6-variant-1', 'problem-10-8', 'projective-module-is-stably-free', 'rational-7-tuple', 'rational-distance-problem', 'rectangles-cover-unit-square', 'rectangles-pack-unit-square', 'reed-omega-delta-chi-conjecture', 'reed-omega-delta-chi-conjecture-for-finite-graphs', 'regularprime-conjecture', 'relatively-prime-amicable', 'riemann-hypothesis', 'rlog-pi-transcendental', 'rlog-rlog-two-transcendental', 'robin-criterion-rhs', 'rudins-conjecture', 'rudins-conjecture-strong', 'salzer-levine', 'same-parity-betrothed', 'schanuel-conjecture', 'scholz-conjecture', 'second-moment-one-extra-worker', 'selfridge-seq-conjecture', 'simple-prop-lt', 'sin-exp-transcendental', 'singmaster', 'stability-threshold-tight', 'tan-arctan-sum-not-integer', 'taxicab-for-5-2-2', 'taxicab-for-5-2-n', 'tfnp-no-complete-problem', 'total-coloring-conjecture', 'transcendental-catalan-constant', 'transcendental-gompertz-constant', 'tutorial', 'twin-primes', 'two-five-perfect', 'two-pow-three-pow-transcendental', 'up-no-complete-language', 'value-of-even-mul-succ-self-div-two', 'variant', 'variant-101', 'vizing-conjecture', 'volume-frontier-mandelbrot-set-eq-zero', 'volume-frontier-multibrot-set-eq-zero', 'waldschmidt', 'weak-hall-conjecture', 'weighing-matrix-conjecture', 'wikipedia-sierpinski-number-selfridge-conjecture', 'wolstenholme-prime-infinite', 'zagier-conjecture']
+  + Exception Group Traceback (most recent call last):
+  |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/api/tools/smoke_mcp.py", line 275, in <module>
+  |     sys.exit(main())
+  |              ~~~~^^
+  |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/api/tools/smoke_mcp.py", line 259, in main
+  |     facts = read_only(base, client, problems)
+  |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/api/tools/smoke_mcp.py", line 151, in read_only
+  |     graph = client.call("get_target", {"target_id": target_id})
+  |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/api/tools/smoke_mcp.py", line 90, in call
+  |     result = asyncio.run(self._run(name, arguments or {}))
+  |   File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ~~~~~~~~~~^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+  |     return future.result()
+  |            ~~~~~~~~~~~~~^^
+  |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/api/tools/smoke_mcp.py", line 67, in _run
+  |     streamable_http_client(self.url, http_client=http) as (r, w, _),
+  |     ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 235, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/mcp/client/streamable_http.py", line 672, in streamable_http_client
+  |     async with anyio.create_task_group() as tg:
+  |                ~~~~~~~~~~~~~~~~~~~~~~~^^
+  |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  |         "unhandled errors in a TaskGroup", self._exceptions
+  |     ) from None
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    |     yield
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    |     resp = await self._pool.handle_async_request(req)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    |     raise exc from None
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    |     response = await connection.handle_async_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         pool_request.request
+    |         ^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_async/connection.py", line 103, in handle_async_request
+    |     return await self._connection.handle_async_request(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_async/http11.py", line 136, in handle_async_request
+    |     raise exc
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_async/http11.py", line 106, in handle_async_request
+    |     ) = await self._receive_response_headers(**kwargs)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_async/http11.py", line 177, in _receive_response_headers
+    |     event = await self._receive_event(timeout=timeout)
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_async/http11.py", line 217, in _receive_event
+    |     data = await self._network_stream.read(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         self.READ_NUM_BYTES, timeout=timeout
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_backends/anyio.py", line 32, in read
+    |     with map_exceptions(exc_map):
+    |          ~~~~~~~~~~~~~~^^^^^^^^^
+    |   File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    |     raise to_exc(exc) from exc
+    | httpcore.ReadTimeout
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/anyio/_core/_tasks.py", line 327, in _run_coro
+    |     retval = await self._coro
+    |              ^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/mcp/client/streamable_http.py", line 583, in handle_request_async
+    |     await self._handle_post_request(ctx)
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/mcp/client/streamable_http.py", line 361, in _handle_post_request
+    |     async with stream_within_origin(
+    |                ~~~~~~~~~~~~~~~~~~~~^
+    |         ctx.client,
+    |         ^^^^^^^^^^^
+    |     ...<3 lines>...
+    |         headers=headers,
+    |         ^^^^^^^^^^^^^^^^
+    |     ) as response:
+    |     ^
+    |   File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    |     return await anext(self.gen)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/mcp/shared/_httpx_utils.py", line 132, in stream_within_origin
+    |     response = await client.send(request, stream=True, follow_redirects=False)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1629, in send
+    |     response = await self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    |     response = await self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    |     response = await self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    |     response = await transport.handle_async_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+    |     with map_httpcore_exceptions():
+    |          ~~~~~~~~~~~~~~~~~~~~~~~^^
+    |   File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "/Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    |     raise mapped_exc(message) from exc
+    | httpx.ReadTimeout
+    +------------------------------------
