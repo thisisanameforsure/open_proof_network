@@ -79,3 +79,9 @@ Worktree /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2, branch mcpfix-wb2, fro
 - note: the brief's "retry_after_s below 300 when the merge is recent" is backwards under the F06-T20
   formula (a recent merge has most of the median left, up to 600 s); the test uses a merge 10 min old
   (240 s) and asserts the formula's value.
+
+## Full fast tier (api, gate, site), after items 1-6
+- 12 failed, 7663 passed, 42 skipped. 11 are the get_submission MCP schema (age_s; adapter owner's
+  one-line schema change, verified locally). 1 is gate/tests/test_walkthrough.py::test_graph_copy_is_identical,
+  which compares the guide to the sibling graph checkout (the known stale-checkout failure; WB2 touched
+  neither file).

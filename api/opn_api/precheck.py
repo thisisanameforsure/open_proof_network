@@ -816,11 +816,14 @@ def annex_merge(ctx: Context, claim: Claim) -> Submission | None:
     annex came another way (a hand-opened pull request) or the store cannot say."""
     node = (claim.target_id, claim.node_id)
     found = [s for s in pending.recent_merges(ctx) if (s.target_id, s.node_id) == node]
-    for record in ctx.store.list_open_submissions():
-        if record.kind == "annex" and (record.target_id, record.node_id) == node:
-            closed, _, _ = pending.reconcile(ctx, record)
-            if closed.closed is not None and (closed.final_state or {}).get("merged"):
-                found.append(closed)
+    try:
+        for record in ctx.store.list_open_submissions():
+            if record.kind == "annex" and (record.target_id, record.node_id) == node:
+                closed, _, _ = pending.reconcile(ctx, record)
+                if closed.closed is not None and (closed.final_state or {}).get("merged"):
+                    found.append(closed)
+    except Exception as exc:  # any store failure: the refusal still stands, unnamed (C7)
+        log.warning("%s: open annexes not read: %s", claim.node_id, type(exc).__name__)
     annexes = [s for s in found if s.kind == "annex"]
     return max(annexes, key=lambda s: (str(s.closed), s.pr_number), default=None)
 
