@@ -1537,6 +1537,8 @@ async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
             for name in (products.GLOSSES_FILE, "target.yaml")
         ],
     )
+    # one read of the store's recent merges, so only targets with one ask after their words
+    merged_targets = {str(m.target_id) for m in pending.recent_merges(ctx)}
     for entry in entries:
         try:
             rows = _target_words(ctx, entry)
@@ -1550,7 +1552,15 @@ async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
                 }
             )
             continue
-        subjects.extend(r for r in rows if kind is None or r["kind"] == kind)
+        # mcpfix (lead; t883 item 10): a subject whose words merged and wait for the render
+        # is not listed, so nobody writes them twice; the products decide again once rendered
+        tid = str(entry.get("target_id"))
+        waiting = frontier.pending_words(ctx, tid) if tid in merged_targets else set()
+        subjects.extend(
+            r
+            for r in rows
+            if (kind is None or r["kind"] == kind) and _subject_key(r) not in waiting
+        )
     # mcpfix WA2: in pages; the review state and node status are read for the page's rows only
     # after the order is fixed, so superseded rows still come last across every page.
     subjects = _review_and_status_order(ctx, subjects)
