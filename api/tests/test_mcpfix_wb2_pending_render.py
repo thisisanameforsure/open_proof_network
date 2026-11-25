@@ -65,9 +65,8 @@ def test_a_merged_proof_not_yet_rendered_is_not_claimable(harness: Harness) -> N
     merged_at = merged_through_the_route(harness, rendered=False)
     doc = frontier_doc(harness)
     assert entry(doc, TUTORIAL_NODE)["claimable"] is False
-    assert doc["pending_render"] == {
-        TUTORIAL_NODE: {"pr": 7, "kind": "proof", "merged_at": merged_at}
-    }
+    # mcpfix lead: the map rides on the MCP answer, not on the closed frontier/v8 document
+    assert "pending_render" not in doc and merged_at
     assert entry(doc, "and-reassoc")["claimable"] is True  # the other entries are untouched
 
 

@@ -791,16 +791,26 @@ async def list_frontier(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         if args.get("limit") is not None or args.get("cursor") is not None:
             raise error("arguments-invalid", "full answers every entry; it is not paged", "adapter")
         return {**doc, "entries": entries}
+    # mcpfix (lead): what waits on a render, which the plain route cannot carry (frontier/v8 is
+    # closed): per node, the merged pull request whose work the products do not show yet
+    waiting = frontier.pending_render(call.ctx)
     if target_id is not None:
         chunk, where = page(entries, args, default=ENTRIES_LIMIT)
+        mine = {str(e.get("node_id")) for e in entries}
         return {
             "rendered_from": doc.get("rendered_from"),
             "target_id": target_id,
             **where,
             "entries": chunk,
+            "pending_render": {k: v for k, v in waiting.items() if k in mine},
         }
     chunk, where = page(frontier_targets(call.ctx, entries), args, default=FRONTIER_LIMIT[0])
-    return {"rendered_from": doc.get("rendered_from"), **where, "targets": chunk}
+    return {
+        "rendered_from": doc.get("rendered_from"),
+        **where,
+        "targets": chunk,
+        "pending_render": waiting,
+    }
 
 
 #: mcpfix WA2: list_frontier's page size, default and most.

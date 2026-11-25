@@ -34,7 +34,8 @@
         "limit",
         "cursor",
         "next",
-        "targets"
+        "targets",
+        "pending_render"
       ],
       "properties": {
         "rendered_from": {
@@ -118,6 +119,32 @@
               }
             }
           }
+        },
+        "pending_render": {
+          "type": "object",
+          "description": "Per node, the merged pull request whose work the products do not show yet ({pr, kind, merged_at}); such an entry is not claimable until the render lands (mcpfix, 2026-11-25).",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "pr",
+              "kind",
+              "merged_at"
+            ],
+            "properties": {
+              "pr": {
+                "type": "integer"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "merged_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -132,7 +159,8 @@
         "limit",
         "cursor",
         "next",
-        "entries"
+        "entries",
+        "pending_render"
       ],
       "properties": {
         "rendered_from": {
@@ -175,6 +203,32 @@
             "type": "object"
           },
           "description": "Frontier entries as GET /frontier.json carries them."
+        },
+        "pending_render": {
+          "type": "object",
+          "description": "Per node, the merged pull request whose work the products do not show yet ({pr, kind, merged_at}); such an entry is not claimable until the render lands (mcpfix, 2026-11-25).",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "pr",
+              "kind",
+              "merged_at"
+            ],
+            "properties": {
+              "pr": {
+                "type": "integer"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "merged_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
         }
       }
     },

@@ -341,17 +341,16 @@ def pending_words(ctx: Context, target_id: str) -> set[str]:
 
 
 def pending_overlay(doc: dict[str, Any], waiting: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    """The validated frontier with each waiting entry's ``claimable`` false and the
-    ``pending_render`` map beside the entries. ``frontier/v8`` is closed and hash-pinned (D-34),
-    so the map is added after validation, and only while something waits: with nothing pending
-    the served document is the committed one with its claims (F05-AC15) and validates as is."""
+    """The validated frontier with each waiting entry's ``claimable`` false. ``frontier/v8`` is
+    closed and hash-pinned (D-34), so what each entry waits on is not added here: the served
+    document must validate whatever is pending (the deploy smoke of 946b9a22 caught a top-level
+    ``pending_render`` key live); the MCP's ``list_frontier`` answers that map in its own shape."""
     if not waiting:
         return doc
     out = dict(doc)
     out["entries"] = [
         {**e, "claimable": False} if str(e.get("node_id")) in waiting else e for e in doc["entries"]
     ]
-    out["pending_render"] = waiting
     return out
 
 
