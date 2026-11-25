@@ -261,7 +261,7 @@ def json_message(exc: jsonschema.ValidationError) -> str:
     """The validator's message with the values it quotes written as JSON (``null``, ``true``,
     ``"x"``), not as Python's repr (``None``, ``True``, ``'x'``). A ``type`` error's type names
     are words of the message, not values, and stay as they are."""
-    message = exc.message
+    message = str(exc.message)
     values = [exc.instance] if exc.validator == "type" else [exc.instance, exc.validator_value]
     for value in values:
         python, plain = repr(value), json.dumps(value, ensure_ascii=False, default=str)
