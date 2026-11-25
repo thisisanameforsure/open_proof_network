@@ -1680,8 +1680,9 @@ TOOLS: tuple[Tool, ...] = (
         "annexes, explainers and the submissions open on it. `include` names the sections to "
         "answer (all of them when omitted): the prose ones, `attempts` (the context's attempt "
         "records), `deps` (dependencies' statements), `witness`, `proof` (those files); "
-        "`include: []` answers Statement.lean and Context.lean, the context without those (its `omitted` names "
-        "what was left out), the claims, lemmas, label and open submissions.",
+        "`include: []` answers Statement.lean and Context.lean, the context without those "
+        "(its `omitted` names what was left out), the claims, lemmas, label and open "
+        "submissions.",
         params(
             {
                 "node_id": ID_PARAM,

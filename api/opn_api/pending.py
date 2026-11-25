@@ -984,6 +984,8 @@ def final_state(found: Submission) -> dict[str, Any] | None:
     runs = (state or {}).get("runs")
     if state is None or not isinstance(runs, list):
         return state
+    # mcpfix (verifier VB, N4): the closing read is the host's last word, so it has no age
+    state = {**state, "age_s": None} if "age_s" in state else state
     return {
         **state,
         "runs": [
@@ -1031,6 +1033,7 @@ def _reconcile(
         state, error = live_state(ctx, found.pr_number)
     block = cached_block(ctx, found.pr_number, state, error)
     if state is not None and error is None and state.finished and block is not None:
+        block = {**block, "age_s": None}  # the host's last word: no age (verifier VB, N4)
         closed = ctx.store.close_submission(
             found.id, closed=closed_time(ctx, state), final_state=block
         )

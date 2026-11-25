@@ -609,7 +609,7 @@
             "null"
           ],
           "minimum": 0,
-          "description": "Seconds since read_at when this answer was served (mcpfix WB2); absent from a closed record's final state."
+          "description": "Seconds since read_at when this answer was served (mcpfix WB2); null on a closed pull request, whose block is the host's last word."
         }
       }
     }

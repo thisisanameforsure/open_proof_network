@@ -1938,8 +1938,10 @@ def timed_out(ctx: Context, request_id: str | None) -> Exception:
     return api_error(
         504,
         "check-timeout",
-        f"the check did not finish within the fast check's {budget} s budget. Search tactics such "
-        "as exact?, apply? and rw? rarely fit it: find the lemma another way and name it. The "
+        f"the check did not finish within the fast check's {budget} s budget. The first calls "
+        "in an environment elaborate its imports and the target's definitions cold, so retry "
+        "once before changing anything; if it times out again, search tactics such as exact?, "
+        "apply? and rw? rarely fit the budget: find the lemma another way and name it. The "
         "precheck (POST /precheck) has the gate's full budget",
         details={"budget_s": budget, "axle_request_id": request_id},
     )

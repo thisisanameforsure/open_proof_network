@@ -1,0 +1,21 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________________ test_violations_quote_values_as_json _____________________
+
+    def test_violations_quote_values_as_json() -> None:
+        doc = {
+            "schema": submission.SCHEMA,
+            "automation": {"method": None, "models": [True], "framework": "f"},
+        }
+        messages = " ".join(v.message for v in schemas.violations(doc, submission.SCHEMA))
+>       assert "None" not in messages and "True is not" not in messages
+E       assert ('None' not in "'submission...ype 'string'"
+E         
+E         'None' is contained here:
+E            property None is not one of ['manual', 'copilot', 'agent', 'autonomous', 'other'] True is not of type 'string'
+E         ?           ++++)
+
+gate/tests/test_mcpfix_schema_messages.py:20: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_mcpfix_schema_messages.py::test_violations_quote_values_as_json
+1 failed in 0.05s

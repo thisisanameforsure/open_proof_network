@@ -108,3 +108,16 @@ def test_a_full_cap_answers_busy_after_the_slot_wait_not_the_checkers_budget() -
     finally:
         blocking.release.set()
         worker.join(20)
+
+
+def test_the_timeout_names_a_cold_start_and_a_retry() -> None:
+    """mcpfix (lead; verifier VB, N3, 2026-11-25): a trivial lemma on erdos-883 timed out twice and
+    then checked in 8.7 s and 4.0 s: the first calls in an environment elaborate its imports and
+    inlined definitions cold. The message blamed search tactics alone; it now says a first call
+    may be slow and to retry once before rewriting the proof."""
+    from api_fakes import make_harness  # noqa: PLC0415
+
+    from opn_api import checks  # noqa: PLC0415
+
+    message = str(checks.timed_out(make_harness().context, "r"))
+    assert "retry" in message and "first" in message
