@@ -22,7 +22,12 @@ REPO = "https://github.com/example/graph"
 API = "https://api.example.org"
 CODE = re.compile(r"\bD-\d+\b|\battestation \d{3,}|\bmotion:\d+|\bF\d\d-[TRQ]\d+")
 #: Pages whose visible text carries no code. Each rebuild task of F34 adds its page here.
-CLEAN = ("rules/index.html", "about/index.html", "problems/index.html")  # T5: Problems
+CLEAN = (
+    "rules/index.html",
+    "about/index.html",
+    "problems/index.html",  # T5
+    "index.html",  # T20: Home
+)
 
 
 class _Visible(HTMLParser):

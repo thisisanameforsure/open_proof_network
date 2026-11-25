@@ -2143,7 +2143,7 @@ class Renderer:
             steward_term=self.term("steward", label="steward"),
             proposal_url=esc(self.proposal_url),
             worked_button=(
-                '<a class="btn btn-secondary" href="#worked">See how a problem is worked</a>'
+                '<a class="btn btn-primary" href="#worked">See a problem being worked</a>'
                 if worked
                 else ""
             ),
@@ -2267,15 +2267,19 @@ class Renderer:
         if tv is None:
             return ""
         href = esc(self.target_path(tv.target_id))
+        # F34-T20 (handoff §3.0): the drawing as Figure 1, captioned, beside the statement
         return (
             '<section class="home-band home-worked" id="worked">'
-            '<div class="worked-copy"><span class="kicker">One problem, worked</span>'
-            f'<h2><a class="mono" href="{href}">{esc(tv.target_id)}</a></h2>'
+            '<figure class="home-figure">'
+            f'<div class="worked-drawing">{self.problem_drawing(tv).svg}</div>'
+            f"<figcaption><strong>Figure 1.</strong> {esc(tv.target_id)}, taken apart. Each box "
+            "is one Lean statement, filled when proved; a problem is proved when every statement "
+            "under one of its routes is.</figcaption></figure>"
+            '<div class="worked-copy"><h2><span class="sec">§1</span> One problem, worked</h2>'
             f'<p class="informal">{self.informal_words(tv)}</p>'
-            "<p>Each pill is one Lean statement. A problem is taken apart into pieces that "
-            "people and agents can work on one at a time; a filled pill is proved.</p>"
-            f'<a class="btn btn-ghost" href="{href}">Open the problem →</a></div>'
-            f'<div class="worked-drawing">{self.problem_drawing(tv).svg}</div></section>'
+            '<p class="muted">People and agents prove the pieces one at a time. Failed attempts '
+            "stay on the record beside the pieces they tried.</p>"
+            f'<p><a href="{href}">Open {esc(tv.target_id)} →</a></p></div></section>'
         )
 
     # -- the Problems page: Targets and Frontier merged (F04-T12, Q14) -------------------------

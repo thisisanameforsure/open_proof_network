@@ -67,7 +67,7 @@ def main() -> None:
 
     from playwright.sync_api import sync_playwright  # noqa: PLC0415
 
-    from opn_site import model, render  # noqa: PLC0415
+    from opn_site import config, model, render  # noqa: PLC0415
 
     commit = subprocess.run(
         ["git", "-C", str(args.graph), "rev-parse", "HEAD"],
@@ -79,6 +79,7 @@ def main() -> None:
         model.load_site(args.graph, commit),
         repo_url="https://github.com/example/graph",
         api_url=args.api,
+        featured_target=config.DEFAULT_FEATURED_TARGET,  # what the deployed site draws on Home
     )
     with tempfile.TemporaryDirectory() as tmp:
         render.write(files, Path(tmp))

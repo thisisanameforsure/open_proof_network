@@ -1,0 +1,5 @@
+FAILED site/tests/test_f34_home.py::test_the_sections_come_in_the_handoffs_order_numbered
+FAILED site/tests/test_f34_home.py::test_the_headline_and_its_two_buttons
+FAILED site/tests/test_f34_home.py::test_the_featured_problem_is_figure_one_with_a_caption
+FAILED site/tests/test_f34_home.py::test_the_rules_are_a_numbered_list_each_crossing_out_one_thing
+4 failed, 1 passed in 8.49s

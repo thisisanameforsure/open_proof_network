@@ -1469,3 +1469,26 @@ table.ledger tr[hidden] { display: none; }
 @media (max-width: 700px) {
   .steward-cards, .people { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* — F34-T20 (handoff §3.0): Home as a journal's front page — */
+.home-band { margin-top: calc(var(--s8) * 3); }
+.home-band h2 .sec { font-family: var(--sans); font-size: 15px; color: var(--muted); margin-right: 6px; }
+.home-worked { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.home-figure { margin: 0; min-width: 0; }
+.home-figure .worked-drawing { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 24px; max-height: 420px; overflow: hidden; }
+.home-figure figcaption { font-family: var(--sans); font-size: 13.5px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+.home-figure figcaption strong { color: var(--ink); font-weight: 600; }
+.home-worked .worked-copy h2 { font-size: 26px; margin-top: 0; }
+.home-worked .informal { font-size: 17px; }
+.home-rules, .home-lately { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 40px; align-items: start; }
+.home-side h2 { margin-top: 0; }
+.rule-list { list-style: none; counter-reset: rule; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.rule-list .rule-pair { background: none; box-shadow: none; border-radius: 0; counter-increment: rule; display: grid; grid-template-columns: 36px minmax(0, 1fr); padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.rule-list .rule-pair::before { content: counter(rule) "."; grid-row: span 2; font-family: var(--sans); font-size: 14px; color: var(--muted); padding-top: 2px; }
+.rule-list .rule-pair s { font-family: var(--sans); font-size: 13px; color: var(--muted); display: block; }
+.rule-list .rule-pair span { font-size: 18px; }
+.home-band .doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.home-band .doors .card { background: none; box-shadow: none; border-radius: 0; border-top: 1.5px solid var(--ink); padding: 16px 0 0; }
+@media (max-width: 900px) {
+  .home-worked, .home-rules, .home-lately, .home-band .doors { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}
