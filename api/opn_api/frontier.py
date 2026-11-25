@@ -297,9 +297,66 @@ def committed_frontier(ctx: Context) -> dict[str, Any]:
     return doc
 
 
+#: mcpfix (testers 2026-11-25): the record kinds whose merge changes whether a frontier entry is
+#: claimable: an artifact of ``POST /submissions`` on its node (``pending.ATTESTING_KINDS``).
+PENDING_RENDER_KINDS: frozenset[str] = frozenset(
+    {"proof", "counterexample", "vacuity", "reduction", "partial"}
+)
+#: The record kinds that write a subject's words (``duplicates.WORDS_KINDS``).
+WORDS_RENDER_KINDS: frozenset[str] = frozenset({"gloss", "explainer"})
+
+
+def pending_render(ctx: Context) -> dict[str, dict[str, Any]]:
+    """mcpfix (testers 2026-11-25, t257b item 5): per node, the newest merged artifact the
+    products do not carry yet, as ``{pr, kind, merged_at}``: a node whose proof merged a minute
+    ago is not claimable work, whatever the committed frontier still says. Read from the
+    service's own records (``pending.recent_merges``); a pull request opened by hand, or one
+    nobody has read since it merged, is not known here."""
+    from opn_api import pending  # noqa: PLC0415 — pending imports this module
+
+    out: dict[str, dict[str, Any]] = {}
+    for found in pending.recent_merges(ctx):
+        if found.kind not in PENDING_RENDER_KINDS or not found.node_id:
+            continue
+        if not pending.awaits_render(ctx, found):
+            continue
+        out[found.node_id] = {"pr": found.pr_number, "kind": found.kind, "merged_at": found.closed}
+    return dict(sorted(out.items()))
+
+
+def pending_words(ctx: Context, target_id: str) -> set[str]:
+    """mcpfix (testers 2026-11-25, t883 item 10): the subject keys (``duplicates.words_key``)
+    of ``target_id`` whose gloss or explainer has merged and is not in the products yet, so a
+    list of the words a target needs can leave them out until the render lands."""
+    from opn_api import pending  # noqa: PLC0415 — pending imports this module
+
+    keys: set[str] = set()
+    prefix = f"words:{target_id}:"
+    for found in pending.recent_merges(ctx):
+        if found.kind not in WORDS_RENDER_KINDS or found.target_id != target_id:
+            continue
+        if pending.awaits_render(ctx, found):
+            keys.update(k for k in found.fingerprints if k.startswith(prefix))
+    return keys
+
+
+def pending_overlay(doc: dict[str, Any], waiting: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """The validated frontier with each waiting entry's ``claimable`` false. ``frontier/v8`` is
+    closed and hash-pinned (D-34), so what each entry waits on is not added here: the served
+    document must validate whatever is pending (the deploy smoke of 946b9a22 caught a top-level
+    ``pending_render`` key live); the MCP's ``list_frontier`` answers that map in its own shape."""
+    if not waiting:
+        return doc
+    out = dict(doc)
+    out["entries"] = [
+        {**e, "claimable": False} if str(e.get("node_id")) in waiting else e for e in doc["entries"]
+    ]
+    return out
+
+
 async def get_frontier(ctx: Context, request: Request) -> Response:
     doc = read_at(ctx, overlay(committed_frontier(ctx), registry(ctx)))
-    return JSONResponse(validate_frontier(doc))
+    return JSONResponse(pending_overlay(validate_frontier(doc), pending_render(ctx)))
 
 
 def snapshot(ctx: Context) -> dict[str, Any]:

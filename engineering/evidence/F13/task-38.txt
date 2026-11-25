@@ -1,0 +1,44 @@
+F13-T38 — every inlined module in a section of its own (2026-11-25)
+
+Found by curator D (F14-T35, LOG-D.md 13:52:54Z): POST /check witness mode for a green-75 variant
+statement answered 12 errors inside the network's own inlined definitions (`Function expected at
+ι` in FieldTheoryMilnorKTheory), while the same check later passed with the imports in another
+order. Root cause, read in the composition: the mechanical port opens a `section` it never closes
+(harmless in a module of its own, where the file's end closes it), and the service pasted modules
+one after another with only a comment between them. CombinatoricsSimpleGraphColoringVertex's
+`variable {V α ι : Type*}` stayed in scope over FieldTheoryMilnorKTheory, which writes `ι` for
+TensorAlgebra.ι under `open TensorAlgebra`. Any check whose statement's imports put such a module
+before another was at risk; the gate, which compiles each module on its own, never was.
+
+Meanwhile, mcpfix WB1 (another session, same day, t883's item 3) landed `scope_closers`: the end
+lines for every scope a module leaves open. This task adds what closers cannot reach, found by
+scanning every defs/ file on the live graph for a scoped command written outside every scope:
+Data/Set/Interval's top-level `variable {β : Type*} [Preorder β]` and `variable {S : Set β} {a b :
+β}`, Clique's top-level `open Finset`. Pasted into one text these stay in force over every later
+module and the caller's statement. Each inlined module now sits in a section of its own, after its
+closers; the hazards composer closes an inner scope before its own `end`; and the prover client
+(gate/clients/prove/opn_prove.py, standard library only) composes the same way, held to the
+service byte for byte by test_prove_export (its parity had held only because the fixture modules
+are balanced; the client had no closers).
+
+Red first: api/tests/test_finding_inlined_scopes_leak.py (the top-level `variable`/`open` were in
+force at the next module and the statement). Restated, not deleted: WB1's exact-text test and
+block slicing, and the witness pre-flight fixture's error position (line 14 → 16, the witness's
+line now that its one inlined module has two wrapper lines). api fast tier 2681 passed.
+
+The sweep (scratchpad leak/): every live target's root statement, its defs/ ordered as
+inline_defs orders them, composed old (a comment between modules) and new (this composition),
+elaborated in one Lean 4.33.1 process over Mathlib 0df444a with every shared prefix elaborated
+once (Segments.lean: each segment on the command state the previous left, environment and open
+scopes, so a cached prefix is exactly what one file would give). An earlier run of my own first
+version found its bug (`end Set.HasDensity` closes two scopes; WB1 counts them right).
+Results: see the addendum below.
+
+Addendum (2026-11-25 evening). Static check over every live target's composed text (the 414 of
+451 with defs/), modules alone with a probe theorem after them: under the new composition 0 carry
+any scope or any variable/open past their modules; under the old one 413 of 414 did (erdos-829,
+for one, had `open TensorAlgebra` and `variable (F : Type*) [Field F]` in force at the
+statement). Lean sweep of the new compositions (Segments.lean, depth-first over sorted prefixes,
+memory bounded by the longest composition; the first caching version swapped the 8 GiB laptop
+to 19 GB): 103 elaborated at the time of writing, 0 with an error; the run continues
+and its result is recorded when it ends.

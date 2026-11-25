@@ -62,6 +62,24 @@ PARTIAL = "partial"
 PARTIAL_MODULE_RE = re.compile(r"^attempts/[A-Za-z0-9_.-]+-partial\.lean$")
 _FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n?", re.S)
 
+#: mcpfix (testers 2026-11-25, qa-eb L10): the marks of LaTeX math in a gloss's text. A
+#: statement, witness or relation gloss opens with its statement in math (the guide's rule).
+LATEX_MARKS: tuple[str, ...] = ("$", "\\(", "\\[")
+
+
+def no_latex(kind: str, text: str) -> Diagnostic | None:
+    """``gloss-no-latex`` for a statement, witness or relation gloss whose text carries no math
+    at all, or ``None``. A warning the service answers on ``POST /glosses`` (dry run and real);
+    nothing in the gate refuses on it."""
+    if kind not in KIND_FILES or any(mark in text for mark in LATEX_MARKS):
+        return None
+    return Diagnostic(
+        "gloss-no-latex",
+        f"this {kind} gloss has no LaTeX: a gloss opens with the statement in math ($...$, "
+        "\\(...\\) or \\[...\\]) so a reader sees the claim before the words",
+        {"kind": kind},
+    )
+
 
 #: F20-T16 (Q21): a gloss body that opens with math — a ``$$…$$`` display with something in it,
 #: or ``$…$`` under the site's dollar rule (Pandoc's: a non-space after the opening dollar and

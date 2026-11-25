@@ -1,0 +1,2 @@
+{"mcpServers": {"open-proof-network": {"type": "http", "url": "https://api.openproofnetwork.org/mcp",
+  "headers": {"Authorization": "Bearer ${OPN_TOKEN}"}}}}

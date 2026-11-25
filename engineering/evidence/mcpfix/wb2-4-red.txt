@@ -1,0 +1,90 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FF.FF                                                                    [100%]
+=================================== FAILURES ===================================
+_______________ test_an_unknown_kind_is_refused_naming_the_kinds _______________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109e15e80>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_an_unknown_kind_is_refused_naming_the_kinds(h: Harness) -> None:
+        r = h.client.get("/submissions.json?kind=nonsense")
+>       assert r.status_code == 400, r.text
+E       AssertionError: {"snapshot_at":"2026-09-09T12:00:00Z","queue":{"order":[],"description":"pull-request number, oldest first, over the open pull requests the merge actor takes (non-draft, on a branch the service opened, against main), counted in the pull request's own lane: the merge actor runs one lane per target in parallel (F07-T56), and each target's lane in two halves that do not wait for each other (F07-T81): words and reports (an append/ pull request whose every file is one no building verdict reads: postmortems, glosses, explainers and their signatures, literature records, approach records) and everything else on the target (proofs, partials, proposals, witnesses, and appends such as an annex, which a skeleton cites, a shelving or a review record). So only the pull requests on the same target in the same half, and any whose target the service does not know (the actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor merges the first one whose gate is green and passes over a red, conflicting or behind-and-still-running one, so a position is an upper bound on the merges ahead, not a count of them; consecutive green appends may merge as one batch. Left out of ahead, position and of (F07-T80), though the actor still lists them: a witness whose slot main already fills, and one whose gate failed and that has been idle longer than the service's window (OPN_API_QUEUE_IDLE_RED_DAYS); and one the service has already seen merge or close while the listing, read once a window, still carries it (F07-T86)","note":"each entry's queue.waiting_on is what the service last read for that pull request, with when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing. queue.order is the actor's order across every lane; each entry's position counts its own lane: its target's (the record's target_id) and, within it, its half (words and reports, by the record's kind, on an append/ branch; or everything else), or every lane for one the service cannot place"},"open":[],"host":{"read_at":"2026-09-09T12:00:00Z","stale":false,"error":null}}
+E       assert 200 == 400
+E        +  where 200 = <Response [200 OK]>.status_code
+
+api/tests/test_mcpfix_wb2_filters.py:38: AssertionError
+_____________________ test_an_unknown_target_is_not_found ______________________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109e13b10>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_an_unknown_target_is_not_found(h: Harness) -> None:
+        r = h.client.get("/submissions.json?target=elsewhere")
+>       assert r.status_code == 404, r.text
+E       AssertionError: {"snapshot_at":"2026-09-09T12:00:00Z","queue":{"order":[],"description":"pull-request number, oldest first, over the open pull requests the merge actor takes (non-draft, on a branch the service opened, against main), counted in the pull request's own lane: the merge actor runs one lane per target in parallel (F07-T56), and each target's lane in two halves that do not wait for each other (F07-T81): words and reports (an append/ pull request whose every file is one no building verdict reads: postmortems, glosses, explainers and their signatures, literature records, approach records) and everything else on the target (proofs, partials, proposals, witnesses, and appends such as an annex, which a skeleton cites, a shelving or a review record). So only the pull requests on the same target in the same half, and any whose target the service does not know (the actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor merges the first one whose gate is green and passes over a red, conflicting or behind-and-still-running one, so a position is an upper bound on the merges ahead, not a count of them; consecutive green appends may merge as one batch. Left out of ahead, position and of (F07-T80), though the actor still lists them: a witness whose slot main already fills, and one whose gate failed and that has been idle longer than the service's window (OPN_API_QUEUE_IDLE_RED_DAYS); and one the service has already seen merge or close while the listing, read once a window, still carries it (F07-T86)","note":"each entry's queue.waiting_on is what the service last read for that pull request, with when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing. queue.order is the actor's order across every lane; each entry's position counts its own lane: its target's (the record's target_id) and, within it, its half (words and reports, by the record's kind, on an append/ branch; or everything else), or every lane for one the service cannot place"},"open":[],"host":{"read_at":"2026-09-09T12:00:00Z","stale":false,"error":null}}
+E       assert 200 == 404
+E        +  where 200 = <Response [200 OK]>.status_code
+
+api/tests/test_mcpfix_wb2_filters.py:47: AssertionError
+___________________ test_the_union_holds_every_scattered_set ___________________
+
+    def test_the_union_holds_every_scattered_set() -> None:
+        union = set(pending.SUBMISSION_KINDS)
+        for part in (
+            duplicates.WORDS_KINDS,
+            duplicates.PROOF_KINDS,
+            duplicates.APPEND_KINDS,
+            pending.ATTESTING_KINDS,
+            store.PROPOSAL_KINDS,
+            pending.WORDS_KINDS_ON_NODE,
+            pending.WORDS_KINDS_ON_TARGET,
+            submissions.ARTIFACT_TYPES,
+        ):
+>           assert set(part) <= union, set(part) - union
+E           AssertionError: {'explainer', 'gloss'}
+E           assert {'explainer', 'gloss'} <= set()
+E             
+E             Extra items in the left set:
+E             'gloss'
+E             'explainer'
+
+api/tests/test_mcpfix_wb2_filters.py:72: AssertionError
+_______________ test_the_union_holds_every_kind_a_route_records ________________
+
+    def test_the_union_holds_every_kind_a_route_records() -> None:
+        """Every ``kind="..."`` a route passes and every ``KIND* = "..."`` constant in the service."""
+        found: set[str] = set()
+        pattern = re.compile(r'(?:\bkind="([a-z-]+)"|^KIND[A-Z_]* = "([a-z-]+)")', re.MULTILINE)
+        for path in API.glob("*.py"):
+            for m in pattern.finditer(path.read_text()):
+                found.add(m.group(1) or m.group(2))
+        assert found, "the scan found nothing: the pattern is wrong"
+>       assert found <= set(pending.SUBMISSION_KINDS), found - set(pending.SUBMISSION_KINDS)
+E       AssertionError: {'annex', 'approach-record', 'approval', 'candidate', 'defect-claim', 'display-name', ...}
+E       assert {'annex', 'ap...ay-name', ...} <= set()
+E         
+E         Extra items in the left set:
+E         'annex'
+E         'review-answer'
+E         'revision-request'
+E         'literature'
+E         'postmortem'...
+E         
+E         ...Full output truncated (19 lines hidden), use '-vv' to show
+
+api/tests/test_mcpfix_wb2_filters.py:83: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb2_filters.py::test_an_unknown_kind_is_refused_naming_the_kinds
+FAILED api/tests/test_mcpfix_wb2_filters.py::test_an_unknown_target_is_not_found
+FAILED api/tests/test_mcpfix_wb2_filters.py::test_the_union_holds_every_scattered_set
+FAILED api/tests/test_mcpfix_wb2_filters.py::test_the_union_holds_every_kind_a_route_records
+4 failed, 1 passed, 2 warnings in 1.23s

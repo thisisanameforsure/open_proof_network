@@ -1,0 +1,70 @@
+/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Ported mechanically from `FormalConjecturesForMathlib/Combinatorics/SimpleGraph/Clique.lean` at registry commit d8d031d4998c78575159ccab9a7a9e95ce043883 (google-deepmind/formal-conjectures, Apache-2.0) by gate/tools/wave.py (F14-T19): the module `FormalConjecturesForMathlib.Combinatorics.SimpleGraph.Clique`, lemmas included. The module syntax is stripped so the gate elaborates it under `import Mathlib`; nothing else is changed. -/
+
+section
+
+namespace SimpleGraph
+variable {V : Type*} {G : SimpleGraph V}
+
+open Finset List
+
+@[inherit_doc] scoped notation "α(" G ")" => indepNum G
+
+@[simp] lemma indepNum_of_isEmpty [IsEmpty V] : α(G) = 0 := by
+  simp [indepNum, isNIndepSet_iff, Subsingleton.elim _ ∅]
+
+@[simp] lemma indepNum_pos [Finite V] [Nonempty V] : 0 < α(G) := by
+  cases nonempty_fintype V
+  obtain ⟨v⟩ := ‹Nonempty V›
+  rw [← Nat.add_one_le_iff]
+  exact le_csSup ⟨Nat.card V, by simp [mem_upperBounds, isNIndepSet_iff, Finset.card_le_univ]⟩
+    ⟨{v}, by simp [isNIndepSet_iff]⟩
+
+/-- Infinite graphs: definitions for clique number so that the clique number of a graph
+with unbounded clique size is `∞` rather than 0.
+-/
+noncomputable
+def ecliqueNum {V : Type} (G : SimpleGraph V) : ℕ∞ := ⨆ (s : Finset V) (_ : G.IsClique s), #s
+
+/-- The set of sizes of the cliques (maximal complete subgraphs) of `G`. -/
+def cliqueSizes {V : Type} (G : SimpleGraph V) : Set ℕ :=
+  { k | ∃ S : Finset V, Maximal (fun T : Finset V => G.IsClique (T : Set V)) S ∧ S.card = k }
+
+/-- `s` is a maximal clique of `G` with at least two vertices. -/
+def IsBigMaximalClique (G : SimpleGraph V) (s : Finset V) : Prop :=
+  Maximal (fun t : Finset V ↦ G.IsClique (t : Set V)) s ∧ 2 ≤ s.card
+
+/-- `T` meets every maximal clique of `G` with at least two vertices. -/
+def IsCliqueTransversal (G : SimpleGraph V) (T : Finset V) : Prop :=
+  ∀ s, G.IsBigMaximalClique s → ∃ v ∈ s, v ∈ T
+
+/-- The clique transversal number $\tau(G)$: the minimal number of vertices that meet every
+maximal clique of `G` with at least two vertices, so isolated vertices are not counted. -/
+noncomputable def cliqueTransversalNumber (G : SimpleGraph V) : ℕ :=
+  sInf {k | ∃ T : Finset V, G.IsCliqueTransversal T ∧ T.card = k}
+
+open scoped Classical in
+/-- The triangles of `G` containing the edge `uv`, that is, the `3`-cliques of `G` whose vertex
+set contains both endpoints of `uv`. -/
+noncomputable def trianglesContaining {α : Type*} [Fintype α] (G : SimpleGraph α)
+    (uv : Sym2 α) : Finset (Finset α) :=
+  (G.cliqueFinset 3).filter (fun t ↦ uv.toFinset ⊆ t)
+
+end SimpleGraph

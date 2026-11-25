@@ -55,7 +55,7 @@ def test_search_catalog_is_the_bijection_table(harness: Harness) -> None:
     for tool in TOOLS:
         row = bijection.BY_TOOL[tool.name]
         assert ops[tool.name]["kind"] == row.kind
-        assert ops[tool.name]["plain"] == row.d28
+        assert ops[tool.name]["plain"] == list(row.plain)  # mcpfix WA1: paths, not D-28's prose
         assert ops[tool.name]["auth"] == tool.access
 
 

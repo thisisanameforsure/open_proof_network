@@ -251,7 +251,9 @@ async def post_shelvings(ctx: Context, request: Request) -> Response:
     session's or the bearer's GitHub login (``stewards.github_login``), the key is read where
     ``POST /stewards`` reads it, and the body is signed as every approval-key record is."""
     held: Identity = request.state.identity
-    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
+    login = stewards.github_login(
+        held, "shelve a statement or retire a route"
+    )  # who is asking comes before what they sent (F-D2)
     fields, _ = await identitymod.body_fields(request, FIELDS)
     action = checked_action(fields.get("action"))
     scope = checked_scope(fields.get("scope"))

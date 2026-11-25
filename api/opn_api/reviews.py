@@ -394,7 +394,9 @@ def pr_body(what: str, pseudonym: str, path: str, checks: str) -> str:
 async def post_reviews(ctx: Context, request: Request) -> Response:
     """R14: open a review, as the sign-in, in its own pull request on a ``review/`` branch."""
     held: Identity = request.state.identity
-    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
+    login = stewards.github_login(
+        held, "open a formalization review"
+    )  # who is asking comes before what they sent (F-D2)
     fields, _ = await identitymod.body_fields(request, OPEN_FIELDS)
     target_id = appends.known_target(ctx, fields.get("target_id"))
     words = checked_words(fields.get("words"))
@@ -647,7 +649,9 @@ def next_answer_name(ctx: Context, target_id: str) -> str:
 async def post_answers(ctx: Context, request: Request) -> Response:
     """R14: the intent signer's answer to one question, signed with the approval key."""
     held: Identity = request.state.identity
-    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
+    login = stewards.github_login(
+        held, "answer a review question"
+    )  # who is asking comes before what they sent (F-D2)
     target_id = appends.known_target(ctx, request.path_params.get("target_id"))
     fields, _ = await identitymod.body_fields(request, ANSWER_FIELDS)
     question = checked_id(fields.get("question"), "question")
@@ -772,7 +776,9 @@ def next_signature_name(ctx: Context, target_id: str, role: str, day: str) -> st
 async def post_signatures(ctx: Context, request: Request) -> Response:
     """R14: one signer's decision, by role, signed with the approval key."""
     held: Identity = request.state.identity
-    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
+    login = stewards.github_login(
+        held, "sign a formalization review"
+    )  # who is asking comes before what they sent (F-D2)
     target_id = appends.known_target(ctx, request.path_params.get("target_id"))
     fields, _ = await identitymod.body_fields(request, SIGNATURE_FIELDS)
     role = fields.get("role")

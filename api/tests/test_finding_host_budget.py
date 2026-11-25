@@ -310,7 +310,9 @@ def test_the_by_id_read_serves_its_cached_block_as_stale_with_read_at(harness: H
     harness.githost.rate_limited = spent(harness)
     r = get(harness, "1")
     served = r.json()
-    assert served["pull_request"] == {**fresh["pull_request"], "stale": True}, served
+    # mcpfix WB2 item 1: and how old it is when served
+    expected = {**fresh["pull_request"], "stale": True, "age_s": 300}
+    assert served["pull_request"] == expected, served
     assert served["pull_request"]["read_at"] == read_at  # when it was last true, not now
     assert str(served["pull_request_error"]).startswith("host-budget-exhausted")
     assert r.headers.get("Retry-After") == str(RESET_IN_S), dict(r.headers)

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from api_fakes import Harness
@@ -62,7 +63,7 @@ def test_an_explainer_citing_an_unused_name_is_told_so(h: Harness, tree: Path) -
 
 
 def test_words_with_nothing_to_warn_about_answer_an_empty_list(h: Harness) -> None:
-    r = post(h, h.token_for("code_bob", "bob"), statement_gloss())
+    r = post(h, h.token_for("code_bob", "bob"), with_math(statement_gloss()))
     assert r.status_code == 201, r.text
     assert r.json().get("warnings") == [], r.json()
     assert "warn" not in h.githost.pulls[-1].body.lower()
@@ -75,3 +76,9 @@ def test_the_tool_carries_the_warnings(h: Harness, tree: Path) -> None:
     out = McpClient(h).ok("submit_gloss", args, token=h.token_for("code_bob", "bob"))
     assert out["status"] == 201, out
     assert [w["code"] for w in out["body"].get("warnings", ["missing"])] == [UNANCHORED]
+
+
+def with_math(body: dict[str, Any]) -> dict[str, Any]:
+    """mcpfix WB2 item 5: a statement gloss opens with its statement in LaTeX, or the answer
+    carries a gloss-no-latex warning (test_mcpfix_wb2_gloss.py)."""
+    return {**body, "text": "$p \\land (q \\land r)$ " + str(body["text"])}

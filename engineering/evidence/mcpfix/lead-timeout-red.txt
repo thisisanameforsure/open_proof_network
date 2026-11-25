@@ -1,0 +1,31 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______________ test_the_timeout_names_a_cold_start_and_a_retry ________________
+
+    def test_the_timeout_names_a_cold_start_and_a_retry() -> None:
+        """mcpfix (lead; verifier VB, N3, 2026-11-25): a trivial lemma on erdos-883 timed out twice and
+        then checked in 8.7 s and 4.0 s: the first calls in an environment elaborate its imports and
+        inlined definitions cold. The message blamed search tactics alone; it now says a first call
+        may be slow and to retry once before rewriting the proof."""
+        from api_fakes import make_harness  # noqa: PLC0415
+    
+        from opn_api import checks  # noqa: PLC0415
+    
+        message = str(checks.timed_out(make_harness().context, "r"))
+>       assert "retry" in message and "first" in message
+E       assert ('retry' in "the check did not finish within the fast check's 20 s budget. Search tactics such as exact?, apply? and rw? rarely fit it: find the lemma another way and name it. The precheck (POST /precheck) has the gate's full budget")
+
+api/tests/test_finding_check_timeout.py:123: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-lead/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-lead/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_check_timeout.py::test_the_timeout_names_a_cold_start_and_a_retry
+1 failed, 4 deselected, 2 warnings in 0.36s

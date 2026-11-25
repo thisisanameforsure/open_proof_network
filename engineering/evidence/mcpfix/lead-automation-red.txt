@@ -1,0 +1,18 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_____________ test_the_attestation_records_the_declared_automation _____________
+
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/8e19768a-5e63-42e1-8b86-e55bba3dc021/scratchpad/pytest-lead/test_the_attestation_records_t0')
+
+    def test_the_attestation_records_the_declared_automation(tmp_path: Path) -> None:
+        ctx = make_context(tmp_path)
+        verdict = pipeline.run_steps(ctx)
+        doc = precheck_job.attest(ctx, verdict, _job(dict(AUTOMATION)))
+>       assert doc["automation"] == AUTOMATION
+E       AssertionError: assert None == {'method': 'agent', 'models': ['claude-opus-5-5'], 'framework': 'claude-code'}
+
+gate/tests/test_mcpfix_precheck_automation.py:32: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_mcpfix_precheck_automation.py::test_the_attestation_records_the_declared_automation
+1 failed, 1 passed in 0.44s

@@ -1,0 +1,71 @@
+# LOG — t1125-257 on erdos-257
+- 22:42Z search {} -> 53 operations listed
+- 22:43Z read list_sufficient_sets {target:"erdos-257"} -> arguments-invalid ('target_id' required)
+- 22:43Z read list_sufficient_sets {target_id:"erdos-257"} -> 19 routes, 10 sets; root sets: s-fb6cd66200 (open erdos-257--h2--h1), s-1f9c3f315f (open erdos-257--h18, variant-6b364d2b--h1--h1)
+- 22:44Z search {operations:[get_node,...10]} -> schemas
+- 22:45Z read get_node {variant-6b364d2b--h1--h1, include:[]} -> TT kappa2-5 hole; too large for 60 min (S1 must carry Mertens mass >= 2^K T)
+- 22:46Z read list_frontier {filters:{target_id:erdos-257}} -> 25 open nodes
+- 22:47Z read get_node spec-001a7622 -> open prime-pair conjecture (skip); get_node spec-9ab4bdf6 -> elementary, provable
+- 22:43Z write claim_node {spec-9ab4bdf6, ttl:2} -> 201 claim 01M87VMZJGHBCT2AGGNZ924TC2 (server time; earlier lines' minutes are approximate)
+- 22:44Z write check_lean {spec-9ab4bdf6, mode:verify, helper lemmas at top level} -> okay:true but lint header-diverges (helpers before the theorem refused at gate step 2)
+- 22:45Z write check_lean {spec-9ab4bdf6, mode:verify, helpers inlined as `have`} -> okay:true, no lint, no warnings
+- 22:46Z write precheck_submission {spec-9ab4bdf6, proof, bundle targets/erdos-257/nodes/spec-9ab4bdf6/Proof.lean} -> 202 job 01M87VSQXGEKHQ6128B84RGW10 queued
+- 22:47Z read list_words_needed {erdos-257, kind:statement} -> 2 files: spec-2690fb43 (proved), spec-9ab4bdf6 (mine)
+- 22:47Z write submit_gloss {spec-9ab4bdf6 statement, dry_run:true} -> first call failed client-side (JSON parse error, my escaping); retry ok:true, no warnings
+- 22:48Z write submit_gloss {spec-9ab4bdf6 statement} -> 201, PR #2026
+- 22:48Z read get_precheck {01M87VSQ...} -> running
+- 22:49Z read get_node {variant-cce9b284--h6, include:[annexes]} -> 3 annexes; N1 (annex eaaf51ac) used a 27720-residue computation for the same bound my proof gets from half-divisors alone
+- 22:46Z read get_precheck -> running
+- 22:46Z read get_node {spec-2690fb43, include:[]} -> proved barrier node without words; its merged Proof.lean has private defs before the docstring (contrast with my header-diverges lint)
+- 22:47Z write submit_gloss {spec-2690fb43, dry_run:true} -> ok; then real -> 201, PR #2028
+- 22:48Z read get_node erdos-257--h2--h1 -> equivalent (for r=1/2) to the open "walk of 1/2 stalls after taking everything"; refuting it needs spec-a70fcca4--h4--h2 (open). Not attempted.
+- 22:48Z read get_node spec-a70fcca4-v2--h3 -> carry construction, open; not attempted
+- 22:49Z read get_precheck -> running
+- 22:49Z read get_node spec-a70fcca4--h4--h2 -> confirms the link above is already implicit in the routes; no annex filed
+- 22:50Z read list_error_codes {} -> 136k chars, overflowed the client; header-diverges not in it
+- 22:50Z read get_my_submissions {} -> PR #2026 and #2028 both merged
+- 22:50Z bash curl poller for the precheck -> needs approval (not run)
+- 22:51Z search {query:"which nodes would prove the root"} -> list_sufficient_sets ranked 3rd after get_node, claim_node
+- 22:51Z search {query:"what does an error code mean"} -> list_error_codes 1st (good)
+- 22:52Z read list_error_codes {prefix:"header"} -> count 0 (lint code header-diverges is undocumented)
+- 22:52Z read get_precheck -> running (6 min)
+- 22:53Z read list_submissions {} -> queue empty
+- 22:53Z read get_precheck -> done, verdict pass (steps 1,2,4-8 pass); attestation shows automation:null, model_and_tooling:"undeclared", tooling nulls although automation was sent
+- 22:54Z write submit_proof {spec-9ab4bdf6, proof, precheck_job_id, automation{agent, claude-opus-5-5, claude-code}, tooling{model claude-opus-5-5, harness claude-code}} -> 201, PR #2031
+- 22:55Z read get_submission {01M87W4B...} -> open, waiting_on gate, queue position 1/1
+- 22:55Z read list_words_needed {erdos-257, kind:proof} -> 8 proofs lack explainers
+- 22:56Z write submit_gloss {spec-2690fb43 proof explainer, dry_run} -> 400 explainer-invalid (needs ## sections)
+- 22:56Z write submit_gloss {same, with ## sections, dry_run} -> ok; real -> 201, PR #2032
+- 22:53Z read get_submission {01M87W4B...} -> still waiting_on gate (clock note: true time 22:53; entries above from 22:47 on ran ~3 min fast)
+- 22:54Z read get_node variant-cce9b284--h13 -> read proof; write submit_gloss {h13 proof explainer} -> 201, PR #2033
+- 22:55Z read get_node variant-cce9b284--h4 -> read proof; write submit_gloss {h4 proof explainer} -> 201, PR #2034
+- 22:55Z read get_submission {01M87W4B...} -> waiting_on gate, runs:[] (no gate run listed yet)
+- 22:56Z read get_node variant-cce9b284--h8 -> write submit_gloss {h8 explainer} -> 201, PR #2035
+- 22:57Z read get_node variant-cce9b284--h10 -> write submit_gloss {h10 explainer} -> 201, PR #2036
+- 22:57Z read get_submission {01M87W4B...} -> waiting_on gate; pull_request.read_at still 22:52:06 while stale:false
+- 22:58Z read get_node variant-cce9b284--h7 -> write submit_gloss {h7 explainer} -> 201, PR #2037
+- 22:58Z read get_submission -> gate in_progress
+- 22:59Z read get_node variant-cce9b284--h3 -> write submit_gloss {h3 explainer} -> 201, PR #2038
+- 22:59Z read get_submission {01M87W4B...} -> gate success, gate_report ok; waiting_on branch-update (mergeable_state behind)
+- (true clock 22:56Z) read get_node {variant-cce9b284--h5, include:[outlines]} -> write submit_gloss {h5 explainer} -> 201, PR #2039
+- 22:57Z read get_submission {01M87W4B...} -> pull_request block REGRESSED to read_at 22:55:11, gate in_progress, gate_report null (previous call showed success at 22:55:42)
+- 22:57Z bash gh pr view 2031 -> needs approval (not run)
+- 22:57Z read get_my_submissions -> #2032-#2038 merged; #2039 in gate; #2031 waiting_on gate (read 22:55:11)
+- 22:58Z read list_words_needed {erdos-257, kind:partial} -> 3 partials lack explainers
+- 22:58Z read get_node {variant-cce9b284, include:[]} -> assemblies listed by path+hash only; partial Lean text not served by any read op -> no explainer written (would be guessing)
+- 22:58Z read get_submission {01M87W4B...} -> gate success, waiting_on merge
+- 22:58Z read get_node spec-9ab4bdf6 -> label still "spec-9ab4bdf6"/label_source id despite merged gloss #2026
+- 22:58Z read list_submissions -> queue order [2031, 2039]; #2031 waiting_on merge
+- 22:58Z read get_submission x3 -> unchanged (pull_request read_at frozen at 22:57:54)
+- 22:59Z waiting 90 s (Monitor sleep) before re-polling
+- 22:59Z read get_submission -> waiting_on branch-update again (mergeable_state behind)
+- 23:00Z read get_submission {01M87W4B...} -> state MERGED (closed 22:59:10Z, merge commit 1ec2b069); pull_request waiting_on "products", attestation-pending
+- 23:00Z read list_words_needed {erdos-257, kind:proof} -> stale: still lists the 8 proofs whose explainers merged; spec-9ab4bdf6 not listed
+- 23:00Z write submit_gloss {spec-9ab4bdf6 proof explainer, proof: attestation artifact_hash c4379e77..., dry_run} -> 400 explainer-proof-unknown ("the node's are: none") — post-merge products not yet recorded
+- 23:01Z read get_submission -> still waiting_on products (read_at frozen 22:59:31); list_words_needed still stale
+- 23:04Z read get_node spec-9ab4bdf6 -> Proof.lean now present (rendered_from b5475888); proof.present still false
+- 23:04Z write submit_gloss {spec-9ab4bdf6 proof explainer, proof c4379e77..., dry_run} -> ok (hash now accepted)
+- 23:04Z write submit_gloss {spec-9ab4bdf6 proof explainer} -> 201, PR #2040
+- 23:04Z write release_claim {01M87VMZJGHBCT2AGGNZ924TC2} -> 200 released (node proved)
+- 23:05Z read get_my_submissions -> #2026, #2028, #2031 (proof), #2032-#2039 merged; #2040 in gate
+- 23:05Z REPORT.md finalised

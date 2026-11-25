@@ -20,6 +20,7 @@ import json
 import logging
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
@@ -32,7 +33,17 @@ from opn_api.githost import GitHostError
 from opn_api.mcp import auth as mcpauth
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, ToolError, error, params
-from opn_gate import closing, context, explainers, glosses, layout, products, routes, schemas
+from opn_gate import (
+    closing,
+    codes,
+    context,
+    explainers,
+    glosses,
+    layout,
+    products,
+    routes,
+    schemas,
+)
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -216,6 +227,57 @@ def check_id(value: Any, what: str) -> str:
     return value
 
 
+# --- mcpfix WA2 (testers 2026-11-25, qa-ea B3): compact answers, in pages ---------------------
+
+#: A page's position: the ``next`` of the answer before. An offset into the list as the record
+#: orders it, written as a string so that a client treats it as a token and never computes one.
+CURSOR_PARAM: dict[str, Any] = {
+    "type": "string",
+    "pattern": "^(0|[1-9][0-9]{0,8})$",
+    "description": "The last answer's `next`.",
+}
+FULL_PARAM: dict[str, Any] = {"type": "boolean", "description": "The plain path's whole body."}
+
+
+def limit_param(default: int, maximum: int, what: str) -> dict[str, Any]:
+    return {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": maximum,
+        "description": f"{what.capitalize()} per page (default {default}).",
+    }
+
+
+def page(
+    rows: list[Any], args: dict[str, Any], *, default: int
+) -> tuple[list[Any], dict[str, Any]]:
+    """One page of ``rows`` and what says where it sits: ``count`` (every row there is),
+    ``limit``, ``cursor`` (where this page starts, null for the first) and ``next`` (the cursor
+    of the page after, null on the last). The input schema has bounded ``limit`` and shaped
+    ``cursor`` already; a cursor past the end is an empty last page."""
+    limit = int(args.get("limit") or default)
+    cursor = args.get("cursor")
+    start = int(cursor) if isinstance(cursor, str) and cursor else 0
+    end = start + limit
+    return rows[start:end], {
+        "count": len(rows),
+        "limit": limit,
+        "cursor": cursor if cursor else None,
+        "next": str(end) if end < len(rows) else None,
+    }
+
+
+def known_target(ctx: Context, target_id: str) -> None:
+    """``not-found`` for a target the index at main does not list (item 8: one code for one
+    condition, whichever read meets it)."""
+    try:
+        listed = session.target_ids(ctx)
+    except ApiError as exc:
+        raise from_api_error(exc) from exc
+    if target_id not in listed:
+        raise error("not-found", f"no target {target_id} in targets/index.json at main", "graph")
+
+
 def service_answer(answer: Any, path: str) -> dict[str, Any]:
     """The body of a service route, or an error result naming the service (R10)."""
     if answer.refused or not isinstance(answer.body, dict):
@@ -247,8 +309,76 @@ async def server_info(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return service_answer(await call.endpoint("GET", "/info.json"), "/info.json")
 
 
+#: mcpfix WA2: a target's row in list_targets' default answer, ``targets-index``'s own field names.
+#: The index carries no title; ``root`` names the target's root statement.
+TARGET_SUMMARY: tuple[str, ...] = (
+    "target_id",
+    "root",
+    "status",
+    "track",
+    "claimable",
+    "node_counts",
+)
+#: The index's newest row schema, whose fields ``fields`` may name.
+INDEX_SCHEMA = "targets-index/v11"
+TARGETS_LIMIT = (50, 200)
+
+
+def _index_fields() -> list[str]:
+    props: dict[str, Any] = schemas.load_schema(INDEX_SCHEMA)["properties"]["targets"]["items"][
+        "properties"
+    ]
+    return sorted(props)
+
+
 async def list_targets(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return document(call.ctx, "targets/index.json")
+    """``targets/index.json``. mcpfix WA2 (the owner's ruling, 2026-11-25): by default a page of
+    summary rows (``TARGET_SUMMARY``); ``target_id`` answers that target's row with every field,
+    ``fields`` names the fields a row carries beside its id, and ``full: true`` answers the
+    committed index exactly, the plain path (D-28)."""
+    ctx = call.ctx
+    path = "targets/index.json"
+    index = document(ctx, path)
+    if args.get("full"):
+        if any(args.get(k) is not None for k in ("target_id", "fields", "limit", "cursor")):
+            raise error(
+                "arguments-invalid",
+                "full answers the whole index; it takes nothing else",
+                "adapter",
+            )
+        return index
+    fields = args.get("fields")
+    if fields is not None:
+        unknown = sorted(f for f in fields if f not in _index_fields())
+        if unknown:
+            raise error(
+                "filter-unknown",
+                f"no such target field: {', '.join(unknown)}; the fields are "
+                + ", ".join(_index_fields()),
+                "adapter",
+            )
+    rows = [r for r in index.get("targets") or [] if isinstance(r, dict)]
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+        rows = [r for r in rows if r.get("target_id") == target_id]
+        if not rows:
+            raise error("not-found", f"no target {target_id} in {path} at main", "graph")
+    if fields is not None:
+        keep = ["target_id", *(f for f in fields if f != "target_id")]
+    elif target_id is not None:
+        keep = None  # one target: every field it has
+    else:
+        keep = list(TARGET_SUMMARY)
+    chunk, where = page(rows, args, default=TARGETS_LIMIT[0])
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        "index_schema": str(index.get("schema")),
+        "rendered_from": index.get("rendered_from"),
+        **where,
+        "fields": keep,
+        "targets": [r if keep is None else {k: r[k] for k in keep if k in r} for r in chunk],
+    }
 
 
 async def get_target(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -327,9 +457,16 @@ async def get_review(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     n = refutation_n(args)
     with_bearer = Call(call.ctx, call.http, token=mcpauth.bearer(), calls=call.calls)
     query = "" if n is None else f"?n={n}"
-    doc = service_answer(
-        await with_bearer.endpoint("GET", f"/reviews/{target_id}{query}"), "/reviews/<id>"
-    )
+    try:
+        doc = service_answer(
+            await with_bearer.endpoint("GET", f"/reviews/{target_id}{query}"), "/reviews/<id>"
+        )
+    except ToolError as exc:
+        # mcpfix WA2 (item 8): the route says target-unknown; every other read says not-found,
+        # so the adapter answers that code for the same condition (qa-ea B5).
+        if exc.doc.get("error") == "target-unknown":
+            exc.doc["error"] = "not-found"
+        raise
     return {**doc, "untrusted_note": demarcate.UNTRUSTED_NOTE}
 
 
@@ -366,17 +503,62 @@ async def list_review_questions(call: Call, args: dict[str, Any]) -> dict[str, A
         target_id = check_id(target_id, "target_id")
     found: list[dict[str, Any]] = []
     try:
-        for target in _review_targets(ctx, target_id):
+        targets = _review_targets(ctx, target_id)
+        if target_id is None:
+            # mcpfix WA2 (item 6, qa-ea U1): only the targets that have a review, their records
+            # read in parallel, instead of 445 review.yaml reads in series past the Lambda's 29 s
+            targets = reviewed_targets(ctx, targets)
+            frontier.prefetch(ctx, review_record_paths(ctx, targets))
+        for target in targets:
             found.extend(reviews.waiting_questions(ctx, target))
     except ApiError as exc:
         raise from_api_error(exc) from exc
+    chunk, where = page(found, args, default=QUESTIONS_LIMIT[0])
     return {
         "read_at": ctx.head or ctx.settings.graph_branch,
         "target_id": target_id,
-        "count": len(found),
-        "questions": found,
+        **where,
+        "questions": chunk,
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
     }
+
+
+#: mcpfix WA2: list_review_questions' page, default and most.
+QUESTIONS_LIMIT = (50, 200)
+#: The review records list_review_questions reads beside ``review.yaml``.
+QUESTION_DIRS = ("questions", "answers")
+
+
+def reviewed_targets(ctx: Context, targets: list[str]) -> list[str]:
+    """The ``targets`` that hold a ``review/review.yaml`` at main, in their order. Read from the
+    tree the service keeps for the head (F14-T33), which costs nothing once read; when the tree
+    cannot serve, each target is asked in parallel (``frontier.PREFETCH_WORKERS``), an absent
+    file answering ``None`` and an unreadable one an error, never a silent absence (C7)."""
+    frontier.pin_head(ctx)
+    dirs = _tree(ctx, ctx.head or ctx.settings.graph_branch, time.monotonic())
+    if dirs is not None:
+        return [t for t in targets if "review.yaml" in (dirs.get(reviews.review_dir(t)) or [])]
+    frontier.generation(ctx)  # settled once, before the threads (frontier.prefetch's rule)
+
+    def has_review(target: str) -> bool:
+        return (
+            committed(ctx, f"{reviews.review_dir(target)}/review.yaml", optional=True) is not None
+        )
+
+    with ThreadPoolExecutor(max_workers=frontier.PREFETCH_WORKERS) as pool:
+        present = list(pool.map(has_review, targets))
+    return [t for t, yes in zip(targets, present, strict=True) if yes]
+
+
+def review_record_paths(ctx: Context, targets: list[str]) -> list[str]:
+    """Every file ``waiting_questions`` will read for ``targets``, for one parallel prefetch."""
+    paths: list[str] = []
+    for t in targets:
+        base = reviews.review_dir(t)
+        paths.append(f"{base}/review.yaml")
+        for sub in QUESTION_DIRS:
+            paths += [f"{base}/{sub}/{name}" for name in listing(ctx, f"{base}/{sub}")]
+    return paths
 
 
 async def list_open_pairs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -392,7 +574,10 @@ async def list_open_pairs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     caller = mcpauth.caller_pseudonym(ctx)
     found: list[dict[str, Any]] = []
     try:
-        for target in _review_targets(ctx, target_id):
+        targets = _review_targets(ctx, target_id)
+        if target_id is None:  # mcpfix WA2: as list_review_questions reads them (qa-ea U1)
+            targets = reviewed_targets(ctx, targets)
+        for target in targets:
             found.extend(reviews.open_directions(ctx, target, caller, n))
     except ApiError as exc:
         raise from_api_error(exc) from exc
@@ -437,13 +622,82 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
     # F28-T4 (R12, v3.41): the nodes whose proof exists in parts, read from the same graph; a
     # closable node is still open until its closing proof merges.
     closable = [c.as_dict() for c in closing.closable(graph)]
-    return {
+    doc = found.as_dict()
+    every = doc["sets"]
+    set_id = args.get("set_id")
+    if set_id is not None:
+        every = [s for s in every if s["id"] == set_id]
+        if not every:
+            raise error(
+                "not-found",
+                f"no set {set_id} among {target_id}'s {cut} sufficient sets at main",
+                "graph",
+            )
+    # mcpfix WA2 (item 3): the sets in pages, enumerated in full first so that a page and its
+    # count are of one enumeration; truncated says some set was left out of this answer.
+    chunk, where = page(every, args, default=SETS_LIMIT[0])
+    detail = args.get("detail", "compact")
+    out: dict[str, Any] = {
         "read_at": ctx.head or ctx.settings.graph_branch,
-        **found.as_dict(),
+        **doc,
+        **where,
+        "set_id": set_id,
+        "truncated": found.truncated or where["next"] is not None or where["cursor"] is not None,
+        "capped": found.truncated,
+        "sets": chunk if detail == "full" else [compact_set(s) for s in chunk],
+        "routes": [
+            r if detail == "full" else compact_route(r)
+            for r in page_routes(doc["routes"], doc["sets"], chunk)
+        ],
+        "detail": detail,
         "closable": closable,
-        # F29-R8 (D-25 v3.44): the selector tree over the sets, built from them alone (R6)
-        "selector": routes.selector_tree(found).as_dict(),
     }
+    if args.get("include_selector"):
+        # F29-R8 (D-25 v3.44): the selector tree over every set, built from them alone (R6)
+        out["selector"] = routes.selector_tree(found).as_dict()
+    return out
+
+
+#: mcpfix WA2: list_sufficient_sets' page of sets, default and most.
+SETS_LIMIT = (5, 200)
+#: mcpfix (lead, 2026-11-25): how much of each set and route row the answer carries.
+DETAIL = ("compact", "full")
+COMPACT_SUMMARY = ("holes", "proved", "open", "dead", "unresolved")
+
+
+def compact_set(sufficient: dict[str, Any]) -> dict[str, Any]:
+    """A set without ``statements``, which is its ``proved`` and its ``open`` together."""
+    return {k: v for k, v in sufficient.items() if k != "statements"}
+
+
+def compact_route(route: dict[str, Any]) -> dict[str, Any]:
+    """A route row with what a reader needs to choose a set: no approach text, and each hole only
+    its node and status (erdos-1094's default answer was 98,730 characters, 52,872 of them route
+    rows repeating every hole's label, attempts and refuted classes)."""
+    return {
+        "id": route["id"],
+        "node": route["node"],
+        "live": route["live"],
+        "resolved": route["resolved"],
+        "holes": [{"node": h["node"], "status": h["status"]} for h in route["holes"]],
+        "summary": {k: route["summary"][k] for k in COMPACT_SUMMARY},
+    }
+
+
+def page_routes(
+    every_route: list[dict[str, Any]],
+    every_set: list[dict[str, Any]],
+    chunk: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """The routes a page answers: those its sets use, and those no set uses at all (a dead or
+    unresolved decomposition, which no page would otherwise show, so a stall still shows), in
+    the enumeration's order."""
+
+    def used(sets: list[dict[str, Any]]) -> set[str]:
+        return {r for s in sets for r in (*s["routes"], *s["proof_routes"])}
+
+    anywhere, here = used(every_set), used(chunk)
+    return [r for r in every_route if r["id"] in here or r["id"] not in anywhere]
 
 
 def _entry_fields() -> dict[str, Any]:
@@ -524,9 +778,72 @@ async def list_frontier(call: Call, args: dict[str, Any]) -> dict[str, Any]:
             + ", ".join(sorted(_entry_fields())),
             "adapter",
         )
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
     doc = service_answer(await call.endpoint("GET", "/frontier.json"), "/frontier.json")
     entries = [e for e in doc.get("entries", []) if matches(e, filters)]
-    return {**doc, "entries": entries}
+    if target_id is not None:
+        if not any(e.get("target_id") == target_id for e in doc.get("entries", [])):
+            known_target(call.ctx, target_id)  # a target with no open work is no error
+        entries = [e for e in entries if e.get("target_id") == target_id]
+    if args.get("full"):
+        if args.get("limit") is not None or args.get("cursor") is not None:
+            raise error("arguments-invalid", "full answers every entry; it is not paged", "adapter")
+        return {**doc, "entries": entries}
+    # mcpfix (lead): what waits on a render, which the plain route cannot carry (frontier/v8 is
+    # closed): per node, the merged pull request whose work the products do not show yet
+    waiting = frontier.pending_render(call.ctx)
+    if target_id is not None:
+        chunk, where = page(entries, args, default=ENTRIES_LIMIT)
+        mine = {str(e.get("node_id")) for e in entries}
+        return {
+            "rendered_from": doc.get("rendered_from"),
+            "target_id": target_id,
+            **where,
+            "entries": chunk,
+            "pending_render": {k: v for k, v in waiting.items() if k in mine},
+        }
+    chunk, where = page(frontier_targets(call.ctx, entries), args, default=FRONTIER_LIMIT[0])
+    return {
+        "rendered_from": doc.get("rendered_from"),
+        **where,
+        "targets": chunk,
+        "pending_render": waiting,
+    }
+
+
+#: mcpfix WA2: list_frontier's page size, default and most.
+FRONTIER_LIMIT = (50, 200)
+#: mcpfix lead (verifier VA, N2): one target's entries carry every field, so a smaller page
+#: (50 of erdos-1094's were 32,225 characters live, 20 are about 13,000).
+ENTRIES_LIMIT = 20
+
+
+def frontier_targets(ctx: Context, entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One row per target that has an entry: its root, track and status from the index at main,
+    how many of its entries there are (``open``) and how many are claimable; in the index's
+    order, a target the index does not list yet (a product lag) after them in the frontier's.
+    Ranked by nothing (D-25)."""
+    counts: dict[str, list[int]] = {}
+    for e in entries:
+        tally = counts.setdefault(str(e.get("target_id")), [0, 0])
+        tally[0] += 1
+        tally[1] += 1 if e.get("claimable") is True else 0
+    index = document(ctx, "targets/index.json")
+    listed = {str(r.get("target_id")): r for r in index.get("targets") or [] if isinstance(r, dict)}
+    order = [t for t in listed if t in counts] + [t for t in counts if t not in listed]
+    return [
+        {
+            "target_id": t,
+            "root": listed.get(t, {}).get("root"),
+            "track": listed.get(t, {}).get("track"),
+            "status": listed.get(t, {}).get("status"),
+            "open": counts[t][0],
+            "claimable": counts[t][1],
+        }
+        for t in order
+    ]
 
 
 def _prose(ctx: Context, directory: str) -> list[dict[str, Any]]:
@@ -701,6 +1018,61 @@ PROSE_SECTIONS: tuple[str, ...] = (
     "gloss_chains",
     "explainer_chains",
 )
+#: mcpfix WA2 (item 5): the context's own bulk a caller may leave out too — the attempt records
+#: and each dependency's (and lemma's) statement. Every section is answered when ``include`` is
+#: omitted; named ones only when it is given.
+CONTEXT_SECTIONS: tuple[str, ...] = ("attempts", "deps")
+#: mcpfix (lead; verifier VA, A8): the node's own Lean files a caller may leave out too, by
+#: section name; a witness can be tens of thousands of characters.
+FILE_SECTIONS: dict[str, str] = {"witness": "Witness.lean", "proof": "Proof.lean"}
+INCLUDE_SECTIONS: tuple[str, ...] = (*PROSE_SECTIONS, *CONTEXT_SECTIONS, *FILE_SECTIONS)
+#: The context's Lean text that ``files`` carries byte for byte: answered once when ``include``
+#: leaves any section out.
+CONTEXT_LEAN: tuple[tuple[str, str], ...] = (
+    ("statement", "Statement.lean"),
+    ("witness", "Witness.lean"),
+)
+
+
+def narrowed_context(
+    bundle: dict[str, Any], wanted: set[str], files: dict[str, str | None]
+) -> dict[str, Any]:
+    """The context with what the caller left out taken out, and ``omitted`` naming each part
+    taken (mcpfix WA2, item 5): the attempt records (the counts, histogram and refuted classes
+    stay), each dependency's and lemma's ``signature`` (the ids, statuses and hashes stay; the
+    top-level ``lemmas`` keep theirs), and the statement's and witness's text where ``files``
+    holds the same bytes. No longer a ``context/v<n>`` document: ``omitted`` says so."""
+    out = dict(bundle)
+    omitted: list[str] = []
+    attempts = out.get("attempts")
+    if "attempts" not in wanted and isinstance(attempts, dict) and "records" in attempts:
+        out["attempts"] = {k: v for k, v in attempts.items() if k != "records"}
+        omitted.append("attempts.records")
+    if "deps" not in wanted:
+        for key in ("deps", "lemmas"):
+            rows = out.get(key)
+            if isinstance(rows, list) and any(
+                isinstance(r, dict) and "signature" in r for r in rows
+            ):
+                out[key] = [
+                    {k: v for k, v in r.items() if k != "signature"} if isinstance(r, dict) else r
+                    for r in rows
+                ]
+                omitted.append(f"{key}[].signature")
+    for key, name in CONTEXT_LEAN:
+        part = out.get(key)
+        if (
+            isinstance(part, dict)
+            and part.get("text") is not None
+            and part["text"] == files.get(name)
+        ):
+            out[key] = {**part, "text": None}
+            omitted.append(f"{key}.text")
+    if omitted:
+        out["omitted"] = omitted
+    return out
+
+
 #: The sections read from the node's chains of words, and so answered with ``chains_source``.
 CHAIN_SECTIONS = frozenset({"outlines", "gloss_chains", "explainer_chains"})
 
@@ -768,7 +1140,8 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
     # T19: every prose section unless the caller names the ones it wants (the owner's ruling:
     # full by default). The input schema has already refused an unknown name.
-    wanted = set(PROSE_SECTIONS if args.get("include") is None else args["include"])
+    wanted = set(INCLUDE_SECTIONS if args.get("include") is None else args["include"])
+    narrowed = wanted != set(INCLUDE_SECTIONS)  # naming every section is the omitted answer
     try:
         facts = precheck.node_facts(call.ctx, node_id)
         bundle, source = node_context(call.ctx, str(facts["target_id"]), node_id)
@@ -789,6 +1162,12 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # snapshot is replaced by the live overlay and the two blocks can never disagree.
         bundle = {**bundle, "claims": dict(claims)}
     bundle = frontier.read_at(call.ctx, bundle)  # F05-T30: the commit its files were read at
+    lemmas = list(bundle.get("lemmas") or [])  # whole at the top level, whatever is narrowed
+    if narrowed:
+        bundle = narrowed_context(bundle, wanted, files)
+    files_omitted = [name for key, name in FILE_SECTIONS.items() if narrowed and key not in wanted]
+    for name in files_omitted:
+        files[name] = None
     out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
@@ -807,8 +1186,10 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # merged partial of this node restated as holes, usable once proved — lifted beside
         # the bundle so an agent reads what a proof may draw on without knowing the version;
         # a bundle older than context/v6 has no key and the answer says none.
-        "lemmas": list(bundle.get("lemmas") or []),
+        "lemmas": lemmas,
     }
+    if files_omitted:
+        out["files_omitted"] = files_omitted
     # A section not asked for is not read from the host either (T19).
     if "annexes" in wanted:
         out["annexes"] = _prose(call.ctx, f"{node_dir}/annex")
@@ -875,6 +1256,10 @@ async def list_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14), its
     filters as the route's (F22-T8): ``target_id``, ``node_id`` and ``kind``."""
     names = {"target_id": "target", "node_id": "node", "kind": "kind"}
+    if args.get("target_id") is not None:
+        # mcpfix WA2 (item 8, qa-ea B4): the route filters by any string, so an unknown target
+        # answered "nothing open"; the adapter names it not-found as every other read does.
+        known_target(call.ctx, check_id(args["target_id"], "target_id"))
     query = {names[k]: str(v) for k, v in args.items() if k in names and v is not None}
     path = "/submissions.json" + (f"?{urlencode(query)}" if query else "")
     return service_answer(await call.endpoint("GET", path), "/submissions.json")
@@ -926,9 +1311,32 @@ async def list_routes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 async def get_hosted_checkers(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """``GET /hosted-checkers.json``: which targets ``check_lean`` can serve, and how exactly
-    (F13-R11; D-28 notation note 2026-09-20)."""
+    (F13-R11; D-28 notation note 2026-09-20). mcpfix WA2: the per-target map is one row per
+    target (53k characters live, 2026-11-25), so by default the answer carries the pins, the
+    core environment and ``target_count``; ``target_id`` adds that target's row; ``full: true``
+    is the route's body exactly."""
     path = "/hosted-checkers.json"
-    return service_answer(await call.endpoint("GET", path), path)
+    doc = service_answer(await call.endpoint("GET", path), path)
+    if args.get("full"):
+        if args.get("target_id") is not None:
+            raise error("arguments-invalid", "full answers every target already", "adapter")
+        return doc
+    listed = doc.get("targets")
+    every: dict[str, Any] = listed if isinstance(listed, dict) else {}
+    out = {k: v for k, v in doc.items() if k != "targets"}
+    out["target_count"] = len(every)
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+        if target_id not in every:
+            known_target(call.ctx, target_id)
+            raise error(
+                "not-found",
+                f"{target_id} has no row in {path}; check_lean cannot serve it",
+                "service",
+            )
+        out["targets"] = {target_id: every[target_id]}
+    return out
 
 
 async def list_my_claims(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -964,13 +1372,41 @@ PREFIX_PARAM: dict[str, Any] = {
 }
 
 
+#: mcpfix WA2: list_error_codes' page of codes, default and most. The whole catalog's codes and
+#: meanings are 72k characters (526 codes, 2026-11-25), so even the one-line form is paged.
+CODES_LIMIT = (100, 600)
+
+
 async def list_error_codes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    """``GET /errors.json``, body for body (F13-T29): every error code with what it means and
-    what to do; ``prefix`` is passed through as the route's own query parameter."""
+    """``GET /errors.json`` (F13-T29); ``prefix`` is passed through as the route's own query
+    parameter. mcpfix WA2 (the owner's ruling, 2026-11-25): by default each code with its
+    meaning only, in pages; ``code`` answers one code's whole row, read from the route with the
+    code as its prefix (an unknown code is ``not-found``, naming the close ones); ``full: true``
+    answers the route's body exactly, the plain path (D-28)."""
     path = "/errors.json"
-    prefix = args.get("prefix")
+    code = args.get("code")
+    prefix = code if code is not None else args.get("prefix")
     query = f"?{urlencode({'prefix': prefix})}" if prefix else ""
-    return service_answer(await call.endpoint("GET", path + query), path)
+    doc = service_answer(await call.endpoint("GET", path + query), path)
+    if code is not None:
+        rows = [r for r in doc.get("codes") or [] if r.get("code") == code]
+        if not rows:
+            close = codes.close_matches(code)
+            raise error(
+                "not-found",
+                f"no error code {code}"
+                + (f"; the close ones: {', '.join(close)}" if close else "")
+                + "; list_error_codes with a prefix lists codes",
+                "adapter",
+            )
+        return {**doc, "count": len(rows), "codes": rows}
+    if args.get("full"):
+        if args.get("limit") is not None or args.get("cursor") is not None:
+            raise error("arguments-invalid", "full answers every code; it is not paged", "adapter")
+        return doc
+    rows = [{"code": r["code"], "meaning": r["meaning"]} for r in doc.get("codes") or []]
+    chunk, where = page(rows, args, default=CODES_LIMIT[0])
+    return {"prefix": doc.get("prefix"), **where, "codes": chunk}
 
 
 # --- F21-T7 (R8; D-28 notation note of 2026-10-05): the files that lack words --------------------
@@ -1112,6 +1548,18 @@ async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
             raise error("not-found", f"no target {target_id} in {index_path} at main", "graph")
     subjects: list[dict[str, Any]] = []
     unread: list[dict[str, str]] = []
+    # mcpfix WA2: two files a target, read in parallel first (443 targets read in series is
+    # the shape that outran the Lambda's window, qa-ea U1)
+    frontier.prefetch(
+        ctx,
+        [
+            f"targets/{e.get('target_id')}/{name}"
+            for e in entries
+            for name in (products.GLOSSES_FILE, "target.yaml")
+        ],
+    )
+    # one read of the store's recent merges, so only targets with one ask after their words
+    merged_targets = {str(m.target_id) for m in pending.recent_merges(ctx)}
     for entry in entries:
         try:
             rows = _target_words(ctx, entry)
@@ -1125,16 +1573,47 @@ async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
                 }
             )
             continue
-        subjects.extend(r for r in rows if kind is None or r["kind"] == kind)
-    subjects = _review_and_status(ctx, subjects)
+        # mcpfix (lead; t883 item 10): a subject whose words merged and wait for the render
+        # is not listed, so nobody writes them twice; the products decide again once rendered
+        tid = str(entry.get("target_id"))
+        waiting = frontier.pending_words(ctx, tid) if tid in merged_targets else set()
+        subjects.extend(
+            r
+            for r in rows
+            if (kind is None or r["kind"] == kind) and _subject_key(r) not in waiting
+        )
+    # mcpfix WA2: in pages; the review state and node status are read for the page's rows only
+    # after the order is fixed, so superseded rows still come last across every page.
+    subjects = _review_and_status_order(ctx, subjects)
+    chunk, where = page(subjects, args, default=WORDS_LIMIT[0])
     return {
         "read_at": ctx.head or ctx.settings.graph_branch,
         "target_id": target_id,
         "kind": kind,
-        "count": len(subjects),
-        "subjects": subjects,
+        **where,
+        "subjects": _review_and_status(ctx, chunk),
         "unread": unread,
     }
+
+
+#: mcpfix WA2: list_words_needed's page, default and most.
+WORDS_LIMIT = (50, 200)
+
+
+def _review_and_status_order(ctx: Context, subjects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The subjects in the order ``_review_and_status`` answers them — superseded nodes last,
+    the record's order otherwise — computed before the page is cut."""
+    statuses: dict[str, dict[str, str]] = {}
+    for row in subjects:
+        target = str(row["target"])
+        if target not in statuses:
+            statuses[target] = _node_statuses(ctx, target)
+
+    def superseded(row: dict[str, Any]) -> bool:
+        node = row.get("node")
+        return node is not None and statuses[str(row["target"])].get(str(node)) == "superseded"
+
+    return sorted(subjects, key=superseded)
 
 
 TOOLS: tuple[Tool, ...] = (
@@ -1146,8 +1625,25 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "list_targets",
-        "Every graph: id, root statement hash, fidelity, status and pinned Mathlib SHA.",
-        params({}),
+        "The graphs, in pages: by default each target's id, root, status, track, claimable and "
+        "node_counts. `target_id` answers one target with every field (fidelity, mathlib_sha, "
+        "stewards, review, ...); `fields` names the fields each row carries beside its id; "
+        "`next` is the `cursor` of the page after. `full: true` is targets/index.json exactly "
+        "(large). Plain path: targets/index.json.",
+        params(
+            {
+                "target_id": {**ID_PARAM, "description": "Only this target, with every field."},
+                "fields": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "uniqueItems": True,
+                    "description": "The index fields each row carries beside target_id.",
+                },
+                "limit": limit_param(*TARGETS_LIMIT, "targets"),
+                "cursor": CURSOR_PARAM,
+                "full": FULL_PARAM,
+            }
+        ),
         list_targets,
     ),
     Tool(  # F25-R15: `registrations` rides beside the graph, as graph/v7 publishes them
@@ -1158,14 +1654,29 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "list_frontier",
-        "The open nodes with D-25's observed facts and live claim status. `filters` is an "
-        "object of frontier field to value (dotted for nested, e.g. `tags.library`): equality "
-        "on a scalar field, containment on a list field; results keep the file's order and "
-        "carry no ranking. An entry's `literature` is its confirmed status (with `disputes`, "
-        "the proposal the signer rejected, or null) and `literature_proposed` the one "
-        "awaiting a steward.",
-        params({"filters": filters_param()}),
+        "The open work, in pages. By default one row per target with open nodes: target_id, "
+        "root, track, status, `open` (its entries) and `claimable` (how many may be claimed). "
+        "`target_id` answers that target's open nodes (holes included) with D-25's observed "
+        "facts and live claim status. `filters` is an object of frontier field to value "
+        "(dotted for nested, e.g. `tags.library`): equality on a scalar field, containment on a "
+        "list field, applied to the entries. `next` is the `cursor` of the page after. The "
+        "file's order, no ranking. An entry's `literature` is its confirmed status (with "
+        "`disputes`, or null) and `literature_proposed` the one awaiting a steward. "
+        "`full: true` is GET /frontier.json exactly (large).",
+        params(
+            {
+                "target_id": {
+                    **ID_PARAM,
+                    "description": "Only this target's open nodes, 20 to a page by default.",
+                },
+                "filters": filters_param(),
+                "limit": limit_param(*FRONTIER_LIMIT, "rows"),
+                "cursor": CURSOR_PARAM,
+                "full": FULL_PARAM,
+            }
+        ),
         list_frontier,
+        keywords=("open problem", "work", "find", "start", "claimable"),
     ),
     Tool(
         "get_node",
@@ -1176,23 +1687,26 @@ TOOLS: tuple[Tool, ...] = (
         "claim status, `lemmas` (results from other branches this node may use once proved), "
         "its `label` (the statement's short name, with `label_source`: gloss, hole, target or "
         "id) and `claim` (the statement in notation from its gloss, or null), "
-        "annexes, explainers and the submissions open on it. `include` names the prose sections "
-        "to answer (all of them when omitted); `include: []` answers the Lean, the context, the "
-        "claims, the lemmas, the label and the open submissions alone.",
+        "annexes, explainers and the submissions open on it. `include` names the sections to "
+        "answer (all of them when omitted): the prose ones, `attempts` (the context's attempt "
+        "records), `deps` (dependencies' statements), `witness`, `proof` (those files); "
+        "`include: []` answers Statement.lean and Context.lean, the context without those "
+        "(its `omitted` names what was left out), the claims, lemmas, label and open "
+        "submissions.",
         params(
             {
                 "node_id": ID_PARAM,
                 "include": {
                     "type": "array",
-                    "items": {"enum": list(PROSE_SECTIONS)},
+                    "items": {"enum": list(INCLUDE_SECTIONS)},
                     "uniqueItems": True,
-                    "description": "The prose sections to answer; every one when omitted, "
-                    "none with [].",
+                    "description": "The sections to answer; every one when omitted, none with [].",
                 },
             },
             ("node_id",),
         ),
         get_node,
+        keywords=("else", "working", "others", "statement"),
     ),
     Tool(
         "get_defs",
@@ -1206,6 +1720,7 @@ TOOLS: tuple[Tool, ...] = (
         "commit and precheck-attestation policy.",
         params({"target_id": ID_PARAM}, ("target_id",)),
         get_gate_spec,
+        keywords=("pinned", "mathlib", "version", "toolchain"),
     ),
     Tool(
         "get_submission",
@@ -1225,6 +1740,7 @@ TOOLS: tuple[Tool, ...] = (
         ),
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
+        keywords=("status", "pull request", "pr", "merged", "queue position"),
     ),
     Tool(
         "list_submissions",
@@ -1296,8 +1812,15 @@ TOOLS: tuple[Tool, ...] = (
         "get_hosted_checkers",
         "Which targets check_lean can serve: each pinned Mathlib commit mapped to the hosted "
         "checker's environment, whether that match is exact, and the environment for a "
-        "Mathlib-free target. Plain path: GET /hosted-checkers.json.",
-        params({}),
+        "Mathlib-free target, with `target_count`; `target_id` adds that target's row (its "
+        "mathlib_sha and environment); `full: true` is GET /hosted-checkers.json exactly, "
+        "every target's row. Plain path: GET /hosted-checkers.json.",
+        params(
+            {
+                "target_id": {**ID_PARAM, "description": "Also this target's row."},
+                "full": FULL_PARAM,
+            }
+        ),
         get_hosted_checkers,
     ),
     Tool(
@@ -1308,6 +1831,7 @@ TOOLS: tuple[Tool, ...] = (
         "Plain path: GET /claims/mine.",
         params({}),
         list_my_claims,
+        keywords=("show", "claims", "held"),
         access="bearer",
     ),
     Tool(
@@ -1319,6 +1843,7 @@ TOOLS: tuple[Tool, ...] = (
         "Plain path: GET /submissions/mine.",
         params({}),
         get_my_submissions,
+        keywords=("status", "pull request", "pr", "mine"),
         access="bearer",
     ),
     Tool(
@@ -1337,8 +1862,23 @@ TOOLS: tuple[Tool, ...] = (
         "Every error code the gate and the service emit: where it is met (gate, api or both), "
         "the D-4 step that emits it, what it means and what to do about it. `prefix` keeps the "
         "codes that start with it (`witness-`, `relation-`). Look a refusal's `error` or a "
-        "verdict's diagnostic `code` up here. Plain path: GET /errors.json.",
-        params({"prefix": PREFIX_PARAM}),
+        "verdict's diagnostic `code` up here: `code` answers that code's whole row (where, "
+        "step, meaning, remedy). Without it, each code and its meaning in pages (`next` is the "
+        "`cursor` of the page after); `full: true` is GET /errors.json exactly. Plain path: "
+        "GET /errors.json.",
+        params(
+            {
+                "code": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_-]{1,64}$",
+                    "description": "One code, exactly: its whole row.",
+                },
+                "prefix": PREFIX_PARAM,
+                "limit": limit_param(*CODES_LIMIT, "codes"),
+                "cursor": CURSOR_PARAM,
+                "full": FULL_PARAM,
+            }
+        ),
         list_error_codes,
     ),
     # F21-T7: D-28's read table, notation note of 2026-10-05.
@@ -1351,7 +1891,8 @@ TOOLS: tuple[Tool, ...] = (
         "author}, or null) and `node_status` (superseded nodes come last: skip them). "
         "`target_id` keeps one target; `kind` keeps one kind. Read from each "
         "target's glosses.json and target.yaml at main's head; in the record's order, ranked by "
-        "nothing. A target whose files could not be read is named under `unread`. Plain path: "
+        "nothing. A target whose files could not be read is named under `unread`. In pages "
+        "(`count` is every row, `next` the `cursor` of the page after). Plain path: "
         "targets/<id>/glosses.json and targets/<id>/target.yaml.",
         params(
             {
@@ -1361,9 +1902,12 @@ TOOLS: tuple[Tool, ...] = (
                     "description": "Only this kind: statement, witness, relation, definition, "
                     "proof, alternate or partial.",
                 },
+                "limit": limit_param(*WORDS_LIMIT, "rows"),
+                "cursor": CURSOR_PARAM,
             }
         ),
         list_words_needed,
+        keywords=("gloss", "words", "need", "missing", "lean files"),
     ),
     # F25-T4: D-28's read table, v3.37.
     Tool(
@@ -1398,9 +1942,16 @@ TOOLS: tuple[Tool, ...] = (
         "signer's send-back, with the record), who is asked (`asked_to`: intent) and its "
         "target_id; in the records' order, ranked by nothing. `target_id` keeps one target "
         "(not-found when the index has no such target); without it, every target's. Read from "
-        "targets/<id>/review/questions/ and answers/ at main's head. Plain path: "
+        "targets/<id>/review/questions/ and answers/ at main's head; in pages (`count` is every "
+        "question, `next` the `cursor` of the page after). Plain path: "
         "targets/<id>/review/questions/.",
-        params({"target_id": {**ID_PARAM, "description": "Only this target's questions."}}),
+        params(
+            {
+                "target_id": {**ID_PARAM, "description": "Only this target's questions."},
+                "limit": limit_param(*QUESTIONS_LIMIT, "questions"),
+                "cursor": CURSOR_PARAM,
+            }
+        ),
         list_review_questions,
     ),
     Tool(
@@ -1425,16 +1976,16 @@ TOOLS: tuple[Tool, ...] = (
         "list_sufficient_sets",
         "A target as an AND-OR graph (D-25 v3.40). `routes`: each merged decomposition "
         "(id `<node>@<k>`), all of whose holes are needed, with its `approach`, each hole's "
-        "`label`, status, attempts and refuted route classes, and a `summary` of them "
-        "(counts and `oldest_open_since`), so a stall shows. "
-        "`sets`: statements whose proofs, with the closing proofs of their `assemblies`, would "
-        "settle the root, each with its counts and `settles`: `proves` or `refutes` (a set "
-        "closing a refutes variant, D-30 v3.46); proving sets first. `selector`: the tree of "
-        "route choices over the sets (a leaf: one set); both sides fork first on `side`. "
-        "`cut: any` adds the coarser cuts up to a cap (`truncated`). `at_proved: "
-        "follow` also lists what each proved statement's proof rests on (`proof_routes`); the "
-        "sets and ids are the same. Record order, never ranked; what to claim or propose is "
-        "the operator's choice. Plain path: targets/<id>/graph.json + GET /frontier.json.",
+        "`label`, status, attempts and refuted route classes, and a `summary` (counts, "
+        "`oldest_open_since`). `sets`: statements whose proofs, with the closing proofs of "
+        "their `assemblies`, would settle the root, each with its counts and `settles` "
+        "(`proves`, or `refutes` for a refutes variant, D-30 v3.46); proving sets first, in "
+        "pages (`count`, `next`; `truncated` when any is left out); `routes` holds those the "
+        "page's sets use or no set uses; `set_id` answers one set. `include_selector`: the "
+        "tree of route choices over the sets, forking first on `side`. `cut: any` adds the "
+        "coarser cuts up to a cap (`capped`). `at_proved: follow` also lists what each proved "
+        "statement's proof rests on (`proof_routes`). Record order, never ranked. Plain path: "
+        "targets/<id>/graph.json + GET /frontier.json.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -1450,9 +2001,27 @@ TOOLS: tuple[Tool, ...] = (
                     "description": "stop (default): a proved statement ends the set; follow: "
                     "what its proof rests on is listed beneath it too.",
                 },
+                "set_id": {
+                    "type": "string",
+                    "pattern": "^s-[0-9a-f]+$",
+                    "description": "Only this set, by its id.",
+                },
+                "limit": limit_param(*SETS_LIMIT, "sets"),
+                "cursor": CURSOR_PARAM,
+                "include_selector": {
+                    "type": "boolean",
+                    "description": "Also answer the selector tree over every set.",
+                },
+                "detail": {
+                    "enum": list(DETAIL),
+                    "description": "compact (default): a set without `statements` (its proved "
+                    "and open), a route its id, node, live, resolved, holes' node and status and "
+                    "counts; full: every fact.",
+                },
             },
             ("target_id",),
         ),
         list_sufficient_sets,
+        keywords=("prove", "root", "nodes", "settle"),
     ),
 )

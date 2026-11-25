@@ -198,6 +198,9 @@ class Context:
     # F07-T68: whether a merged annex is missing from the products, by (merge commit, rendered
     # commit, annex directory): both commits are immutable, so the answer is kept.
     annex_unrendered: dict[tuple[str, str, str], bool] = field(default_factory=dict)
+    # mcpfix (testers 2026-11-25): whether a merge commit is in the commit a target's products
+    # were rendered from, by ``(merge, rendered)``: commits never change, so asked once per pair.
+    render_ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
     # F07-T68: the MCP adapter's directory listings, by path, at the head they were read for.
     listings: dict[str, CachedDir] = field(default_factory=dict)
     # F14-T33: every listing above answered from one recursive tree read per head.

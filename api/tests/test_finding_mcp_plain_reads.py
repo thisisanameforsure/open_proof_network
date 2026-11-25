@@ -19,9 +19,11 @@ from opn_api.mcp import results
     [("list_routes", "/"), ("get_hosted_checkers", "/hosted-checkers.json")],
 )
 def test_the_tool_is_its_plain_route_body_for_body(harness: Harness, tool: str, path: str) -> None:
+    """mcpfix WA2 (F09, the compact reads of 2026-11-25): get_hosted_checkers' default leaves the
+    per-target map out, so body for body is its ``full: true`` form."""
     client = McpClient(harness)
     assert tool in {t.name for t in client.list_tools()}
-    doc = client.ok(tool)
+    doc = client.ok(tool, {"full": True} if tool == "get_hosted_checkers" else {})
     over_http = harness.client.get(path)
     assert over_http.status_code == 200, over_http.text
     assert doc == over_http.json()

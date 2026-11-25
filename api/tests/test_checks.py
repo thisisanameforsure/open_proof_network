@@ -106,6 +106,7 @@ def test_each_gate_gap_is_warned() -> None:
     r = post(h, {"target_id": TARGET, "node_id": NODE, "content": content})
     assert r.status_code == 200, r.text
     lint = r.json()["lint"]
+    # mcpfix (lead, 2026-11-25): a bare sorry has no hole, so it is not read as a partial
     assert [w["code"] for w in lint] == ["imports-differ", "helper-declarations", "sorry-present"]
     assert (lint[0]["expected"], lint[0]["got"]) == ([], ["Mathlib"])
     assert lint[1]["declarations"] == ["lemma helper"]
@@ -308,7 +309,8 @@ def test_log_readable_only_by_owner(caplog: pytest.LogCaptureFixture) -> None:
         False,
     )
     assert (record["error_count"], record["axle_request_id"]) == (2, "req-42")
-    assert record["lint"] == ["sorry-present"] and record["environment"] == "lean-4.33.1"
+    assert record["lint"] == ["sorry-present"]  # a bare sorry is not a partial (mcpfix lead)
+    assert record["environment"] == "lean-4.33.1"
 
     bob = h.token_for("code_bob", "bob")
     refused(h.client.get(f"/checks/{log_id}", headers=h.auth(bob)), 404, "check-unknown")

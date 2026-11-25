@@ -52,6 +52,8 @@ EMITTERS: dict[str, dict[str, tuple[int | None, tuple[str, ...]]]] = {
         "refuse_axioms": (None, ("sorry_code", "axiom_code")),
     },
 }
+#: mcpfix WB1: the files whose ``{"code": "<literal>"}`` dicts are lint findings a caller meets.
+LINT_SOURCES = frozenset({"api/opn_api/checks.py"})
 #: Emitters recognised only as a bare name: ``log.error(...)`` is not one.
 NAME_ONLY = frozenset({"error"})
 #: The helpers whose code *parameter* is forwarded to an emitter; their call sites are walked.
@@ -159,6 +161,26 @@ def _lean_text(suffix: str) -> Callable[[], set[str]]:
     return resolve
 
 
+def _field_codes() -> set[str]:
+    """``field_code(tool, errors)`` in the MCP server (mcpfix WA1): the codes ``FIELD_CODES``
+    names, the service's own codes for an argument the adapter's schema refuses first."""
+    for node in ast.walk(_module("api/opn_api/mcp/server.py")):
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "FIELD_CODES"
+            and node.value is not None
+        ):
+            return {
+                str(e.value)
+                for t in ast.walk(node.value)
+                if isinstance(t, ast.Tuple)
+                for e in t.elts
+                if isinstance(e, ast.Constant)
+            }
+    raise AssertionError("no FIELD_CODES in the MCP server")
+
+
 #: (file, expression) -> the codes the expression can take.
 FAMILIES: dict[tuple[str, str], Callable[[], set[str]]] = {
     ("gate/opn_gate/modes.py", "problem.split(':', 1)[0]"): _problem_prefixes,
@@ -172,6 +194,7 @@ FAMILIES: dict[tuple[str, str], Callable[[], set[str]]] = {
     ("api/opn_api/appends.py", "f'{field}-invalid'"): _as_mapping_fields,
     ("api/opn_api/proposals.py", "f'{name}-missing'"): _lean_text("missing"),
     ("api/opn_api/proposals.py", "f'{name}-invalid'"): _lean_text("invalid"),
+    ("api/opn_api/mcp/server.py", "field_code(tool, errors)"): _field_codes,
 }
 
 
@@ -250,6 +273,19 @@ class _Collector(ast.NodeVisitor):
                     and key.value == "error"
                     and isinstance(value, ast.Constant)
                     and isinstance(value.value, str)
+                ):
+                    self._resolve(value)
+                # mcpfix WB1 (testers 2026-11-25, L12): the fast check's lint findings are
+                # dicts with a literal "code", met in POST /check's `lint`; each is a code the
+                # service emits, so a new one cannot ship without its row.
+                if (
+                    self.rel in LINT_SOURCES
+                    and isinstance(key, ast.Constant)
+                    and key.value == "code"
+                    and (
+                        isinstance(value, ast.IfExp)
+                        or (isinstance(value, ast.Constant) and isinstance(value.value, str))
+                    )
                 ):
                     self._resolve(value)
         self.generic_visit(node)
@@ -382,6 +418,7 @@ def test_the_walk_finds_both_packages(walked: Walk) -> None:
         ("unauthenticated", "api"),
         ("not-found", "api"),
         ("arguments-invalid", "api"),
+        ("header-diverges", "api"),  # mcpfix WB1: a lint finding of POST /check
     ):
         assert source in walked.sites.get(code, {}), code
     assert len(walked.sites) > 250

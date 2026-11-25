@@ -364,7 +364,9 @@ def test_the_derived_context_inlines_a_proposals_summary_and_references(
     files[f"targets/{MCP_TARGET}/graph.json"] = json.dumps(graph).encode()
     harness.context.files.clear()
     harness.context.listings.clear()
-    served = McpClient(harness).ok("get_node", {"node_id": MCP_NODE, "include": []})
+    # mcpfix WA2 (F09, the compact reads of 2026-11-25): include [] now narrows the context too,
+    # so the whole bundle this compares is the default answer's.
+    served = McpClient(harness).ok("get_node", {"node_id": MCP_NODE})
     assert served["context_source"] == "derived"
     assert served["context"]["schema"] == "context/v11"
     proposed = served["context"]["literature_proposed"]

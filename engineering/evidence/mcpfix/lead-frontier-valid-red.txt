@@ -1,0 +1,49 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_the_served_frontier_validates_while_a_merge_waits ____________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10e586cf0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_the_served_frontier_validates_while_a_merge_waits(harness: Harness) -> None:
+        merged_through_the_route(harness, rendered=False)
+        doc = frontier_doc(harness)
+        assert entry(doc, TUTORIAL_NODE)["claimable"] is False
+>       assert schemas.violations(doc) == []
+E       assert [Violation(pa...unexpected)")] == []
+E         
+E         Left contains one more item: Violation(path='$', message="Additional properties are not allowed ('pending_render' was unexpected)")
+E         Use -v to get more diff
+
+api/tests/test_mcpfix_lead_frontier_valid.py:24: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_____________________ test_the_mcp_answer_names_what_waits _____________________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10e60dbd0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_the_mcp_answer_names_what_waits(harness: Harness) -> None:
+        merged_at = merged_through_the_route(harness, rendered=False)
+        out = McpClient(harness).ok("list_frontier", {"target_id": "propositional"})
+>       assert out["pending_render"] == {
+               ^^^^^^^^^^^^^^^^^^^^^
+            TUTORIAL_NODE: {"pr": 7, "kind": "proof", "merged_at": merged_at}
+        }
+E       KeyError: 'pending_render'
+
+api/tests/test_mcpfix_lead_frontier_valid.py:31: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-lead/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-lead/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_lead_frontier_valid.py::test_the_served_frontier_validates_while_a_merge_waits
+FAILED api/tests/test_mcpfix_lead_frontier_valid.py::test_the_mcp_answer_names_what_waits
+2 failed, 2 warnings in 0.48s

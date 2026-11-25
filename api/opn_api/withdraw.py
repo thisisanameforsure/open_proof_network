@@ -21,7 +21,6 @@ logged and does not stop the withdrawal.
 from __future__ import annotations
 
 import logging
-import time
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
@@ -30,7 +29,7 @@ from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
 from opn_api import pending, proposals, submissions
-from opn_api.app import ApiError, CachedPull, host_budget_refusal
+from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import GitHostError, PullRequestState, RateLimitError
 
 if TYPE_CHECKING:
@@ -95,7 +94,7 @@ def comment(ctx: Context, found: Submission) -> None:
 
 
 def close_record(ctx: Context, found: Submission, state: PullRequestState) -> Submission:
-    ctx.pulls[state.number] = CachedPull(state.number, state, time.monotonic())
+    pending.remember_pull(ctx, state.number, state)  # mcpfix: every instance sees it closed
     closed = ctx.store.close_submission(
         found.id, closed=clockmod.render(ctx.clock.now()), final_state=state.as_dict()
     )

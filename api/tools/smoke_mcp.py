@@ -6,7 +6,9 @@ Read-only (what CI runs after a deploy): the SDK's Streamable HTTP client initia
 session at ``<api-url>/mcp``, the listed tools are search, read and write (F09-T78, D-28 v3.50),
 ``search`` indexes exactly D-28's rows as operations and ``/mcp?surface=v1`` still lists them
 as tools; every operation below travels through ``read`` or ``write``; ``server_info`` equals
-``GET /info.json``, ``list_frontier`` equals ``GET /frontier.json`` and validates, ``get_node``
+``GET /info.json``, ``list_frontier`` with ``full: true`` equals ``GET /frontier.json`` and
+validates, and its compact default (mcpfix WA2) is one row per target with open work, each
+row's counts agreeing with the full document, ``get_node``
 serves the tutorial node's bundle with its prose demarcated, every result validates against
 its ``mcp/<tool>/v1`` schema, and a write that needs a token, called without one, is the
 unauthorized result: the route's ``{error: unauthenticated, message}``, the message naming
@@ -52,6 +54,8 @@ from opn_gate import schemas
 TIMEOUT_S = 60
 SURFACE = ("search", "read", "write")
 PENDING = 2
+#: mcpfix WA2: what a compact default answer may weigh, in characters of compact JSON.
+COMPACT_BUDGET = 25_000
 
 
 class Client:
@@ -132,17 +136,18 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     if info.pop("__is_error__") or info != plain:
         problems.append("server_info differs from GET /info.json")
 
-    frontier = client.call("list_frontier")
+    frontier = client.call("list_frontier", {"full": True})
     status, plain = call(f"{base}/frontier.json")
     frontier.pop("__is_error__")
     entries = frontier.get("entries", [])
-    print(f"list_frontier -> {len(entries)} entries; GET /frontier.json {status}")
+    print(f"list_frontier(full) -> {len(entries)} entries; GET /frontier.json {status}")
     if frontier != plain:
-        problems.append("list_frontier differs from GET /frontier.json")
+        problems.append("list_frontier with full: true differs from GET /frontier.json")
     if schemas.violations(frontier):  # against the version it declares (D-34)
         problems.append(f"list_frontier does not validate against {frontier.get('schema')}")
+    compact_frontier(client, entries, problems)
 
-    targets = client.call("list_targets")
+    targets = client.call("list_targets", {"full": True})
     targets.pop("__is_error__")
     ids = [t["target_id"] for t in targets.get("targets", [])]
     print(f"list_targets -> {ids}")
@@ -197,6 +202,38 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     return {"entries": entries, "tutorial": tutorial}
 
 
+def compact_frontier(client: Client, entries: list[dict[str, Any]], problems: list[str]) -> None:
+    """mcpfix WA2: the default ``list_frontier`` is one row per target with open work, in pages,
+    small, valid against ``mcp/list_frontier/v2``, and each row's counts are the full
+    document's."""
+    summary = client.call("list_frontier")
+    if summary.pop("__is_error__"):
+        problems.append(f"list_frontier's default is an error: {summary}")
+        return
+    rows = summary.get("targets", [])
+    size = len(json.dumps(summary, separators=(",", ":"), ensure_ascii=False))
+    print(
+        f"list_frontier -> {len(rows)} of {summary.get('count')} targets with open work, "
+        f"{size} characters, next {summary.get('next')!r}"
+    )
+    if results.violations("list_frontier", summary):
+        problems.append(f"list_frontier's default does not validate: {summary}")
+    if size >= COMPACT_BUDGET:
+        problems.append(f"list_frontier's default is {size} characters, not compact")
+    by_target: dict[str, list[int]] = {}
+    for e in entries:
+        tally = by_target.setdefault(str(e.get("target_id")), [0, 0])
+        tally[0] += 1
+        tally[1] += 1 if e.get("claimable") is True else 0
+    if summary.get("count") != len(by_target):
+        problems.append(
+            f"list_frontier counts {summary.get('count')} targets, not {len(by_target)}"
+        )
+    for row in rows:
+        if by_target.get(row["target_id"]) != [row["open"], row["claimable"]]:
+            problems.append(f"list_frontier's row for {row['target_id']} disagrees with the file")
+
+
 def is_unauthorized(result: dict[str, Any], tutorial: str) -> bool:
     """Whether a tool call made with no token answered the unauthorized result: the route's
     status and error, and a message that names the way to a token (``get_token``) and the
@@ -230,7 +267,7 @@ def round_trip(
         return 1
     claim_id = receipt["body"]["id"]
     print(f"claim_node({node_id}) -> 201 claim {claim_id} as {receipt['body']['pseudonym']}")
-    seen = client.call("list_frontier", {"filters": {"node_id": node_id}})
+    seen = client.call("list_frontier", {"filters": {"node_id": node_id}, "full": True})
     seen.pop("__is_error__")
     active = seen["entries"][0]["claims"]["active"] if seen["entries"] else []
     if not any(a["pseudonym"] == receipt["body"]["pseudonym"] for a in active):

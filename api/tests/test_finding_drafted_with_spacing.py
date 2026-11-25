@@ -44,10 +44,13 @@ def test_whitespace_is_normalised_and_nothing_else(h: Harness) -> None:
     assert landed_drafted_with(h) == "Claude Opus 5.5 (claude-opus-5-5)"
 
 
-def test_only_whitespace_is_no_model(h: Harness) -> None:
+def test_only_whitespace_is_tooling_invalid(h: Harness) -> None:
+    """mcpfix WB2 item 5 (testers 2026-11-25, qa-eb B1): whitespace alone had read as no model;
+    a field sent with nothing in it is a mistake to name (test_mcpfix_wb2_gloss.py)."""
     r = post(h, h.token_for("code_bob", "bob"), statement_gloss() | {"drafted_with": " \n "})
-    assert r.status_code == 201, r.text
-    assert landed_drafted_with(h) is None
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "tooling-invalid"
+    assert h.githost.pulls == []
 
 
 def test_the_tool_prescribes_one_format(h: Harness) -> None:

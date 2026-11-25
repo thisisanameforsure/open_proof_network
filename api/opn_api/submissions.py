@@ -123,8 +123,16 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
         if isinstance(exc, RateLimitError):  # F07-T47: come back at the reset, not a bare 502
             raise host_budget_refusal(ctx, exc) from exc
         raise ApiError(
-            502, "pull-request-failed", f"the pull request could not be opened: {exc}"
+            502,
+            "pull-request-failed",
+            f"the pull request could not be opened: {exc}. Nothing was opened, so a retry is "
+            f"safe; GitHub's own errors usually clear within a minute",
+            details={"retry_after_s": HOST_RETRY_S},
         ) from exc
+
+
+#: mcpfix (verifier VC, item 8): when to retry a write the host refused with a 5xx.
+HOST_RETRY_S = 60
 
 
 # --- the open pull-request caps (F07-T67) -------------------------------------------------------

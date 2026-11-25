@@ -1,0 +1,154 @@
+........................................................................ [  3%]
+........................................................................ [  6%]
+........................................................................ [  9%]
+.................................F.....F................................ [ 12%]
+........................................................................ [ 15%]
+........................................................................ [ 19%]
+........................................................................ [ 22%]
+........................................................................ [ 25%]
+........................................................................ [ 28%]
+........................................................................ [ 31%]
+........................................................................ [ 35%]
+........................................................................ [ 38%]
+........................................................................ [ 41%]
+........................................................................ [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 51%]
+........................................................................ [ 54%]
+........................................................................ [ 57%]
+.................F...........................................sss..s.s... [ 60%]
+........................................................................ [ 63%]
+........................................................................ [ 66%]
+........................................................................ [ 70%]
+............................ssssssssssss.....ss........................s [ 73%]
+..........ss....................................ss.s.................... [ 76%]
+.............................................s.......................... [ 79%]
+..........s............................................................. [ 82%]
+......................................................s................s [ 86%]
+sssss................................................................... [ 89%]
+........................................................................ [ 92%]
+........................................................................ [ 95%]
+.......sssss.....................................s...................... [ 98%]
+.........................                                                [100%]
+=================================== FAILURES ===================================
+_________________________ test_each_gate_gap_is_warned _________________________
+
+    def test_each_gate_gap_is_warned() -> None:
+        """AC4: a changed header, a helper above the theorem and a leftover sorry are each named,
+        and the text is still forwarded untouched."""
+        h = harness_with()
+        seed(h)
+        content = (
+            "import Mathlib\n\n"
+            "lemma helper : True := trivial\n\n"
+            "theorem OpnProp.and_reassoc : True := by\n  sorry\n"
+        )
+        r = post(h, {"target_id": TARGET, "node_id": NODE, "content": content})
+        assert r.status_code == 200, r.text
+        lint = r.json()["lint"]
+>       assert [w["code"] for w in lint] == ["imports-differ", "helper-declarations", "sorry-present"]
+E       AssertionError: assert ['imports-dif...l-unlabelled'] == ['imports-dif...orry-present']
+E         
+E         Left contains one more item: 'partial-unlabelled'
+E         Use -v to get more diff
+
+api/tests/test_checks.py:109: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_______________________ test_log_readable_only_by_owner ________________________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x10f009010>
+
+    def test_log_readable_only_by_owner(caplog: pytest.LogCaptureFixture) -> None:
+        """AC8, R9, R10: the record carries the content's hash and size, the answer's facts and the
+        lint codes, never the text; its identity reads it back, another identity and an anonymous
+        call's record answer not-found, and the log line names the call without the text."""
+        reply = {
+            **AXLE_OKAY,
+            "okay": False,
+            "lean_messages": {"errors": ["e1", "e2"], "warnings": [], "infos": []},
+            "info": {"request_id": "req-42"},
+        }
+        h = harness_with(axle=FakeAxle(replies=[reply]))
+        seed(h)
+        marked_text = "theorem OpnProp.and_reassoc : True := by\n  sorry -- UNIQUE-MARKER\n"
+        alice = h.token_for("code_alice", "alice")
+        with caplog.at_level(logging.INFO, logger="opn_api.checks"):
+            r = post(h, {"target_id": TARGET, "node_id": NODE, "content": marked_text}, h.auth(alice))
+        assert r.status_code == 200, r.text
+        log_id = r.json()["log_id"]
+    
+        got = h.client.get(f"/checks/{log_id}", headers=h.auth(alice))
+        assert got.status_code == 200, got.text
+        record = got.json()
+        assert "content" not in record and "UNIQUE-MARKER" not in got.text
+        assert record["content_sha256"] == hashlib.sha256(marked_text.encode()).hexdigest()
+        assert record["content_bytes"] == len(marked_text.encode())
+        assert (record["caller_kind"], record["outcome"], record["okay"]) == (
+            "identity",
+            "answered",
+            False,
+        )
+        assert (record["error_count"], record["axle_request_id"]) == (2, "req-42")
+>       assert record["lint"] == ["sorry-present"] and record["environment"] == "lean-4.33.1"
+E       AssertionError: assert (['sorry-prese...l-unlabelled'] == ['sorry-present']
+E         
+E         Left contains one more item: 'partial-unlabelled'
+E         Use -v to get more diff)
+
+api/tests/test_checks.py:311: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+INFO     opn_api.checks:checks.py:2057 check id=01M230M2G0067Y1B7QTR9105HD caller=identity:01M230M2G05Z target=propositional node=and-reassoc mode=check env=lean-4.33.1 outcome=answered okay=False errors=2 bytes=66 ms=0
+_________________________ test_graph_copy_is_identical _________________________
+
+    def test_graph_copy_is_identical() -> None:
+        """D-35: the graph carries a copy of the tested document, byte for byte (skipped when the
+        sibling checkout is not present, as in CI)."""
+        if not GRAPH_COPY.is_file():
+            pytest.skip(f"{GRAPH_COPY} is not checked out beside this repo")
+>       assert GRAPH_COPY.read_bytes() == DOC.read_bytes(), "the graph's AGENTS.md drifted; recopy it"
+E       AssertionError: the graph's AGENTS.md drifted; recopy it
+E       assert b'# AGENTS.md...ors:end -->\n' == b'# AGENTS.md...ors:end -->\n'
+E         
+E         At index 1424 diff: b' ' != b'\n'
+E         Use -v to get more diff
+
+gate/tests/test_walkthrough.py:236: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] site/tests/test_web_flows.py:44: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [11] site/tests/test_one_view.py:490: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_invite_errors.py:155: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [6] site/tests/test_finding_invite_errors.py:188: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [5] site/tests/test_finding_invite_errors.py:206: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_invite_path.py:179: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_invite_path.py:210: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_lemma_edge.py:262: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_literature_dispute.py:349: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_literature_dispute.py:422: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:117: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:131: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:183: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_panel_math_wrap.py:244: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_problems_by_topic.py:172: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_me_reviews.py:127: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:226: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:267: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:293: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:310: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_review_legible.py:325: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_shelving_controls.py:271: could not import 'playwright.sync_api': No module named 'playwright'
+FAILED api/tests/test_checks.py::test_each_gate_gap_is_warned - AssertionErro...
+FAILED api/tests/test_checks.py::test_log_readable_only_by_owner - AssertionE...
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+3 failed, 2214 passed, 41 skipped, 26 deselected, 2 warnings in 307.48s (0:05:07)

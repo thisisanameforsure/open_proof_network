@@ -87,9 +87,13 @@ def test_an_older_product_answers_none_for_both() -> None:
 def test_list_sufficient_sets_carries_the_selector_whose_leaves_are_the_sets(
     harness: Harness,
 ) -> None:
+    """mcpfix WA2 (F09, the compact reads of 2026-11-25): the selector is answered on
+    ``include_selector``."""
     graph = labelled_graph()
     seed_routes(harness, graph)
-    got = McpClient(harness).ok("list_sufficient_sets", {"target_id": ROUTES_TARGET})
+    got = McpClient(harness).ok(
+        "list_sufficient_sets", {"target_id": ROUTES_TARGET, "include_selector": True}
+    )
     assert results.violations("list_sufficient_sets", got) == [], results.violations(
         "list_sufficient_sets", got
     )
@@ -109,7 +113,9 @@ def test_list_sufficient_sets_carries_each_routes_approach_and_each_holes_label(
     harness: Harness,
 ) -> None:
     seed_routes(harness, labelled_graph())
-    got = McpClient(harness).ok("list_sufficient_sets", {"target_id": ROUTES_TARGET})
+    got = McpClient(harness).ok(
+        "list_sufficient_sets", {"target_id": ROUTES_TARGET, "detail": "full"}
+    )  # mcpfix lead: approach and label are full-detail facts
     by_id = {r["id"]: r for r in got["routes"]}
     assert by_id["t@1"]["approach"] == APPROACHES["t@1"]
     assert by_id["t@2"]["approach"] == APPROACHES["t@2"]
@@ -122,13 +128,14 @@ def test_list_sufficient_sets_carries_each_routes_approach_and_each_holes_label(
 def test_the_answer_is_versioned(harness: Harness) -> None:
     """The result schema moved to v2 for the three fields, to v3 for ``at_proved`` and
     ``proof_routes`` (F27-T9) and to v4 for a set's ``settles`` and a selector node's ``side``
-    (F09-T76, D-25 v3.46); v3, v2 and v1 are still served by name."""
-    assert results.schema_id("list_sufficient_sets") == "mcp/list_sufficient_sets/v4"
+    (F09-T76, D-25 v3.46) and, mcpfix WA2 (F09, the compact reads of 2026-11-25), to v5 for the sets
+    in pages and the selector on request; v4, v3, v2 and v1 are still served by name."""
+    assert results.schema_id("list_sufficient_sets") == "mcp/list_sufficient_sets/v5"
     client = McpClient(harness)
-    assert client.ok("get_schema", {"name": "mcp/list_sufficient_sets/v4"}) == results.load(
+    assert client.ok("get_schema", {"name": "mcp/list_sufficient_sets/v5"}) == results.load(
         "list_sufficient_sets"
     )
-    for older in ("v3", "v2", "v1"):
+    for older in ("v4", "v3", "v2", "v1"):
         assert client.ok("get_schema", {"name": f"mcp/list_sufficient_sets/{older}"}) == (
             results.load("list_sufficient_sets", older)
         )

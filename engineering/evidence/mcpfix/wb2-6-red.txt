@@ -1,0 +1,251 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+.FFFFFFF.FFFF.FFF                                                        [100%]
+=================================== FAILURES ===================================
+_ test_github_login_required_names_the_act_refused[/literature/confirm-confirm or dispute a literature status] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10be347d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/literature/confirm', act = 'confirm or dispute a literature status'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'confirm or dispute a literature status' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/motions-open a panel motion] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10be36d50>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/motions', act = 'open a panel motion'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'open a panel motion' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/registrations-register a target] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10be69cd0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/registrations', act = 'register a target'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'register a target' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/reviews-open a formalization review] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10beb16e0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/reviews', act = 'open a formalization review'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'open a formalization review' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/reviews/erdos-849/answers-answer a review question] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10be73e30>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/reviews/erdos-849/answers', act = 'answer a review question'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'answer a review question' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/reviews/erdos-849/signatures-sign a formalization review] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bead480>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/reviews/erdos-849/signatures', act = 'sign a formalization review'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'sign a formalization review' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/shelvings-shelve a statement or retire a route] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10beaf350>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/shelvings', act = 'shelve a statement or retire a route'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'shelve a statement or retire a route' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/votes-vote on a panel motion] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bf1b650>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/votes', act = 'vote on a panel motion'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'vote on a panel motion' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+_ test_github_login_required_names_the_act_refused[/writeups-record a panel write-up] _
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bf33f20>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+route = '/writeups', act = 'record a panel write-up'
+
+    @pytest.mark.parametrize(("route", "act"), sorted(ACTS.items()))
+    def test_github_login_required_names_the_act_refused(h: Harness, route: str, act: str) -> None:
+        r = h.client.post(route, json={}, headers=web_headers(tutorial_session(h)))
+        assert r.status_code == 403, r.text
+        body = r.json()
+        assert body["error"] == "github-login-required"
+>       assert act in body["message"], body["message"]
+E       AssertionError: only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub
+E       assert 'record a panel write-up' in 'only an identity proved with GitHub can steward a problem or approve words; sign in with GitHub'
+
+api/tests/test_mcpfix_wb2_messages.py:50: AssertionError
+____________ test_a_tutorial_proof_missing_a_field_names_it[job_id] ____________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bf805f0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+missing = 'job_id'
+
+    @pytest.mark.parametrize("missing", ["job_id", "nonce"])
+    def test_a_tutorial_proof_missing_a_field_names_it(h: Harness, missing: str) -> None:
+        proof: dict[str, object] = {"kind": "tutorial", "job_id": "01M00000000000000000000000"}
+        proof["nonce"] = "x"
+        del proof[missing]
+        body = _tokens(h, proof)
+        assert body["error"] == "proof-invalid"
+>       assert missing in str(body["message"]), body["message"]
+E       AssertionError: unknown, unfinished, used or unusable tutorial proof
+E       assert 'job_id' in 'unknown, unfinished, used or unusable tutorial proof'
+E        +  where 'unknown, unfinished, used or unusable tutorial proof' = str('unknown, unfinished, used or unusable tutorial proof')
+
+api/tests/test_mcpfix_wb2_messages.py:78: AssertionError
+____________ test_a_tutorial_proof_missing_a_field_names_it[nonce] _____________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bfae890>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+missing = 'nonce'
+
+    @pytest.mark.parametrize("missing", ["job_id", "nonce"])
+    def test_a_tutorial_proof_missing_a_field_names_it(h: Harness, missing: str) -> None:
+        proof: dict[str, object] = {"kind": "tutorial", "job_id": "01M00000000000000000000000"}
+        proof["nonce"] = "x"
+        del proof[missing]
+        body = _tokens(h, proof)
+        assert body["error"] == "proof-invalid"
+>       assert missing in str(body["message"]), body["message"]
+E       AssertionError: unknown, unfinished, used or unusable tutorial proof
+E       assert 'nonce' in 'unknown, unfinished, used or unusable tutorial proof'
+E        +  where 'unknown, unfinished, used or unusable tutorial proof' = str('unknown, unfinished, used or unusable tutorial proof')
+
+api/tests/test_mcpfix_wb2_messages.py:78: AssertionError
+_______________ test_an_empty_or_non_string_field_is_named_too[] _______________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bebfad0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+value = ''
+
+    @pytest.mark.parametrize("value", ["", "   ", 7])
+    def test_an_empty_or_non_string_field_is_named_too(h: Harness, value: object) -> None:
+        body = _tokens(h, {"kind": "tutorial", "job_id": value, "nonce": "x"})
+>       assert "job_id" in str(body["message"]), body["message"]
+E       AssertionError: unknown, unfinished, used or unusable tutorial proof
+E       assert 'job_id' in 'unknown, unfinished, used or unusable tutorial proof'
+E        +  where 'unknown, unfinished, used or unusable tutorial proof' = str('unknown, unfinished, used or unusable tutorial proof')
+
+api/tests/test_mcpfix_wb2_messages.py:91: AssertionError
+_____________ test_an_empty_or_non_string_field_is_named_too[   ] ______________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bed9a90>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+value = '   '
+
+    @pytest.mark.parametrize("value", ["", "   ", 7])
+    def test_an_empty_or_non_string_field_is_named_too(h: Harness, value: object) -> None:
+        body = _tokens(h, {"kind": "tutorial", "job_id": value, "nonce": "x"})
+>       assert "job_id" in str(body["message"]), body["message"]
+E       AssertionError: unknown, unfinished, used or unusable tutorial proof
+E       assert 'job_id' in 'unknown, unfinished, used or unusable tutorial proof'
+E        +  where 'unknown, unfinished, used or unusable tutorial proof' = str('unknown, unfinished, used or unusable tutorial proof')
+
+api/tests/test_mcpfix_wb2_messages.py:91: AssertionError
+______________ test_an_empty_or_non_string_field_is_named_too[7] _______________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bedb110>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+value = 7
+
+    @pytest.mark.parametrize("value", ["", "   ", 7])
+    def test_an_empty_or_non_string_field_is_named_too(h: Harness, value: object) -> None:
+        body = _tokens(h, {"kind": "tutorial", "job_id": value, "nonce": "x"})
+>       assert "job_id" in str(body["message"]), body["message"]
+E       AssertionError: unknown, unfinished, used or unusable tutorial proof
+E       assert 'job_id' in 'unknown, unfinished, used or unusable tutorial proof'
+E        +  where 'unknown, unfinished, used or unusable tutorial proof' = str('unknown, unfinished, used or unusable tutorial proof')
+
+api/tests/test_mcpfix_wb2_messages.py:91: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/literature/confirm-confirm or dispute a literature status]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/motions-open a panel motion]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/registrations-register a target]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/reviews-open a formalization review]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/reviews/erdos-849/answers-answer a review question]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/reviews/erdos-849/signatures-sign a formalization review]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/shelvings-shelve a statement or retire a route]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/votes-vote on a panel motion]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_github_login_required_names_the_act_refused[/writeups-record a panel write-up]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_a_tutorial_proof_missing_a_field_names_it[job_id]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_a_tutorial_proof_missing_a_field_names_it[nonce]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_an_empty_or_non_string_field_is_named_too[]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_an_empty_or_non_string_field_is_named_too[   ]
+FAILED api/tests/test_mcpfix_wb2_messages.py::test_an_empty_or_non_string_field_is_named_too[7]
+14 failed, 3 passed, 2 warnings in 5.51s

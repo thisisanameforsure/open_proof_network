@@ -203,6 +203,17 @@ def expected_nodes(ctx: Any, holes: list[dict[str, Any]]) -> list[tuple[str, boo
     return [(str(child or existing), child is not None) for _, child, existing in plan]
 
 
+def attest(ctx: RunContext, verdict: pipeline.Verdict, job: dict[str, Any]) -> dict[str, Any]:
+    """The precheck attestation for ``verdict`` on ``job``. The automation the agent declared on
+    the job (F25-R3) is the attestation's submission block, as the merge gate's is the pull
+    request's, so the signed record says what the agent said drove it (testers 2026-11-25)."""
+    automation = job.get("automation")
+    submission = {"automation": automation} if isinstance(automation, dict) else None
+    return attestation.build(
+        ctx, verdict, graph_commit=str(job["graph_commit"]), submission=submission
+    )
+
+
 def run(
     *,
     graph_root: Path,
@@ -218,7 +229,7 @@ def run(
     changes = apply_bundle(bundle_dir, graph_root)
     ctx = build_context(graph_root, job, changes, out_dir / "work", image=image)
     verdict = pipeline.run_submission(ctx)
-    doc = attestation.build(ctx, verdict, graph_commit=str(job["graph_commit"]))
+    doc = attest(ctx, verdict, job)
     if key_path is not None:
         doc = sign_service(doc, key_path)
     result = result_document(job, verdict, ctx, doc)

@@ -63,6 +63,7 @@ WRITES = {
     "get_token",  # F09-T6: D-28's notation note of 2026-09-14
     "propose_witness",  # F09-T6: idem
     "renew_token",  # F05-T27 (D-19 v3.28), D-28's notation note of 2026-10-04 (D-19)
+    "accept_dco",  # mcpfix WA1 (qa-eb L13): POST /dco/accept, D-28's notation note of 2026-11-25
     "submit_proof",
     "submit_postmortem",
     "submit_informal_annex",
@@ -194,6 +195,7 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
             "summary": "s",
         },
         "set_display_name": {"name": "Surface"},
+        "accept_dco": {"dco": {"version": "v", "accepted": True}},
         "get_review": {"target_id": TARGET},
         "list_review_questions": {"target_id": TARGET},
         "list_open_pairs": {"target_id": TARGET},

@@ -365,6 +365,16 @@
               }
             }
           }
+        },
+        "files_omitted": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Witness.lean",
+              "Proof.lean"
+            ]
+          },
+          "description": "mcpfix (2026-11-25): the files `include` left out, whose text is then null; absent when every file is answered."
         }
       }
     },

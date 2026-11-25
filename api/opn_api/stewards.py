@@ -56,16 +56,18 @@ RECORD_RE = re.compile(r"^(?P<n>[1-9][0-9]*)\.ya?ml$")
 # --- shared with ``approvals`` -------------------------------------------------------------------
 
 
-def github_login(held: Identity) -> str:
+def github_login(held: Identity, act: str) -> str:
     """The login a role is held by. An identity made from the tutorial (D-19) has none, and a
-    steward record or an approval names a GitHub login (D-22 v3.33)."""
+    steward record or an approval names a GitHub login (D-22 v3.33). ``act`` is what the route
+    does, in words ("register a target"), so the refusal names the act it refused (testers
+    2026-11-25, qa-eb L7: it always said "steward a problem or approve words")."""
     login = session.login_of(held)
     if login is None:
         raise ApiError(
             403,
             "github-login-required",
-            "only an identity proved with GitHub can steward a problem or approve words; sign in "
-            "with GitHub",
+            f"only an identity proved with GitHub can {act}; this identity was made from the "
+            "tutorial (D-19) and has no GitHub login. Sign in with GitHub",
         )
     return login
 
@@ -206,7 +208,9 @@ def next_number(ctx: Context, target_id: str) -> int:
 async def post_stewards(ctx: Context, request: Request) -> Response:
     """R8: the record, signed with the approval key, in its own pull request."""
     held: Identity = request.state.identity
-    login = github_login(held)  # who is asking comes before what they sent (testers F-D2)
+    login = github_login(
+        held, "steward a problem"
+    )  # who is asking comes before what they sent (testers F-D2)
     fields, _ = await identitymod.body_fields(request, FIELDS)
     target_id, action, name, link = checked(fields)
     motion = motion_of(fields, action)

@@ -28,6 +28,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from opn_api import literature, requests, submissions
+from opn_api.config import DEFAULT_CLAIM_TTL_MAX_H
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
 from opn_gate import scaffold, schemas
@@ -109,6 +110,12 @@ async def precheck_submission(call: Call, args: dict[str, Any]) -> dict[str, Any
     return {**out, "job_id": body.get("id"), "poll": POLL}
 
 
+async def accept_dco(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """mcpfix WA1 (qa-eb L13): ``POST /dco/accept``, body for body; the route records the
+    acceptance for the bearer's own identity."""
+    return await forward(call, "POST", "/dco/accept", present("accept_dco", args, "dco"))
+
+
 async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F13-R12: ``POST /check``, with whatever bearer there is; the endpoint charges an identity
     or an address and answers in the same response, so there is nothing to poll."""
@@ -122,6 +129,7 @@ async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "statement",
         "deps",
         "heartbeats",
+        "echo",
     )
     return await forward(call, "POST", "/check", body)
 
@@ -436,9 +444,17 @@ AUTOMATION = {
 #: F08-T26 (R21): one sentence on use lines, shared by the tools that take a proof's text.
 USES_NOTE = (
     " A proof may add use lines (`import Defs.<Name>`, `import Nodes.«<id>».Proof`) after the "
-    "statement's imports; a use the gate would refuse is refused by its use-* code before "
-    'anything opens. The guide\'s "Iterating fast" says more.'
+    "statement's imports; a refused use answers its use-* code before anything opens."
 )
+#: mcpfix WA1 (t257b 1, t883 2/5): what a partial's file must say, and what the gate does not
+#: check, told before the first precheck rather than learned from a refusal.
+PARTIAL_NOTE = (
+    " A partial needs `-- approach:`, `-- licence:` and per hole `-- label:`, `-- claim:` lines "
+    "(else 400 partial-unlabelled). Holes are not checked for truth: try small cases with "
+    "check_lean."
+)
+#: mcpfix WA1 (t883 9, t257b 12): the gate's ``Artifact.is_reduction`` reads both the same.
+ARTIFACT_TYPES_TEXT = "; reduction = partial with one hole"
 DEPS = {"type": "array", "items": ID_PARAM, "description": "node ids the statement depends on"}
 MODEL = {"type": "string", "description": "the model or tooling that produced the statement"}
 #: F18-R8 (D-14 v3.26): the node of the target a crux is proposed for.
@@ -513,6 +529,7 @@ TOOLS: tuple[Tool, ...] = (
                 "ttl": {
                     "type": "integer",
                     "minimum": 1,
+                    "maximum": DEFAULT_CLAIM_TTL_MAX_H,
                     "description": "Hours to hold the claim, within the published caps; the "
                     "minimum when omitted (D-25).",
                 },
@@ -537,17 +554,14 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "precheck_submission",
         (
-            "Run the gate's steps 1-2 and 4-8 on a bundle server-side, as pregate.sh "
-            "does, and get a job id to poll with get_precheck; a passing precheck yields "
-            "the signed attestation submit_proof needs. On the tutorial node no token is "
-            "needed, and the passing job's {id, nonce} is the proof get_token takes. A "
-            "node that exists only in an open proposal whose gate is green can be "
-            "prechecked at the proposal's head (`proposal`). A partial's bundle may "
-            "carry a hole's witness and proof as attempts/<assembly name without "
-            ".lean>.<n>.witness and .proof, each with a line `-- hole: <name>` (a proof: "
-            "any private helpers, `-- proof:`, then the body after the hole's `:=`); the "
-            "result names each on its hole (`holes[].witness`, "
-            "`holes[].proof`)." + USES_NOTE
+            "Run the gate's steps 1-2 and 4-8 on a bundle server-side; poll get_precheck "
+            "with the job id. A pass is the attestation submit_proof needs. On the "
+            "tutorial node it needs no token, and a pass's {id, nonce} is get_token's "
+            "proof. A node only "
+            "in a green open proposal is prechecked at its head. A partial "
+            "may carry hole witnesses and proofs, attempts/<assembly stem>.<n>.witness and "
+            ".proof with `-- hole: <name>` (a proof: helpers, `-- proof:`, body), named on "
+            "`holes[].witness` and `holes[].proof`." + PARTIAL_NOTE + USES_NOTE
         ),
         params(
             {
@@ -563,7 +577,8 @@ TOOLS: tuple[Tool, ...] = (
                         "pair-proof",
                     ],
                     "description": "optional: the type this bundle will be submitted as; a "
-                    "bundle at the wrong path for it is refused before any job starts",
+                    "bundle at the wrong path for it is refused before any job starts"
+                    + ARTIFACT_TYPES_TEXT,
                 },
                 "automation": {
                     **AUTOMATION,
@@ -574,23 +589,23 @@ TOOLS: tuple[Tool, ...] = (
             ("node_id", "bundle"),
         ),
         precheck_submission,
+        keywords=("skeleton", "decomposition", "holes", "lemmas", "partial"),
         write=True,
         access="endpoint",
     ),
     Tool(
         "check_lean",
         (
-            "Check Lean text within 20 s on the hosted checker (AXLE) matched to the "
-            "target's pinned Mathlib: errors, goals, `okay` (null with `user_error` when "
-            "no verdict) and `lint` where the gate would refuse what the checker "
-            "accepts. Defs and the node's Context are inlined; `target_id` is derived "
-            "from the node if omitted. Modes: check (default, and for a proof using a "
-            "dependency); verify, against the node's statement; witness, with a node_id "
-            "or a `statement` and `deps`: the `expected` type step 7 holds a witness to "
-            "and, with content, whether it `matches`. Mode hazards, with a node_id or a "
-            "`statement`, runs step 6's checkers: send no content (400 "
-            "content-not-used); a finding META.yaml acknowledges has `acknowledged: "
-            "true`. Never authoritative." + USES_NOTE
+            "Check Lean in 20 s on the hosted checker (AXLE) at the target's Mathlib: "
+            "errors at lines of your text, `okay` (null with `user_error` if no verdict), "
+            "`lint` where the gate would refuse it. Defs and Context are inlined; `target_id` "
+            "is derived from the node if omitted. Modes: check (default); verify, against the "
+            "node's statement; witness (node_id, or `statement` and `deps`): step 7's "
+            "`expected` type and whether content `matches`. Mode hazards (node_id or "
+            "`statement`) runs step 6's checkers: send no content (400 content-not-used); a "
+            "finding META.yaml acknowledges has `acknowledged: true`. A skeleton aims for "
+            "`result.okay: true` in check with only sorry-present (`okay` stays false); verify "
+            "reports sorry as failure. Never authoritative." + USES_NOTE
         ),
         params(
             {
@@ -619,6 +634,10 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "boolean",
                     "description": "modes check and verify: also measure each theorem's "
                     "heartbeats on a copy of the text (a second hosted check, charged as one)",
+                },
+                "echo": {
+                    "type": "boolean",
+                    "description": "also return the composed program and its raw positions",
                 },
             },
         ),
@@ -659,20 +678,41 @@ TOOLS: tuple[Tool, ...] = (
         write=True,
     ),
     Tool(
+        "accept_dco",
+        "Accept the current DCO text again with your token (D-23). After the text changes, every "
+        "write is refused 403 dco-reaccept-required until you do. `dco` is {version, accepted: "
+        "true} with the version get_dco returns; a stale version is 400 dco-version-stale. "
+        "Returns your pseudonym and the version recorded.",
+        params(
+            {
+                "dco": {
+                    "type": "object",
+                    "description": "{version, accepted: true}, the version as get_dco gives it",
+                    "required": ["version", "accepted"],
+                    "properties": {
+                        "version": {"type": "string"},
+                        "accepted": {"type": "boolean"},
+                    },
+                },
+            },
+            ("dco",),
+        ),
+        accept_dco,
+        write=True,
+    ),
+    Tool(
         "submit_proof",
         (
-            "Open the submission pull request on the graph: your identity as author, the "
-            "service as committer. Name the passing precheck of this bundle with exactly "
-            "one of `attestation` (the get_precheck result) or `precheck_job_id`. A "
-            "later proof of a proved node is an alternate at "
-            "attempts/<timestamp>-<pseudonym>-alternate.lean (D-25). A partial may carry "
-            "hole witnesses, proofs: attempts/<assembly stem>.<n>.witness or .proof "
-            "with `-- hole: <name>` (a proof's body after `-- proof:`); 400 "
-            "hole-witness-unchecked or hole-proof-unchecked if not prechecked, "
-            "400 annex-step-missing for a hole a cited stepped annex omits. "
-            "Then get_submission. "
-            "`pair-proof` settles a review pair: `pair` and the filled `lean`, no node, "
-            "bundle or precheck." + USES_NOTE
+            "Open the submission pull request (you author, the service commits). "
+            "Send the prechecked bundle with `precheck_job_id` or `attestation` (the "
+            "get_precheck result). A proved node's later proof is an alternate, "
+            "attempts/<ts>-<pseudonym>-alternate.lean (D-25). Hole witnesses and proofs "
+            "(<assembly stem>.<n>.witness, .proof; `-- hole:`, `-- proof:`) unprechecked: "
+            "400 hole-witness-unchecked, hole-proof-unchecked; 400 annex-step-missing for a "
+            "hole a cited stepped annex omits. Then get_submission. `pair-proof` settles a "
+            "review pair: `pair` and the filled `lean`, no node, bundle or precheck."
+            + PARTIAL_NOTE
+            + USES_NOTE
         ),
         params(
             {
@@ -686,7 +726,8 @@ TOOLS: tuple[Tool, ...] = (
                         "partial",
                         "pair-proof",
                     ],
-                    "description": "What the bundle is (D-12); it must be what was prechecked.",
+                    "description": "What the bundle is (D-12); it must be what was prechecked"
+                    + ARTIFACT_TYPES_TEXT,
                 },
                 "pair": PAIR,
                 "lean": {
@@ -710,6 +751,7 @@ TOOLS: tuple[Tool, ...] = (
             ("artifact_type", "automation"),
         ),
         submit_proof,
+        keywords=("skeleton", "decomposition", "holes", "lemmas", "partial"),
         write=True,
     ),
     Tool(
@@ -821,7 +863,8 @@ TOOLS: tuple[Tool, ...] = (
                     "description": "Markdown. A gloss opens with the statement in LaTeX ($$…$$ "
                     "or $…$), every hypothesis and quantifier as the Lean has them; then a few "
                     "lines on any Lean convention that changes its meaning (floor /, truncated "
-                    "-, %, Nat.minFac at 0 and 1); prose last",
+                    "-, %, Nat.minFac at 0 and 1); prose last. An explainer is `## ` "
+                    "sections (else explainer-invalid)",
                 },
                 "supersedes": {
                     "type": "string",
@@ -832,9 +875,10 @@ TOOLS: tuple[Tool, ...] = (
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
                 "drafted_with": {
                     "type": "string",
-                    "description": "the model that drafted the words (D-23), as "
+                    "description": "the model that drafted the words (D-23); recommended as "
                     "<model name> (<model id>), e.g. Claude Opus 5.5 (claude-opus-5-5); 1-200 "
-                    "characters, whitespace normalised; anything else is tooling-invalid",
+                    "characters, whitespace normalised; longer or only whitespace is "
+                    "tooling-invalid",
                 },
                 "amends": {
                     "type": "string",
@@ -858,6 +902,7 @@ TOOLS: tuple[Tool, ...] = (
             ("subject", "text", "licence"),
         ),
         submit_gloss,
+        keywords=("dry run",),
         write=True,
     ),
     Tool(
@@ -1005,7 +1050,8 @@ TOOLS: tuple[Tool, ...] = (
         (
             "Enter a labeled variant of the root (D-30): `relation` is resolves, partial, "
             "refutes or related (default); above related needs `relation_proof`, a file "
-            "declaring `theorem relation` alone (else 400 relation-decl). Pre-flights "
+            "declaring `theorem relation` alone (400 relation-proof-required if absent, "
+            "400 relation-decl if not alone). Pre-flights "
             "run first, and each refusal opens nothing: 422 relation-elaboration, 422 "
             "relation-sorry, 422 relation-axiom, 422 relation-direction; 422 "
             "statement-fails; 422 witness-type-mismatch, 422 witness-fails, 422 "
@@ -1291,7 +1337,7 @@ TOOLS: tuple[Tool, ...] = (
                     "this one; required (the blind rule), recorded as your claim.",
                 },
             },
-            ("target_id", "lean"),
+            ("target_id", "lean", "read_others"),
         ),
         submit_candidate,
         write=True,
