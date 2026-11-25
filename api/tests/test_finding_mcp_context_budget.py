@@ -315,7 +315,12 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # `lean` (+581 of input schema), list_open_pairs and get_review at v2, each open direction's
 # templates and refutation declared (+397 of output schema each, structure only), their `n`
 # parameter, and a clause each on submit_proof, get_review and list_open_pairs. Pinned 115,000.
-TOOLS_LIST_BUDGET = 115_000
+# mcpfix WA1 (testers 2026-11-25) measured 114,974 before and 116,413 after (+1,439, 1.3%): the
+# new accept_dco operation (+1,418: POST /dco/accept had no tool, so an MCP-only identity could
+# not lift dco-reaccept-required) and the partial's comment lines, the reduction note, the
+# explainer's sections and relation-proof-required said before the call (+21 net, the
+# descriptions trimmed to make room). Pinned 117,000.
+TOOLS_LIST_BUDGET = 117_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

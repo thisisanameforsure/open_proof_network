@@ -24,6 +24,7 @@ MINIMAL: dict[str, dict[str, Any]] = {
     "propose_witness": {"node_id": NODE, "witness": "w"},
     "withdraw_submission": {"submission_id": "1"},
     "renew_token": {},  # F05-T27: a bearer write with no arguments
+    "accept_dco": {"dco": {"version": "v", "accepted": True}},  # mcpfix WA1: POST /dco/accept
     "submit_proof": {
         "node_id": NODE,
         "artifact_type": "proof",

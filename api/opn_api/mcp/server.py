@@ -191,6 +191,7 @@ TITLES: dict[str, str] = {
     "check_lean": "Fast-check Lean",
     "get_token": "Get a write token",
     "renew_token": "Renew a write token",
+    "accept_dco": "Accept the current DCO",
     "propose_witness": "Propose a hole witness",
     "submit_proof": "Submit a proof",
     "submit_postmortem": "Submit a postmortem",
@@ -253,6 +254,8 @@ def argument_hint(tool: Tool, arguments: dict[str, Any]) -> str:
 FIELD_CODES: Mapping[str, Mapping[str, tuple[str, str]]] = {
     "precheck_submission": {"automation": ("automation-missing", "automation-invalid")},
     "submit_proof": {"automation": ("automation-missing", "automation-invalid")},
+    # read_others is required in the schema (qa-eb L1); its absence keeps the route's own code.
+    "submit_candidate": {"read_others": ("candidate-not-blind", "arguments-invalid")},
 }
 REQUIRED_RE = re.compile(r"^'(?P<name>[^']+)' is a required property")
 

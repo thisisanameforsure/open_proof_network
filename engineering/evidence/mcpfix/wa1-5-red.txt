@@ -1,0 +1,104 @@
+FFFFFFFF.....                                                            [100%]
+=================================== FAILURES ===================================
+___________ test_partial_comment_lines_are_told[precheck_submission] ___________
+
+name = 'precheck_submission'
+
+    @pytest.mark.parametrize("name", ["precheck_submission", "submit_proof"])
+    def test_partial_comment_lines_are_told(name: str) -> None:
+        text = BY_NAME[name].description
+        for line in ("-- approach:", "-- licence:", "-- label:", "-- claim:", "partial-unlabelled"):
+>           assert line in text, (name, line)
+E           AssertionError: ('precheck_submission', '-- approach:')
+E           assert '-- approach:' in 'Run the gate\'s steps 1-2 and 4-8 on a bundle server-side, as pregate.sh does, and get a job id to poll with get_prec...use the gate would refuse is refused by its use-* code before anything opens. The guide\'s "Iterating fast" says more.'
+
+api/tests/test_mcpfix_wa1_descriptions.py:17: AssertionError
+______________ test_partial_comment_lines_are_told[submit_proof] _______________
+
+name = 'submit_proof'
+
+    @pytest.mark.parametrize("name", ["precheck_submission", "submit_proof"])
+    def test_partial_comment_lines_are_told(name: str) -> None:
+        text = BY_NAME[name].description
+        for line in ("-- approach:", "-- licence:", "-- label:", "-- claim:", "partial-unlabelled"):
+>           assert line in text, (name, line)
+E           AssertionError: ('submit_proof', '-- approach:')
+E           assert '-- approach:' in 'Open the submission pull request on the graph: your identity as author, the service as committer. Name the passing pr...use the gate would refuse is refused by its use-* code before anything opens. The guide\'s "Iterating fast" says more.'
+
+api/tests/test_mcpfix_wa1_descriptions.py:17: AssertionError
+_____ test_partial_and_reduction_are_one_for_one_hole[precheck_submission] _____
+
+name = 'precheck_submission'
+
+    @pytest.mark.parametrize("name", ["precheck_submission", "submit_proof"])
+    def test_partial_and_reduction_are_one_for_one_hole(name: str) -> None:
+        text = BY_NAME[name].input_schema["properties"]["artifact_type"]["description"]
+>       assert "reduction" in text and "partial" in text and "one hole" in text, text
+E       AssertionError: optional: the type this bundle will be submitted as; a bundle at the wrong path for it is refused before any job starts
+E       assert ('reduction' in 'optional: the type this bundle will be submitted as; a bundle at the wrong path for it is refused before any job starts')
+
+api/tests/test_mcpfix_wa1_descriptions.py:25: AssertionError
+________ test_partial_and_reduction_are_one_for_one_hole[submit_proof] _________
+
+name = 'submit_proof'
+
+    @pytest.mark.parametrize("name", ["precheck_submission", "submit_proof"])
+    def test_partial_and_reduction_are_one_for_one_hole(name: str) -> None:
+        text = BY_NAME[name].input_schema["properties"]["artifact_type"]["description"]
+>       assert "reduction" in text and "partial" in text and "one hole" in text, text
+E       AssertionError: What the bundle is (D-12); it must be what was prechecked.
+E       assert ('reduction' in 'What the bundle is (D-12); it must be what was prechecked.')
+
+api/tests/test_mcpfix_wa1_descriptions.py:25: AssertionError
+_______________________ test_explainer_sections_are_told _______________________
+
+    def test_explainer_sections_are_told() -> None:
+        text = BY_NAME["submit_gloss"].input_schema["properties"]["text"]["description"]
+>       assert "##" in text and "explainer-invalid" in text, text
+E       AssertionError: Markdown. A gloss opens with the statement in LaTeX ($$…$$ or $…$), every hypothesis and quantifier as the Lean has them; then a few lines on any Lean convention that changes its meaning (floor /, truncated -, %, Nat.minFac at 0 and 1); prose last
+E       assert ('##' in 'Markdown. A gloss opens with the statement in LaTeX ($$…$$ or $…$), every hypothesis and quantifier as the Lean has t...few lines on any Lean convention that changes its meaning (floor /, truncated -, %, Nat.minFac at 0 and 1); prose last')
+
+api/tests/test_mcpfix_wa1_descriptions.py:30: AssertionError
+______________ test_propose_variant_names_relation_proof_required ______________
+
+    def test_propose_variant_names_relation_proof_required() -> None:
+>       assert "relation-proof-required" in BY_NAME["propose_variant"].description
+E       assert 'relation-proof-required' in 'Enter a labeled variant of the root (D-30): `relation` is resolves, partial, refutes or related (default); above rela...preflight: true` refuses an inconclusive one (503 hazards-preflight-inconclusive). The guide\'s "Proposals" says more.'
+E        +  where 'Enter a labeled variant of the root (D-30): `relation` is resolves, partial, refutes or related (default); above rela...preflight: true` refuses an inconclusive one (503 hazards-preflight-inconclusive). The guide\'s "Proposals" says more.' = Tool(name='propose_variant', description='Enter a labeled variant of the root (D-30): `relation` is resolves, partial,...tionalProperties': False}, handler=<function propose_variant at 0x10a300360>, write=True, access='bearer', keywords=()).description
+
+api/tests/test_mcpfix_wa1_descriptions.py:34: AssertionError
+__________________ test_submit_candidate_requires_read_others __________________
+
+    def test_submit_candidate_requires_read_others() -> None:
+>       assert "read_others" in BY_NAME["submit_candidate"].input_schema["required"]
+E       AssertionError: assert 'read_others' in ['target_id', 'lean']
+
+api/tests/test_mcpfix_wa1_descriptions.py:38: AssertionError
+__________________________ test_claim_ttl_has_its_cap __________________________
+
+    def test_claim_ttl_has_its_cap() -> None:
+>       assert BY_NAME["claim_node"].input_schema["properties"]["ttl"]["maximum"] == 168
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'maximum'
+
+api/tests/test_mcpfix_wa1_descriptions.py:42: KeyError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wa1/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wa1/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_partial_comment_lines_are_told[precheck_submission]
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_partial_comment_lines_are_told[submit_proof]
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_partial_and_reduction_are_one_for_one_hole[precheck_submission]
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_partial_and_reduction_are_one_for_one_hole[submit_proof]
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_explainer_sections_are_told
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_propose_variant_names_relation_proof_required
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_submit_candidate_requires_read_others
+FAILED api/tests/test_mcpfix_wa1_descriptions.py::test_claim_ttl_has_its_cap
+8 failed, 5 passed, 2 warnings in 1.42s

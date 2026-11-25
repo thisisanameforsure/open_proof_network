@@ -722,12 +722,18 @@ def test_submit_candidate_passes_the_blind_refusal_through(h: Harness, tree: Pat
     serve_tree(h, tree)
     token = h.token_for("code_alice", "alice-agent")
     out = McpClient(h).failed("submit_candidate", {"target_id": TARGET, "lean": LEAN}, token=token)
-    assert out["status"] == 400 and out["body"]["error"] == "candidate-not-blind"
+    # mcpfix WA1 (qa-eb L1): read_others is required in the schema, so the adapter refuses its
+    # absence first, under the route's own code and status, in the adapter's error shape.
+    assert out["status"] == 400 and out["error"] == "candidate-not-blind"
+    assert out["source"] == "adapter"
     nothing_opened(h)
 
 
 def test_submit_candidate_needs_a_token(h: Harness) -> None:
-    out = McpClient(h).failed("submit_candidate", {"target_id": TARGET, "lean": LEAN})
+    # mcpfix WA1: read_others is a required argument now, so it is given; the test is the token.
+    out = McpClient(h).failed(
+        "submit_candidate", {"target_id": TARGET, "lean": LEAN, "read_others": False}
+    )
     assert out["status"] == 401 and "get_token" in json.dumps(out["body"])
 
 
