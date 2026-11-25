@@ -80,7 +80,7 @@ def test_the_statement_drawing_shows_every_status_the_products_can_publish(docs:
     assert "witness-missing" in statement and "dep-refuted" in statement
     # D-12 v3.19 (F07-R22): nothing moves an open statement to blocked; a route leaves it open.
     assert "its holes become its dependencies" not in statement
-    assert "stays open" in statement and "v3.19" in statement
+    assert "stays open" in statement  # F34-T7: the decision is named at the page foot
 
 
 def test_the_problem_drawing_shows_every_status_a_target_can_declare(docs: str) -> None:

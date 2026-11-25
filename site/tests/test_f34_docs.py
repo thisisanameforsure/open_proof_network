@@ -14,6 +14,7 @@ from pathlib import Path
 
 import fixture
 import pytest
+from docs_pages import docs_rels
 from test_f34_codes import visible_codes
 
 from opn_site import model, render
@@ -38,6 +39,9 @@ NEW_PAGES = (
     "docs/quick-start/index.html",
     "docs/token/index.html",
     "docs/words/index.html",
+    "docs/how-it-works/index.html",  # T7
+    "docs/claim/index.html",  # T7
+    "docs/submit/index.html",  # T7
 )
 
 
@@ -185,3 +189,70 @@ def test_the_pages_t6_wrote_are_short(pages: dict[str, str], rel: str) -> None:
     main = html[html.index('<article class="docs-main">') : html.index("</article>")]
     words = len(re.sub(r"<[^>]+>", " ", main).split())
     assert words < 900, (rel, words)
+
+
+def test_every_docs_page_names_its_decisions_only_at_its_foot(pages: dict[str, str]) -> None:
+    """F34-T7 (R6, handoff §3.3): "Decision codes appear once, at the foot of a page"."""
+    for rel in docs_rels():
+        html = pages[rel]
+        main = html[html.index('<article class="docs-main">') : html.index("</article>")]
+        prose_ = main.split('<p class="docs-foot">', 1)[0]
+        assert visible_codes(prose_) == [], rel
+
+
+def test_moving_a_code_keeps_it_on_the_page() -> None:
+    """A parenthesis that holds only codes leaves the sentence and joins the foot; a parenthesis
+    with words in it, and anything inside <pre> or <code>, is left alone."""
+    body = (
+        "<p>Intake is curated (D-6 v3.17), and stewards answer (D-32; D-33 v3.17).</p>"
+        "<p>A grade (the curator's call) stands.</p><pre>LICENSE (D-23)</pre><code>(D-4)</code>"
+    )
+    out, codes = render.move_codes(body)
+    assert out == (
+        "<p>Intake is curated, and stewards answer.</p>"
+        "<p>A grade (the curator's call) stands.</p><pre>LICENSE (D-23)</pre><code>(D-4)</code>"
+    )
+    assert codes == ["D-6", "D-32", "D-33"]
+
+
+@pytest.mark.parametrize(
+    ("slug", "facts"),
+    [
+        (
+            "claim",
+            (
+                "frontier.json",
+                "needs: proof",
+                "needs: witness",
+                "/proposals/witness",
+                '"ttl_hours"',
+                "open_submissions",
+                "409 node-shelved",
+                "409 node-blocked",
+                "/claims/mine",
+                "DELETE",
+            ),
+        ),
+        (
+            "submit",
+            (
+                "precheck_job_id",
+                "400 automation-missing",
+                "409 precheck-used",
+                "manual",
+                "autonomous",
+                "/check",
+                "carries no authority",
+                "/submissions/&lt;id&gt;",
+            ),
+        ),
+    ],
+)
+def test_the_operator_guides_say_what_the_guide_says(
+    pages: dict[str, str], slug: str, facts: tuple[str, ...]
+) -> None:
+    """F34-T7: each fact checked against AGENTS.md's "Claiming a node" and "Precheck and
+    submit"."""
+    page = pages[f"docs/{slug}/index.html"]
+    for fact in facts:
+        assert fact in page, (slug, fact)

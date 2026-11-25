@@ -187,7 +187,18 @@ GUIDE_HREF = "/docs/quick-start/"  # F34-T6: Docs is one page per topic
 #: template or None for a page built in code, the decisions it rests on). ``""`` is /docs/.
 #: An entry whose slug starts with ``/`` is a page elsewhere, listed in the sidebar only.
 DOCS_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str | None, str], ...]], ...] = (
-    ("Start here", (("", "Overview", "docs-overview.html", ""),)),
+    (
+        "Start here",
+        (
+            ("", "Overview", "docs-overview.html", ""),
+            (
+                "how-it-works",
+                "How a problem is worked",
+                "docs-worked.html",
+                "D-4, D-12, D-32, D-35",
+            ),
+        ),
+    ),
     (
         "Mathematicians",
         (
@@ -208,6 +219,8 @@ DOCS_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str | None, str], ...]], ...
         (
             ("quick-start", "Quick start", "docs-quick-start.html", "D-27, D-28, D-35"),
             ("token", "Getting a token", "docs-token.html", "D-19, D-23"),
+            ("claim", "Claim a statement", "docs-claim.html", "D-13, D-25"),
+            ("submit", "Precheck and submit", "docs-submit.html", "D-4, D-12, D-23, D-28"),
             ("connect", "Connect your harness (MCP)", None, "D-28"),
             ("/AGENTS.md", "AGENTS.md, the full text", None, ""),
         ),
@@ -996,15 +1009,16 @@ LEIDEN_ROWS: tuple[tuple[str, str, str], ...] = (
         "explainer may be signed by a real-identity contributor affirming they can explain the "
         "proof without the tool that produced it, and only signed explainers count (D-3 v3.17); "
         "a resolved target carries a digestion state, undigested until every node of the closing "
-        "proof is explained and written-up once the paper exists (D-33 v3.17); explanation "
-        "coverage is the first count on the home page (D-36 v3.17).",
+        "proof is explained and written-up once the paper exists (D-33 v3.17); each problem "
+        "shows proved, explained and written up as its mark (D-36 v3.48).",
         "Nothing renders the graph as a blueprint yet, and an explainer still waits for a person "
         "to press merge.",
     ),
     (
         "Benchmark racing corrupts incentives",
-        "No leaderboard (D-34); the home page's counts are the progress series, not vanity "
-        "numbers (D-36); the network announces no result beyond the registry report-back, which "
+        "No leaderboard (D-34); the home page shows what happened lately on the record, and no "
+        "counts (D-36 v3.48); the network announces no result beyond the registry report-back, "
+        "which "
         "carries the digestion state, and the paper (D-33 v3.17); the raw resolution count is "
         "too rare to steer by (Stages).",
         "The record is public, so anyone else may still count.",
@@ -1243,6 +1257,36 @@ def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
     docstring's inline Markdown (T19): escaped like everything from the graph, the four inline
     forms rendered, then marked for the same-origin math renderer, which reads the text back."""
     return f'<span class="math">{prose.inline_statement(text, allowed_urls=allowed_urls)}</span>'
+
+
+def move_codes(html: str) -> tuple[str, list[str]]:
+    """F34-T7 (R6): a Docs body with each parenthesis of decision codes taken out of its sentence,
+    and the decisions it held, in order and once each, for the page's foot. Only a parenthesis
+    that holds nothing but codes moves (``(D-6 v3.17)``, ``(D-32; D-33 v3.17)``); words, tags,
+    ``<pre>`` and ``<code>`` are left as they are. A build note (``F16-Q9``) leaves the sentence
+    and is not a decision, so it goes nowhere."""
+    found: list[str] = []
+
+    def drop(m: re.Match[str]) -> str:
+        for d in re.findall(r"D-\d+", m.group(0)):
+            if d not in found:
+                found.append(d)
+        return ""
+
+    parts = _PROTECTED_RE.split(html)
+    out = [
+        part if _PROTECTED_RE.fullmatch(part) else _CODE_PAREN_RE.sub(drop, part) for part in parts
+    ]
+    return "".join(out), found
+
+
+#: F34-T7: one code (a decision with its version, step or number, or a build note), and a
+#: parenthesis of nothing but codes, with the space before it.
+_CODE_ITEM = r"(?:D-\d+|F\d\d-[TRQ]\d+)(?:\s+v\d+\.\d+)?(?:\s+steps?\s+\d+)?(?:\s*#\d+)?"
+_CODE_PAREN_RE = re.compile(rf"\s*\(\s*{_CODE_ITEM}(?:\s*(?:[,;]|and)\s*{_CODE_ITEM})*\s*\)")
+_PROTECTED_RE = re.compile(
+    r'(<pre\b.*?</pre>|<code\b.*?</code>|<span class="proto">.*?</span>|<[^>]+>)', re.S
+)  # a hover card's protocol line keeps its codes: a hover is where R6 lets them stay
 
 
 def record_words(text: str) -> str:
@@ -5849,6 +5893,11 @@ class Renderer:
         """One docs page in the frame: sidebar, breadcrumb, heading, body, previous and next, and
         the decisions it rests on at its foot, once (handoff §3.3)."""
         prev_, next_ = around
+        # F34-T7 (R6): the decisions a page rests on are named once, at its foot
+        body, moved = move_codes(body)
+        named = [d.strip() for d in why.split(",") if d.strip()]
+        named += [d for d in moved if d not in named]
+        why = ", ".join(sorted(named, key=lambda d: int(d.split("-")[1])))
         group = next(g for g, entries in DOCS_GROUPS if any(e[0] == slug for e in entries))
         crumb = "" if not slug else f" / {esc(group)} / {esc(title)}"
         links = []

@@ -1,0 +1,18 @@
+E       AssertionError: assert '<p>Intake is...>(D-4)</code>' == '<p>Intake is...>(D-4)</code>'
+E         
+E         - <p>Intake is curated, and stewards answer.</p><p>A grade (the curator's call) stands.</p><pre>LICENSE (D-23)</pre><code>(D-4)</code>
+E         + <p>Intake is curated (D-6 v3.17), and stewards answer (D-32; D-33 v3.17).</p><p>A grade (the curator's call) stands.</p><pre>LICENSE (D-23)</pre><code>(D-4)</code>
+E           AssertionError: docs/stewards/index.html
+E           assert ['D-32'] == []
+E             
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/how-it-works/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/claim/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/submit/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/how-it-works/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/claim/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/submit/index.html]
+FAILED site/tests/test_f34_docs.py::test_every_docs_page_names_its_decisions_only_at_its_foot
+FAILED site/tests/test_f34_docs.py::test_moving_a_code_keeps_it_on_the_page
+FAILED site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[claim-facts0]
+FAILED site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[submit-facts1]
+10 failed, 17 passed in 1.99s

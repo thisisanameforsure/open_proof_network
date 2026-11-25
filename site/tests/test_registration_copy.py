@@ -265,7 +265,10 @@ def test_the_leiden_authorship_row_says_a_registrations_authors_are_people(
         "a registration's authors are the ledger's identities under their pseudonyms or recorded "
         "names and never a model (D-19 v3.37)"
     ) in row[1]
-    assert html.escape(row[1]) in docs_all(pages)
+    # F34-T7 (R6): the page shows the row with its codes moved to the foot
+    shown, moved = render.move_codes(html.escape(row[1]))
+    assert shown in docs_all(pages) and "D-19" in moved
+    assert "Protocol: decisions" in pages["docs/leiden/index.html"]
 
 
 # --- the About page --------------------------------------------------------------------------

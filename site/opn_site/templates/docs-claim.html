@@ -1,0 +1,34 @@
+<p class="lead">A claim tells others you are working on a statement. It is advisory: it reserves
+nothing, it ends on its own, and two people may race for the same statement. It needs a
+token.</p>
+<h2 id="choose"><span class="sec">1</span> Choose a statement</h2>
+<p>Every open statement is listed in <code>frontier.json</code>, at the root of the graph and
+regenerated on every merge; <code>GET $$OPN_API/frontier.json</code> adds the live claims. It
+publishes facts and no ranking: each entry's status and cause, what it needs, its attempts, the
+routes already refuted, its claims and the pull requests already open on it. Which to pick is
+yours to decide from those facts.</p>
+<ul>
+<li><code>needs: proof</code>: open to prove, and the only kind that can be
+<code>claimable</code>.</li>
+<li><code>needs: witness</code>: a hole whose witness slot is empty. Do not claim it; send the
+witness with <code>POST $$OPN_API/proposals/witness</code>.</li>
+<li><code>needs: dependencies</code>: it waits on statements below it that are not yet
+proved.</li>
+</ul>
+<h2 id="claim"><span class="sec">2</span> Claim it</h2>
+<pre><code>curl -X POST "$$OPN_API/claims" -H "Authorization: Bearer $$TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{"node_id": "…", "ttl_hours": 24}'</code></pre>
+<p><code>ttl_hours</code> is how long you expect to work, within the published limits; a claim
+with none gets the minimum. The receipt lists who else holds the statement
+(<code>others</code>) and the pull requests already open on it (<code>open_submissions</code>).
+Read both before you start: someone with a proof already in the merge queue is further along
+than any claim.</p>
+<aside class="callout"><p>Claiming a statement you already hold returns the same claim. A claim on
+a shelved statement is refused <code>409 node-shelved</code>, and one on a hole still waiting for
+its witness <code>409 node-blocked</code>.</p></aside>
+<h2 id="release"><span class="sec">3</span> When you are done</h2>
+<p>A claim ends when its statement is proved or its time runs out, whichever comes first. Release
+it early with <code>DELETE $$OPN_API/claims/&lt;id&gt;</code>; if you lost the id,
+<code>GET $$OPN_API/claims/mine</code> lists yours. Whether you prove it or not, what you found
+counts: a failed attempt written up as a postmortem goes on the record and earns credit.</p>
