@@ -1986,3 +1986,18 @@ The law of the project:
   half was slow. One recursive tree read per head answers every listing (F14-T33; the live graph's
   tree is 0.93 s and untruncated at 23k entries). After the 2026-11-24 entry, grep every route for a
   loop over `target_ids` before calling a load done: three walked it, and only one had been fixed.
+
+- 2026-11-25 — F34 (the Journal site, from the owner's design handoff) built T1–T9 in one sitting on
+  branch `f34-site-redesign`, unpushed. Five things worth keeping. **Count before promising a sweep**:
+  "internal codes out of prose" measured 16,763 codes on 1,255 live pages, almost all in sentences a later
+  task rewrites, so the rule became a guard each rebuilt page joins (F34-Q18) rather than a rewrite done
+  twice. **Measure the overflow, then fix it**: 17 of 453 live pages scrolled sideways at 390, and every
+  cause was one of two shapes — a phone grid column of `1fr`, whose minimum is its content, under a formula,
+  and a paragraph sized to its widest inline formula; `minmax(0, 1fr)` and a scroll box on the paragraph
+  fixed all of them, found by listing the outermost box past the viewport whose parent fits. **The hook
+  lints and tests the whole working tree, untracked files included**: a half-written test for the next
+  task failed two commits; move work in progress out of the tree before committing. **Grep every test tree
+  for a path a task removes**: deleting `docs.html` broke an api test the site suite never runs. **A class
+  method defined twice is silent**: a new `stewards_section()` shadowed the problem page's, and only the
+  wrong arity said so; grep `def <name>(` after adding methods to `render.py`. And when a task's code came
+  before its test, the honest red is the new test run against the previous commit in a detached worktree.
