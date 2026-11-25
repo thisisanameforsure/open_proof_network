@@ -349,7 +349,7 @@ def test_contributors_lists_ledger_entries(tmp_path_factory: pytest.TempPathFact
     pages = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
     page = pages["contributors/index.html"]
     assert "No ledger files exist yet" not in page
-    assert ">alice</h2>" in page
+    assert 'data-operator="alice"' in page and 'data-identity="alice"' in page  # F34-T9
     assert "proof" in page and "attempts" in page
     assert "claude-opus-5" in page
     assert "revoked" in page  # D-18: kept and labelled, never removed

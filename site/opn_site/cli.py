@@ -31,6 +31,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             repo_url=settings.graph_repo_url,
             api_url=settings.api_url,
             featured_target=settings.featured_target,
+            test_identities=settings.test_identities,
         )
     except (model.SiteError, ValueError) as exc:
         sys.stdout.write(json.dumps({"ok": False, "error": str(exc)}) + "\n")

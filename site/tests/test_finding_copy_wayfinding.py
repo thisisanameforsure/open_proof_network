@@ -199,8 +199,10 @@ def test_a_partial_is_not_listed_as_a_proof(built: tuple[model.Site, dict[str, s
         "artifact": "attempts/20260917T000000Z-agent-partial.lean",
         "date": "2026-09-17",
     }
-    assert "<td>partial proof</td>" in r._ledger_row(entry)
-    assert "<td>proof</td>" in r._ledger_row({**entry, "artifact": "Proof.lean"})
+    assert "<td>partial proof</td>" in r._ledger_row(
+        "agent", entry
+    )  # F34-T9: the row names its identity
+    assert "<td>proof</td>" in r._ledger_row("agent", {**entry, "artifact": "Proof.lean"})
 
 
 def test_the_footer_names_the_products_commit_when_it_differs(

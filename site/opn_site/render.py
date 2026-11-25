@@ -11,6 +11,7 @@ all of them rendered (R13).
 from __future__ import annotations
 
 import difflib
+import fnmatch
 import hashlib
 import json
 import re
@@ -37,6 +38,7 @@ from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
 from opn_site import activity, dag, links, one_view, prose
+from opn_site.config import DEFAULT_TEST_IDENTITIES
 from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
@@ -291,6 +293,7 @@ SCRIPTS: tuple[str, ...] = (
     "/node.js",
     "/literature.js",
     "/shelve.js",
+    "/contributors.js",  # F34-T9: show test runs, search the ledger
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 #: F04-T62 (Q60): an element math.js renders: ``math`` among its classes, beside any others
@@ -1266,6 +1269,25 @@ def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
     return f'<span class="math">{prose.inline_statement(text, allowed_urls=allowed_urls)}</span>'
 
 
+def canonical_model(name: str) -> str:
+    """F34-T9 (R11): one name per model however an entry spelled it. An id in parentheses wins
+    (``Claude Opus 5.5 (claude-opus-5-5)``); otherwise the words before them, lower-cased
+    (``Aristotle (Harmonic, …)`` is ``aristotle``)."""
+    m = re.match(r"^\s*(.*?)\s*\(([^)]*)\)\s*$", name)
+    if m and re.fullmatch(r"[a-z0-9][a-z0-9.:/-]*", m.group(2).strip()):
+        return m.group(2).strip()
+    head = m.group(1) if m else name
+    return " ".join(head.split()).lower()
+
+
+def canonical_framework(name: str) -> str:
+    """F34-T9 (R11): one name per harness, its version and notes aside: the words before any
+    parenthesis, comma or plus, with a trailing version and the word "subagent" dropped."""
+    head = re.split(r"[(,+]", name, maxsplit=1)[0]
+    head = re.sub(r"\s+(?:v?\d[\w.]*|subagent)\s*$", "", head.strip(), flags=re.I)
+    return " ".join(head.split()) or name.strip()
+
+
 def move_codes(html: str) -> tuple[str, list[str]]:
     """F34-T7 (R6): a Docs body with each parenthesis of decision codes taken out of its sentence,
     and the decisions it held, in order and once each, for the page's foot. Only a parenthesis
@@ -1390,7 +1412,7 @@ def _template(name: str) -> Template:
 
 
 class Renderer:
-    def __init__(
+    def __init__(  # noqa: PLR0913 — one keyword per configured part of the site (C6)
         self,
         site: Site,
         *,
@@ -1398,8 +1420,11 @@ class Renderer:
         decisions_doc: Path | None = DECISIONS_DOC,
         api_url: str | None = None,
         featured_target: str | None = None,
+        test_identities: tuple[str, ...] = DEFAULT_TEST_IDENTITIES,
     ) -> None:
         self.site = site
+        #: F34-R12: the ledger identities that are test runs (config, C6)
+        self.test_identities = test_identities
         self.repo_url = repo_url.rstrip("/")
         self.decisions_doc = decisions_doc
         self.api_url = api_url.rstrip("/") if api_url else None
@@ -5772,35 +5797,169 @@ class Renderer:
         )
 
     def contributors(self) -> str:
-        """R8, F07-R12: the ledger read as entries, not as a list of files.
-
-        One row per contribution, each linked to the artifact that earned it, because D-19's
-        ledger is a record of artifacts and a reader should be able to click through to the
-        thing itself. No totals and no ranking: significance is retrospective (D-19, D-32), and
-        a column of counts here would be the score the protocol refuses.
-        """
+        """F34-T9 (R10-R12): stewards, then the people who bring agents, then the full ledger,
+        folded. Nobody is ranked: people are in order of their newest entry, never of a count
+        (D-19, D-25), and every number on the page is read from the record."""
         contributions = ledgermod.contributions(self.site.root)
-        renders: list[str] = []
-        if not contributions:
-            ledger = (
-                "<p>No ledger files exist yet: nothing has been credited. The first merged proof "
-                "and the first postmortem will start the ledger (D-19, F07).</p>"
-            )
-        else:
-            blocks: list[str] = []
-            for identity, entries in sorted(contributions.items()):
-                renders.append(f"ledger/{identity}.json")
-                rows = "".join(self._ledger_row(e) for e in entries)
-                blocks.append(
-                    f"<h2>{esc(identity)}</h2>"
-                    f'<table class="ledger"><tr><th>Line</th><th>Node</th><th>Artifact</th>'
-                    f"<th>Merged</th><th>Tooling</th></tr>{rows}</table>"
-                )
-            ledger = "".join(blocks)
-        body = _template("contributors.html").substitute(ledger=ledger)
-        return self.page("Contributors", body, renders=renders, path="/contributors/")
+        renders = [f"ledger/{identity}.json" for identity in sorted(contributions)]
+        body = _template("contributors.html").substitute(
+            stewards=self.contributors_stewards(),
+            people=self.people_section(contributions),
+            ledger=self.ledger_section(contributions),
+        )
+        script = '<script src="/contributors.js"></script>' if contributions else ""
+        return self.page(
+            "Contributors", body, renders=renders, path="/contributors/", script=script
+        )
 
-    def _ledger_row(self, entry: dict[str, Any]) -> str:
+    def is_test_identity(self, identity: str) -> bool:
+        return any(fnmatch.fnmatchcase(identity, p) for p in self.test_identities)
+
+    def contributors_stewards(self) -> str:
+        """R10: each steward once, from the records the problem pages read, with every problem they
+        hold and its stage mark, and how and when they were admitted to each."""
+        held: dict[str, list[tuple[TargetView, dict[str, Any]]]] = {}
+        for _tid, tv in sorted(self.site.targets.items()):
+            for s in tv.stewards:
+                held.setdefault(str(s["login"]), []).append((tv, s))
+        cards = []
+        for login, rows in sorted(held.items(), key=lambda kv: kv[0].casefold()):
+            first = rows[0][1]
+            problems = "".join(
+                f'<li><a class="mono" href="{esc(self.target_path(tv.target_id))}">'
+                f"{esc(tv.target_id)}</a>{self.stage_mark(tv)}"
+                f'<span class="muted">{self.admitted(tv, s).strip()}'
+                + (f" · since {esc(str(s['since']))}" if s.get("since") else "")
+                + "</span></li>"
+                for tv, s in rows
+            )
+            cards.append(
+                f'<article class="steward-card" data-steward="{esc(login)}">'
+                f"<h3>{self.steward_link(first)}</h3>"
+                f'<p class="muted">GitHub · <code>{esc(login)}</code></p>'
+                f'<ul class="held">{problems}</ul></article>'
+            )
+        n = len(self.needs_steward())
+        need = (
+            '<article class="steward-card need">'
+            f"<h3>{n} problem{'' if n == 1 else 's'} need a steward</h3>"
+            "<p>No Lean needed. Sign in with GitHub, tick one box, and your name goes on the "
+            'problem.</p><p><a href="/steward/">Steward a problem →</a></p></article>'
+            if n
+            else ""
+        )
+        if not cards:
+            cards.append('<p class="cue">No problem has a steward yet.</p>')
+        return f'<div class="steward-cards">{"".join(cards)}{need}</div>'
+
+    def people_section(self, contributions: dict[str, list[dict[str, Any]]]) -> str:
+        """R10, R11: one card per operator, newest activity first. Until operator records group
+        identities (F34-T14), each identity is its own operator."""
+        cards = []
+        for identity, entries in contributions.items():
+            dates = [str(e.get("date", ""))[:10] for e in entries]
+            cards.append((max(dates, default=""), identity, entries))
+        cards.sort(key=lambda c: (c[0], c[1]), reverse=True)
+        shown = [self.person_card(identity, entries, last) for last, identity, entries in cards]
+        if not shown:
+            return (
+                "<p>No ledger files exist yet: nothing has been credited. The first merged proof "
+                "and the first postmortem will start the ledger.</p>"
+            )
+        tests = sum(1 for _l, identity, _e in cards if self.is_test_identity(identity))
+        toggle = (
+            '<p class="people-tools" data-tools hidden><label><input type="checkbox" '
+            f"data-show-tests> Show test runs ({tests})</label></p>"
+            if tests
+            else ""
+        )
+        return f'{toggle}<div class="people">{"".join(shown)}</div>'
+
+    def person_card(self, identity: str, entries: list[dict[str, Any]], last: str) -> str:
+        """R11: a sentence of counts by ledger line, the tools, the problems, the identities."""
+        test = self.is_test_identity(identity)
+        live = [e for e in entries if e.get("status") != "revoked"]
+        tally = {"proof": 0, "partial": 0, "statement": 0, "attempts": 0, "other": 0}
+        for e in live:
+            line = str(e.get("line", ""))
+            if line == "proof" and str(e.get("artifact", "")).endswith(PARTIAL_SUFFIX):
+                tally["partial"] += 1
+            elif line in tally:
+                tally[line] += 1
+            else:
+                tally["other"] += 1
+        words = []
+        for key, one, many in (
+            ("proof", "proof", "proofs"),
+            ("partial", "partial proof", "partial proofs"),
+            ("statement", "statement", "statements"),
+            ("attempts", "failed attempt kept", "failed attempts kept"),
+            ("other", "other contribution", "other contributions"),
+        ):
+            if tally[key]:
+                words.append(f"{tally[key]} {one if tally[key] == 1 else many}")
+        targets = sorted({str(e.get("target", "")) for e in live if e.get("target")})
+        sentence = (
+            (", ".join(words[:-1]) + " and " + words[-1] if len(words) > 1 else words[0])
+            if words
+            else "Nothing credited now"
+        ) + f", on {len(targets)} problem{'' if len(targets) == 1 else 's'}."
+        models: dict[str, int] = {}
+        frameworks: dict[str, int] = {}
+        for e in live:
+            a = e.get("automation") or {}
+            for m in a.get("models") or []:
+                key = canonical_model(str(m))
+                models[key] = models.get(key, 0) + 1
+            if a.get("framework"):
+                key = canonical_framework(str(a["framework"]))
+                frameworks[key] = frameworks.get(key, 0) + 1
+        chips = "".join(
+            f'<span class="chip-tool">{esc(name)} · {n}</span>'
+            for name, n in sorted({**frameworks, **models}.items(), key=lambda kv: kv[0].casefold())
+        )
+        tools = (
+            f'<p class="kicker">Tools used — agents are tools, the person is credited</p>'
+            f'<p class="tools">{chips}</p>'
+            if chips
+            else ""
+        )
+        worked = " ".join(
+            f'<a class="mono" href="{esc(self.target_path(tid))}">{esc(tid)}</a>'
+            for tid in targets
+            if tid in self.site.targets
+        )
+        hidden = ' data-test="1" hidden' if test else ""
+        return (
+            f'<article class="person" data-operator="{esc(identity)}" data-last="{esc(last)}"'
+            f"{hidden}><h3>{esc(identity)}</h3>"
+            f'<p class="muted">active to {esc(last)}' + (" · a test run" if test else "") + "</p>"
+            f'<p class="tally">{esc(sentence)}</p>{tools}'
+            + (f'<p class="kicker">Worked on</p><p class="worked">{worked}</p>' if worked else "")
+            + "</article>"
+        )
+
+    def ledger_section(self, contributions: dict[str, list[dict[str, Any]]]) -> str:
+        """R10: every entry, in a closed fold: date, identity, line, statement, artifact, models;
+        a revoked entry stays listed and says so (D-18). The script searches and pages it."""
+        rows = []
+        for identity, entries in sorted(contributions.items()):
+            for e in entries:
+                rows.append((str(e.get("date", "")), identity, e))
+        rows.sort(key=lambda r: (r[0], r[1]), reverse=True)
+        body = "".join(self._ledger_row(identity, e) for _d, identity, e in rows)
+        return (
+            '<details class="ledger-fold"><summary><span class="ledger-title">The full ledger'
+            f'</span> <span class="muted">{len(rows)} entries · one per contribution, each linked '
+            "to what earned it · revoked entries stay listed</span></summary>"
+            '<p class="ledger-tools"><label>Search the ledger <input class="input" type="search" '
+            'name="ledger-q" placeholder="identity, statement, model"></label></p>'
+            '<div class="table-wrap"><table class="ledger"><thead><tr><th>Date</th>'
+            "<th>Identity</th><th>Line</th><th>Statement</th><th>Artifact</th><th>Models</th>"
+            f"</tr></thead><tbody>{body}</tbody></table></div></details>"
+        )
+
+    def _ledger_row(self, identity: str, entry: dict[str, Any]) -> str:
         """One ledger entry. A revoked entry stays listed and says so (D-18)."""
         target, node = str(entry.get("target", "")), str(entry.get("node", ""))
         artifact = str(entry.get("artifact", ""))
@@ -5813,12 +5972,15 @@ class Renderer:
             line = "partial proof"
         if revoked:
             line += ' <span class="status status-revoked">revoked</span>'
+        models = ", ".join(
+            canonical_model(str(m)) for m in ((entry.get("automation") or {}).get("models") or [])
+        ) or str(entry.get("tooling", "undeclared"))  # escaped once, in the cell below
         return (
-            f"<tr><td>{line}</td>"
+            f'<tr data-identity="{esc(identity)}"><td>{esc(str(entry.get("date", ""))[:10])}</td>'
+            f"<td>{esc(identity)}</td><td>{line}</td>"
             f"<td>{self.node_link(target, node)}</td>"
             f"<td>{self.file_link(path)}</td>"
-            f"<td>{esc(str(entry.get('date', '')))}</td>"
-            f"<td>{esc(str(entry.get('tooling', 'undeclared')))}</td></tr>"
+            f"<td>{esc(models)}</td></tr>"
         )
 
     def docs(self) -> tuple[str, dict[str, str]]:
@@ -7901,13 +8063,14 @@ def llms_txt(r: Renderer) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_site(
+def render_site(  # noqa: PLR0913 — one keyword per configured part of the site (C6)
     site: Site,
     *,
     repo_url: str,
     decisions_doc: Path | None = DECISIONS_DOC,
     api_url: str | None = None,
     featured_target: str | None = None,
+    test_identities: tuple[str, ...] = DEFAULT_TEST_IDENTITIES,
 ) -> dict[str, str]:
     """Every output file (path relative to the site root -> content)."""
     r = Renderer(
@@ -7916,6 +8079,7 @@ def render_site(
         decisions_doc=decisions_doc,
         api_url=api_url,
         featured_target=featured_target,
+        test_identities=test_identities,
     )
     docs_page, extra = r.docs()
     files: dict[str, str] = {

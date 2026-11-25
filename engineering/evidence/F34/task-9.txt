@@ -1,0 +1,20 @@
+F34-T9 verification: uv run --frozen pytest site/tests/test_f34_contributors.py
+site/tests/test_f34_contributors.py::test_the_page_says_who_is_credited_and_that_nobody_is_ranked PASSED [ 12%]
+site/tests/test_f34_contributors.py::test_stewards_come_first_each_once_with_their_problems PASSED [ 25%]
+site/tests/test_f34_contributors.py::test_one_card_per_person_by_last_activity PASSED [ 37%]
+site/tests/test_f34_contributors.py::test_a_card_counts_in_words_and_lists_tools_and_problems PASSED [ 50%]
+site/tests/test_f34_contributors.py::test_model_names PASSED             [ 62%]
+site/tests/test_f34_contributors.py::test_test_runs_hidden PASSED        [ 75%]
+site/tests/test_f34_contributors.py::test_the_full_ledger_is_folded_and_marks_revoked_entries PASSED [ 87%]
+site/tests/test_f34_contributors.py::test_no_internal_codes PASSED       [100%]
+============================== 8 passed in 1.06s ===============================
+
+Red (task-9-red.txt): all 8 against 8e14abc9's page, the normalisers seamed at identity first.
+
+The live graph (257feba2), /contributors/ before and after (contribheight.py):
+  before: 43,242px at 1440; 148,252px tall and 548px wide at 390; one table per identity, no stewards
+  after:  14,788px at 1440; 40,648px at 390, 390 wide; 3 stewards once each with their problems;
+          139 identity cards (one per identity until operator records, T13-T15), 3 test runs held back;
+          the full ledger (465 entries) folded and searchable
+Found by test_untrusted: an entry with no automation block showed its tooling string escaped twice; fixed.
+Site suite: 970 passed.

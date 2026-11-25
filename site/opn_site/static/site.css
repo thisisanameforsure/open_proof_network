@@ -1435,3 +1435,37 @@ table.waiting .wstmt { overflow-wrap: anywhere; }
 }
 /* F34-T8: a code or a route is read whole, never broken at its hyphens */
 .errors-ref td:first-child code, .routes-ref td code { white-space: nowrap; }
+
+/* — F34-T9 (R10-R12): Contributors — stewards, people with their tools, the folded ledger — */
+.contributors-head .lead { max-width: 640px; font-size: 19px; }
+.contrib-section { margin-top: calc(var(--s8) * 2); }
+.section-lead { color: var(--muted); max-width: 70ch; }
+.steward-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.steward-card, .person { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px 24px; min-width: 0; }
+.steward-card h3, .person h3 { font-size: 20px; margin: 0 0 4px; overflow-wrap: anywhere; }
+.steward-card .held { list-style: none; padding: 0; margin: 12px 0 0; border-top: 1px solid var(--rule); }
+.steward-card .held li { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; }
+.steward-card .held .muted { flex: 1 1 100%; font-size: 13px; }
+.steward-card.need { border-style: dashed; grid-column: 1 / -1; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.person[hidden] { display: none; }
+.person .tally { font-size: 17px; margin: 10px 0; }
+.person .muted { font-family: var(--sans); font-size: 13.5px; }
+.person .kicker { font-family: var(--sans); font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
+.person .tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.chip-tool { font-family: var(--mono); font-size: 13px; background: var(--tint); border-radius: var(--radius); padding: 3px 8px; }
+.person .worked { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; font-size: 14px; }
+.people-tools { font-family: var(--sans); font-size: 14px; }
+.people-tools[hidden] { display: none; }
+.ledger-fold { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 18px 24px; }
+.ledger-fold summary { cursor: pointer; }
+.ledger-fold .ledger-title { font-family: var(--serif); font-size: 26px; }
+.ledger-fold .muted { font-family: var(--sans); font-size: 14px; }
+.ledger-tools { font-family: var(--sans); font-size: 14px; margin: 16px 0; }
+table.ledger { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.ledger th { text-align: left; font-family: var(--sans); font-weight: 500; font-size: 13px; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--rule); }
+table.ledger td { padding: 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.ledger tr[hidden] { display: none; }
+@media (max-width: 700px) {
+  .steward-cards, .people { grid-template-columns: minmax(0, 1fr); }
+}
