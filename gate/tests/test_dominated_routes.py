@@ -76,6 +76,44 @@ def test_domination_is_judged_across_the_whole_target() -> None:
     assert d.statements == frozenset({"y", "z"})
 
 
+def test_proving_the_extra_work_offers_the_route_again() -> None:
+    """Nothing is recorded: once ``t--h2--h1`` and ``t--h2--h2`` are proved, ``t--h2@2`` needs
+    no more than ``t--h2@1`` (a tie), so the next read offers it again."""
+    g = strictly_more()
+    assert routes.dominated(g).routes == frozenset({"t--h2@2"})
+    for n in g["nodes"]:
+        if n["node_id"] in ("t--h2--h1", "t--h2--h2"):
+            n["status"] = "proved"
+    assert routes.dominated(g).routes == frozenset()
+    assert len(routes.read(g).sets) == 2
+
+
+def test_a_new_route_elsewhere_offers_it_again() -> None:
+    """``b@2`` is dominated only because the root needs ``x`` through ``a`` anyway. A new route
+    of ``a`` that does not need ``x`` (a merged partial, read at the next render) makes
+    ``{w, y, z}`` a way that needs no ``x``, so ``b@2`` is offered again."""
+    before = doc(
+        node("t", deps=["a", "b"], decompositions=[["a", "b"]]),
+        node("a", deps=["x"], decompositions=[["x"]]),
+        node("b", deps=["x", "y", "z"], decompositions=[["x"], ["y", "z"]]),
+        node("x"),
+        node("y"),
+        node("z"),
+    )
+    assert routes.dominated(before).routes == frozenset({"b@2"})
+    g = doc(
+        node("t", deps=["a", "b"], decompositions=[["a", "b"]]),
+        node("a", deps=["x", "w"], decompositions=[["x"], ["w"]]),
+        node("b", deps=["x", "y", "z"], decompositions=[["x"], ["y", "z"]]),
+        node("x"),
+        node("y"),
+        node("z"),
+        hole("w"),
+    )
+    assert routes.dominated(g).routes == frozenset()
+    assert ["w", "y", "z"] in open_sets(routes.read(g))
+
+
 def test_sets_that_need_different_statements_are_both_offered() -> None:
     g = doc(
         node("t", deps=["a", "b", "c"], decompositions=[["a", "b"], ["c"]]),

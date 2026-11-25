@@ -52,3 +52,20 @@ frontier wiring removed from products.py: test_the_frontier_omits_a_dominated_st
 
 == verification command ==
 71 passed in 1.27s
+
+== every live target (graph b138a405cf, 2026-11-25; the owner asked whether the other problems were covered) ==
+458 targets read by routes.read and routes.dominated in 0.1 s together (slowest erdos-1094, 0.01 s), so
+the rule adds nothing measurable to a render. erdos-1094 is the only target where it changes anything:
+46 sets -> 4, 35 routes and 60 statements (9 proved) not offered. The multi-route targets were checked by
+hand so an empty answer could not be a misread accessor: erdos-257 12 sets (2 proving, 10 refuting) before
+and after, erdos-68 2 and 2, erdos-402 2 and 2, erdos-849 2 and 2; none of their alternatives contains
+another. No target's enumeration was cut short.
+
+== new holes and routes ==
+Nothing is recorded: every reader derives domination from graph.json as it is read — the products at
+every render (so every merge, including the holes a post-merge job writes), the site build, the MCP
+read and the claim check. test_the_frontier_omits_a_dominated_statement renders, merges a second
+partial, renders again. Two tests added for the way back, each showing the route dominated first:
+test_proving_the_extra_work_offers_the_route_again (its extra holes proved: a tie, offered) and
+test_a_new_route_elsewhere_offers_it_again (a new route of another node that does not need the shared
+statement makes the dominated route a real alternative). 15 passed.
