@@ -433,25 +433,189 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
     return ordered
 
 
-def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
-    """The content with its ``import Defs.*`` lines removed and the definitions' sources placed
-    after its remaining header, where a module's own declarations would begin."""
-    if not defs:
-        return content
-    inlined = {module for module, _ in defs}
-    lines = [
-        line
-        for line in content.splitlines(keepends=True)
-        if not (
-            line.startswith("import ")
-            and (layout.module_origin(line.split()[1])[0] == "defs" or line.split()[1] in inlined)
-        )
-    ]
-    last_import = max((i for i, line in enumerate(lines) if line.startswith("import ")), default=-1)
-    block = "".join(
-        f"\n-- inlined by the network from {module} (F13-R5)\n{src}\n" for module, src in defs
+#: A command that opens or closes a scope, read on a line of ``lean_mask``'s output (comments and
+#: strings blanked): attributes and modifiers, then ``namespace``, ``section``, ``end`` or
+#: ``mutual``, and the name it gives (none for an anonymous section, a bare ``end``, ``mutual``).
+SCOPE_RE = re.compile(
+    r"^[ \t]*(?:@\[[^\]\n]*\][ \t]*)*(?:(?:public|private|protected|noncomputable)[ \t]+)*"
+    r"(?P<kw>namespace|section|end|mutual)(?![\w.'!?])[ \t]*(?P<name>[^\s]*)"
+)
+
+
+def scope_closers(source: str) -> str:
+    """mcpfix WB1 (testers 2026-11-25, t883 item 3): the ``end`` lines that close every scope
+    ``source`` leaves open, innermost first, each closed by the name it was opened with
+    (``namespace A.B`` by ``end A.B``, an anonymous or ``noncomputable section`` by ``end``).
+
+    In a module's own file Lean closes them at the end of the file; pasted before another module
+    or the caller's text, they would put everything after them inside the namespace, under its
+    ``variable``s and ``open``s. Read one line at a time over ``lean_mask``, so a scope word in a
+    comment or a string is not a command. ``namespace A.B`` opens two scopes and ``end B`` closes
+    one of them, as Lean counts them; a ``variable`` or scoped notation declared inside stays
+    local to the scope, as it was in its own file."""
+    mask, _ = lean_mask(source)
+    stack: list[tuple[str, str, int]] = []  # (kind, name component, the command that opened it)
+    for number, line in enumerate(mask.splitlines()):
+        found = SCOPE_RE.match(line)
+        if found is None:
+            continue
+        kw, name = found.group("kw"), found.group("name")
+        if kw == "end":
+            for _ in range(len(name.split(".")) if name else 1):
+                if stack:
+                    stack.pop()
+        elif kw == "mutual":
+            stack.append(("mutual", "", number))
+        elif kw == "namespace" and name:
+            stack += [("namespace", part, number) for part in name.split(".")]
+        elif kw == "section":
+            stack += (
+                [("section", part, number) for part in name.split(".")]
+                if name
+                else [("section", "", number)]
+            )
+    closers: list[str] = []
+    while stack:
+        _, _, opened = stack[-1]
+        parts: list[str] = []
+        while stack and stack[-1][2] == opened:
+            parts.insert(0, stack.pop()[1])
+        name = ".".join(p for p in parts if p)
+        closers.append(f"end {name}\n" if name else "end\n")
+    return "".join(closers)
+
+
+@dataclass(frozen=True)
+class Origin:
+    """mcpfix WB1 (testers 2026-11-25, L4): where one line of the text sent to the checker came
+    from. ``label`` names the text a position is reported in (``-`` for the caller's ``content``,
+    ``statement`` for the node's or the sent statement); ``line`` is the line in that text, or
+    ``None`` for text the network wrote (``what`` says which). An inlined module's line carries
+    its ``module`` and ``module_line``, and ``line`` is then the import line in ``label`` that
+    pulled it in (``None`` when none of the text's own imports did)."""
+
+    label: str
+    line: int | None
+    module: str | None = None
+    module_line: int | None = None
+    what: str | None = None
+
+    def at(self, k: int) -> Origin:
+        """The origin of the ``k``-th line after this one (0 is this one) in the same text."""
+        if self.module is not None and self.module_line is not None:
+            return replace(self, module_line=self.module_line + k)
+        if self.module is None and self.line is not None:
+            return replace(self, line=self.line + k)
+        return self
+
+
+@dataclass(frozen=True)
+class Composed:
+    """A text sent to the checker and each of its lines' ``Origin``."""
+
+    text: str
+    origins: tuple[Origin, ...]
+
+    def origin(self, line: int) -> Origin | None:
+        return self.origins[line - 1] if 1 <= line <= len(self.origins) else None
+
+
+class _Builder:
+    """Concatenates pieces of text, recording each new line's origin: one ``Origin`` for every
+    line of a piece, or ``Origin.at(k)``'s for its ``k``-th line when ``numbered``. A piece that
+    continues an unterminated line keeps that line's origin."""
+
+    def __init__(self) -> None:
+        self.parts: list[str] = []
+        self.origins: list[Origin] = []
+        self.mid = False
+
+    def add(self, piece: str, origin: Origin, *, numbered: bool = False) -> None:
+        if not piece:
+            return
+        segments = piece.split("\n")
+        for k, segment in enumerate(segments):
+            if k == len(segments) - 1 and segment == "":
+                break
+            if not (k == 0 and self.mid):
+                self.origins.append(origin.at(k) if numbered else origin)
+        self.mid = not piece.endswith("\n")
+        self.parts.append(piece)
+
+    def extend(self, composed: Composed) -> None:
+        for k, line in enumerate(composed.text.splitlines(keepends=True)):
+            self.add(line, composed.origin(k + 1) or network("composed text"))
+
+    def build(self) -> Composed:
+        return Composed("".join(self.parts), tuple(self.origins))
+
+
+def network(what: str) -> Origin:
+    return Origin("network", None, what=what)
+
+
+def plain(text: str, label: str = "-", first: int = 1) -> Composed:
+    """``text`` as one label's own lines, ``first`` being the number of its first line."""
+    count = len(text.splitlines())
+    return Composed(text, tuple(Origin(label, first + k) for k in range(count)))
+
+
+def _is_inlined_import(line: str, inlined: set[str]) -> bool:
+    return line.startswith("import ") and (
+        layout.module_origin(line.split()[1])[0] == "defs" or line.split()[1] in inlined
     )
-    return "".join(lines[: last_import + 1]) + block + "\n" + "".join(lines[last_import + 1 :])
+
+
+def forward(
+    content: str | Composed,
+    defs: list[tuple[str, str]],
+    *,
+    label: str = "-",
+    anchors: dict[str, int] | None = None,
+) -> Composed:
+    """The content with its ``import Defs.*`` lines removed and the definitions' sources placed
+    after its remaining header, where a module's own declarations would begin, each followed by
+    the ``end`` lines that close the scopes it left open (``scope_closers``); with each line's
+    origin (mcpfix WB1). ``anchors`` are the import lines that pulled each module in, when the
+    content's own import lines were already blanked (an exhibit); otherwise they are read off
+    the import lines removed here, and a module no import of the content names is anchored to
+    the first of them."""
+    base = plain(content, label) if isinstance(content, str) else content
+    if not defs:
+        return base
+    inlined = {module for module, _ in defs}
+    lines = base.text.splitlines(keepends=True)
+    kept: list[tuple[str, Origin]] = []
+    removed: dict[str, int] = dict(anchors or {})
+    for k, line in enumerate(lines):
+        origin = base.origin(k + 1) or network("composed text")
+        if _is_inlined_import(line, inlined):
+            if origin.line is not None:
+                removed.setdefault(line.split()[1], origin.line)
+            continue
+        kept.append((line, origin))
+    first_anchor = min(removed.values(), default=None)
+    last_import = max(
+        (i for i, (line, _) in enumerate(kept) if line.startswith("import ")), default=-1
+    )
+    b = _Builder()
+    for line, origin in kept[: last_import + 1]:
+        b.add(line, origin)
+    for module, src in defs:
+        anchor = removed.get(module, first_anchor)
+        b.add("\n", network("a blank line before an inlined module"))
+        b.add(f"-- inlined by the network from {module} (F13-R5)\n", Origin(label, anchor, module))
+        b.add(src + "\n", Origin(label, anchor, module, 1), numbered=True)
+        b.add(scope_closers(src), network(f"the end lines closing the scopes {module} left open"))
+    b.add("\n", network("a blank line after the inlined modules"))
+    for line, origin in kept[last_import + 1 :]:
+        b.add(line, origin)
+    return b.build()
+
+
+def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
+    """``forward``'s text: the content with the definitions inlined in place of its imports."""
+    return forward(content, defs).text
 
 
 # --- the lint ------------------------------------------------------------------------------------
