@@ -47,6 +47,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "defect-claim/v2",
         "defect-claim/v3",
         "display-name/v1",  # F25-T1
+        "display-name/v2",  # F34-T13 (D-19 v3.51): the GitHub login
         "drift/v1",
         "exhibit/v1",
         "explainer-signature/v1",
@@ -107,6 +108,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v7",  # F07-T78: restated
         "motion/v1",
         "node-status/v1",
+        "operator/v1",  # F34-T13 (D-19 v3.51): operator records
         "outline/v1",
         "pair-proof/v1",
         "pair/v1",

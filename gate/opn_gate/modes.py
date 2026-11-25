@@ -1366,6 +1366,8 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
             problems.extend(check_withdrawal(graph_root, located, classification, signer=signer))
         elif located.role == "credit-correction":
             problems.extend(check_credit_correction(graph_root, located))
+        elif located.role == "operator-record":
+            problems.extend(check_operator_record(graph_root, located))
         elif located.role == "registration":
             problems.extend(check_registration(graph_root, located, classification, signer=signer))
         elif located.role in REVIEW_RECORD_ROLES:
@@ -3005,6 +3007,27 @@ def _commit_problem(graph_root: Path, commit: str) -> str | None:
     )
 
 
+def _github_unverified(
+    located: Located, doc: dict[str, Any], classification: Classification, curators: Curators
+) -> Diagnostic | None:
+    """F34-T13 (D-19 v3.51 (ii)): only the service knows a pseudonym's pairing, so only it writes
+    the GitHub login; a hand-opened record may carry only the login ``curators.json`` pairs with
+    its pseudonym."""
+    github = doc.get("github")
+    if github is None or classification.by_service:
+        return None
+    pseudonym = str(doc.get("pseudonym"))
+    paired_login = next((login for p, login in curators.identities if p == pseudonym), None)
+    if github == paired_login:
+        return None
+    return Diagnostic(
+        "display-name-github-unverified",
+        f"{located.path}: a display name's GitHub login is written by the service from its own "
+        "record of the pairing, never by hand (D-19 v3.51)",
+        {"path": located.path, "pseudonym": pseudonym, "github": github},
+    )
+
+
 def check_display_name(  # noqa: PLR0911 — one return per rule
     graph_root: Path,
     located: Located,
@@ -3055,6 +3078,9 @@ def check_display_name(  # noqa: PLR0911 — one return per rule
     except CuratorsError:
         curators = Curators()
     paired_to_opener = {p for p, login in curators.identities if login == classification.author}
+    unverified = _github_unverified(located, doc, classification, curators)
+    if unverified is not None:
+        return [unverified]
     if _by_approval_key(doc):
         found = check_approval_signature(graph_root, located, doc, base)
         if found:
@@ -4580,6 +4606,73 @@ def _check_version_withdrawal(
             },
         )
     ]
+
+
+def check_operator_record(graph_root: Path, located: Located) -> list[Diagnostic]:  # noqa: PLR0911
+    """F34-T13 (D-19 v3.51 (i)): an operator record validates, sits in the directory named for its
+    operator, names only identities on the ledger, never the operator itself, and none that another
+    operator's newest record holds. Who may file one is the curator mode's rule; it is append-only
+    like every curator record, and a newer record for the same operator supersedes it."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    operator = str(doc["operator"])
+    directory = PurePosixPath(located.path).parent.name
+    if directory != operator:
+        return [
+            Diagnostic(
+                "operator-record-dir-mismatch",
+                f"{located.path} names operator {operator!r}; an operator record is "
+                f"{paths.OPERATORS_DIR}/{operator}/<timestamp>-<curator>.yaml (F34-T13)",
+                {"path": located.path, "operator": operator},
+            )
+        ]
+    identities = [str(i) for i in doc["identities"]]
+    if operator in identities:
+        return [
+            Diagnostic(
+                "operator-identity-is-operator",
+                f"{located.path} names {operator!r} among its own identities; the operator is the "
+                "person the identities belong to (D-19 v3.51)",
+                {"path": located.path, "operator": operator},
+            )
+        ]
+    unknown = [
+        i for i in identities if not (graph_root / ledger.LEDGER_DIR / f"{i}.json").is_file()
+    ]
+    if unknown:
+        return [
+            Diagnostic(
+                "operator-identity-unknown",
+                f"{located.path} names {', '.join(unknown)}, with no ledger file; an operator "
+                "record groups identities the ledger credits (D-19 v3.51)",
+                {"path": located.path, "identities": unknown},
+            )
+        ]
+    held = {
+        i: other
+        for other, (_p, rec) in ledger.operator_records(graph_root).items()
+        if other != operator
+        for i in rec.get("identities") or []
+        if i in identities
+    }
+    if held:
+        return [
+            Diagnostic(
+                "operator-identity-held",
+                f"{located.path} names {', '.join(sorted(held))}, already another operator's; an "
+                "identity belongs to one operator, and that operator's newer record releases it "
+                "first (D-19 v3.51)",
+                {"path": located.path, "held": held},
+            )
+        ]
+    return []
 
 
 def check_credit_correction(graph_root: Path, located: Located) -> list[Diagnostic]:

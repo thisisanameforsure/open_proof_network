@@ -34,6 +34,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+import yaml
+
 from opn_gate import schemas
 
 SCHEMA = "ledger/v2"  # v2 (F25-R3, D-23 v3.37): automation on every entry
@@ -609,6 +611,45 @@ def apply_correction(graph_root: Path, correction: dict[str, Any], *, target: st
             out["entries"] = [*entries_of(taker), {**found[0], "status": "active"}]
             written.append(write(graph_root, out))
     return written
+
+
+#: F34-T13 (D-19 v3.51): a curator's operator records, one directory per operator.
+OPERATORS_DIR = "operators"
+
+
+def operator_records(graph_root: Path) -> dict[str, tuple[str, dict[str, Any]]]:
+    """The newest operator record for each operator: ``operator -> (path, document)``. Records
+    are named ``<timestamp>-<curator>.yaml``, so the newest is the last by name; an unreadable or
+    invalid record is skipped, never read as a grouping (C7)."""
+    out: dict[str, tuple[str, dict[str, Any]]] = {}
+    root = graph_root / OPERATORS_DIR
+    if not root.is_dir():
+        return out
+    for directory in sorted(p for p in root.iterdir() if p.is_dir()):
+        files = sorted(p for p in directory.iterdir() if p.suffix in (".yaml", ".yml"))
+        for path in reversed(files):
+            try:
+                doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+                schemas.validate(doc, "operator/v1")
+            except (OSError, yaml.YAMLError, schemas.SchemaError):
+                continue
+            if str(doc.get("operator")) != directory.name:
+                continue
+            out[directory.name] = (path.relative_to(graph_root).as_posix(), doc)
+            break
+    return out
+
+
+def operators(graph_root: Path) -> dict[str, str]:
+    """F34-T13 (D-19 v3.51): each identity a curator has named as an operator's, and that
+    operator, read from the newest record per operator; a record with no identities releases
+    them. No ledger file is changed: the grouping is read beside the ledger, never into it."""
+    out: dict[str, str] = {}
+    for operator, (_path, doc) in sorted(operator_records(graph_root).items()):
+        for identity in doc.get("identities") or []:
+            if identity != operator:
+                out.setdefault(str(identity), operator)
+    return out
 
 
 def contributions(graph_root: Path) -> dict[str, list[dict[str, Any]]]:

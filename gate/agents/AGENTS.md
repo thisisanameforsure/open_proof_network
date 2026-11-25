@@ -3028,7 +3028,8 @@ name nowhere yet. A second call while your first pull request is still open is r
 `400 arguments-invalid` naming it; a service without its key is `503 approval-key-missing`; nothing
 opens on a refusal. A record opened by hand is judged by the gate as `display-name` mode:
 `display-name-not-owner`, `display-name-unsigned`, `display-name-stem-mismatch` and
-`display-name-ssh-unpaired` are its refusals.
+`display-name-ssh-unpaired` are its refusals, and `display-name-github-unverified` refuses a
+record that carries a GitHub login the service did not write (D-19 v3.51).
 
 The registration itself is a record on the target, `targets/<id>/registrations/<date>-<n>.yaml`
 (`registration/v1`): the registry (`palomar`), its `registry_id` once issued and `version`, the

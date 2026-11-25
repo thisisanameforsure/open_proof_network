@@ -1,0 +1,28 @@
+F34-T13 verification: uv run --frozen pytest gate/tests/test_f34_operator_record.py (and test_f34_display_github.py)
+gate/tests/test_f34_operator_record.py::test_an_operator_record_is_a_curator_record PASSED [  5%]
+gate/tests/test_f34_operator_record.py::test_an_operator_record_by_anyone_else_is_refused PASSED [ 10%]
+gate/tests/test_f34_operator_record.py::test_a_path_that_is_not_an_operator_record_is_nobodys[operators/thisisanameforsure.yaml] PASSED [ 15%]
+gate/tests/test_f34_operator_record.py::test_a_path_that_is_not_an_operator_record_is_nobodys[operators/thisisanameforsure/sub/x.yaml] PASSED [ 21%]
+gate/tests/test_f34_operator_record.py::test_a_path_that_is_not_an_operator_record_is_nobodys[operators/not a name/20261125T120000Z-founder.yaml] PASSED [ 26%]
+gate/tests/test_f34_operator_record.py::test_the_schema_is_published PASSED [ 31%]
+gate/tests/test_f34_operator_record.py::test_a_record_of_identities_on_the_ledger_passes PASSED [ 36%]
+gate/tests/test_f34_operator_record.py::test_the_directory_names_the_operator PASSED [ 42%]
+gate/tests/test_f34_operator_record.py::test_an_identity_not_on_the_ledger_is_refused PASSED [ 47%]
+gate/tests/test_f34_operator_record.py::test_an_operator_is_not_its_own_identity PASSED [ 52%]
+gate/tests/test_f34_operator_record.py::test_an_identity_held_by_another_operator_is_refused PASSED [ 57%]
+gate/tests/test_f34_operator_record.py::test_a_malformed_record_is_refused PASSED [ 63%]
+gate/tests/test_f34_operator_record.py::test_the_newest_record_for_an_operator_is_the_one_read PASSED [ 68%]
+gate/tests/test_f34_operator_record.py::test_a_record_with_no_identities_releases_them PASSED [ 73%]
+gate/tests/test_f34_operator_record.py::test_a_released_identity_may_be_named_again PASSED [ 78%]
+gate/tests/test_f34_operator_record.py::test_a_graph_without_operator_records_reads_none PASSED [ 84%]
+gate/tests/test_f34_display_github.py::test_the_service_writes_the_github_login PASSED [ 89%]
+gate/tests/test_f34_display_github.py::test_a_curator_may_carry_the_login_the_graph_pairs_with_her PASSED [ 94%]
+gate/tests/test_f34_display_github.py::test_a_hand_written_github_login_is_refused PASSED [100%]
+============================== 19 passed in 0.57s ==============================
+
+Red (task-13-red.txt): 13 of 16 against 46c24bdd+spec; the three that held were 'not a path' cases.
+Decisions v3.51 applied (D-19 operators, D-3 note, meta); PROTOCOL_VERSION 3.51; operator/v1 and display-name/v2
+pinned in HASHES (no existing pin changed); gate golden products regenerated (version, the schema index).
+The guide names display-name-github-unverified: network gate/agents/AGENTS.md, and the graph copy on graph branch
+f34-t13-agents (b416d4089a, unpushed; the owner pushes it with the re-pin). make verify run with OPN_GRAPH_CHECKOUT
+at that branch's worktree.
