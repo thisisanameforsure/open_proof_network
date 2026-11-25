@@ -858,7 +858,8 @@ def lint(
         # mcpfix WB1 (testers 2026-11-25, t257b item 1): a text with sorry is a skeleton, and a
         # partial names its approach, licence and each hole's label and claim (D-12 v3.44). The
         # precheck refuses one that does not; say so here, by the same rule and the same words.
-        missing = labels.problems(content)
+        # Only a text with a `have … := sorry` hole is a skeleton; a bare sorry proof is not.
+        missing = labels.problems(content) if labels.declarations(content).holes else []
         if missing:
             warnings.append(
                 {

@@ -49,3 +49,13 @@ def test_a_labelled_skeleton_and_a_proof_without_sorry_are_quiet() -> None:
     assert "partial-unlabelled" not in [w["code"] for w in lint_of(text)]
     proof = "theorem x : True := by\n  trivial\n"
     assert "partial-unlabelled" not in [w["code"] for w in lint_of(proof)]
+
+
+def test_a_plain_sorry_proof_with_no_holes_is_not_called_a_partial() -> None:
+    """Lead's ruling at the merge (mcpfix 2026-11-25): an unfinished proof whose body is a bare
+    sorry has no `have … := sorry` hole, so it is not a skeleton and is not told it lacks an
+    approach and a licence; sorry-present alone says what is wrong."""
+    text = "theorem t : 1 + 1 = 2 := by\n  sorry\n"
+    codes = [w["code"] for w in lint_of(text)]
+    assert "sorry-present" in codes
+    assert "partial-unlabelled" not in codes

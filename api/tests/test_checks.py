@@ -106,13 +106,8 @@ def test_each_gate_gap_is_warned() -> None:
     r = post(h, {"target_id": TARGET, "node_id": NODE, "content": content})
     assert r.status_code == 200, r.text
     lint = r.json()["lint"]
-    # mcpfix WB1: a text with sorry is also read as a partial, whose comments it lacks
-    assert [w["code"] for w in lint] == [
-        "imports-differ",
-        "helper-declarations",
-        "sorry-present",
-        "partial-unlabelled",
-    ]
+    # mcpfix (lead, 2026-11-25): a bare sorry has no hole, so it is not read as a partial
+    assert [w["code"] for w in lint] == ["imports-differ", "helper-declarations", "sorry-present"]
     assert (lint[0]["expected"], lint[0]["got"]) == ([], ["Mathlib"])
     assert lint[1]["declarations"] == ["lemma helper"]
     assert h.axle.calls[-1].content == content
@@ -130,7 +125,7 @@ def test_each_gate_gap_is_warned() -> None:
     assert r.json()["lint"] == [], r.text
 
     r = post(h, {"target_id": TARGET, "content": content})  # no node: nothing to compare against
-    assert [w["code"] for w in r.json()["lint"]] == ["sorry-present", "partial-unlabelled"]
+    assert [w["code"] for w in r.json()["lint"]] == ["sorry-present"]
 
 
 def test_defs_are_inlined() -> None:
@@ -314,7 +309,7 @@ def test_log_readable_only_by_owner(caplog: pytest.LogCaptureFixture) -> None:
         False,
     )
     assert (record["error_count"], record["axle_request_id"]) == (2, "req-42")
-    assert record["lint"] == ["sorry-present", "partial-unlabelled"]  # mcpfix WB1
+    assert record["lint"] == ["sorry-present"]  # a bare sorry is not a partial (mcpfix lead)
     assert record["environment"] == "lean-4.33.1"
 
     bob = h.token_for("code_bob", "bob")
