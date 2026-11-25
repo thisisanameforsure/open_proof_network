@@ -1304,6 +1304,8 @@ class Renderer:
         self.cited = cited_urls(site)
         #: F04-T27: the steward rule's sentences, as the record enforces it or announces it.
         self.words = wording(site.steward_rule_enforced)
+        #: F34-T5: each target's ledger entries and newest date, read once (``activity``).
+        self._activity: dict[str, tuple[int, str | None]] | None = None
 
     # -- links -------------------------------------------------------------------------------
 
@@ -2137,42 +2139,50 @@ class Renderer:
     # -- the Problems page: Targets and Frontier merged (F04-T12, Q14) -------------------------
 
     def problems(self) -> str:
+        """F34-T5 (R7): the problems with work on the record, then the ones waiting for a first
+        steward. No stat row (handoff §6: "Open 602" counted statements beside problems); every
+        row in the HTML, filtered, sorted and paged by ``problems.js`` from its ``data-``
+        attributes, each filter a URL parameter."""
         targets = [tv for _tid, tv in sorted(self.site.targets.items())]
-        # F04-T63 (Q61): grouped by topic — each problem once, under its first domain tag — with
-        # the topics in the order of their words; a filter that empties a topic hides its heading.
-        groups: dict[str, list[TargetView]] = {}
+        worked = [tv for tv in targets if self.has_work(tv)]
+        waiting = [tv for tv in targets if not self.has_work(tv)]
+        worked.sort(key=lambda tv: self.activity(tv)[1] or "", reverse=True)
+        areas: dict[str, int] = {}
         for tv in targets:
-            groups.setdefault(topic_of(tv.record), []).append(tv)
-        cards = "".join(
-            f'<section class="topic" data-topic="{esc(tag)}" id="topic-{esc(tag)}">'
-            f'<h2 class="topic-head">{esc(topic_words(tag))} <span class="n">{len(tvs)}</span></h2>'
-            + "".join(self.problem_card(tv) for tv in tvs)
-            + "</section>"
-            for tag, tvs in sorted(groups.items(), key=lambda kv: topic_words(kv[0]))
+            areas[topic_of(tv.record)] = areas.get(topic_of(tv.record), 0) + 1
+        chips = (
+            '<button type="button" class="chip" data-area="" aria-pressed="true">'
+            f'All <span class="n">{len(targets)}</span></button>'
+            + "".join(
+                f'<button type="button" class="chip" data-area="{esc(tag)}" aria-pressed="false">'
+                f'{esc(topic_words(tag))} <span class="n">{n}</span></button>'
+                for tag, n in sorted(areas.items(), key=lambda kv: (-kv[1], topic_words(kv[0])))
+            )
         )
-        if not cards:
-            cards = '<p class="cue">No problems are listed yet.</p>'
-        legend = "".join(self.term(k, dot=k in DOTTED_KEYS) for k in LEGEND_KEYS)
-        legend_list = "".join(
-            f"<dt>{esc(self.words['by_key'][k][0])}</dt><dd>{esc(self.words['by_key'][k][1])}</dd>"
-            for k in LEGEND_KEYS
-        )
-        open_statements = sum(self.open_count(tv) for tv in targets)
-        # F04-T31: the "Proved" segment filters ``data-status="proved"``; count the same set.
-        proved = sum(1 for tv in targets if self.problem_status(tv) == "proved")
-        # F21-T7 (R9): the "Needs words" segment filters ``data-words > 0``; count the same set.
         needs_words = sum(1 for tv in targets if tv.words_needed)
+        if needs_words:  # F21-R9: the problems with a Lean file or proof that has no words yet
+            chips += (
+                '<button type="button" class="chip chip-flag" data-flag="words" '
+                f'aria-pressed="false">Needs words <span class="n">{needs_words}</span></button>'
+            )
         body = _template("problems.html").substitute(
-            cards=cards,
-            legend=legend,
-            legend_list=legend_list,
-            total=len(targets),
-            open_statements=open_statements,
-            proved=proved,
-            needs_words=needs_words,
+            chips=chips,
+            worked="".join(self.problem_row(tv) for tv in worked)
+            or (
+                '<p class="cue">No problems are listed yet.</p>'
+                if not targets
+                else '<p class="cue">No problem has work on the record yet.</p>'
+            ),
+            worked_n=len(worked),
+            worked_noun="problem" if len(worked) == 1 else "problems",
+            waiting_noun="problem" if len(waiting) == 1 else "problems",
+            waiting="".join(self.waiting_row(tv) for tv in waiting),
+            waiting_n=len(waiting),
+            proposal_url=esc(self.proposal_url),
             claims_note=self.claims_note(),
-            needs_steward=self.needs_steward_link(),
-            needs_steward_n=len(self.needs_steward()),
+            # the steward rule, in force or announced (F04-T27), defined where the filter is
+            steward_term=self.term("steward", label="Steward"),
+            needs_steward=self.needs_steward_link(),  # F23-R5: the link and its count
         )
         return self.page(
             "Problems",
@@ -2181,6 +2191,130 @@ class Renderer:
             path=PROBLEMS_PATH,
             head=MATH_HEAD,
             script=MATH_SCRIPTS + '<script src="/problems.js"></script>',
+        )
+
+    def activity(self, tv: TargetView) -> tuple[int, str | None]:
+        """F34-T5 (Q19): the ledger entries on a problem and the date of the newest, the
+        contributions a row counts and the activity it is sorted by."""
+        if self._activity is None:
+            seen: dict[str, tuple[int, str | None]] = {}
+            for entries in ledgermod.contributions(self.site.root).values():
+                for e in entries:
+                    tid = str(e.get("target", ""))
+                    n, last = seen.get(tid, (0, None))
+                    date = str(e.get("date", ""))[:10] or None
+                    seen[tid] = (n + 1, max(filter(None, (last, date)), default=None))
+            self._activity = seen
+        return self._activity.get(tv.target_id, (0, None))
+
+    def has_work(self, tv: TargetView) -> bool:
+        """F34-Q19: "Waiting for a first steward" holds exactly the problems that need one and
+        have nothing on the ledger; every other problem — with work, with a steward, settled, or
+        one that takes no steward (a calibration target, the tutorial) — is listed above it."""
+        settled = str(tv.index_entry["status"]) in ("resolved", "known-result")
+        return settled or not (self.row_steward(tv) == "needs" and not self.activity(tv)[0])
+
+    @staticmethod
+    def proved_count(tv: TargetView) -> int:
+        return sum(1 for n in tv.nodes.values() if n.status == "proved")
+
+    def row_status(self, tv: TargetView) -> str:
+        """``proved`` for a settled problem, ``worked`` for one with ledger entries, else
+        ``notstarted`` — the Status filter's three values."""
+        if str(tv.index_entry["status"]) == "resolved":
+            return "proved"
+        return "worked" if self.activity(tv)[0] else "notstarted"
+
+    def row_steward(self, tv: TargetView) -> str:
+        if tv.stewards:
+            return "has"
+        return "needs" if self.takes_steward(tv) else "none"
+
+    def statement_line(self, tv: TargetView) -> str:
+        """The problem's words: its informal statement (or the paraphrase standing in for it),
+        rendered with its math (R4); the row holds it to three lines."""
+        record = tv.record or {}
+        text = str(record.get("informal") or record.get("paraphrase") or record.get("title") or "")
+        # display math set inline, so the stylesheet can hold the line to its rows (F34-T5)
+        return record_words(" ".join(text.replace("$$", "$").split())) if text else ""
+
+    def row_attrs(self, tv: TargetView) -> str:
+        last = self.activity(tv)[1] or ""
+        attrs = {
+            "id": tv.target_id,
+            "name": tv.target_id,
+            "status": self.problem_status(tv),
+            "stage": self.row_status(tv),
+            "steward": self.row_steward(tv),
+            "area": topic_of(tv.record),
+            "open": str(self.open_count(tv)),
+            "words": "" if tv.words_needed is None else str(len(tv.words_needed)),
+            "last": last,
+        }
+        return " ".join(f'data-{k}="{esc(v)}"' for k, v in attrs.items())
+
+    def stage_mark(self, tv: TargetView) -> str:
+        """F34-T5 (handoff §2.3): proved → explained → written up as three dots on a line, each
+        filled once reached, with the words for a reader who cannot see it."""
+        digestion = tv.digestion or {}
+        state = str(digestion.get("state") or "")
+        resolved = str(tv.index_entry["status"]) == "resolved"
+        reached = (
+            (self.resolution(tv) if resolved else "proved", resolved),
+            ("explained", state in ("explained", "written-up")),
+            ("written up", state == "written-up"),
+        )
+        words = " · ".join(f"{w}: {'yes' if on else 'not yet'}" for w, on in reached)
+        dots = '<span class="stage-line"></span>'.join(
+            f'<span class="stage-dot{" on" if on else ""}"></span>' for _w, on in reached
+        )
+        return f'<span class="stage-mark" role="img" aria-label="{esc(words)}">{dots}</span>'
+
+    def problem_row(self, tv: TargetView) -> str:
+        """One row of "With work on the record": the id, status (its tag, with the reasons a
+        problem refuses work) and area; one line of the statement; the proved and open statements
+        as a bar that says its numbers; the steward or what the problem needs; contributions and
+        the newest one's date; the stage mark."""
+        tid = tv.target_id
+        proved, open_ = self.proved_count(tv), self.open_count(tv)
+        total = proved + open_
+        n, last = self.activity(tv)
+        noun = "contribution" if n == 1 else "contributions"
+        when = f" · last {esc(last)}" if last else ""
+        collection = collection_label(tv.record)
+        coll = f'<span class="collection">{esc(collection)}</span>' if collection else ""
+        return (
+            f'<article class="prow" {self.row_attrs(tv)}>'
+            '<div class="prow-main"><div class="prow-head">'
+            f'<a class="id" href="{esc(self.target_path(tid))}">{esc(tid)}</a>'
+            f"{self.status_tag(tv)}"
+            f'<span class="area">{esc(topic_words(topic_of(tv.record)))}</span>{coll}'
+            f'</div><p class="prow-stmt">{self.statement_line(tv)}</p></div>'
+            '<div class="prow-bar">'
+            f'<progress max="{max(total, 1)}" value="{proved}" '
+            f'aria-label="{proved} of {total} statements proved"></progress>'
+            f'<span class="bar-label">{proved} proved · {open_} open</span></div>'
+            f'<div class="prow-side">{self.steward_words(tv)}{self.words_line(tv)}'
+            f'<span class="muted">{n} {noun}{when}</span>{self.stage_mark(tv)}</div>'
+            "</article>"
+        )
+
+    def waiting_row(self, tv: TargetView) -> str:
+        tid = tv.target_id
+        collection = collection_label(tv.record)
+        coll = f'<span class="collection">{esc(collection)}</span>' if collection else ""
+        action = (
+            f'<a href="{esc(self.steward_path(tid))}">Steward this</a>'
+            if self.takes_steward(tv)
+            else ""
+        )
+        return (
+            f"<tr {self.row_attrs(tv)}>"
+            f'<td class="wid"><a href="{esc(self.target_path(tid))}">{esc(tid)}</a>'
+            f"{self.status_tag(tv)}</td>"
+            f'<td class="wstmt"><span class="clamp">{self.statement_line(tv)}</span></td>'
+            f'<td class="warea">{esc(topic_words(topic_of(tv.record)))}{coll}</td>'
+            f'<td class="wact">{action}{self.words_line(tv)}</td></tr>'
         )
 
     def problem_card(self, tv: TargetView) -> str:
@@ -4325,6 +4459,14 @@ class Renderer:
             key, words = "self", "self-admitted"
         elif how == ADMITTED_BY_CURATOR:
             key, words = "curator", "admitted by curator"
+        elif how.startswith("motion:"):
+            # F34-T5 (R6): the panel's invitation (F24), in words; the motion's number stays on
+            # the element for anyone who follows the record, never in the sentence
+            n = how.removeprefix("motion:")
+            return (
+                f' <span class="admitted" data-admitted="panel" data-motion="{esc(n)}">'
+                "invited by the panel</span>"
+            )
         else:
             key, words = "reviewed", f"admitted by {how}"
         return f' <span class="admitted" data-admitted="{key}">{esc(words)}</span>'

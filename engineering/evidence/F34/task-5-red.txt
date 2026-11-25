@@ -1,0 +1,6 @@
+FAILED site/tests/test_f34_problems.py::test_no_stat_row
+FAILED site/tests/test_f34_problems.py::test_every_problem_appears_once_in_one_section
+FAILED site/tests/test_f34_problems.py::test_worked_problems_come_first_newest_activity_first
+FAILED site/tests/test_f34_problems.py::test_waiting_problems_are_table_rows_with_a_steward_link
+FAILED site/tests/test_f34_problems.py::test_the_filters_are_controls_named_for_their_url_parameters
+5 failed, 3 passed in 1.22s

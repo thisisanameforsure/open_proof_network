@@ -26,6 +26,7 @@ from pathlib import Path
 import pytest
 from fixture import LISTED_ROOT, LISTED_TARGET
 from fixture import build_with_frozen_target as build_with_listed_target  # F14-R1, see above
+from problem_rows import problem_row
 
 from opn_gate import intake
 from opn_site import model, render
@@ -47,10 +48,7 @@ def listed(tmp_path_factory: pytest.TempPathFactory) -> tuple[list[str], dict[st
 
 
 def _card(page: str, target_id: str) -> str:
-    [card] = [
-        c for c in page.split('<article class="card problem"')[1:] if f'id="p-{target_id}"' in c
-    ]
-    return card.split("</article>", 1)[0]
+    return problem_row(page, target_id)  # F34-T5: a row of the Problems page
 
 
 def _status_tag(card: str) -> str:
@@ -88,9 +86,7 @@ def test_the_status_tag_of_a_listed_target_carries_the_reasons(
     assert "Not claimable: " in tag
     for reason in reasons:
         assert render.esc(intake.explain(reason)) in tag, reason
-    assert card.count("Not claimable") == 1
-    rows = card.split('<div class="statements">', 1)[1]
-    assert "Not claimable" not in rows
+    assert card.count("Not claimable") == 1  # once per row: the statements are on its page now
 
 
 # --- edge cases (the card's status tag) --------------------------------------------------------

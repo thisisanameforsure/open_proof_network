@@ -22,6 +22,7 @@ import pytest
 import yaml
 from fixture import COMMIT, LISTED_TARGET, build_with_listed_target
 from harness import TARGET, take_in
+from problem_rows import problem_row
 
 from opn_site import model, render
 
@@ -77,50 +78,38 @@ def problems(built: Path) -> str:
     return pages["problems/index.html"]
 
 
-def topics(page: str) -> list[tuple[str, list[str]]]:
-    """Each topic section in page order with the ids of the cards inside it."""
-    out = []
-    for m in re.finditer(
-        r'<section class="topic" data-topic="([^"]+)"[^>]*>(.*?)</section>', page, re.S
-    ):
-        out.append(
-            (
-                m.group(1),
-                re.findall(r'<article class="card problem"[^>]*id="p-([^"]+)"', m.group(2)),
-            )
-        )
-    return out
+def areas(page: str) -> dict[str, str]:
+    """F34-T5: each problem's area, from its row's ``data-area``."""
+    return dict(
+        re.findall(r'<(?:article|tr)\b[^>]*data-id="([^"]+)"[^>]*data-area="([^"]+)"', page)
+    )
 
 
 def test_every_problem_sits_once_under_its_first_domain(problems: str) -> None:
-    groups = topics(problems)
-    # Topics in the order of their words; a problem with no curated record sits under "Other".
-    assert [t for t, _ in groups] == ["combinatorics", "number-theory", "other"], groups
-    by_topic = dict(groups)
-    assert by_topic["combinatorics"] == [PAPER_TARGET]
-    assert by_topic["number-theory"] == [LISTED_TARGET]
-    assert by_topic["other"] == [TARGET]
-    # Each card exactly once, whatever its second domain says.
-    assert problems.count(f'id="p-{PAPER_TARGET}"') == 1
-    assert re.search(
-        r'<h2 class="topic-head"[^>]*>Combinatorics <span class="n">1</span>', problems
-    )
-    assert re.search(
-        r'<h2 class="topic-head"[^>]*>Number theory <span class="n">1</span>', problems
-    )
-    assert re.search(r'<h2 class="topic-head"[^>]*>Other <span class="n">1</span>', problems)
-    # A card knows its topic, so the filter script can hide an emptied heading.
-    assert re.search(
-        rf'<article class="card problem"[^>]*data-topic="combinatorics"[^>]*id="p-{PAPER_TARGET}"',
-        problems,
-    )
+    """F04-T63 (Q61), as F34-T5 carries it: the topic headings became area chips with counts
+    and each row names its area; a problem counts once, under its first domain."""
+    by_row = areas(problems)
+    assert by_row == {
+        PAPER_TARGET: "combinatorics",
+        LISTED_TARGET: "number-theory",
+        TARGET: "other",
+    }, by_row
+    assert problems.count(f'data-id="{PAPER_TARGET}"') == 1
+    for word, tag in (
+        ("Combinatorics", "combinatorics"),
+        ("Number theory", "number-theory"),
+        ("Other", "other"),
+    ):
+        assert re.search(
+            rf'<button[^>]*data-area="{tag}"[^>]*>{word} <span class="n">1</span>', problems
+        ), word
 
 
 def test_a_card_names_the_collection_its_statement_came_from(problems: str) -> None:
-    card = problems.split(f'id="p-{PAPER_TARGET}"', 1)[1].split("</article>", 1)[0]
+    card = problem_row(problems, PAPER_TARGET)
     assert '<span class="collection">Papers</span>' in card
     # The network's own statement names no collection.
-    own = problems.split(f'id="p-{TARGET}"', 1)[1].split("</article>", 1)[0]
+    own = problem_row(problems, TARGET)
     assert 'class="collection"' not in own
 
 

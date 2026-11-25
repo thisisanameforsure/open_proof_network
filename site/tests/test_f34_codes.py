@@ -22,7 +22,7 @@ REPO = "https://github.com/example/graph"
 API = "https://api.example.org"
 CODE = re.compile(r"\bD-\d+\b|\battestation \d{3,}|\bmotion:\d+|\bF\d\d-[TRQ]\d+")
 #: Pages whose visible text carries no code. Each rebuild task of F34 adds its page here.
-CLEAN = ("rules/index.html", "about/index.html")
+CLEAN = ("rules/index.html", "about/index.html", "problems/index.html")  # T5: Problems
 
 
 class _Visible(HTMLParser):
@@ -99,3 +99,12 @@ def test_the_sign_in_pages_say_contributing_needs_no_account(pages: dict[str, st
         note = html[html.index('class="anon-note"') :]
         note = note[: note.index("</p>")]
         assert "no account" in note and render.GUIDE_HREF in note, rel
+
+
+def test_a_steward_invited_by_the_panel_says_so_in_words() -> None:
+    """F34-T5 found it on the live Problems page: "admitted by motion:1" (erdos-257's co-steward).
+    The panel's motion is the record's id for the act; the reader is told who acted."""
+    words = render.Renderer.admitted(None, {"login": "riversupport", "admitted_by": "motion:1"})  # type: ignore[arg-type]
+    assert "invited by the panel" in words
+    assert visible_codes(words) == []
+    assert 'data-motion="1"' in words  # the record's id stays on the element

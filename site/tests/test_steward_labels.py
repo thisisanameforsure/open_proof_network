@@ -24,6 +24,7 @@ from fixture import (
     STEWARDLESS_TARGET,
     build_with_stewards,
 )
+from problem_rows import problem_row
 
 from opn_gate import steward
 from opn_site import model, render
@@ -125,8 +126,7 @@ def test_v1_reads_admitted_by_curator(pages: dict[str, str]) -> None:
 
 def test_the_problem_cards_carry_the_labels(pages: dict[str, str]) -> None:
     listing = pages["problems/index.html"]
-    start = listing.index(f'id="p-{STEWARDLESS_TARGET}"')
-    card = listing[start : listing.index("</article>", start)]
+    card = problem_row(listing, STEWARDLESS_TARGET)  # F34-T5: a row of the Problems page
     assert label_after(card, "Self Steward") == "self-admitted"
     assert label_after(card, "Reviewed Steward") == f"admitted by {CURATOR}"
 

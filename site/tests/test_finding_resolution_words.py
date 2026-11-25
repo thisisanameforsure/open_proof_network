@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 from fixture import COMMIT, RESOLUTIONS, build_with_resolutions
+from problem_rows import problem_row
 
 from opn_gate import graph
 from opn_site import model, render
@@ -41,9 +42,9 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, dict[str, str
 
 
 def card(page: str, tid: str) -> str:
-    """The problem card, from its opening tag (which carries ``data-status``) to its close."""
-    (found,) = [a for a in page.split("<article")[1:] if f'id="p-{tid}"' in a.split(">", 1)[0]]
-    return found.split("</article>", 1)[0]
+    """The problem's row, from its opening tag (which carries ``data-status``) to its close
+    (F34-T5: a row of the Problems page, no longer a card)."""
+    return problem_row(page, tid)
 
 
 def target_page(files: dict[str, str], tid: str) -> str:
@@ -71,8 +72,9 @@ def test_a_problem_settled_against_its_statement_does_not_read_proved(
     c = card(files["problems/index.html"], tid)
     assert f'data-status="{word}"' in c
     assert re.search(rf'<span class="term tag" tabindex="0">{word}<span class="term-card"', c)
-    assert ">Proved</span>" not in c  # the stage mark
-    assert f">{word.capitalize()}</span>" in c
+    # F34-T5: the stage mark is three dots now; its words name the resolution, never "proved"
+    assert 'aria-label="proved: yes' not in c
+    assert f'aria-label="{word}: yes' in c
     page = target_page(files, tid)
     assert "Proved:" not in page and "is proved but not explained" not in page
     assert f"{word.capitalize()}:" in page
@@ -91,18 +93,22 @@ def test_each_resolution_says_what_is_on_the_record(built: tuple[Path, dict[str,
 def test_a_proved_problem_still_reads_proved(built: tuple[Path, dict[str, str]]) -> None:
     _root, files = built
     c = card(files["problems/index.html"], "proved-target")
-    assert 'data-status="proved"' in c and ">Proved</span>" in c
+    assert 'data-status="proved"' in c and "proved: yes" in c  # the stage mark's words
     assert "Proved:" in target_page(files, "proved-target")
 
 
 def test_the_proved_filter_counts_only_proved_problems(built: tuple[Path, dict[str, str]]) -> None:
-    """The Problems page's "Proved" segment filters ``data-status="proved"``; its count must be
-    the same set, not every resolved problem."""
+    """F34-T5: the Status filter's "Proved" keeps ``data-stage="proved"`` (every resolved
+    problem), and the word each row shows stays the resolution's: only a problem proved
+    against its statement reads ``data-status="proved"``. The page prints no count beside the
+    filter (handoff §6), so the two sets are held apart here instead."""
     _root, files = built
     page = files["problems/index.html"]
-    count = re.search(r'data-filter="proved">Proved <span class="n">(\d+)</span>', page)
-    assert count is not None
-    assert int(count.group(1)) == page.count('data-status="proved"')
+    assert 'data-stage="proved"' in page
+    for tid, word in EXPECTED.items():
+        row = card(page, tid)
+        assert 'data-stage="proved"' in row, tid
+        assert f'data-status="{word}"' in row, tid
 
 
 def test_the_site_words_follow_the_products(built: tuple[Path, dict[str, str]]) -> None:

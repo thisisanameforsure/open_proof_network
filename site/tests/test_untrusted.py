@@ -306,13 +306,18 @@ def test_problems_page_free_text_is_escaped(tmp_path: Path) -> None:
         ],
     }
     targets = {**site.targets, TARGET: dataclasses.replace(tv, index_entry=entry)}
-    page = render.Renderer(
+    r = render.Renderer(
         dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
-    ).problems()
+    )
+    page = r.problems()
     _assert_clean(page)
-    assert PAYLOAD not in page and page.count(ESCAPED) == 3
-    assert f'<span class="tag tag-outline">{ESCAPED}</span>' in page
+    # F34-T5: the row carries the reasons and the steward; the fidelity grade's tag is on the
+    # problem's own page (handoff §3.4), checked escaped there below.
+    assert PAYLOAD not in page and page.count(ESCAPED) == 2
     assert f"Not claimable: {ESCAPED}." in page
+    own = r.target(targets[TARGET])
+    _assert_clean(own)
+    assert f'<span class="tag tag-outline">{ESCAPED}</span>' in own
 
 
 # --- the prose renderer's edges (Q2) --------------------------------------------------------------

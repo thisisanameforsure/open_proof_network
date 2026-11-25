@@ -1,102 +1,141 @@
-// Problems filtering (F04-R7, F04-T12): the segmented control and the search box filter the
-// cards and their statement rows client-side; plain JavaScript, same-origin. Without JavaScript
-// the whole list is on the page and the segmented options are links carrying ?filter=.
+// Problems (F34-T5, R7): search, status, steward, sort, area and "needs words", each a URL query
+// parameter so a view can be linked; the waiting table is paged fifty at a time. Plain JavaScript,
+// same-origin. Without it every row is on the page and the controls stay hidden. The old
+// ?filter= links keep working: open, proved, unstewarded and words map onto the new parameters.
 (function () {
   "use strict";
-  var list = document.querySelector(".problem-list");
-  if (!list) { return; }
-  var cards = Array.prototype.slice.call(list.querySelectorAll(".card.problem"));
-  var opts = Array.prototype.slice.call(document.querySelectorAll(".seg-opt[data-filter]"));
-  var search = document.querySelector(".search");
-  var note = document.querySelector(".showing");
-  var total = note ? parseInt(note.getAttribute("data-total"), 10) : cards.length;
-  var filter = (new URLSearchParams(location.search).get("filter") || "all").toLowerCase();
-  if (!opts.some(function (o) { return o.getAttribute("data-filter") === filter; })) { filter = "all"; }
-  var query = "";
-  if (search) { search.hidden = false; }
+  var controls = document.querySelectorAll("[data-filters]");
+  var worked = document.querySelector('[data-section="worked"]');
+  var waiting = document.querySelector('[data-section="waiting"]');
+  if (!worked || !waiting) { return; }
+  var list = worked.querySelector(".prows");
+  var rowsW = Array.prototype.slice.call(worked.querySelectorAll("[data-id]"));
+  var rowsQ = Array.prototype.slice.call(waiting.querySelectorAll("[data-id]"));
+  var table = waiting.querySelector("table.waiting");
+  var pageSize = parseInt((table && table.getAttribute("data-page-size")) || "50", 10);
+  var more = waiting.querySelector("[data-more]");
+  var showing = waiting.querySelector("[data-showing]");
+  var form = {
+    q: document.querySelector('[name="q"]'),
+    status: document.querySelector('[name="status"]'),
+    steward: document.querySelector('[name="steward"]'),
+    sort: document.querySelector('[name="sort"]')
+  };
+  var chips = Array.prototype.slice.call(document.querySelectorAll("button[data-area]"));
+  var wordsChip = document.querySelector("button[data-flag=words]");
+  var SORT_WORDS = { recent: "most recent activity", open: "most statements open", name: "name" };
+  var state = { q: "", status: "", steward: "", sort: "recent", area: "", words: false, open: false };
+  var shownWaiting = pageSize;
 
-  function matchesFilter(card) {
-    var status = card.getAttribute("data-status");
-    if (filter === "open") { return parseInt(card.getAttribute("data-open") || "0", 10) > 0; }
-    if (filter === "proved") { return status === "proved"; }
-    // F23-R5: the same set /steward/ lists, so the filter and the link's count agree.
-    if (filter === "unstewarded") { return card.getAttribute("data-needs-steward") === "1"; }
-    // F21-T7 (R9): a problem with any Lean file or merged proof that has no words yet.
-    if (filter === "words") { return parseInt(card.getAttribute("data-words") || "0", 10) > 0; }
+  function read() {
+    var p = new URLSearchParams(location.search);
+    state.q = p.get("q") || "";
+    state.status = p.get("status") || "";
+    state.steward = p.get("steward") || "";
+    state.sort = p.get("sort") || "recent";
+    state.area = p.get("area") || "";
+    state.words = p.get("words") === "1";
+    state.open = p.get("open") === "1";
+    var legacy = (p.get("filter") || "").toLowerCase();
+    if (legacy === "open") { state.open = true; }
+    if (legacy === "proved") { state.status = "proved"; }
+    if (legacy === "unstewarded") { state.steward = "needs"; }
+    if (legacy === "words") { state.words = true; }
+    if (!SORT_WORDS[state.sort]) { state.sort = "recent"; }
+  }
+
+  function write() {
+    var p = new URLSearchParams();
+    if (state.q) { p.set("q", state.q); }
+    if (state.status) { p.set("status", state.status); }
+    if (state.steward) { p.set("steward", state.steward); }
+    if (state.sort !== "recent") { p.set("sort", state.sort); }
+    if (state.area) { p.set("area", state.area); }
+    if (state.words) { p.set("words", "1"); }
+    if (state.open) { p.set("open", "1"); }
+    var s = p.toString();
+    history.replaceState(null, "", location.pathname + (s ? "?" + s : ""));
+  }
+
+  function matches(row) {
+    var a = function (k) { return row.getAttribute("data-" + k) || ""; };
+    if (state.status && a("stage") !== state.status) { return false; }
+    if (state.steward && a("steward") !== state.steward) { return false; }
+    if (state.area && a("area") !== state.area) { return false; }
+    if (state.words && !(parseInt(a("words") || "0", 10) > 0)) { return false; }
+    if (state.open && !(parseInt(a("open") || "0", 10) > 0)) { return false; }
+    if (state.q) {
+      var q = state.q.toLowerCase();
+      if ((a("id") + " " + row.textContent).toLowerCase().indexOf(q) === -1) { return false; }
+    }
     return true;
   }
 
-  function apply() {
-    var shown = 0;
-    cards.forEach(function (card) {
-      var ok = matchesFilter(card);
-      if (ok && query) {
-        var text = card.textContent.toLowerCase();
-        ok = text.indexOf(query) !== -1;
-      }
-      card.hidden = !ok;
-      if (ok) { shown += 1; }
-      var rows = card.querySelectorAll(".stmt");
-      Array.prototype.forEach.call(rows, function (row) {
-        var keep = filter !== "open" || row.getAttribute("data-workable") === "1";
-        if (keep && query) {
-          keep = card.textContent.toLowerCase().indexOf(query) !== -1 &&
-            (row.textContent.toLowerCase().indexOf(query) !== -1 ||
-             card.querySelector(".problem-top").textContent.toLowerCase().indexOf(query) !== -1);
-        }
-        row.hidden = !keep;
-      });
-      // F04-T34 (Q35): the card's fold. Hidden when the filter or search leaves nothing in it;
-      // opened when a search match sits inside it, and closed again once the search no longer
-      // needs it — but only a fold the search opened, never one the reader opened.
-      var fold = card.querySelector("details.more");
-      if (fold) {
-        var inner = Array.prototype.filter.call(fold.querySelectorAll(".stmt"), function (r) { return !r.hidden; });
-        var anyLeft = inner.length > 0;
-        fold.hidden = !anyLeft;
-        var matchInside = Boolean(query) && inner.some(function (r) {
-          return r.textContent.toLowerCase().indexOf(query) !== -1;
-        });
-        if (matchInside && !fold.open) {
-          fold.open = true;
-          fold.setAttribute("data-auto-open", "1");
-        } else if (!matchInside && fold.hasAttribute("data-auto-open")) {
-          fold.open = false;
-          fold.removeAttribute("data-auto-open");
-        }
-      }
-    });
-    // F04-T63 (Q61): a topic whose every card is hidden hides its heading too.
-    Array.prototype.forEach.call(list.querySelectorAll(".topic"), function (topic) {
-      var left = Array.prototype.filter.call(topic.querySelectorAll(".card.problem"), function (c) { return !c.hidden; });
-      topic.hidden = left.length === 0;
-    });
-    opts.forEach(function (o) {
-      if (o.getAttribute("data-filter") === filter) { o.setAttribute("aria-current", "true"); }
-      else { o.removeAttribute("aria-current"); }
-    });
-    if (note) { note.textContent = "Showing " + shown + " of " + total + "."; }
+  function order(rows) {
+    var by = {
+      recent: function (x, y) {
+        var d = (y.getAttribute("data-last") || "").localeCompare(x.getAttribute("data-last") || "");
+        return d || x.getAttribute("data-name").localeCompare(y.getAttribute("data-name"));
+      },
+      open: function (x, y) {
+        var d = parseInt(y.getAttribute("data-open") || "0", 10) - parseInt(x.getAttribute("data-open") || "0", 10);
+        return d || x.getAttribute("data-name").localeCompare(y.getAttribute("data-name"));
+      },
+      name: function (x, y) { return x.getAttribute("data-name").localeCompare(y.getAttribute("data-name")); }
+    };
+    return rows.slice().sort(by[state.sort]);
   }
 
-  opts.forEach(function (o) {
-    o.addEventListener("click", function (ev) {
-      ev.preventDefault();
-      filter = o.getAttribute("data-filter");
-      var url = filter === "all" ? location.pathname : location.pathname + "?filter=" + filter;
-      history.replaceState(null, "", url);
-      apply();
+  function apply() {
+    var w = 0;
+    order(rowsW).forEach(function (row) {
+      var ok = matches(row);
+      row.hidden = !ok;
+      if (ok) { w += 1; }
+      list.appendChild(row);
     });
-  });
-  if (search) {
-    search.addEventListener("input", function () {
-      query = search.value.trim().toLowerCase();
-      apply();
-    });
-  }
-  document.addEventListener("keydown", function (ev) {
-    if (ev.key === "Escape" && document.activeElement && document.activeElement.classList.contains("term")) {
-      document.activeElement.blur();
+    var hits = rowsQ.filter(matches);
+    rowsQ.forEach(function (row) { row.hidden = true; });
+    hits.slice(0, shownWaiting).forEach(function (row) { row.hidden = false; });
+    worked.querySelector("[data-count]").textContent = String(w);
+    worked.querySelector("[data-noun]").textContent = w === 1 ? "problem" : "problems";
+    waiting.querySelector("[data-noun]").textContent = hits.length === 1 ? "problem" : "problems";
+    worked.querySelector("[data-sort-words]").textContent = SORT_WORDS[state.sort];
+    waiting.querySelector("[data-count]").textContent = String(hits.length);
+    var visible = Math.min(hits.length, shownWaiting);
+    if (showing) { showing.textContent = "Showing " + visible + " of " + hits.length; }
+    if (more) {
+      var left = hits.length - visible;
+      more.hidden = left <= 0;
+      more.textContent = "Show " + Math.min(pageSize, left) + " more";
     }
+    chips.forEach(function (c) { c.setAttribute("aria-pressed", String(c.getAttribute("data-area") === state.area)); });
+    if (wordsChip) { wordsChip.setAttribute("aria-pressed", String(state.words)); }
+  }
+
+  function sync() {
+    form.q.value = state.q;
+    form.status.value = state.status;
+    form.steward.value = state.steward;
+    form.sort.value = state.sort;
+  }
+
+  read();
+  Array.prototype.forEach.call(controls, function (c) { c.hidden = false; });
+  sync();
+  form.q.addEventListener("input", function () { state.q = form.q.value.trim(); shownWaiting = pageSize; write(); apply(); });
+  ["status", "steward", "sort"].forEach(function (k) {
+    form[k].addEventListener("change", function () { state[k] = form[k].value; shownWaiting = pageSize; write(); apply(); });
   });
+  chips.forEach(function (c) {
+    c.addEventListener("click", function () { state.area = c.getAttribute("data-area"); shownWaiting = pageSize; write(); apply(); });
+  });
+  if (wordsChip) {
+    wordsChip.addEventListener("click", function () { state.words = !state.words; shownWaiting = pageSize; write(); apply(); });
+  }
+  if (more) {
+    more.addEventListener("click", function () { shownWaiting += pageSize; apply(); });
+  }
+  if (state.open || location.search.indexOf("filter=") !== -1) { write(); }
   apply();
 })();

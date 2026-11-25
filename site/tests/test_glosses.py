@@ -173,17 +173,12 @@ def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> Non
         reading, f"{TARGET}/nodes/{gf.TUTORIAL}/Statement.lean"
     )
 
-    # The frontier row carries the gloss's first sentence and only that.
-    row = re.search(
-        rf'<div class="stmt"[^>]*>(?:(?!<div class="stmt").)*?{gf.TUTORIAL}.*?</div>',
-        pages["problems/index.html"],
-        re.S,
-    )
-    assert row is not None
+    # F34-T5 (F34-Q20): the Problems page no longer lists statements, so F20-R13's frontier row
+    # is gone; the first sentence is still what a dependency list shows, below.
+    assert 'class="stmt"' not in pages["problems/index.html"]
     first = math(
         "For any two propositions $p$ and $q$, if both hold then both hold in the other order."
     )
-    assert first in row.group(0) and "Nothing else is assumed" not in row.group(0)
 
     # A node page lists its dependencies with their words: the root depends on the tutorial.
     deps = node_page(pages, gf.ROOT)

@@ -108,7 +108,9 @@ def test_home_and_problems_link_needs_a_steward_with_its_count(
         assert m is not None, rel
         assert int(m.group(1)) == len(listed), rel
     problems = pages["problems/index.html"]
-    assert 'data-filter="unstewarded"' in problems  # the filter stays
+    # the filter stays (F34-T5: the Steward select's "needs", and the old ?filter=unstewarded link)
+    assert '<option value="needs">Needs a steward</option>' in problems
+    assert 'legacy === "unstewarded"' in pages["problems.js"]
 
 
 def test_the_steward_index_lists_the_problems_without_one(pages: dict[str, str]) -> None:

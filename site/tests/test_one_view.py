@@ -917,9 +917,15 @@ def test_a_shelved_hole_is_under_the_toggle_not_on_the_routes_view(tmp_path: Pat
     assert "<b>" not in title
     toggle = toggle_of(page)
     assert "Show 1 more statement" in toggle and "1 shelved" in toggle, toggle
-    rows_ = re.findall(r'<div class="stmt".*?</div>', pages["problems/index.html"], re.S)
-    stmt = next(r for r in rows_ if f"/{HOLE_IDS[0]}/" in r)
-    assert 'data-state="shelved"' in stmt and 'data-workable="0"' in stmt
+    # F34-T5 (F34-Q20): the statement's panel on its problem's page, not a Problems row
+    problem = next(
+        v
+        for k, v in pages.items()
+        if k.startswith("problems/") and k.count("/") == 2 and f'data-node="{HOLE_IDS[0]}"' in v
+    )
+    start = problem.index(f'<div class="card panel" data-node="{HOLE_IDS[0]}"')
+    stmt = problem[start : problem.find('<div class="card panel" ', start + 1)]
+    assert "shelved" in stmt.lower()
     assert "Supply a witness" not in stmt and "Work on this" not in stmt
 
 

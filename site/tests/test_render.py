@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 
 import fixture
 import pytest
+from problem_rows import problem_row
 
 from opn_gate import schemas
 from opn_site import cli, config, links, model, render
@@ -191,12 +192,12 @@ T2_PAGES = ("about/index.html", "contributors/index.html", "docs/index.html")
 
 
 def test_problems_page(rendered: dict[str, str]) -> None:
-    """AC9 as F04-T12 reshaped it: one card per target with one row per statement, the whole
-    list on the page, a same-origin script that only filters, and the old paths redirecting."""
+    """AC9 as F04-T12 reshaped it and F34-T5 (R7) rebuilt it: one row per target linking its
+    page, the whole list on the page, a same-origin script that only filters, sorts and pages,
+    and the old paths redirecting."""
     page = rendered["problems/index.html"]
-    assert page.count('<article class="card problem"') == 1
-    assert page.count('<div class="stmt"') == 3  # the target's three nodes
-    assert 'href="/nodes/propositional/and-swap-reassoc/"' in page
+    assert page.count('data-id="propositional"') == 1
+    assert 'href="/problems/propositional/"' in page
     assert '<script src="/problems.js"></script>' in page
     assert "https://" not in page.split("<main>")[1].split("</main>")[0].replace(REPO, "")
     assert "problems.js" in rendered and "querySelector" in rendered["problems.js"]
@@ -206,30 +207,21 @@ def test_problems_page(rendered: dict[str, str]) -> None:
     assert 'url=/problems/propositional/"' in rendered["targets/propositional/index.html"]
 
 
-def statement_row(page: str, node_id: str) -> str:
-    """One statement row of the Problems page, by its node link."""
-    [row] = [r for r in page.split('<div class="stmt"')[1:] if f">{node_id}</a>" in r]
-    return row.split("</div>", 1)[0]
-
-
 def test_the_problems_page_says_where_each_statement_stands(tmp_path: Path) -> None:
-    """T11's fact on the merged page (R7, Q11, Q14): a row's word and action follow the node's
-    status from the target's graph — an open statement invites work, a blocked one says so and
-    the card's open count drops with it; nothing on the page says every row can be worked on."""
+    """T11's fact as F34-T5 carries it (R7, F34-Q20): the Problems page counts a problem's open
+    statements from the target's graph — an open statement counts, a blocked one does not and the
+    row's count drops with it; nothing on the page says every statement can be worked on. A
+    statement's own word and action are on its problem's page."""
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     page = render.render_site(site, repo_url=REPO)["problems/index.html"]
-    row = statement_row(page, "and-swap-reassoc")
-    assert 'data-state="open"' in row and "Work on this →" in row
-    assert 'data-open="1"' in page
+    assert 'data-open="1"' in page and "1 open" in page
     assert "can be worked on now" not in page
 
     node = site.targets["propositional"].nodes["and-swap-reassoc"]
     node.graph_entry["status"] = "blocked"
     page = render.Renderer(site, repo_url=REPO).problems()
-    row = statement_row(page, "and-swap-reassoc")
-    assert 'data-state="blocked"' in row and ">Blocked</a>" in row
-    assert 'data-open="0"' in page and "Work on this" not in page
+    assert 'data-open="0"' in page and "0 open" in page
 
 
 def test_contributors_empty_state(rendered: dict[str, str]) -> None:
@@ -376,11 +368,7 @@ def test_listed_target_reasons(listed_pages: dict[str, str]) -> None:
     QA summary — and does not reproduce the informal statement of a source that states no
     licence. Since F14-R1 a listed, unsigned target is claimable, so it names no reasons."""
     page = listed_pages["problems/index.html"]
-    [card] = [
-        c
-        for c in page.split('<article class="card problem"')[1:]
-        if f">{fixture.LISTED_TARGET}<" in c
-    ]
+    card = problem_row(page, fixture.LISTED_TARGET)  # F34-T5: a row of the Problems page
     assert "Not claimable" not in card and 'data-status="open"' in card
     assert escape(fixture.PARAPHRASE) in card
     page = listed_pages[f"problems/{fixture.LISTED_TARGET}/index.html"]  # the record's facts

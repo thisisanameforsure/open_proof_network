@@ -22,6 +22,7 @@ from pathlib import Path
 import fixture
 import pytest
 from harness import TARGET
+from problem_rows import problem_row
 
 from opn_site import model, render
 
@@ -37,10 +38,11 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[model.Site, dict[st
 
 
 def row(page: str, node_id: str) -> str:
-    rows = re.findall(r'<div class="stmt".*?</div>', page, flags=re.S)
-    hits = [r for r in rows if f"/{node_id}/" in r]
-    assert len(hits) == 1, (node_id, len(hits))
-    return str(hits[0])
+    """F34-T5: a statement's panel on its problem's page. The Problems page lists problems, not
+    statements, so what a statement row said there is said by its panel here."""
+    start = page.index(f'<div class="card panel" data-node="{node_id}"')
+    nxt = page.find('<div class="card panel" ', start + 1)
+    return page[start : nxt if nxt != -1 else len(page)]
 
 
 def test_the_sites_workable_statements_are_the_frontiers(
@@ -66,31 +68,33 @@ def test_a_hole_awaiting_its_witness_reads_as_work(
     built: tuple[model.Site, dict[str, str]],
 ) -> None:
     _site, pages = built
-    stmt = row(pages["problems/index.html"], fixture.HOLE)
-    assert 'data-state="needs-witness"' in stmt and 'data-workable="1"' in stmt
-    assert "needs a witness" in stmt and "Supply a witness →" in stmt
+    stmt = row(pages[PROBLEM], fixture.HOLE)
+    assert "needs a witness" in stmt and "Supply a witness" in stmt
     assert "Not accepting work" not in stmt and ">Blocked<" not in stmt
 
 
 def test_a_superseded_hole_is_not_work(built: tuple[model.Site, dict[str, str]]) -> None:
     """Its slot is as empty as its successor's, and it owes nobody a witness (D-8)."""
     _site, pages = built
-    stmt = row(pages["problems/index.html"], fixture.REVISED_HOLE)
-    assert 'data-state="superseded"' in stmt and 'data-workable="0"' in stmt
+    stmt = row(pages[PROBLEM], fixture.REVISED_HOLE)
+    assert "superseded" in stmt
     assert "Supply a witness" not in stmt
 
 
 def test_the_counts_include_witness_work(built: tuple[model.Site, dict[str, str]]) -> None:
     _site, pages = built
-    assert '<span class="n">3</span>' in pages["problems/index.html"]  # root, hole, revision
-    card = re.search(r'<article class="card problem"[^>]*>', pages["problems/index.html"])
-    assert card and 'data-open="3"' in card.group(0)
+    # F34-T5: the problem's row counts its open statements — root, hole, revision
+    card = problem_row(pages["problems/index.html"], TARGET)
+    assert 'data-open="3"' in card and "3 open" in card
     # F04-T57 (D-36 v3.48): the home page carries no counts; the Problems page is where they live.
 
 
 def test_the_filter_keeps_every_workable_row() -> None:
+    """F34-T5: "Work on a statement" (``?filter=open``) keeps a problem by its open count, which
+    counts witness work (``open_count``), never by a status word."""
     script = (render.STATIC / "problems.js").read_text(encoding="utf-8")
-    assert 'getAttribute("data-workable") === "1"' in script
+    assert 'legacy === "open"' in script
+    assert 'state.open && !(parseInt(a("open")' in script
     assert 'getAttribute("data-state") === "open"' not in script
 
 
@@ -121,8 +125,8 @@ def test_the_glossary_defines_the_witness_and_the_state(
 
 def test_the_footnote_claims_only_what_is_true(built: tuple[model.Site, dict[str, str]]) -> None:
     _site, pages = built
+    # F34-T5: the footnote is gone with the statement rows; the false claim must not come back
     assert "lists exactly the open statements" not in pages["problems/index.html"]
-    assert "lists every open statement shown here" in pages["problems/index.html"]
 
 
 def test_a_shelved_statement_is_not_work(tmp_path: Path) -> None:
@@ -145,9 +149,8 @@ def test_a_shelved_statement_is_not_work(tmp_path: Path) -> None:
     hole = tv.nodes[fixture.HOLE]
     assert hole.status == "blocked" and hole.shelved is not None
     assert hole.shelved["by"] == fixture.SHELVED_BY
-    stmt = row(render.render_site(site, repo_url=REPO)["problems/index.html"], fixture.HOLE)
-    assert 'data-state="shelved"' in stmt and 'data-workable="0"' in stmt
-    assert "Supply a witness" not in stmt and "Shelved" in stmt
+    stmt = row(render.render_site(site, repo_url=REPO)[PROBLEM], fixture.HOLE)
+    assert "Supply a witness" not in stmt and "shelved" in stmt.lower()
 
 
 def test_the_graph_key_names_the_state_when_a_statement_has_it(

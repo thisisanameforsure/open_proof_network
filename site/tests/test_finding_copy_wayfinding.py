@@ -99,7 +99,8 @@ def test_the_open_badge_promises_no_steward() -> None:
 def test_the_card_link_is_a_verb_not_a_status(built: tuple[model.Site, dict[str, str]]) -> None:
     _site, pages = built
     assert "Open problem →" not in pages["problems/index.html"]
-    assert "View problem →" in pages["problems/index.html"]
+    # F34-T5: a row's link is the problem's id, which is a name, not a status
+    assert 'class="id" href="/problems/' in pages["problems/index.html"]
 
 
 def test_open_for_work_is_said_only_when_a_statement_is_workable(

@@ -18,6 +18,7 @@ from fixture import (
     STEWARDLESS_TARGET,
     build_with_stewards,
 )
+from problem_rows import problem_row
 
 from opn_gate import intake
 from opn_site import model, render
@@ -37,11 +38,8 @@ def target_page(pages: dict[str, str], target_id: str) -> str:
 
 
 def card(pages: dict[str, str], target_id: str) -> str:
-    page = pages["problems/index.html"]
-    start = page.index('<article class="card problem" data-status="')
-    while f'id="p-{target_id}"' not in page[start : page.index(">", start)]:
-        start = page.index('<article class="card problem"', start + 1)
-    return page[start : page.index("</article>", start)]
+    """F34-T5: the problem's row on the Problems page."""
+    return problem_row(pages["problems/index.html"], target_id)
 
 
 def test_the_stewarded_target_names_its_steward(pages: dict[str, str]) -> None:
@@ -54,7 +52,7 @@ def test_the_stewarded_target_names_its_steward(pages: dict[str, str]) -> None:
     assert "This problem is open for work." in page
     row = card(pages, STEWARDED_TARGET)
     assert f'Steward · <a href="{STEWARD_LINK}">{escape(STEWARD_NAME)}</a>' in row
-    assert 'data-status="open"' in row and row.count('class="stage off"') == 3
+    assert 'data-status="open"' in row and row.count('class="stage-dot"') == 3  # none reached
 
 
 def test_the_stewardless_target_says_so_in_words(pages: dict[str, str]) -> None:
@@ -67,7 +65,9 @@ def test_the_stewardless_target_says_so_in_words(pages: dict[str, str]) -> None:
     assert escape(intake.explain("no-steward")) in page
     assert "Not claimable" in page
     row = card(pages, STEWARDLESS_TARGET)
-    assert 'data-status="needs a steward"' in row and ">Needs a steward</span>" in row
+    # F34-T5: a waiting row; its Steward link is the "needs a steward" of the old card
+    assert 'data-status="needs a steward"' in row and 'data-steward="needs"' in row
+    assert f'href="/steward/{STEWARDLESS_TARGET}/">Steward this</a>' in row
     assert escape(intake.explain("no-steward")) in row  # the status tag's hover card
     # The root's node page and the frontier row say the same (F04-T10).
     node = pages[f"nodes/{STEWARDLESS_TARGET}/stewardless-lemma/index.html"]
@@ -86,8 +86,9 @@ def test_the_resolved_target_shows_its_digestion_state(pages: dict[str, str]) ->
     assert "No stewards: this target is not an open problem" in page
     row = card(pages, RESOLVED_TARGET)
     assert 'data-status="proved"' in row
-    assert '<span class="stage on"><span class="dot dot-proved"></span>Proved</span>' in row
-    assert '<span class="stage off"><span class="dot dot-blocked"></span>Explained</span>' in row
+    # F34-T5: the stage mark — proved reached, explained not
+    assert row.count('class="stage-dot on"') == 1
+    assert "proved: yes · explained: not yet" in row
     assert "Steward wanted for write-up" in row
 
 
