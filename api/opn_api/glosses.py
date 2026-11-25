@@ -865,7 +865,7 @@ def amend(  # noqa: PLR0913 — one amended pull request, described
             "pull-request-failed",
             f"pull request #{found.pr_number} could not be amended; it is as it was: {exc}",
         ) from exc
-    ctx.pulls.pop(found.pr_number, None)  # its head moved: read it afresh next time
+    pending.forget_pull(ctx, found.pr_number)  # its head moved: read it afresh next time
     try:
         ctx.store.put_submission(replace(found, fingerprints=tuple(prints)))
     except Exception as exc:  # any store failure: the branch moved regardless (C7)

@@ -35,3 +35,47 @@ Worktree /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2, branch mcpfix-wb2, fro
   cases now send a text with LaTeX.
 - green: 13/13 new; 85 in the gloss/codes suites; the earlier 1350-test sweep over every gloss/codes
   test had exactly these 5 failures before the restatements.
+
+## Item 1 — get_submission freshness (with the shared store pieces items 2 and 3 use)
+- red: api/tests/test_mcpfix_wb2_freshness.py, 6 failed / 4 passed on both stores (wb2-1-red.txt);
+  the backwards test was then restated (instance b reads only once the shared snapshot is past the
+  window) and re-run red against the pre-fix code (appended to wb2-1-red.txt).
+- fix: every fresh live read is written through (`pending.remember_pull`) to the store's ephemeral
+  `pullstate#<n>` (TTL 1 h). A process with a copy of its own adopts the stored snapshot when it is
+  strictly newer (`newest_snapshot`), so read_at never moves backwards; a process with no copy reads
+  the host (newer than anything stored), which kept every existing cache test's meaning. The block
+  carries `age_s`; `stale` is also true once age_s > pull_max_stale_s (pull_request_error unchanged).
+  `pending.forget_pull` drops both copies (glosses' amend, racers' conversion); a withdrawal writes the
+  closed state through (`remember_pull`).
+- restated: test_finding_host_budget (served stale block now carries age_s: 300).
+- NEEDS ADAPTER OWNER: api/opn_api/mcp/schemas/get_submission/v1.json `$defs.pull_request` is closed;
+  add `"age_s": {"type": ["integer", "null"]}` (not required: a closed record's stored final_state has
+  none). Until then 11 MCP tests fail "unschematic result" (listed in the report); with that one line
+  added locally all 11 pass (checked, then reverted).
+
+## Item 2 — merged, not yet rendered
+- red: api/tests/test_mcpfix_wb2_pending_render.py, 4 failed (wb2-2-red.txt).
+- fix: store `note_merged` / `recently_merged` / `forget_merged` (one string set
+  `submissions#recentmerges`, `<pr>@<expires>`; both stores); `_reconcile` notes every record it closes
+  as merged (6 h). `pending.awaits_render(ctx, sub)`: waiting_on_products' rule for its kinds, else the
+  merge commit is not the target graph.json's rendered_from nor an ancestor of it (is_ancestor, kept per
+  pair in new `Context.render_ancestry`; host failure or budget hold = nothing pending, C7). A merge the
+  products carry is forgotten from the index. GET /frontier.json: entries whose node has a merged
+  proof/counterexample/vacuity/reduction/partial awaiting render get `claimable: false`, and a top-level
+  `pending_render: {node_id: {pr, kind, merged_at}}` is added AFTER frontier/v8 validation, and only
+  when non-empty (frontier/v8 is closed at both levels; with nothing pending the document is still the
+  committed one with claims, F05-AC15). `frontier.pending_words(ctx, target_id)` returns the
+  `words:<target>:<subject>` keys of merged-unrendered glosses/explainers for the adapter.
+- green: 8/8 (incl. both-store parity for the index); 447 in the frontier suites.
+
+## Item 3 — annex hold
+- red: api/tests/test_mcpfix_wb2_annex_hold.py, 3 failed / 1 passed (wb2-3-red.txt).
+- fix: `precheck.WORDS_DIRS` gains `annex`; the one hold left is `check_cited_annex` for a bundle citing
+  an annex main has and the products commit lacks: `precheck.annex_awaits_render` names the merge
+  (`details.pr_number`, `details.merged_at` from the service's record, found in the recent merges or by
+  reconciling an open annex record on the node; else null and "a merge on main") and passes merged_at,
+  so retry_after_s = max(60, min(600, 840 - seconds since merge)).
+- restated: test_finding_precheck_words_window's parametrized "annex holds a plan" case removed.
+- note: the brief's "retry_after_s below 300 when the merge is recent" is backwards under the F06-T20
+  formula (a recent merge has most of the median left, up to 600 s); the test uses a merge 10 min old
+  (240 s) and asserts the formula's value.

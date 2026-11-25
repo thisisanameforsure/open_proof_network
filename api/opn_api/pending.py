@@ -31,7 +31,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -384,7 +384,7 @@ def superseded(ctx: Context, cached: CachedPull) -> bool:
 
 
 def _live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str | None]:
-    cached = ctx.pulls.get(number)
+    cached = newest_snapshot(ctx, number)
     now = time.monotonic()
     if (
         cached is not None
@@ -405,10 +405,119 @@ def _live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str
         log.warning("pull request #%d: %s", number, exc)
         return last, f"the pull request's live state could not be read from the host: {exc}"
     # fetched_at is taken after the read, so a listing read before it is not evidence against it
-    ctx.pulls[number] = CachedPull(
-        number, state, time.monotonic(), clockmod.render(ctx.clock.now()), ctx.head
-    )
+    remember_pull(ctx, number, state)
     return state, None if state is not None else _unknown(ctx, number)
+
+
+# --- one snapshot for every instance (mcpfix, testers 2026-11-25) ---------------------------------
+
+#: The store key of a pull request's last live read, written through on every read so that every
+#: instance of the service serves the newest one any of them made: ``read_at`` had gone backwards
+#: between two calls that landed on two instances (t257 item 5, t257b item 13).
+PULL_SNAPSHOT_KEY = "pullstate#"
+#: How long a stored snapshot is kept: long past the window, so an instance whose own copy is
+#: older still finds the newer one; a snapshot past the window is a fallback, never fresh.
+PULL_SNAPSHOT_TTL_S = 3600
+
+
+def _state_doc(state: PullRequestState | None) -> dict[str, Any] | None:
+    return None if state is None else asdict(state)
+
+
+def _state_of(doc: Any) -> PullRequestState | None:
+    if not isinstance(doc, dict):
+        return None
+    return PullRequestState(
+        number=int(doc["number"]),
+        url=str(doc["url"]),
+        state=str(doc["state"]),
+        merged=bool(doc["merged"]),
+        mergeable_state=str(doc["mergeable_state"]),
+        head_sha=str(doc["head_sha"]),
+        merge_commit_sha=doc.get("merge_commit_sha"),
+        runs=tuple(dict(r) for r in doc.get("runs") or ()),
+        reviews=tuple(dict(r) for r in doc.get("reviews") or ()),
+        merged_at=doc.get("merged_at"),
+        closed_at=doc.get("closed_at"),
+    )
+
+
+def remember_pull(ctx: Context, number: int, state: PullRequestState | None) -> CachedPull:
+    """Keep a live read in this process's cache and write it through to the shared store (a
+    store failure is logged: the read still serves, C7)."""
+    read_at = clockmod.render(ctx.clock.now())
+    cached = CachedPull(number, state, time.monotonic(), read_at, ctx.head)
+    ctx.pulls[number] = cached
+    try:
+        ctx.store.put_ephemeral(
+            f"{PULL_SNAPSHOT_KEY}{number}",
+            {"state": _state_doc(state), "read_at": read_at, "main_head": ctx.head},
+            ctx.clock.now() + timedelta(seconds=PULL_SNAPSHOT_TTL_S),
+        )
+    except Exception as exc:  # any store failure: the read is still this process's to serve
+        log.warning("pull request #%d: snapshot not shared: %s", number, type(exc).__name__)
+    return cached
+
+
+def _stored_pull(ctx: Context, number: int) -> CachedPull | None:
+    """The snapshot another instance (or this one) last wrote, its monotonic ``fetched_at`` set
+    from its wall-clock age so the window judges it as it would its own read."""
+    try:
+        doc = ctx.store.get_ephemeral(f"{PULL_SNAPSHOT_KEY}{number}", ctx.clock.now())
+    except Exception as exc:  # any store failure: this process's own copy stands
+        log.warning("pull request #%d: shared snapshot not read: %s", number, type(exc).__name__)
+        return None
+    if not doc or not isinstance(doc.get("read_at"), str):
+        return None
+    try:
+        state = _state_of(doc.get("state"))
+        age = (ctx.clock.now() - clockmod.parse(doc["read_at"])).total_seconds()
+    except (KeyError, TypeError, ValueError) as exc:
+        log.warning("pull request #%d: shared snapshot unreadable: %s", number, exc)
+        return None
+    main_head = doc.get("main_head")
+    return CachedPull(
+        number,
+        state,
+        time.monotonic() - max(0.0, age),
+        doc["read_at"],
+        main_head if isinstance(main_head, str) else None,
+    )
+
+
+def _read_time(cached: CachedPull) -> datetime | None:
+    try:
+        return clockmod.parse(cached.read_at) if cached.read_at else None
+    except ValueError:
+        return None
+
+
+def newest_snapshot(ctx: Context, number: int) -> CachedPull | None:
+    """This process's copy, or the shared one when it is strictly newer, kept as this process's
+    copy, so ``read_at`` never moves backwards from one instance to the next. A process with no
+    copy of its own reads the host (which is newer than anything stored); a copy without a
+    ``read_at`` was written by a route that just acted on the pull request (a withdrawal) and
+    stands."""
+    local = ctx.pulls.get(number)
+    if local is None or local.read_at is None:
+        return local
+    mine = _read_time(local)
+    stored = _stored_pull(ctx, number)
+    theirs = _read_time(stored) if stored is not None else None
+    if stored is None or theirs is None or (mine is not None and theirs <= mine):
+        return local
+    ctx.pulls[number] = stored
+    return stored
+
+
+def forget_pull(ctx: Context, number: int) -> None:
+    """Drop what this process and the shared store know of the pull request, so the next read
+    on any instance asks the host (its head moved, or it is about to)."""
+    ctx.pulls.pop(number, None)
+    try:
+        ctx.store.drop_ephemeral(f"{PULL_SNAPSHOT_KEY}{number}")
+    except Exception as exc:  # any store failure: the window still bounds the old copy
+        log.warning("pull request #%d: shared snapshot not dropped: %s", number, type(exc).__name__)
 
 
 def _unknown(ctx: Context, number: int) -> str:
@@ -464,11 +573,14 @@ def retry_after(ctx: Context) -> dict[str, str]:
     return {"Retry-After": str(hostbudget.retry_after_s(budget, now))}
 
 
-def pull_block(state: PullRequestState, *, read_at: str | None, stale: bool) -> dict[str, Any]:
+def pull_block(
+    state: PullRequestState, *, read_at: str | None, stale: bool, age_s: int | None = None
+) -> dict[str, Any]:
     """A pull request's state as a route serves it: the host's words plus when they were read
     and whether they are the last the host would give (F07-T47) — a stale block is never
-    mistaken for a live one, and ``waiting_on`` is what was true at ``read_at``."""
-    return {**state.as_dict(), "read_at": read_at, "stale": stale}
+    mistaken for a live one, and ``waiting_on`` is what was true at ``read_at``. mcpfix:
+    ``age_s``, the seconds since ``read_at`` when the route served it."""
+    return {**state.as_dict(), "read_at": read_at, "stale": stale, "age_s": age_s}
 
 
 def cached_block(
@@ -480,7 +592,12 @@ def cached_block(
         return None
     cached = ctx.pulls.get(number)
     read_at = cached.read_at if cached is not None and cached.state is state else None
-    return pull_block(state, read_at=read_at, stale=error is not None)
+    read = _read_time(cached) if cached is not None and read_at is not None else None
+    age = max(0, int((ctx.clock.now() - read).total_seconds())) if read is not None else None
+    # mcpfix: stale is also a snapshot older than the window, whatever served it; the error, when
+    # there is one, still says why the host was not asked (pull_request_error)
+    old = age is not None and age > ctx.settings.pull_max_stale_s
+    return pull_block(state, read_at=read_at, stale=error is not None or old, age_s=age)
 
 
 # --- the attestation ------------------------------------------------------------------------------
@@ -918,7 +1035,49 @@ def _reconcile(
             found.id, closed=closed_time(ctx, state), final_state=block
         )
         found = closed or found
+        if state.merged:
+            note_merged(ctx, found.pr_number)
     return found, block, error
+
+
+# --- what merged a moment ago (mcpfix, testers 2026-11-25) ----------------------------------------
+
+#: How long a merge is remembered as recent: past the products' p90 of about 36 minutes with room
+#: for a slow render; a merge the products already carry is set aside by whoever reads it.
+RECENT_MERGE_S = 6 * 3600
+
+
+def note_merged(ctx: Context, number: int) -> None:
+    """Remember that a record's pull request merged, for the routes that say what is merged and
+    not yet rendered. Advisory: a store failure is logged (C7)."""
+    try:
+        ctx.store.note_merged(number, ctx.clock.now() + timedelta(seconds=RECENT_MERGE_S))
+    except Exception as exc:  # any store failure: the record itself is closed regardless
+        log.warning("pull request #%d: merge not remembered: %s", number, type(exc).__name__)
+
+
+def recent_merges(ctx: Context) -> list[Submission]:
+    """The service's records whose pull requests merged within ``RECENT_MERGE_S``, oldest first;
+    nothing when the store cannot say (C7). ``closed`` is when the host says each merged."""
+    try:
+        numbers = ctx.store.recently_merged(ctx.clock.now())
+    except Exception as exc:  # any store failure: nothing is known to be pending
+        log.warning("recent merges not read: %s", type(exc).__name__)
+        return []
+    out: list[Submission] = []
+    for number in numbers:
+        try:
+            found = ctx.store.get_submission_by_pr(number)
+        except Exception as exc:  # any store failure: that record is not known
+            log.warning("pull request #%d: record not read: %s", number, type(exc).__name__)
+            continue
+        if (
+            found is not None
+            and found.closed is not None
+            and (found.final_state or {}).get("merged")
+        ):
+            out.append(found)
+    return out
 
 
 def closed_time(ctx: Context, state: PullRequestState) -> str:
@@ -1119,6 +1278,61 @@ def waiting_on_products(
         log.warning("pull request #%d: products not compared: %s", found.pr_number, exc)
         return pull
     return {**pull, "waiting_on": WAITING_ON_PRODUCTS} if waiting else pull
+
+
+def merge_rendered(ctx: Context, found: Submission, merge: str) -> bool | None:
+    """mcpfix: whether the target's products carry the merge ``merge``: it is the commit the
+    target's ``graph.json`` was rendered from, or an ancestor of it. ``None`` when that cannot
+    be said (the graph unread, the host unable to compare, its budget held at the reserve), which
+    the callers read as "nothing known to lag" (C7). Kept per pair: commits never change."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    try:
+        rendered = precheck.rendered_from(ctx, found.target_id)
+    except (ApiError, ValueError, KeyError) as exc:
+        log.warning("%s: products commit unknown: %s", found.target_id, exc)
+        return None
+    if merge == rendered:
+        return True
+    key = (merge, rendered)
+    if key in ctx.render_ancestry:
+        return ctx.render_ancestry[key]
+    if budget_hold(ctx) is not None:
+        return None
+    try:
+        answer = ctx.githost.is_ancestor(ctx.settings.graph_repo, merge, rendered)
+    except GitHostError as exc:
+        log.warning("pull request #%d: render not compared: %s", found.pr_number, exc)
+        return None
+    if len(ctx.render_ancestry) >= MAX_REMEMBERED:
+        ctx.render_ancestry.clear()
+    ctx.render_ancestry[key] = answer
+    return answer
+
+
+def awaits_render(ctx: Context, found: Submission) -> bool:
+    """mcpfix (testers 2026-11-25): a merged record whose work the products do not show yet:
+    what ``waiting_on_products`` says of its kind (a proposal's node, an annex, a witness, a
+    partial's holes), or, for any kind, a merge commit the target's products were not rendered
+    from. A record not merged, or one the products' commit cannot be compared with, awaits
+    nothing (C7)."""
+    pull = final_state(found)
+    if not (pull or {}).get("merged"):
+        return False
+    if (waiting_on_products(ctx, found, pull) or {}).get("waiting_on") == WAITING_ON_PRODUCTS:
+        return True
+    merge = (pull or {}).get("merge_commit_sha")
+    if not isinstance(merge, str) or not merge:
+        return False
+    rendered = merge_rendered(ctx, found, merge)
+    if rendered:
+        # the products carry it: nothing will ask about this merge again, so the index of recent
+        # merges stays as short as the render lag, not the whole window (C7: advisory)
+        try:
+            ctx.store.forget_merged(found.pr_number)
+        except Exception as exc:  # any store failure: the window still bounds the entry
+            log.warning("pull request #%d: not forgotten: %s", found.pr_number, type(exc).__name__)
+    return rendered is False
 
 
 def _node_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:

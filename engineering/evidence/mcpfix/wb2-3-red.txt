@@ -1,0 +1,73 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+.FFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_an_annex_merged_after_the_products_holds_no_bundle_that_does_not_cite_it _
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10839fd90>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_an_annex_merged_after_the_products_holds_no_bundle_that_does_not_cite_it(
+        harness: Harness,
+    ) -> None:
+        """(b) the finding: an annex is text to a plan that does not cite it."""
+        token = harness.token_for("code_alice", "alice-p")
+        window(harness, [GLOSS, ANNEX])
+        annex_on_main(harness)
+        r = precheck(harness, token, skeleton())
+>       assert r.status_code == 202, r.text
+E       AssertionError: {"error":"products-pending","message":"graph commit ffffffffffff… changed propositional's nodes after eeeeeeeeeeee…, the commit that wrote its products, so the holes this bundle would make cannot yet be planned against every node they might restate. It waits for that merge's products. Retry shortly.","details":{"graph_commit":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","node_id":"and-reassoc","nodes_commit":"ffffffffffffffffffffffffffffffffffffffff","retry_after_s":300}}
+E       assert 409 == 202
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+api/tests/test_mcpfix_wb2_annex_hold.py:82: AssertionError
+_____ test_a_bundle_citing_an_annex_from_another_merge_is_held_by_nothing ______
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10a081950>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_bundle_citing_an_annex_from_another_merge_is_held_by_nothing(harness: Harness) -> None:
+        """A bundle that cites an annex the products already carry is not held by a newer one."""
+        token = harness.token_for("code_alice", "alice-p")
+        window(harness, [ANNEX])
+        annex_on_main(harness)
+        harness.githost.files[OTHER_ANNEX] = b"---\nschema: annex/v1\n---\nOlder.\n"
+        r = precheck(harness, token, citing("4" * 64))
+>       assert r.status_code == 202, r.text
+E       AssertionError: {"error":"products-pending","message":"graph commit ffffffffffff… changed propositional's nodes after eeeeeeeeeeee…, the commit that wrote its products, so the holes this bundle would make cannot yet be planned against every node they might restate. It waits for that merge's products. Retry shortly.","details":{"graph_commit":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","node_id":"and-reassoc","nodes_commit":"ffffffffffffffffffffffffffffffffffffffff","retry_after_s":300}}
+E       assert 409 == 202
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+api/tests/test_mcpfix_wb2_annex_hold.py:93: AssertionError
+_________ test_a_bundle_citing_the_new_annex_is_held_naming_the_merge __________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10a0a43e0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_bundle_citing_the_new_annex_is_held_naming_the_merge(harness: Harness) -> None:
+        """(c) the one hold left: it names the pull request and when it merged, and the wait is
+        what is left of the median from that merge."""
+        token = harness.token_for("code_alice", "alice-p")
+        window(harness, [ANNEX])
+        annex_on_main(harness)
+        merged_at = merged_annex(harness, 41, minutes_ago=10)
+        r = precheck(harness, token, citing())
+        assert r.status_code == 409, r.text
+        doc: dict[str, Any] = r.json()
+        assert doc["error"] == "products-pending"
+>       assert "#41" in doc["message"] and merged_at in doc["message"], doc["message"]
+E       AssertionError: graph commit ffffffffffff… changed propositional's nodes after eeeeeeeeeeee…, the commit that wrote its products, so the holes this bundle would make cannot yet be planned against every node they might restate. It waits for that merge's products. Retry shortly.
+E       assert ('#41' in "graph commit ffffffffffff… changed propositional's nodes after eeeeeeeeeeee…, the commit that wrote its products, so ...d make cannot yet be planned against every node they might restate. It waits for that merge's products. Retry shortly.")
+
+api/tests/test_mcpfix_wb2_annex_hold.py:107: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb2_annex_hold.py::test_an_annex_merged_after_the_products_holds_no_bundle_that_does_not_cite_it
+FAILED api/tests/test_mcpfix_wb2_annex_hold.py::test_a_bundle_citing_an_annex_from_another_merge_is_held_by_nothing
+FAILED api/tests/test_mcpfix_wb2_annex_hold.py::test_a_bundle_citing_the_new_annex_is_held_naming_the_merge
+3 failed, 1 passed, 2 warnings in 1.07s

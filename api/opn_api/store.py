@@ -52,6 +52,12 @@ KEY_PRECHECK_USED = "precheckused#"
 #: set of question ids, no TTL, in the tokens table like the open-submissions index. The graph is
 #: never written to remember it: what the network has said on the host is the service's own fact.
 KEY_REVIEW_NOTICE = "reviewnotice#"
+#: mcpfix (testers 2026-11-25): the pull requests a live read found merged, kept for
+#: ``RECENT_MERGE_S`` so the routes can say what has merged and is not in the products yet (the
+#: frontier's ``pending_render``, a precheck waiting on a cited annex). One string set of
+#: ``<pr>@<expires epoch>`` in the tokens table, added to and pruned atomically; an entry past its
+#: time is ignored and pruned by the next reader.
+KEY_RECENT_MERGES = "submissions#recentmerges"
 
 
 class ConflictError(Exception):
@@ -291,6 +297,19 @@ class Store(Protocol):
 
     def get_check(self, check_id: str) -> CheckLog | None: ...
 
+    def note_merged(self, pr_number: int, expires: datetime) -> None:
+        """mcpfix: remember that pull request ``pr_number`` merged, until ``expires``."""
+        ...
+
+    def recently_merged(self, now: datetime) -> list[int]:
+        """mcpfix: the pull requests ``note_merged`` named whose time has not passed, ascending;
+        entries past their time are pruned."""
+        ...
+
+    def forget_merged(self, pr_number: int) -> None:
+        """mcpfix: drop ``pr_number`` from the recent merges (its products have rendered)."""
+        ...
+
     def review_notified(self, target_id: str) -> set[str]:
         """The question ids of ``target_id``'s review a notice has named (F26-R15); empty when
         none has."""
@@ -322,6 +341,7 @@ class MemoryStore:
     open_submissions: set[str] = field(default_factory=set)
     checks: dict[str, CheckLog] = field(default_factory=dict)
     review_notices: dict[str, set[str]] = field(default_factory=dict)
+    recent_merges: dict[int, datetime] = field(default_factory=dict)
 
     def check(self) -> list[str]:
         return []
@@ -497,6 +517,18 @@ class MemoryStore:
     def add_review_notified(self, target_id: str, question_ids: set[str]) -> None:
         if question_ids:
             self.review_notices.setdefault(target_id, set()).update(question_ids)
+
+    def note_merged(self, pr_number: int, expires: datetime) -> None:
+        self.recent_merges[pr_number] = max(expires, self.recent_merges.get(pr_number, expires))
+
+    def recently_merged(self, now: datetime) -> list[int]:
+        for number, until in list(self.recent_merges.items()):
+            if until <= now:
+                del self.recent_merges[number]
+        return sorted(self.recent_merges)
+
+    def forget_merged(self, pr_number: int) -> None:
+        self.recent_merges.pop(pr_number, None)
 
 
 def _unique_keys(identity: Identity) -> list[tuple[str, str]]:
@@ -965,6 +997,46 @@ class DynamoStore:
             ExpressionAttributeNames={"#ids": "ids"},
             ExpressionAttributeValues={":one": set(question_ids)},
         )
+
+    # --- recent merges (mcpfix): one string set, ``<pr>@<expires epoch>`` -----------------------
+
+    def note_merged(self, pr_number: int, expires: datetime) -> None:
+        self._tokens.update_item(
+            Key={"key": KEY_RECENT_MERGES},
+            UpdateExpression="ADD #ids :one",
+            ExpressionAttributeNames={"#ids": "ids"},
+            ExpressionAttributeValues={":one": {f"{pr_number}@{_epoch(expires)}"}},
+        )
+
+    def recently_merged(self, now: datetime) -> list[int]:
+        item = self._tokens.get_item(Key={"key": KEY_RECENT_MERGES}).get("Item") or {}
+        live: set[int] = set()
+        stale: set[str] = set()
+        for entry in item.get("ids") or ():
+            number, _, until = str(entry).partition("@")
+            if not (number.isdigit() and until.isdigit()) or int(until) <= _epoch(now):
+                stale.add(str(entry))
+            else:
+                live.add(int(number))
+        if stale:
+            self._tokens.update_item(
+                Key={"key": KEY_RECENT_MERGES},
+                UpdateExpression="DELETE #ids :one",
+                ExpressionAttributeNames={"#ids": "ids"},
+                ExpressionAttributeValues={":one": stale},
+            )
+        return sorted(live)
+
+    def forget_merged(self, pr_number: int) -> None:
+        item = self._tokens.get_item(Key={"key": KEY_RECENT_MERGES}).get("Item") or {}
+        gone = {str(e) for e in item.get("ids") or () if str(e).partition("@")[0] == str(pr_number)}
+        if gone:
+            self._tokens.update_item(
+                Key={"key": KEY_RECENT_MERGES},
+                UpdateExpression="DELETE #ids :one",
+                ExpressionAttributeNames={"#ids": "ids"},
+                ExpressionAttributeValues={":one": gone},
+            )
 
 
 def _optional(value: Any) -> str | None:
