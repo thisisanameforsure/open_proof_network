@@ -1,0 +1,1 @@
+{"mcpServers": {"open-proof-network": {"type": "http", "url": "https://api.openproofnetwork.org/mcp", "headers": {"Authorization": "Bearer ${OPN_TOKEN}"}}, "opn-legacy": {"type": "http", "url": "https://api.openproofnetwork.org/mcp?surface=v1", "headers": {"Authorization": "Bearer ${OPN_TOKEN}"}}}}

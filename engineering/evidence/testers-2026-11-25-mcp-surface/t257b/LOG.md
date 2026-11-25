@@ -1,0 +1,41 @@
+# LOG — t1125-257 (session 2), erdos-257 refutes side
+
+- 23:05Z read PREVIOUS_REPORT.md — prior session: #2031 merged, words filed; refutes holes open.
+- 23:06Z search {} — list operations.
+- 23:06Z search {operations:[list_frontier,get_node,claim_node,check_lean,precheck_submission,get_precheck,submit_proof,submit_postmortem,propose_speculative_node]} — schemas read.
+- 23:07Z read list_frontier {filters:{target_id:erdos-257}} — 25 entries; spec-9ab4bdf6 still listed speculative/open though #2031 merged.
+- 23:07Z read get_node x7 (v2--h3, h2--h4, h2--h1, h4--h2, h4--h1--h1--h1, h4--h1--h2--h1, h11) — two answers overflowed client limit (~91k chars even with include:[]); all are open-problem strength (Dickson pairs / 1/2-walk digits / refutation itself).
+- 23:08Z write claim_node {spec-a70fcca4--h4--h2, ttl 2} — 201, claim 01M87X23X8N9J60DS2B1R5WGKF.
+- 23:09Z write check_lean {h4--h2, verify, skeleton v1 (holes h_tail_irr, h_nostall)} — no errors; okay:false only for sorry (lint sorry-present, context-restated).
+- 23:09Z write precheck_submission {h4--h2, partial, v1} — 400 partial-unlabelled (needs -- approach/-- licence/-- label/-- claim comments); fixed.
+- 23:09Z write precheck_submission {h4--h2, partial, v1 labelled} — 202 job 01M87X56HG7AXRV68K7HZ8BCS4 → 23:13 verdict pass; holes closed over r/h0/hstep even for h_tail_irr (unused).
+- 23:11Z read get_node {spec-a70fcca4--h4--h1} — gap bound r_m ≤ 2^-m+4^-m/3 at skips; this is < tail_{m+1}, so it implies the skip-gap hole below.
+- 23:12Z write check_lean {h4--h2, check, v2 (holes h_tail_irr, h_skipgap)} — okay:true.
+- 23:12Z write precheck_submission {v2} — job 01M87X9F8G1QZQM4MB7RE8ZF06 → 23:14 pass; skipgap closed type does NOT include earlier hole h_tail_irr (good).
+- 23:13Z local python: exact 1/2 walk to n=1500, 767 skips; h_skipgap holds at every skip, min (tail-r)*4^k = 0.4268 at k=1.
+- 23:15Z write precheck_submission {v3: h_tail_irr moved before intro} — job 01M87XG4504FYKVD9AVYKMGTTT.
+- 23:17Z write check_lean {target erdos-257, tail-from-constant lemma} — error: no Irrational.sub_rat; sub_ratCast works.
+- 23:18Z write check_lean {v4: holes h_EB (Erdős–Borwein constant irrational), h_skipgap; tail lemma proved} — okay:true.
+- 23:18Z write precheck_submission {v4} — job 01M87XMGS0AQ7WSB5Z0CYTS45V.
+- 23:19Z read get_node {h4--h2, include [explainers, annexes]} — existing partial (t1026-a) goes via window hwin; my reduction is new.
+- 23:19Z search {query:"submit a skeleton proof with holes", limit 4} — submit_proof first; returns full schemas; no mention of the -- approach/label/claim/licence rule.
+- 23:20Z write check_lean {target erdos-257, lemma 2^-k+4^-k/3 ≤ T_{k+1}} — okay:true (for a follow-up partial on the skipgap node restating --h4--h1).
+- 23:20Z read get_precheck {v3 01M87XG4…} — pass; h_tail_irr closed type now clean `∀ M, Irrational …`, expected node --h4--h2--h1.
+- 23:21Z read get_precheck {v4 01M87XMGS0…} — pass; h_EB `restates: "variant-2f5236aa"` (expected_new false).
+- 23:22Z read get_node {variant-2f5236aa, include []} — status proved (kernel), Opn.erdos_257_all_naturals: Erdős–Borwein irrational is already in the graph.
+- 23:23Z write check_lean {v5: import Nodes.«variant-2f5236aa».Proof, h_EB closed; one hole h_skipgap} — okay:true.
+- 23:24Z write check_lean {v6: one hole hgap = exact statement of spec-a70fcca4--h4--h1; h_skipgap proved from it} — okay:true.
+- 23:25Z write precheck_submission {v6 with hgap moved first, attempts/20261124T232600Z-t1125-257-partial.lean} — job 01M87Y1SJR0BMXMYX6PQR2RP6H.
+- 23:26Z read list_sufficient_sets {erdos-257} — --h4 has routes @1 (⟸ --h4--h1) and @2 (⟸ --h4--h2); my skip-gap hole ≡ --h4 itself, so v5 would be a near-cycle; chose v6.
+- 23:26Z read get_node {spec-a70fcca4--h4, include []} — statement ∀m, r_m ≤ T_m; t1026-a postmortem records the converse informally.
+- 23:29Z read get_precheck {v6} — pass, diagnostic artifact-reduction, hole hgap restates spec-a70fcca4--h4--h1, footprint [variant-2f5236aa].
+- 23:31Z write submit_proof {spec-a70fcca4--h4--h2, partial, precheck_job_id 01M87Y1SJR0BMXMYX6PQR2RP6H, automation agent/claude-opus-5-5/claude-code} — 201, PR #2042, submission 01M87YB1FGTD1B1VMD5730RJ4M.
+- 23:31Z read get_submission {01M87YB1…} ×2 — waiting_on gate; pull_request.read_at stuck at 23:30:37 with stale:false, runs [].
+- 23:36Z read get_submission — state merged (closed 23:35:03Z), gate success, gate_report ok:true, waiting_on products, attestation-pending.
+- 23:36Z write release_claim {claim_id 01M87X23X8N9J60DS2B1R5WGKF} — 200, released 23:36:34Z.
+- 23:37Z read list_words_needed {erdos-257, kind partial} — 3 older partials; mine not yet listed.
+- 23:38Z write submit_gloss {explainer, h4--h2, proof 11ed076e… (local sha256), dry_run} — 409 products-pending, retry_after 300s.
+- 23:44Z write submit_gloss {same, dry_run} — 409 products-pending again.
+- 23:50Z write submit_gloss {same, dry_run} — 200 ok, all {steps} resolved.
+- 23:50Z write submit_gloss {explainer for #2042} — 201, PR #2043.
+- 23:51Z wrote REPORT.md; stopped.
