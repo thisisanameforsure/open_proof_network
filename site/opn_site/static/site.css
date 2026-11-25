@@ -272,10 +272,10 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .problem .collection { font-size: 12px; color: var(--n400); border: 1px solid var(--divider); border-radius: 999px; padding: 1px 8px; }
 .card.problem { padding: var(--s6) var(--s8); gap: var(--s5); }
 .problem-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s8); align-items: start; }
-.problem-main { display: flex; flex-direction: column; gap: var(--s3); align-items: flex-start; }
+.problem-main { display: flex; flex-direction: column; gap: var(--s3); align-items: flex-start; min-width: 0; max-width: 100%; }
 .problem-id-row { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
 .problem-id-row .id { font-family: var(--mono); font-size: 17px; color: var(--accent-300); overflow-wrap: anywhere; }
-.card.problem .informal { margin: 0; font-size: 20px; line-height: 1.45; max-width: 64ch; color: var(--text); }
+.card.problem .informal { margin: 0; font-size: 20px; line-height: 1.45; max-width: min(64ch, 100%); color: var(--text); }
 .card.problem .source { font-size: 13px; color: var(--n500); }
 .card.problem .source a { color: var(--n400); }
 .problem-side { display: flex; flex-direction: column; gap: var(--s3); align-items: flex-end; text-align: right; flex: none; min-width: 260px; }
@@ -306,7 +306,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 
 /* — problem page — */
 .problem-head { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: calc(var(--s8) * 2); padding: calc(var(--s8) * 1.6) 0 var(--s8); align-items: start; }
-.problem-head-main { display: flex; flex-direction: column; gap: var(--s4); align-items: flex-start; }
+.problem-head-main { display: flex; flex-direction: column; gap: var(--s4); align-items: flex-start; min-width: 0; }
+.problem-head-main > * { max-width: 100%; }
 .problem-head h1 { font-size: 34px; margin: 0; overflow-wrap: anywhere; }
 .informal-big { margin: 0; font-size: 22px; line-height: 1.45; max-width: 52ch; }
 .provenance-line { margin: 0; font-size: 14px; line-height: 1.6; max-width: 62ch; color: var(--n400); }
@@ -496,7 +497,8 @@ ul.why-not { color: var(--n400); }
 .about .lead h3 { font-size: 24px; margin: 0; color: var(--text); }
 .about .lead h3 + p { font-size: 16px; color: var(--n200); }
 .about .lead a { color: var(--accent-300); text-decoration: underline; }
-.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s8); padding-top: var(--s4); border-top: 1px solid var(--divider); }
+/* F34-T3: the About page's grid of rules, never the Rules page's table.rules */
+div.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s8); padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .rule-item { display: flex; flex-direction: column; gap: var(--s2); }
 .rule-item h4 { margin: 0; }
 .rule-item p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--n400); }
@@ -633,6 +635,17 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 /* F04-T13: KaTeX output inside a record's informal text sits on the prose's own size. */
 .math .katex { font-size: 1.04em; }
 .math .katex-display { margin: var(--s2) 0; overflow-x: auto; overflow-y: hidden; }
+/* F34-T3 (R5): display maths never breaks, so it scrolls inside its own box rather than the page;
+   a wide table does the same. */
+.katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+main table.ledger { display: block; max-width: 100%; overflow-x: auto; }
+/* an inline formula with nowhere to break sets a paragraph's least width: the statement lines on
+   Problems and a problem's page are held to their column and scroll inside it */
+.problem-main > *, .informal { max-width: 100%; }
+.informal, .informal-big { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-block: 2px; overflow-wrap: anywhere; }
+.stmt .node { min-width: 0; }
+.stmt .node a, .stmt .node code { overflow-wrap: anywhere; }
+.qa-state li { overflow-wrap: anywhere; }
 /* F04-T51 (Q50): a gloss's opening formula, shown under a statement, is inline math under
    \displaystyle so KaTeX breaks it after a top-level relation or operator; a formula with no
    break opportunity scrolls in its own box, and math.js marks the box .math-overflows when it does,
@@ -672,7 +685,7 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
   .legend { display: none; }
   .legend-mobile { display: block; }
   .card.problem { padding: var(--s5); gap: var(--s3); }
-  .problem-top { grid-template-columns: 1fr; gap: var(--s3); }
+  .problem-top { grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
   .problem-side { align-items: flex-start; text-align: left; min-width: 0; }
   .problem-side .btn { display: none; }
   .card.problem .informal { font-size: 16.5px; }
@@ -680,8 +693,8 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
   .stmt { display: flex; align-items: center; gap: var(--s3); min-height: 44px; font-size: 12.5px; }
   .stmt .node { flex: 1; }
   .stmt .role, .stmt .state, .stmt .attempts { display: none; }
-  .problem-head, .graph-grid, .about { grid-template-columns: 1fr; gap: var(--s6); }
-  .rules { grid-template-columns: 1fr; }
+  .problem-head, .graph-grid, .about { grid-template-columns: minmax(0, 1fr); gap: var(--s6); }
+  div.rules { grid-template-columns: 1fr; }
   .provenance .links { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -883,7 +896,7 @@ h1 .thm-name { font-size: .55em; }
 /* F23-T8: /steward/ and /steward/<target>/. */
 .steward-list { list-style: none; margin: var(--s6) 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
 .steward-row { display: flex; align-items: center; gap: var(--s6); padding: var(--s4) var(--s5); background: var(--surface); border-radius: var(--radius-md); }
-.steward-row .id { font-family: var(--mono); font-size: 14px; flex: none; }
+.steward-row .id { font-family: var(--mono); font-size: 14px; flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .steward-row .informal { flex: 1; min-width: 0; color: var(--n300); overflow-wrap: anywhere; }
 .steward-head h1 { margin: var(--s2) 0 var(--s3); }
 .steward-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--s6); margin-top: var(--s6); }
@@ -936,8 +949,10 @@ ol.ladder .rung.reached { color: var(--bg); background: var(--accent); border-co
 .btn-small { padding: 3px 12px; font-size: 13px; }
 ul.me-votes, ul.me-invitations { padding-left: 1.2rem; }
 table.rules { font-size: 13.5px; }
-table.rules td { vertical-align: top; overflow-wrap: anywhere; }
+table.rules td { vertical-align: top; overflow-wrap: break-word; } /* F34-T3: anywhere let a cell shrink to one letter */
 table.rules td:first-child { width: 22%; }
+table.rules td:nth-child(2) { white-space: nowrap; }
+table.rules td:nth-child(4) { min-width: 14ch; }
 table.rules code { color: var(--n500); font-size: 12px; }
 @media (max-width: 700px) {
   table.rules thead { display: none; }

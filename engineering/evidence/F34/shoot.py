@@ -28,6 +28,7 @@ PAGES = {
     "erdos-257": "/problems/erdos-257/",
     "abc": "/problems/abc/",
     "singmaster": "/problems/singmaster/",
+    "collatz-like": "/problems/collatz-like/",
     "contributors": "/contributors/",
     "docs": "/docs/",
     "rules": "/rules/",
