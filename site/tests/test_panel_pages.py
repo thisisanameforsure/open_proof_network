@@ -16,6 +16,7 @@ from pathlib import Path
 
 import panel_fixture as pf
 import pytest
+from docs_pages import docs_page
 from fixture import COMMIT, STEWARD_LOGIN, STEWARDED_TARGET, STEWARDLESS_TARGET
 
 from opn_gate import schemas
@@ -196,7 +197,11 @@ def test_rules_values_since_and_reason(pages: dict[str, str]) -> None:
 
 
 def test_the_footer_links_the_rules(pages: dict[str, str]) -> None:
-    for path in ("index.html", "docs/index.html", f"problems/{STEWARDED_TARGET}/index.html"):
+    for path in (
+        "index.html",
+        "docs/stewards/index.html",
+        f"problems/{STEWARDED_TARGET}/index.html",
+    ):
         assert 'href="/rules/"' in pages[path].split("<footer", 1)[1], path
 
 
@@ -210,9 +215,7 @@ def test_me_script_lists_votes_and_invitations() -> None:
 
 
 def test_docs_stewards_text_names_the_panel(pages: dict[str, str]) -> None:
-    docs = pages["docs/index.html"]
-    start = docs.index('<h2 id="stewards">')
-    s = docs[start : docs.index("<h2", start + 1)]
+    s = docs_page(pages, "stewards")  # F34-T6: the section is its own page
     assert 'href="/rules/"' in s and "panel" in s and "lapse" in s
 
 

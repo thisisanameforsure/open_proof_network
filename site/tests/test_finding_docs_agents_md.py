@@ -26,24 +26,20 @@ REPO = "https://github.com/example/graph"
 GUIDE = Path(__file__).resolve().parents[2] / "gate" / "agents" / "AGENTS.md"
 
 
-def test_agents_md_renders_as_a_document(tmp_path: Path) -> None:
+def test_agents_md_is_served_whole_and_copied_into_no_page(tmp_path: Path) -> None:
+    """F34-T6 (F34-Q6): F04-T10 rendered the guide as a document inside Docs; the handoff serves it
+    whole instead (73,700px of page). The tested guide reaches /AGENTS.md byte for byte, linked
+    from Docs, and none of its sections is on any page. The renderer's document tests below still
+    hold: the human-funnel documents use it."""
     root = fixture.build(tmp_path)
     shutil.copyfile(GUIDE, root / "AGENTS.md")
-    docs = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)[
-        "docs/index.html"
-    ]
-    assert "Claiming a node (D-25)" in docs, "guard: the guide is on the page"
-
-    assert re.search(r"<h2[^>]*>Claiming a node \(D-25\)</h2>", docs), "no <h2> for the section"
-    assert "expected output (fragments)" in docs, "output fences carry no label"
-    tables = re.findall(r"<table[^>]*>.*?</table>", docs, re.S)
-    assert any("server_info" in t for t in tables), "the MCP appendix is not a table"
-    assert "```" not in docs, "a literal fence reached the page"
-    assert '<pre class="fence-sh"><code>' in docs, "sh fences carry no class"
-    assert "Untrusted: AGENTS.md" in docs, "the guide left its labelled block (F04-R4)"
-
-
-# --- the document renderer's new shapes, edge cases first (F04-T10 part 2) ----------------------
+    files = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+    assert files["AGENTS.md"] == GUIDE.read_text(encoding="utf-8")
+    assert 'href="/AGENTS.md"' in files["docs/index.html"]
+    for rel, html in files.items():
+        if rel.endswith(".html"):
+            assert not re.search(r"<h2[^>]*>Claiming a node \(D-25\)</h2>", html), rel
+            assert "Untrusted: AGENTS.md" not in html, rel
 
 
 def test_output_fence_is_labelled_exactly_and_sh_fence_gets_a_class() -> None:

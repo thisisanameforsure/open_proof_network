@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 
 import fixture
 import pytest
+from docs_pages import docs_all
 from problem_rows import problem_row
 
 from opn_gate import schemas
@@ -231,11 +232,12 @@ def test_contributors_empty_state(rendered: dict[str, str]) -> None:
 
 def test_docs_bundle(rendered: dict[str, str]) -> None:
     """R9, R10: the decisions doc is copied with no external link, inline style or script."""
-    docs = rendered["docs/index.html"]
+    docs = docs_all(rendered)
     assert 'href="/docs/architecture-decisions.html"' in docs
     # F25-T12: the licences are named by rule (D-23 v3.37); the fixture has no LICENSE file and
     # the page says what the build found rather than contradicting the rule.
-    assert "no AGENTS.md yet" in docs and "No sign-off" in docs
+    # F34-T6: with no AGENTS.md in the graph, Docs links its place in the repository
+    assert f'href="{REPO}/blob/{fixture.COMMIT}/AGENTS.md"' in docs and "No sign-off" in docs
     assert "The code is Apache-2.0" in docs and "found no <code>LICENSE</code> file" in docs
     assert "No human-funnel documentation yet" not in docs  # F10-T5 delivered it
     copied = rendered["docs/architecture-decisions.html"]
@@ -268,7 +270,7 @@ def test_human_funnel_docs(rendered: dict[str, str]) -> None:
     """F10-AC9: the four human-funnel documents are rendered, linked from the Docs page, and
     each names the decisions it implements; the checklist covers every class of the taxonomy
     (F08-Q4) with a worked example, and nothing in a page is unescaped markup from the source."""
-    docs = rendered["docs/index.html"]
+    docs = docs_all(rendered)
     for rel, (title, decisions) in FUNNEL_DOCS.items():
         assert f'href="/{rel}"' in docs and title in docs, rel
         page = rendered[rel]
@@ -542,7 +544,7 @@ def test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist
     assert {p for p in problems if "api.example.test" in p} == (
         {f"{rel}: external link {API}/claims.json" for rel in own}
         | {f"{rel}: external link {API}/submissions.json" for rel in statements}
-        | {f"docs/index.html: external link {API}/dco.json"}
+        | {f"docs/licence/index.html: external link {API}/dco.json"}  # F34-T6
     )  # a set: the Problems page links claims.json twice, in the bar and in its footer note
     assert render.live_urls(API) == frozenset(
         {f"{API}/claims.json", f"{API}/submissions.json", f"{API}/dco.json"}

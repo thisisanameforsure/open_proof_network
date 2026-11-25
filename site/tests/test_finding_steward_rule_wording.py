@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import fixture
 import pytest
+from docs_pages import docs_all
 
 from opn_site import model, render
 
@@ -24,7 +25,7 @@ IN_FORCE = (
     "only while a named",
 )
 ANNOUNCED = "not yet enforced"
-PAGES = ("index.html", "problems/index.html", "about/index.html", "docs/index.html")
+PAGES = ("index.html", "problems/index.html", "about/index.html", "docs/stewards/index.html")
 
 
 def pages(root) -> dict[str, str]:  # type: ignore[no-untyped-def]
@@ -61,7 +62,7 @@ def test_an_unenforced_rule_is_announced_not_stated(announced: dict[str, str]) -
 def test_an_enforced_rule_is_stated(enforced: dict[str, str]) -> None:
     assert "refuses work" in enforced["about/index.html"]
     assert "does not accept work" in enforced["problems/index.html"]
-    assert "only while it has a steward" in enforced["docs/index.html"]
+    assert "only while it has a steward" in docs_all(enforced)
     for rel in PAGES:
         assert ANNOUNCED not in enforced[rel], rel
 

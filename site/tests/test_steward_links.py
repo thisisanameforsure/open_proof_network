@@ -145,7 +145,7 @@ def test_the_steward_page_carries_what_the_form_needs_and_no_control(
     assert 'class="informal' in page
     asks = re.findall(r'<li class="asks">', page)
     assert len(asks) == 3
-    assert '<a href="/docs/#stewards">Read more' in page
+    assert '<a href="/docs/stewards/">Read more' in page
     slot = re.search(r'<div class="steward-form"([^>]*)></div>', page)
     assert slot is not None
     attrs = slot.group(1)

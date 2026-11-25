@@ -18,6 +18,7 @@ from pathlib import Path
 
 import panel_fixture as pf
 import pytest
+from docs_pages import docs_all
 from fixture import (
     CALIBRATION_TARGET,
     COMMIT,
@@ -83,10 +84,10 @@ def copy_links() -> frozenset[str]:
     return render.COPY_LINKS | render.live_urls(API)
 
 
-def section(page: str, sid: str) -> str:
-    start = page.index(f'<h2 id="{sid}">')
-    end = page.find("<h2", start + 1)
-    return page[start : end if end >= 0 else len(page)]
+def section(pages: dict[str, str], slug: str) -> str:
+    """F34-T6: a Docs section is its own page; its text is the page's article."""
+    page = pages[f"docs/{slug}/index.html"]
+    return page[page.index('<article class="docs-main">') : page.index("</article>")]
 
 
 @pytest.fixture(scope="module")
@@ -214,21 +215,15 @@ def test_an_invented_registry_url_is_a_build_failure(
 
 
 def test_docs_has_a_registries_section_between_propose_and_leiden(pages: dict[str, str]) -> None:
-    docs = pages["docs/index.html"]
-    assert '<h2 id="registries">Registries</h2>' in docs
-    assert (
-        docs.index('<h2 id="propose">')
-        < docs.index('<h2 id="registries">')
-        < docs.index('<h2 id="leiden">')
-    )
-    jump = docs[docs.index('<p class="jump">') : docs.index("</p>", docs.index('<p class="jump">'))]
-    assert 'href="#registries"' in jump
+    # F34-T6: Registries is its own page under Protocol; the old #registries anchor still lands
+    assert "<h1>Registries</h1>" in pages["docs/registries/index.html"]
+    assert '<li id="registries"><a href="/docs/registries/">' in pages["docs/index.html"]
 
 
 def test_the_registries_section_says_what_palomar_is_and_how_the_network_uses_it(
     pages: dict[str, str],
 ) -> None:
-    sec = section(pages["docs/index.html"], "registries")
+    sec = section(pages, "registries")
     text = " ".join(parsed(sec).text)
     for phrase in (
         "Palomar",
@@ -254,13 +249,11 @@ def test_the_registries_section_says_what_palomar_is_and_how_the_network_uses_it
 def test_the_licence_section_names_both_licences_and_keeps_the_sign_off_link(
     pages: dict[str, str],
 ) -> None:
-    docs = pages["docs/index.html"]
-    start = docs.index("<h2>License and sign-off</h2>")
-    sec = docs[start : docs.index("</main>", start)]
+    sec = section(pages, "licence")  # F34-T6: its own page, the decision named at its foot
     text = " ".join(parsed(sec).text)
     assert "The code is Apache-2.0" in text
     assert "the non-code record" in text and "CDLA-Permissive-2.0" in text
-    assert "D-23 v3.37" in text
+    assert "Protocol: decision D-23" in text
     assert f"{API}/dco.json" in parsed(sec).hrefs  # the existing link stays
 
 
@@ -272,7 +265,7 @@ def test_the_leiden_authorship_row_says_a_registrations_authors_are_people(
         "a registration's authors are the ledger's identities under their pseudonyms or recorded "
         "names and never a model (D-19 v3.37)"
     ) in row[1]
-    assert html.escape(row[1]) in pages["docs/index.html"]
+    assert html.escape(row[1]) in docs_all(pages)
 
 
 # --- the About page --------------------------------------------------------------------------

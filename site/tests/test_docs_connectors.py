@@ -11,6 +11,7 @@ from pathlib import Path
 
 import fixture
 import pytest
+from docs_pages import docs_all
 
 from opn_gate import clients
 from opn_site import model, render
@@ -23,7 +24,7 @@ REPO = "https://github.com/example/graph"
 def docs(tmp_path_factory: pytest.TempPathFactory) -> str:
     root = fixture.build(tmp_path_factory.mktemp("site"))
     site = model.load_site(root, fixture.COMMIT)
-    return render.render_site(site, repo_url=REPO, api_url=API)["docs/index.html"]
+    return render.render_site(site, repo_url=REPO, api_url=API)["docs/connect/index.html"]
 
 
 def test_listed(docs: str) -> None:
@@ -36,11 +37,11 @@ def test_listed(docs: str) -> None:
         assert f'id="connector-{entry.id}"' in docs
         for r in clients.render(registry, entry, f"{API}/mcp"):
             assert render.esc(r.text.rstrip()) in docs, (entry.id, r.title)
-    assert 'href="#connectors"' in docs
+    assert "<h1>Connect your harness (MCP)</h1>" in docs  # F34-T6: its own page
 
 
 def test_only_the_configured_host(docs: str) -> None:
-    section = docs[docs.index('id="connectors"') : docs.index('id="agents"')]
+    section = docs[docs.index('<article class="docs-main">') : docs.index('<nav class="prevnext"')]
     hosts = set(re.findall(r"https?://([^/\s\"'<]+)", section))
     assert hosts <= {"api.test.invalid"}, hosts
 
@@ -64,7 +65,7 @@ def test_verified_shows_version_and_date(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr(clients, "load", lambda *_a: dataclasses.replace(registry, entries=entries))
     root = fixture.build(tmp_path)
     page = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO, api_url=API)
-    card = page["docs/index.html"]
+    card = docs_all(page)
     card = card[card.index('id="connector-codex-cli"') :]
     card = card[: card.index("</section>")]
     assert "Tested with 2.3.4 on 2026-09-25." in card
@@ -74,7 +75,9 @@ def test_verified_shows_version_and_date(tmp_path: Path, monkeypatch: pytest.Mon
 def test_without_a_service_url_names_the_variable(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     page = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
-    section = page["docs/index.html"]
-    section = section[section.index('id="connectors"') : section.index('id="agents"')]
+    section = page["docs/connect/index.html"]  # F34-T6: its own page
+    section = section[
+        section.index('<article class="docs-main">') : section.index('<nav class="prevnext"')
+    ]
     assert "$OPN_API/mcp" in section
     assert "https://" not in section

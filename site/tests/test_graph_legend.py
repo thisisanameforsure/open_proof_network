@@ -138,7 +138,8 @@ def test_the_stylesheet_colours_every_key_entry() -> None:
 def test_the_docs_glossary_carries_the_new_words(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
-    docs, _files = render.Renderer(site, repo_url=REPO, decisions_doc=None).docs()
+    _landing, files = render.Renderer(site, repo_url=REPO, decisions_doc=None).docs()
+    docs = files["docs/glossary/index.html"]  # F34-T6: the glossary has its own page
     for status in render.LEGEND_EXTRA:
         assert render.esc(render.GLOSSARY_BY_KEY[status][1]) in docs, status
 

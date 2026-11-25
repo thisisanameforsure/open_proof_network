@@ -109,7 +109,7 @@ def test_lean_only_shows_the_lean_and_explain_this(files: dict[str, str]) -> Non
     block = record_part(node, "Statement")  # F04-T50: the record's statement fold holds it
     assert 'id="statement-words"' in block
     assert '<pre class="lean statement' in block
-    assert "How to write one" in block and 'href="/docs/#guide-glosses' in block
+    assert "How to write one" in block and 'href="/docs/words/"' in block  # F34-T6
 
 
 def test_a_gloss_that_is_not_math_first_is_compact_and_unverified(tmp_path: Path) -> None:
@@ -199,7 +199,7 @@ def test_boilerplate_is_out_of_sight_but_in_the_record_details(
     for words in BOILERPLATE:
         plain = visible_text(words)
         assert plain not in shown, words
-    assert 'href="/docs/#reading"' in details  # how to read this
+    assert 'href="/docs/reading/"' in details  # how to read this
     if node_id == sf.ROOT:
         for words in BOILERPLATE:
             assert words in details, words

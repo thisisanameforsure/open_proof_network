@@ -31,13 +31,21 @@ def docs(tmp_path_factory: pytest.TempPathFactory) -> str:
     root = fixture.build(tmp_path_factory.mktemp("graph"))
     site = model.load_site(root, fixture.COMMIT)
     r = render.Renderer(site, repo_url=REPO, decisions_doc=None)
-    page, _extra = r.docs()
-    return page
+    _landing, extra = r.docs()
+    return extra["docs/reading/index.html"]  # F34-T6: the state map is on the reading page
+
+
+@pytest.fixture(scope="module")
+def glossary_page(tmp_path_factory: pytest.TempPathFactory) -> str:
+    root = fixture.build(tmp_path_factory.mktemp("graph-glossary"))
+    site = model.load_site(root, fixture.COMMIT)
+    _landing, extra = render.Renderer(site, repo_url=REPO, decisions_doc=None).docs()
+    return extra["docs/glossary/index.html"]
 
 
 def section(docs: str) -> str:
     start = docs.index('<h2 id="states">')
-    return docs[start : docs.index('<h2 id="glossary">')]
+    return docs[start : docs.index('<nav class="prevnext"')]
 
 
 def drawings(html: str) -> list[str]:
@@ -139,7 +147,9 @@ def test_the_derivation_order_is_the_gates(docs: str) -> None:
         assert f"<code>{status}</code>" in first_rule, status
 
 
-def test_the_actions_table_names_shelving_and_the_boxes_are_unchanged(docs: str) -> None:
+def test_the_actions_table_names_shelving_and_the_boxes_are_unchanged(
+    docs: str, glossary_page: str
+) -> None:
     """F31-T12 (R9; D-14 v3.47): the act is in the table — who may do it, the two ways, what
     it moves — and outside the status boxes, because shelving is not a status (F31-Q7): the
     statement drawing's boxes are exactly ``graph.ALL_STATUSES`` as before, and the glossary
@@ -159,6 +169,6 @@ def test_the_actions_table_names_shelving_and_the_boxes_are_unchanged(docs: str)
         "open" if s in render.CLAIMABLE_STATUSES else s for s in graph.ALL_STATUSES
     } | {render.STATE_LABELS[render.NEEDS_WITNESS]}
     assert "shelved" not in render.LEGEND_EXTRA and "shelved" not in render.STATE_MAP_STATEMENT_KEYS
-    glossary = docs[docs.index('<h2 id="glossary">') :]
+    glossary = glossary_page  # F34-T6: the glossary has its own page
     assert "<td>shelved</td>" in glossary
     assert render.esc(render.GLOSSARY_BY_KEY["shelved"][1]) in glossary

@@ -21,6 +21,7 @@ from pathlib import Path
 
 import fixture
 import pytest
+from docs_pages import docs_all
 from harness import TARGET
 from problem_rows import problem_row
 
@@ -114,7 +115,7 @@ def test_the_glossary_defines_the_witness_and_the_state(
     _site, pages = built
     for key in ("witness", "needs-witness"):
         assert key in render.GLOSSARY_BY_KEY, key
-    docs = pages["docs/index.html"]
+    docs = docs_all(pages)
     assert "needs a witness" in docs and "named <code>witness</code>" not in docs  # escaped prose
     meaning = render.GLOSSARY_BY_KEY["witness"][1]
     assert "named witness" in meaning and "∃" in meaning and "True" in meaning

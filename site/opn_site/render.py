@@ -182,7 +182,48 @@ ERRORS_PATH = "/errors.json"
 MCP_PATH = "/mcp"
 #: The contributor guide's place on the Docs page, and the licences annex prose may carry
 #: (``annex/v1`` takes any SPDX id; these are the three the service accepts, D-23).
-GUIDE_HREF = "/docs/#agents"
+GUIDE_HREF = "/docs/quick-start/"  # F34-T6: Docs is one page per topic
+#: F34-T6 (R8): Docs, one page per topic, by reader (handoff §3.3). Each entry is (slug, title,
+#: template or None for a page built in code, the decisions it rests on). ``""`` is /docs/.
+#: An entry whose slug starts with ``/`` is a page elsewhere, listed in the sidebar only.
+DOCS_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str | None, str], ...]], ...] = (
+    ("Start here", (("", "Overview", "docs-overview.html", ""),)),
+    (
+        "Mathematicians",
+        (
+            ("stewards", "Steward a problem", "docs-stewards.html", "D-32"),
+            ("propose", "Propose a problem", "docs-propose.html", "D-6"),
+            ("review", "How a statement is reviewed", "docs-review.html", "D-9"),
+        ),
+    ),
+    (
+        "Readers of Lean",
+        (
+            ("words", "Write the words for a statement", "docs-words.html", "D-3, D-19"),
+            ("reading", "Read a proof page", "docs-reading.html", "D-3, D-25"),
+        ),
+    ),
+    (
+        "Agent operators",
+        (
+            ("quick-start", "Quick start", "docs-quick-start.html", "D-27, D-28, D-35"),
+            ("token", "Getting a token", "docs-token.html", "D-19, D-23"),
+            ("connect", "Connect your harness (MCP)", None, "D-28"),
+            ("/AGENTS.md", "AGENTS.md, the full text", None, ""),
+        ),
+    ),
+    ("Reference", (("glossary", "Glossary", "docs-glossary.html", ""),)),
+    (
+        "Protocol",
+        (
+            ("/docs/architecture-decisions.html", "Architecture decisions", None, ""),
+            ("leiden", "The Leiden Declaration", "docs-leiden.html", ""),
+            ("registries", "Registries", "docs-registries.html", "D-10"),
+            ("licence", "Licence and sign-off", None, "D-23"),
+            ("/rules/", "Rules (policy.json)", None, ""),
+        ),
+    ),
+)
 #: F34-T4 (handoff §6): beside every "Sign in with GitHub", that contributing needs no account.
 ANON_NOTE = (
     '<p class="anon-note">Only stewards and curators sign in, with GitHub. Contributing needs no '
@@ -190,7 +231,7 @@ ANON_NOTE = (
     f'(<a href="{GUIDE_HREF}">how</a>).</p>'
 )
 #: F22-T18 (Q): the Docs section a reader of a proof page needs, linked from every reader page.
-READING_HREF = "/docs/#reading"
+READING_HREF = "/docs/reading/"
 #: F22-T18 (P): the one line beside a statement's Lean that says what its ``sorry`` is.
 SORRY_NOTE = (
     '<p class="sorry-note">A statement is written <code>:= by sorry</code>: the '
@@ -332,7 +373,21 @@ GUIDE_ANCHOR_PREFIX = "guide-"
 #: explainers and outlines (gate/agents/AGENTS.md, rendered on the Docs page). A test holds the
 #: fragment to a heading the guide has.
 GLOSS_GUIDE_SECTION = "Glosses, explainers and outlines"
-GLOSS_GUIDE_HREF = f"/docs/#{GUIDE_ANCHOR_PREFIX}{prose.heading_slug(GLOSS_GUIDE_SECTION)}"
+GLOSS_GUIDE_HREF = "/docs/words/"  # F34-T6: the short page; AGENTS.md has the full section
+#: F34-T6 (R8): every anchor of the old single /docs/ page, and the page that now holds it. The
+#: landing keeps each as the id of the link to that page, so an old link still lands on it.
+DOCS_OLD_ANCHORS: dict[str, str] = {
+    "stewards": "stewards",
+    "propose": "propose",
+    "review": "review",
+    "registries": "registries",
+    "leiden": "leiden",
+    "reading": "reading",
+    "glossary": "glossary",
+    "connectors": "connect",
+    "agents": "quick-start",
+    f"{GUIDE_ANCHOR_PREFIX}{prose.heading_slug(GLOSS_GUIDE_SECTION)}": "words",
+}
 #: A gloss subject's kind in the page's words.
 GLOSS_KIND_WORDS = {
     "statement": "statement",
@@ -1319,6 +1374,14 @@ class Renderer:
         at = commit or self.site.commit
         url = f"{self.repo_url}/blob/{at}/{rel}"
         return f'<a class="file" href="{esc(url)}">{esc(label or rel)}</a>'
+
+    @property
+    def agents_href(self) -> str:
+        """F34-T6: AGENTS.md served whole beside the site, or, for a graph with none, its place in
+        the graph repository (the link is never to a page that does not exist, R13)."""
+        if (self.site.root / "AGENTS.md").is_file():
+            return "/AGENTS.md"
+        return f"{self.repo_url}/blob/{self.site.commit}/AGENTS.md"
 
     @staticmethod
     def target_path(target_id: str) -> str:
@@ -2546,7 +2609,7 @@ class Renderer:
             '<li class="asks">Write it up, and sign the explainer of the proof that closes it.'
             "</li>"
             '<li class="asks">Best efforts, no deadline: step down at any time.</li></ul>'
-            '<a href="/docs/#stewards">Read more about stewards →</a></div>'
+            '<a href="/docs/stewards/">Read more about stewards →</a></div>'
             f"{form}</section>"
         )
         frame = self.math_frame(body)
@@ -2974,6 +3037,7 @@ class Renderer:
         title = str(tv.record.get("title") or "") if tv.record else ""
         resolved = str(tv.index_entry["status"]) == "resolved"
         body = _template("target.html").substitute(
+            agents_href=esc(self.agents_href),  # F34-T6: the fast check is in AGENTS.md
             # F04-T31: the section names the first stage as the problem reached it.
             digestion_heading=esc(self.resolution(tv).capitalize() if resolved else "Proved"),
             target_id=esc(tid),
@@ -5707,8 +5771,11 @@ class Renderer:
         )
 
     def docs(self) -> tuple[str, dict[str, str]]:
-        """R9, Q4: the docs page and the copied decisions document with its styles moved to a
-        same-origin stylesheet and every external or inline script removed (R10)."""
+        """F34-T6 (R8): Docs as one page per topic, each with the sidebar; ``/docs/`` the landing.
+
+        AGENTS.md is no longer copied into any page (F04-Q6 gives way, F34-Q6): it is served whole
+        at ``/AGENTS.md`` and linked. The decisions document and the human-funnel documents keep
+        their own pages (R9, Q4; F10-R9)."""
         extra: dict[str, str] = {}
         if self.decisions_doc is not None and self.decisions_doc.is_file():
             raw = self.decisions_doc.read_text(encoding="utf-8")
@@ -5719,50 +5786,187 @@ class Renderer:
             )
             extra["docs/architecture-decisions.html"] = page
             extra["docs/decisions.css"] = styles
-            decisions = (
-                '<a href="/docs/architecture-decisions.html">Architecture decisions</a>, '
-                "the protocol this network runs: decisions D-1 to D-36 with rationale and "
-                "overturning conditions. Copied at the site build (Q4)."
-            )
-        else:
-            decisions = "The architecture decisions document is not available in this build."
         agents_md = self.site.root / "AGENTS.md"
-        agents = (
-            self.untrusted_block(
-                "untrusted",
-                Prose(path="AGENTS.md", text=agents_md.read_text(encoding="utf-8")),
-                what="AGENTS.md",
-                document=True,  # F04-T10: headings, tables and labelled fences
-                anchors=GUIDE_ANCHOR_PREFIX,  # F20-T12: each section linkable (Q16(a))
-            )
-            if agents_md.is_file()
-            else "<p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>"
-        )
-        # F10-R9: the human-funnel documents are this repository's (site/docs/), rendered as
-        # pages of their own; a graph may add files under its docs/, linked as files.
-        funnel_items = []
+        if agents_md.is_file():
+            extra["AGENTS.md"] = agents_md.read_text(encoding="utf-8")
+        funnel: list[tuple[str, str, str]] = []
         for path in sorted(FUNNEL_DOCS.glob("*.md")):
             title, summary = document_head(path.read_text(encoding="utf-8"))
             rel = f"docs/{path.stem}.html"
             doc = prose.render_document(path.read_text(encoding="utf-8"))
             extra[rel] = self.page(title, doc, renders=[], **self.math_frame(doc))
-            funnel_items.append(
-                f'<li><a href="/{esc(rel)}">{esc(title)}</a> — {prose.inline(summary)}</li>'
+            funnel.append((f"/{rel}", title, summary))
+        bodies = self.docs_bodies(funnel)
+        pages = [
+            (slug, title, why) for _g, entries in DOCS_GROUPS for slug, title, _f, why in entries
+        ]
+        internal = [e for e in pages if not e[0].startswith("/")]
+        landing = ""
+        for i, (slug, title, why) in enumerate(internal):
+            prev_ = internal[i - 1] if i > 0 else None
+            next_ = internal[i + 1] if i + 1 < len(internal) else None
+            html = self.docs_page(slug, title, bodies[slug], why, (prev_, next_))
+            if slug:
+                extra[f"docs/{slug}/index.html"] = html
+            else:
+                landing = html
+        return landing, extra
+
+    def docs_listed(self, slug: str) -> bool:
+        """A page elsewhere is listed only when this build has it: the decisions document is
+        copied only when the build was given it (R9, Q4)."""
+        if slug == "/docs/architecture-decisions.html":
+            return self.decisions_doc is not None and self.decisions_doc.is_file()
+        return True
+
+    def docs_href(self, slug: str) -> str:
+        if slug == "/AGENTS.md":
+            return self.agents_href
+        return slug if slug.startswith("/") else (f"/docs/{slug}/" if slug else "/docs/")
+
+    def docs_side(self, current: str) -> str:
+        """The sidebar: every group and page, the current one marked."""
+        out = []
+        for group, entries in DOCS_GROUPS:
+            items = "".join(
+                f'<li><a href="{esc(self.docs_href(slug))}"'
+                + (' aria-current="page"' if slug == current else "")
+                + f">{esc(title)}{' ↗' if slug.startswith('/') else ''}</a></li>"
+                for slug, title, _f, _w in entries
+                if self.docs_listed(slug)
             )
-        funnel_dir = self.site.root / "docs"
-        funnel_files = (
-            sorted(p for p in funnel_dir.iterdir() if p.is_file()) if funnel_dir.is_dir() else []
+            out.append(f'<p class="docs-group">{esc(group)}</p><ul>{items}</ul>')
+        return "".join(out)
+
+    def docs_page(
+        self,
+        slug: str,
+        title: str,
+        body: str,
+        why: str,
+        around: tuple[tuple[str, str, str] | None, tuple[str, str, str] | None],
+    ) -> str:
+        """One docs page in the frame: sidebar, breadcrumb, heading, body, previous and next, and
+        the decisions it rests on at its foot, once (handoff §3.3)."""
+        prev_, next_ = around
+        group = next(g for g, entries in DOCS_GROUPS if any(e[0] == slug for e in entries))
+        crumb = "" if not slug else f" / {esc(group)} / {esc(title)}"
+        links = []
+        if prev_ is not None:
+            links.append(
+                f'<a class="prev" href="{esc(self.docs_href(prev_[0]))}"><span>Previous</span>'
+                f"{esc(prev_[1])}</a>"
+            )
+        if next_ is not None:
+            links.append(
+                f'<a class="next" href="{esc(self.docs_href(next_[0]))}"><span>Next</span>'
+                f"{esc(next_[1])}</a>"
+            )
+        prevnext = f'<nav class="prevnext" aria-label="Pages">{"".join(links)}</nav>'
+        foot = (
+            f'<p class="docs-foot">Protocol: decision{"s" if "," in why else ""} {esc(why)}, in '
+            '<a href="/docs/architecture-decisions.html">the architecture decisions</a>.</p>'
+            if why
+            else ""
         )
-        funnel_items.extend(f"<li>{self.file_link(f'docs/{p.name}')}</li>" for p in funnel_files)
-        funnel = (
-            "<ul>" + "".join(funnel_items) + "</ul>"
-            if funnel_items
-            else "<p>No human-funnel documentation yet (D-27, F10).</p>"
+        frame = _template("docs-page.html").substitute(
+            side=self.docs_side(slug),
+            crumb=crumb,
+            title=esc(title),
+            body=body,
+            prevnext=prevnext,
+            foot=foot,
         )
-        # F25-R17 (D-23 v3.37): the two licences by name, before whatever text the graph carries.
+        # the graph files the page shows: the licence page its LICENSE and DCO (R9), every page
+        # the AGENTS.md it links
+        names = ("LICENSE", "DCO") if slug == "licence" else ("AGENTS.md",)
+        renders = [n for n in names if (self.site.root / n).is_file()]
+        return self.page(
+            "Docs" if not slug else title,
+            frame,
+            renders=renders,
+            path="/docs/",
+            **self.math_frame(frame),
+        )
+
+    def docs_bodies(self, funnel: list[tuple[str, str, str]]) -> dict[str, str]:
+        """Each page's body, from its template or built here."""
+        mcp = f"{self.api_url}/mcp" if self.api_url else "$OPN_API/mcp"
+        api_sentence = (
+            f"for the live network it is <code>{esc(self.api_url)}</code>."
+            if self.api_url
+            else "this build names no service, so set it to the one you use."
+        )
+        leiden_rows = "".join(
+            f"<tr><td>{esc(objection)}</td><td>{esc(does)}</td><td>{esc(gap)}</td></tr>"
+            for objection, does, gap in LEIDEN_ROWS
+        )
+        glossary_rows = "".join(
+            f"<tr><td>{esc(label)}</td><td>{esc(meaning)}</td><td><code>{esc(proto)}</code></td></tr>"
+            for _key, label, meaning, proto in self.words["glossary"]
+        )
+        values = {
+            "steward_lead": esc(self.words["docs_steward"]),
+            "step_down_consequence": esc(self.words["docs_step_down"]),
+            "commitment": esc(steward.COMMITMENT),
+            "proposal_url": esc(self.proposal_url),
+            "leiden_rows": leiden_rows,
+            "glossary_rows": glossary_rows,
+            "states": self.states(),
+            "reading_labels": "".join(
+                f"<tr><td>{esc(PROVENANCE[key])}</td><td>{esc(meaning)}</td></tr>"
+                for key, meaning in READING_LABELS
+            ),
+            "gloss_guide_href": esc(GLOSS_GUIDE_HREF),
+            "mcp_command": esc(f"claude mcp add --transport http open-proof-network {mcp}"),
+            "api_sentence": api_sentence,
+            "index": self.docs_index(funnel),
+            "agents_href": esc(self.agents_href),
+        }
+        bodies: dict[str, str] = {}
+        for _g, entries in DOCS_GROUPS:
+            for slug, _title, template, _why in entries:
+                if template is not None:
+                    bodies[slug] = _template(template).safe_substitute(values)
+        bodies["connect"] = self.connectors()
+        bodies["licence"] = self.licence_words()
+        return bodies
+
+    def docs_index(self, funnel: list[tuple[str, str, str]]) -> str:
+        """The landing's list of every page by group. Each old anchor of the single page is the id
+        of the link to the page that holds it now (R8, ``DOCS_OLD_ANCHORS``)."""
+        ids: dict[str, list[str]] = {}
+        for old, slug in DOCS_OLD_ANCHORS.items():
+            ids.setdefault(slug, []).append(old)
+        groups = []
+        if not self.docs_listed("/docs/architecture-decisions.html"):
+            groups.append(
+                "<p>The architecture decisions document is not available in this build.</p>"
+            )
+        for group, entries in DOCS_GROUPS:
+            items = []
+            for slug, title, _f, _w in entries:
+                if not slug or not self.docs_listed(slug):
+                    continue
+                anchors = ids.get(slug, [])
+                lead = f' id="{esc(anchors[0])}"' if anchors else ""
+                more = "".join(f'<span id="{esc(a)}"></span>' for a in anchors[1:])
+                items.append(
+                    f'<li{lead}>{more}<a href="{esc(self.docs_href(slug))}">{esc(title)}</a></li>'
+                )
+            if group == "Reference":
+                items.extend(
+                    f'<li><a href="{esc(href)}">{esc(title)}</a></li>' for href, title, _s in funnel
+                )
+            if items:  # the landing does not list itself
+                groups.append(f'<h3>{esc(group)}</h3><ul class="docs-index">{"".join(items)}</ul>')
+        return "".join(groups)
+
+    def licence_words(self) -> str:
+        """F25-R17 (D-23 v3.37): the two licences by name, then whatever text the graph carries."""
         parts = [
             "<p>The code is Apache-2.0 and the non-code record — statements, proofs, prose, "
-            "attestations and every other record — is CDLA-Permissive-2.0 (D-23 v3.37): "
+            "attestations and every other record — is CDLA-Permissive-2.0: "
             "<code>LICENSE</code> at the graph root names the first, <code>NOTICE</code> beside "
             "it the second, and the sign-off text names both. Annex prose carries the licence "
             f"its author chose: {', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
@@ -5792,39 +5996,7 @@ class Renderer:
                     f"<p>No {what} text is committed to the graph; the service serves the text a "
                     "token is issued against (D-23).</p>"
                 )
-        # F15-R11: the steward section, the proposal form on the graph repository (from the
-        # site's configured repository, never a hostname in a template) and the Leiden table.
-        leiden_rows = "".join(
-            f"<tr><td>{esc(objection)}</td><td>{esc(does)}</td><td>{esc(gap)}</td></tr>"
-            for objection, does, gap in LEIDEN_ROWS
-        )
-        glossary_rows = "".join(
-            f"<tr><td>{esc(label)}</td><td>{esc(meaning)}</td><td><code>{esc(proto)}</code></td></tr>"
-            for _key, label, meaning, proto in self.words["glossary"]
-        )
-        body = _template("docs.html").substitute(
-            decisions=decisions,
-            steward_lead=esc(self.words["docs_steward"]),
-            step_down_consequence=esc(self.words["docs_step_down"]),
-            states=self.states(),
-            connectors=self.connectors(),
-            agents=agents,
-            funnel=funnel,
-            license="".join(parts),
-            commitment=esc(steward.COMMITMENT),  # one sentence, one home (opn_gate.steward)
-            proposal_url=esc(self.proposal_url),
-            leiden_rows=leiden_rows,
-            glossary_rows=glossary_rows,
-            reading_labels="".join(
-                f"<tr><td>{esc(PROVENANCE[key])}</td><td>{esc(meaning)}</td></tr>"
-                for key, meaning in READING_LABELS
-            ),
-            gloss_guide_href=esc(GLOSS_GUIDE_HREF),
-        )
-        renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
-        return self.page(
-            "Docs", body, renders=renders, path="/docs/", **self.math_frame(body)
-        ), extra
+        return "".join(parts)
 
     def connectors(self) -> str:
         """F16-R3, AC6: one card per harness in the connector registry, alphabetical (D-1: no

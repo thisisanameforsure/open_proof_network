@@ -21,7 +21,7 @@ from opn_gate import cli, glosses
 
 REPO = Path(__file__).resolve().parents[2]
 GUIDE = REPO / "gate" / "agents" / "AGENTS.md"
-DOCS = REPO / "site" / "opn_site" / "templates" / "docs.html"
+DOCS = REPO / "site" / "opn_site" / "templates" / "docs-reading.html"  # F34-T6: its own page
 #: The words every copy of the rule carries.
 RULE_WORDS = ("LaTeX", "Lean convention")
 

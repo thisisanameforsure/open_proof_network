@@ -1386,3 +1386,50 @@ table.waiting .wstmt { overflow-wrap: anywhere; }
   table.waiting .warea { grid-column: 1; }
   table.waiting .wact { grid-column: 2; grid-row: 1; }
 }
+
+/* — F34-T6 (R8): Docs, one page per topic, with a sidebar — */
+.docs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; padding-top: 40px; align-items: start; }
+.docs-side { position: sticky; top: 24px; font-family: var(--sans); font-size: 14.5px; max-height: calc(100vh - 48px); overflow-y: auto; }
+.docs-side .docs-group { font-family: var(--mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 8px 6px; }
+.docs-side .docs-group:first-child { margin-top: 0; }
+.docs-side ul { list-style: none; margin: 0; padding: 0; }
+.docs-side a { display: block; padding: 6px 8px; border-radius: var(--radius); color: var(--ink); text-decoration: none; }
+.docs-side a:hover { background: var(--tint); }
+.docs-side a[aria-current="page"] { background: var(--proved-tint); }
+.docs-main { min-width: 0; max-width: 72ch; }
+.docs-main h1 { font-size: 46px; margin-top: 8px; }
+.docs-main h2 { font-size: 28px; margin-top: 40px; }
+.docs-main h2 .sec { font-family: var(--sans); font-size: 15px; color: var(--muted); margin-right: 8px; }
+.docs-main .lead { font-size: 20px; color: var(--muted); max-width: none; }
+.docs-main .onpage { font-family: var(--sans); font-size: 14px; color: var(--muted); }
+.docs-main pre { background: var(--tint); border-radius: var(--radius); padding: 14px 16px; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+.docs-main .steps { padding-left: 1.4em; }
+.docs-main .steps > li { margin: 0 0 18px; }
+.docs-main table.compare { width: 100%; border-collapse: collapse; font-size: 16px; }
+.docs-main table.compare th, .docs-main table.compare td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.docs-main table.compare thead th { font-family: var(--sans); font-weight: 500; font-size: 13px; color: var(--muted); border-bottom: 1.5px solid var(--ink); }
+.docs-main table.compare th { text-transform: none; letter-spacing: 0; }
+.docs-main table.compare tbody th { font-family: var(--sans); font-weight: 500; font-size: 14px; }
+.callout { border-left: 3px solid var(--proved); padding: 4px 0 4px 16px; margin: 20px 0; }
+.callout-warn { border-left-color: var(--refuted); }
+.callout p { margin: 0; }
+.prevnext { display: flex; justify-content: space-between; gap: 16px; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--rule); }
+.prevnext a { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); font-family: var(--sans); font-size: 17px; }
+.prevnext a span { font-size: 13px; color: var(--muted); }
+.prevnext .next { margin-left: auto; text-align: right; }
+.docs-foot { margin-top: 28px; font-family: var(--sans); font-size: 13px; color: var(--muted); }
+.ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.way { border-top: 1.5px solid var(--ink); padding-top: 14px; }
+.way .kicker, .docs-main .kicker { font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+.way h3 { font-size: 21px; margin: 4px 0 8px; }
+.way p { font-size: 16px; }
+.docs-index { padding-left: 1.2em; }
+.docs-index li { margin: 4px 0; }
+@media (max-width: 900px) {
+  .docs-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-top: 24px; }
+  /* on a phone the page comes first and the list of pages after it */
+  .docs-side { position: static; max-height: none; order: 2; border-top: 1px solid var(--rule); padding-top: 16px; }
+  .docs-main { order: 1; }
+  .ways { grid-template-columns: minmax(0, 1fr); }
+  .docs-main h1 { font-size: 36px; }
+}

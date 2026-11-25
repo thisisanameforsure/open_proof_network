@@ -13,6 +13,7 @@ from pathlib import Path
 
 import fixture
 import pytest
+from docs_pages import docs_all
 
 from opn_site import model, render
 
@@ -71,7 +72,7 @@ def test_the_pages_with_record_prose_load_katex_same_origin(pages: dict[str, str
     # carries math and loads KaTeX like the other pages that show them; Docs carries none.
     root_page = pages[f"nodes/{fixture.LISTED_TARGET}/{fixture.LISTED_ROOT}/index.html"]
     assert render.MATH_HEAD in root_page and render.MATH_SCRIPTS in root_page
-    assert "katex" not in pages["docs/index.html"]
+    assert "katex" not in docs_all(pages)
     for src in render.SCRIPTS:
         assert src.lstrip("/") in pages, src
     assert "vendor/katex/katex.min.css" in pages
