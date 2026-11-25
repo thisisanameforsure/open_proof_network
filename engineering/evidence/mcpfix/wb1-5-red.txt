@@ -1,0 +1,39 @@
+..F.F..                                                                  [100%]
+=================================== FAILURES ===================================
+__________________ test_catalog_keys_equal_the_emitted_codes ___________________
+
+walked = Walk(sites={'check-order': {'gate': [('gate/opn_gate/admit.py:99', 5), ('gate/opn_gate/admit.py:161', 8), ('gate/opn_g...lit(':', 1)[0]"), ('api/opn_api/proposals.py', "f'{name}-missing'"), ('api/opn_api/appends.py', "f'{field}-invalid'")})
+
+    def test_catalog_keys_equal_the_emitted_codes(walked: Walk) -> None:
+        """F13-T29: every code the gate and the service can emit has a row, and no row outlives
+        its code."""
+        emitted = set(walked.sites)
+        catalogued = set(codes.CATALOG)
+>       assert sorted(emitted - catalogued) == [], "codes with no catalog row"
+E       AssertionError: codes with no catalog row
+E       assert ['admit-prese...-differ', ...] == []
+E         
+E         Left contains 9 more items, first extra item: 'admit-present'
+E         Use -v to get more diff
+
+gate/tests/test_error_codes.py:411: AssertionError
+________________ test_source_matches_where_the_code_is_emitted _________________
+
+walked = Walk(sites={'check-order': {'gate': [('gate/opn_gate/admit.py:99', 5), ('gate/opn_gate/admit.py:161', 8), ('gate/opn_g...lit(':', 1)[0]"), ('api/opn_api/proposals.py', "f'{name}-missing'"), ('api/opn_api/appends.py', "f'{field}-invalid'")})
+
+    def test_source_matches_where_the_code_is_emitted(walked: Walk) -> None:
+        for code, row in codes.CATALOG.items():
+            where = set(walked.sites.get(code, {}))
+            expected = "both" if where == {"gate", "api"} else next(iter(where), None)
+>           assert row.source == expected, (code, row.source, sorted(where))
+E           AssertionError: ('proof-empty', 'gate', ['api', 'gate'])
+E           assert 'gate' == 'both'
+E             
+E             - both
+E             + gate
+
+gate/tests/test_error_codes.py:427: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_error_codes.py::test_catalog_keys_equal_the_emitted_codes
+FAILED gate/tests/test_error_codes.py::test_source_matches_where_the_code_is_emitted
+2 failed, 5 passed in 4.01s

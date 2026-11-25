@@ -47,3 +47,25 @@ Branch `mcpfix-wb1` from origin/main ae6c445c.
 - Green: 6 passed; broad run 1175 passed, 1 failed (wb1-3-green-broad.txt): the failure is
   gate/tests/test_walkthrough.py::test_graph_copy_is_identical, the sibling graph checkout's
   AGENTS.md copy drifted (no AGENTS.md change on this branch; known stale-checkout case).
+- Item 4 (partial labels): red 2 failed of 3 (wb1-4-red.txt: no partial-unlabelled finding).
+  Where `sorry-present` fires, `labels.problems(content)` runs and any problems become ONE lint
+  finding `{"code": "partial-unlabelled", "message": <the precheck refusal's words>, "missing":
+  [Problem.as_dict(), ...]}` — the same `missing` list the precheck's 400 carries. It does not
+  change `okay` (sorry-present already makes it false in check and verify). Two older tests in
+  test_checks.py that pinned the lint list for a sorry text were restated to include it.
+  Green 20 passed (wb1-4-green.txt).
+- Item 5 (catalog): red 2 failed (wb1-5-red.txt: 9 lint codes uncatalogued; proof-empty's source
+  became both). test_error_codes' walk now collects `{"code": <literal or if-expression>}` dict
+  values in api/opn_api/checks.py (LINT_SOURCES), and `header-diverges` is one of the walk's
+  known-present codes. Rows added (source api, step None): imports-differ,
+  helper-declarations, header-diverges, signature-diverges, sorry-present, admit-present,
+  sorry-reported, import-unknown-node, context-restated (and echo-invalid, item 2). Already
+  catalogued and now also lint: proof-empty and helper-forbidden (source gate -> both, meaning
+  mentions the lint), node-superseded (api), node-shelved (both), partial-unlabelled (both;
+  remedy mentions the lint). The use-* lint codes come from the gate's own Diagnostics and were
+  already rows. No golden carries the catalog (errors.json is rendered at request time; the
+  site's Docs page does not list codes), so nothing was regenerated. Green 13 passed.
+- Broad run after items 4 and 5 (wb1-4-5-broad.txt, 2217 tests over every check/MCP/catalog
+  test, the gate tests that import opn_api, and site/tests): 3 failed, of which two were the
+  test_checks pins restated above and the third the sibling-graph AGENTS.md copy
+  (test_walkthrough::test_graph_copy_is_identical, unrelated, stale checkout).

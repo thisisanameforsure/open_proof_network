@@ -52,6 +52,8 @@ EMITTERS: dict[str, dict[str, tuple[int | None, tuple[str, ...]]]] = {
         "refuse_axioms": (None, ("sorry_code", "axiom_code")),
     },
 }
+#: mcpfix WB1: the files whose ``{"code": "<literal>"}`` dicts are lint findings a caller meets.
+LINT_SOURCES = frozenset({"api/opn_api/checks.py"})
 #: Emitters recognised only as a bare name: ``log.error(...)`` is not one.
 NAME_ONLY = frozenset({"error"})
 #: The helpers whose code *parameter* is forwarded to an emitter; their call sites are walked.
@@ -252,6 +254,19 @@ class _Collector(ast.NodeVisitor):
                     and isinstance(value.value, str)
                 ):
                     self._resolve(value)
+                # mcpfix WB1 (testers 2026-11-25, L12): the fast check's lint findings are
+                # dicts with a literal "code", met in POST /check's `lint`; each is a code the
+                # service emits, so a new one cannot ship without its row.
+                if (
+                    self.rel in LINT_SOURCES
+                    and isinstance(key, ast.Constant)
+                    and key.value == "code"
+                    and (
+                        isinstance(value, ast.IfExp)
+                        or (isinstance(value, ast.Constant) and isinstance(value.value, str))
+                    )
+                ):
+                    self._resolve(value)
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
@@ -382,6 +397,7 @@ def test_the_walk_finds_both_packages(walked: Walk) -> None:
         ("unauthenticated", "api"),
         ("not-found", "api"),
         ("arguments-invalid", "api"),
+        ("header-diverges", "api"),  # mcpfix WB1: a lint finding of POST /check
     ):
         assert source in walked.sites.get(code, {}), code
     assert len(walked.sites) > 250
