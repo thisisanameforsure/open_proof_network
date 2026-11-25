@@ -25,3 +25,21 @@ Page heights on the live graph at 257feba2, rendered before (HEAD) and after (he
 
 erdos-1094 is unchanged in length: its height is the routes and panels, T12/T17.
 Captures: task-11-{abc,erdos-257}-{light,dark}-{1440,390}.png; no page scrolls sideways at 390.
+
+---- 2026-11-26, after T12: the browser tests make verify does not run
+
+The whole site suite under Playwright found two things T5 and T11 had broken, both fixed here:
+  * T11 dropped the <div class="panel-writeup"> wrapper around Panel and Write-up; the panel's
+    controls and four test_web_flows tests use it. Restored. The nothing-dropped test held every
+    fragment but not the wrappers around them.
+  * test_finding_problems_by_topic searched with the old .search box under topic headings; T5
+    made the page rows and an area filter. Restated to the new search ([name=q]).
+
+FAILED site/tests/test_web_flows.py::test_a_stranger_sees_edit_and_no_approve
+FAILED site/tests/test_web_flows.py::test_a_curator_sees_withdraw - playwrigh...
+2 failed, 34 passed in 81.35s (0:01:21)
+
+The three still red fail identically at main's ae6c445c, before F34 (checked in a clean worktree):
+test_web_flows::test_a_stranger_sees_edit_and_no_approve, ::test_a_curator_sees_withdraw (a statement page's
+gloss Edit button is not visible) and test_finding_lemma_edge::test_measured_in_a_browser (the node page's
+.lemmas block is not visible). Not F34's; left for their own fix.

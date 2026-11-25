@@ -157,19 +157,28 @@ VISIBLE_TOPICS = (
 )
 
 
+VISIBLE_ROWS = (
+    "() => Array.from(document.querySelectorAll('[data-id]'))"
+    ".filter(r => !r.hidden).map(r => r.dataset.id)"
+)
+
+
 def test_a_search_that_empties_a_topic_hides_its_heading(served: str) -> None:
+    """Restated by F34-T5 (R7): the Problems page has no topic headings any more, only rows and
+    an area filter; a search narrows the rows to the problems it matches, and one that matches
+    nothing leaves none."""
     sync_api = pytest.importorskip("playwright.sync_api")
     with sync_api.sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1200, "height": 900})
         page.goto(served + "/problems/")
-        page.wait_for_selector(".search:not([hidden])")
-        visible = page.evaluate(VISIBLE_TOPICS)
-        assert visible == ["combinatorics", "number-theory", "other"]
-        page.fill(".search", PAPER_TARGET)
-        visible = page.evaluate(VISIBLE_TOPICS)
-        assert visible == ["combinatorics"], visible
-        page.fill(".search", "nothing-matches-this")
-        visible = page.evaluate(VISIBLE_TOPICS)
+        page.wait_for_selector('[name="q"]')
+        assert page.evaluate(VISIBLE_TOPICS) == []  # no topic headings on the page
+        assert PAPER_TARGET in page.evaluate(VISIBLE_ROWS)
+        page.fill('[name="q"]', PAPER_TARGET)
+        visible = page.evaluate(VISIBLE_ROWS)
+        assert visible == [PAPER_TARGET], visible
+        page.fill('[name="q"]', "nothing-matches-this")
+        visible = page.evaluate(VISIBLE_ROWS)
         assert visible == [], visible
         browser.close()
