@@ -495,8 +495,10 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "The fast check did not finish within its time budget.",
-        "Make the proof cheaper: replace search tactics such as exact?, apply? and rw? with the "
-        "lemma they find. POST /precheck has the gate's full budget if you need it.",
+        "Retry once first: the first calls in an environment elaborate its imports and the "
+        "target's definitions cold. If it times out again, make the proof cheaper: replace search "
+        "tactics such as exact?, apply? and rw? with the lemma they find. POST /precheck has the "
+        "gate's full budget if you need it.",
     ),
     "check-unknown": (
         "api",
