@@ -22,7 +22,8 @@ import contextlib
 import contextvars
 import json
 import logging
-from collections.abc import AsyncIterator, Callable
+import re
+from collections.abc import AsyncIterator, Callable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -190,6 +191,7 @@ TITLES: dict[str, str] = {
     "check_lean": "Fast-check Lean",
     "get_token": "Get a write token",
     "renew_token": "Renew a write token",
+    "accept_dco": "Accept the current DCO",
     "propose_witness": "Propose a hole witness",
     "submit_proof": "Submit a proof",
     "submit_postmortem": "Submit a postmortem",
@@ -246,6 +248,93 @@ def argument_hint(tool: Tool, arguments: dict[str, Any]) -> str:
     return hint
 
 
+#: mcpfix WA1 (qa-eb B2): an argument whose refusal the service names by a code of its own, per
+#: operation: (code when it is missing, code when it is malformed). The adapter's schema check
+#: runs first, so without this the service's documented codes never reached the caller.
+FIELD_CODES: Mapping[str, Mapping[str, tuple[str, str]]] = {
+    "precheck_submission": {"automation": ("automation-missing", "automation-invalid")},
+    "submit_proof": {"automation": ("automation-missing", "automation-invalid")},
+    # read_others is required in the schema (qa-eb L1); its absence keeps the route's own code.
+    "submit_candidate": {"read_others": ("candidate-not-blind", "arguments-invalid")},
+}
+REQUIRED_RE = re.compile(r"^'(?P<name>[^']+)' is a required property")
+
+
+def json_message(exc: jsonschema.ValidationError) -> str:
+    """The validator's message with the values it quotes written as JSON (``null``, ``true``,
+    ``"x"``), not as Python's repr (``None``, ``True``, ``'x'``). A ``type`` error's type names
+    are words of the message, not values, and stay as they are."""
+    message = str(exc.message)
+    values = [exc.instance] if exc.validator == "type" else [exc.instance, exc.validator_value]
+    for value in values:
+        python, plain = repr(value), json.dumps(value, ensure_ascii=False, default=str)
+        if python != plain and python in message:
+            message = message.replace(python, plain)
+    return message
+
+
+def where(exc: jsonschema.ValidationError) -> str:
+    return "$" + "".join(f"[{p!r}]" for p in exc.absolute_path)
+
+
+def schema_errors(schema: Mapping[str, Any], instance: Any) -> list[jsonschema.ValidationError]:
+    """Every error the schema finds, sorted by the path of the value refused (qa-eb L3)."""
+    validator = jsonschema.validators.validator_for(schema)(schema)
+    return sorted(validator.iter_errors(instance), key=lambda e: [str(p) for p in e.absolute_path])
+
+
+def described_errors(errors: list[jsonschema.ValidationError]) -> str:
+    """Each error, located (F09-T10: the envelope is closed, so the path rides in the message)."""
+    parts = [
+        json_message(e) if where(e) == "$" else f"{where(e)}: {json_message(e)}" for e in errors
+    ]
+    return "; ".join(parts)
+
+
+def field_of(exc: jsonschema.ValidationError) -> str | None:
+    """The top-level argument an error is about: the head of its path, or the name a root
+    ``required`` error says is missing."""
+    if exc.absolute_path:
+        return str(exc.absolute_path[0])
+    m = REQUIRED_RE.match(exc.message) if exc.validator == "required" else None
+    return m.group("name") if m else None
+
+
+def is_missing(exc: jsonschema.ValidationError, name: str) -> bool:
+    """Absent, null, or lacking a required field of its own: what the service calls missing."""
+    path = list(exc.absolute_path)
+    if exc.validator == "required" and path in ([], [name]):
+        return True
+    return path == [name] and exc.instance is None
+
+
+def field_code(tool: Tool, errors: list[jsonschema.ValidationError]) -> str | None:
+    """The service's own code when every error is about one argument it names a code for."""
+    codes = FIELD_CODES.get(tool.name, {})
+    fields = {field_of(e) for e in errors}
+    if len(fields) != 1:
+        return None
+    [name] = fields
+    if name is None or name not in codes:
+        return None
+    missing, invalid = codes[name]
+    return missing if any(is_missing(e, name) for e in errors) else invalid
+
+
+def arguments_refusal(tool: Tool, arguments: dict[str, Any]) -> ToolError | None:
+    """The refusal of an operation's arguments, or ``None`` when its schema accepts them."""
+    errors = schema_errors(tool.input_schema, arguments)
+    if not errors:
+        return None
+    message = described_errors(errors)
+    if any(where(e) == "$" for e in errors):
+        message += argument_hint(tool, arguments)
+    code = field_code(tool, errors)
+    if code is not None:  # in the endpoint's words: the status the route would have answered
+        return error(code, message, "adapter", status=400)
+    return error("arguments-invalid", message, "adapter")
+
+
 def error_result(tool: str, doc: dict[str, Any]) -> types.CallToolResult:
     """An ``isError`` result whose structured content still satisfies the tool's schema (R9)."""
     problems = results.violations(tool, doc)
@@ -282,16 +371,9 @@ async def run_operation(
     """One operation, as a named tool runs it and as ``read`` and ``write`` run it (F09-T78):
     the arguments against its schema, the bearer gate (R2), the endpoint, the error envelope."""
     name = tool.name
-    try:
-        jsonschema.validate(instance=arguments, schema=tool.input_schema)
-    except jsonschema.ValidationError as exc:
-        # F09-T10: the argument is named, as results.violations names a result's. The
-        # envelope is closed, so the path rides in the message.
-        where = "$" + "".join(f"[{p!r}]" for p in exc.absolute_path)
-        message = exc.message if where == "$" else f"{where}: {exc.message}"
-        if where == "$":
-            message += argument_hint(tool, arguments)
-        return error_result(name, error("arguments-invalid", message, "adapter").doc)
+    refusal = arguments_refusal(tool, arguments)
+    if refusal is not None:
+        return error_result(name, refusal.doc)
     token = auth.bearer() if tool.forwards_bearer else None
     if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
         # A write answers in its envelope; a read of the caller's own records (F05-T14) in
@@ -341,7 +423,7 @@ async def run_through(
     name = arguments.get("operation")
     tool = BY_NAME.get(name) if isinstance(name, str) else None
     if tool is None:
-        return bare_error(surface.unknown_operation(str(name)).doc)
+        return bare_error(surface.unknown_operation(str(name), BY_NAME).doc)
     actual = "write" if tool.write else "read"
     if actual != kind:
         return bare_error(surface.kind_mismatch(tool.name, wanted=kind, actual=actual).doc)
@@ -382,9 +464,11 @@ def build_server(
         if legacy:
             tool = BY_NAME.get(name)
             if tool is None:
-                return error_result(
-                    "server_info", error("tool-unknown", f"no such tool {name}", "adapter").doc
+                message = (
+                    f"no such tool {name}{surface.suggestion(name, BY_NAME)}; this surface has "
+                    f"{len(TOOLS)} tools, named by tools/list"
                 )
+                return error_result("server_info", error("tool-unknown", message, "adapter").doc)
             return await run_operation(ctx, host, tool, arguments)
         return await run_surface(ctx, host, name, arguments)
 
@@ -405,10 +489,9 @@ async def run_surface(
     if schema is None:
         message = f"no such tool {name}; the tools are search, read and write"
         return bare_error(error("tool-unknown", message, "adapter").doc)
-    try:
-        jsonschema.validate(instance=arguments, schema=schema)
-    except jsonschema.ValidationError as exc:
-        return bare_error(error("arguments-invalid", exc.message, "adapter").doc)
+    errors = schema_errors(schema, arguments)
+    if errors:
+        return bare_error(error("arguments-invalid", described_errors(errors), "adapter").doc)
     if name != surface.SEARCH:
         return await run_through(ctx, host, name, arguments)
     try:

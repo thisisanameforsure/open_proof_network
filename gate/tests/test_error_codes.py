@@ -159,6 +159,26 @@ def _lean_text(suffix: str) -> Callable[[], set[str]]:
     return resolve
 
 
+def _field_codes() -> set[str]:
+    """``field_code(tool, errors)`` in the MCP server (mcpfix WA1): the codes ``FIELD_CODES``
+    names, the service's own codes for an argument the adapter's schema refuses first."""
+    for node in ast.walk(_module("api/opn_api/mcp/server.py")):
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "FIELD_CODES"
+            and node.value is not None
+        ):
+            return {
+                str(e.value)
+                for t in ast.walk(node.value)
+                if isinstance(t, ast.Tuple)
+                for e in t.elts
+                if isinstance(e, ast.Constant)
+            }
+    raise AssertionError("no FIELD_CODES in the MCP server")
+
+
 #: (file, expression) -> the codes the expression can take.
 FAMILIES: dict[tuple[str, str], Callable[[], set[str]]] = {
     ("gate/opn_gate/modes.py", "problem.split(':', 1)[0]"): _problem_prefixes,
@@ -172,6 +192,7 @@ FAMILIES: dict[tuple[str, str], Callable[[], set[str]]] = {
     ("api/opn_api/appends.py", "f'{field}-invalid'"): _as_mapping_fields,
     ("api/opn_api/proposals.py", "f'{name}-missing'"): _lean_text("missing"),
     ("api/opn_api/proposals.py", "f'{name}-invalid'"): _lean_text("invalid"),
+    ("api/opn_api/mcp/server.py", "field_code(tool, errors)"): _field_codes,
 }
 
 

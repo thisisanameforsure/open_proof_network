@@ -1166,6 +1166,7 @@ TOOLS: tuple[Tool, ...] = (
         "awaiting a steward.",
         params({"filters": filters_param()}),
         list_frontier,
+        keywords=("open problem", "work", "find", "start", "claimable"),
     ),
     Tool(
         "get_node",
@@ -1193,6 +1194,7 @@ TOOLS: tuple[Tool, ...] = (
             ("node_id",),
         ),
         get_node,
+        keywords=("else", "working", "others", "statement"),
     ),
     Tool(
         "get_defs",
@@ -1206,6 +1208,7 @@ TOOLS: tuple[Tool, ...] = (
         "commit and precheck-attestation policy.",
         params({"target_id": ID_PARAM}, ("target_id",)),
         get_gate_spec,
+        keywords=("pinned", "mathlib", "version", "toolchain"),
     ),
     Tool(
         "get_submission",
@@ -1225,6 +1228,7 @@ TOOLS: tuple[Tool, ...] = (
         ),
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
+        keywords=("status", "pull request", "pr", "merged", "queue position"),
     ),
     Tool(
         "list_submissions",
@@ -1308,6 +1312,7 @@ TOOLS: tuple[Tool, ...] = (
         "Plain path: GET /claims/mine.",
         params({}),
         list_my_claims,
+        keywords=("show", "claims", "held"),
         access="bearer",
     ),
     Tool(
@@ -1319,6 +1324,7 @@ TOOLS: tuple[Tool, ...] = (
         "Plain path: GET /submissions/mine.",
         params({}),
         get_my_submissions,
+        keywords=("status", "pull request", "pr", "mine"),
         access="bearer",
     ),
     Tool(
@@ -1364,6 +1370,7 @@ TOOLS: tuple[Tool, ...] = (
             }
         ),
         list_words_needed,
+        keywords=("gloss", "words", "need", "missing", "lean files"),
     ),
     # F25-T4: D-28's read table, v3.37.
     Tool(
@@ -1454,5 +1461,6 @@ TOOLS: tuple[Tool, ...] = (
             ("target_id",),
         ),
         list_sufficient_sets,
+        keywords=("prove", "root", "nodes", "settle"),
     ),
 )

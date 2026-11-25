@@ -700,8 +700,9 @@ def check_dco_current(identity: Identity) -> None:
         403,
         DCO_REACCEPT_CODE,
         "the sign-off text this identity accepted has changed (it now names the licences, D-23); "
-        f"read GET /dco.json and POST /dco/accept {{dco: {{version: {DCO_VERSION!r}, "
-        "accepted: true}}} with this token, then retry",
+        "read GET /dco.json and POST /dco/accept "
+        f'{{"dco": {{"version": "{DCO_VERSION}", "accepted": true}}}} with this token (over the '
+        "MCP: write accept_dco with the same dco), then retry",
     )
 
 

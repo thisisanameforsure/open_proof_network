@@ -68,7 +68,8 @@ TABLE: tuple[Row, ...] = (
     Row(
         "get_submission",
         "read",
-        ("attestations/<id>.json", "GET /submissions/{submission_id}"),
+        # mcpfix WA1: the file is named by the zero-padded pull request number (002041.json).
+        ("attestations/<pr_number>.json", "GET /submissions/{submission_id}"),
         "attestations/<id>.json",
     ),
     # F09-T7: D-28's read table, notation note of 2026-09-14 — an existing route (F07-T16).
@@ -156,6 +157,14 @@ TABLE: tuple[Row, ...] = (
     # F05-T27 (D-19 v3.28): D-28's write table, notation note of 2026-10-04 (D-19); token
     # issuance under D-19's rules, so the route names D-35's token row.
     Row("renew_token", "write", ("POST /tokens/renew",), "POST /tokens/renew"),
+    # mcpfix WA1 (qa-eb L13): F25-R16's re-acceptance route had no tool, so an MCP-only identity
+    # was refused every write after a DCO change; D-28's notation note quotes this cell.
+    Row(
+        "accept_dco",
+        "write",
+        ("POST /dco/accept",),
+        "POST /dco/accept (the identity's re-acceptance of the current DCO text)",
+    ),
     Row("submit_proof", "write", ("POST /submissions",), "POST /submissions opens that PR"),
     Row(
         "submit_postmortem",

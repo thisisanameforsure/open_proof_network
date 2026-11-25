@@ -31,6 +31,7 @@ from mcp_client import NODE, NODE_DIR, TARGET, McpClient, materialize, plain, se
 from test_finding_mcp_bootstrap import HOLE, add_hole
 from test_literature_route import seed_stewards
 
+from opn_api import identity
 from opn_api.mcp import demarcate
 from opn_api.mcp.server import TOOLS
 from opn_gate import context, schemas, steward
@@ -462,6 +463,13 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
     "withdraw_submission": ({}, "DELETE /submissions/{submission_id}", {}, with_submission),
     # F05-T27: the caller's own token renewed; the new token is masked, the expiry is not.
     "renew_token": ({}, "POST /tokens/renew", {}, no_setup),
+    # mcpfix WA1 (qa-eb L13): the re-acceptance, body for body; a fresh identity accepts again.
+    "accept_dco": (
+        {"dco": {"version": identity.DCO_VERSION, "accepted": True}},
+        "POST /dco/accept",
+        {"dco": {"version": identity.DCO_VERSION, "accepted": True}},
+        no_setup,
+    ),
     # F09-T24 (D-25, D-32 v3.35): the literature pair, each POST /literature* body for body.
     "propose_literature": (
         LITERATURE,

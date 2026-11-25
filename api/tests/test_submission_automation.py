@@ -295,9 +295,11 @@ def test_mcp_submit_proof_requires_the_block_in_its_own_envelope(
         "precheck_job_id": job["id"],
     }
     before = opened(harness)
-    # the tool's schema requires it, so the adapter names the gap before the endpoint is reached
+    # the tool's schema requires it, so the adapter names the gap before the endpoint is reached,
+    # under the route's own code (mcpfix WA1, qa-eb B2: it said arguments-invalid until then)
     missing = client.failed("submit_proof", base, token=token)
-    assert missing["error"] == "arguments-invalid"
+    assert missing["error"] == "automation-missing"
+    assert missing["status"] == 400
     assert "automation" in missing["message"]
     assert missing["source"] == "adapter"
     # a malformed block the schema admits by shape reaches the route and is refused by its code
@@ -324,8 +326,9 @@ def test_mcp_precheck_submission_takes_the_block_optionally(
     bad = client.failed(
         "precheck_submission", {**args, "automation": {"method": "agent"}}, token=token
     )
-    assert bad["error"] in ("automation-invalid", "arguments-invalid"), bad
-    assert bad["source"] in ("api", "adapter")
+    # mcpfix WA1: a block lacking the trio is what the route calls missing (check_automation)
+    assert bad["error"] == "automation-missing", bad
+    assert bad["source"] == "adapter"
     with_block = client.ok("precheck_submission", {**args, "automation": automation()}, token=token)
     assert with_block["status"] == 202, with_block
     assert with_block["body"]["automation"] == automation()
