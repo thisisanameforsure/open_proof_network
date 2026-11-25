@@ -460,6 +460,10 @@ def github_reference(ctx: Context, proof: dict[str, Any]) -> tuple[str, Undo]:
     return str(record["login"]), undo
 
 
+#: The two fields a tutorial proof carries (F06-R7).
+TUTORIAL_PROOF_FIELDS: tuple[str, ...] = ("job_id", "nonce")
+
+
 def tutorial_reference(ctx: Context, request: Request, proof: dict[str, Any]) -> tuple[str, Undo]:
     """F06-R7: a passing anonymous precheck of the tutorial node, spent once.
 
@@ -470,10 +474,22 @@ def tutorial_reference(ctx: Context, request: Request, proof: dict[str, Any]) ->
     """
     from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
 
+    # Testers 2026-11-25 (qa-eb L8): a field the request lacks is a fact about the request, not
+    # about any job, so it is named, and before the start is counted against the source.
+    for name in TUTORIAL_PROOF_FIELDS:
+        value = proof.get(name)
+        if not isinstance(value, str) or not value.strip():
+            raise ApiError(
+                400,
+                "proof-invalid",
+                f"the tutorial proof has no {name}: send proof {{kind: tutorial, job_id, nonce}}, "
+                "the job_id and nonce the passing anonymous precheck of the tutorial node answered",
+                details={"field": f"proof.{name}"},
+            )
     ratelimit.check_token_start(ctx, ratelimit.client_address(request))
     refusal = ApiError(400, "proof-invalid", "unknown, unfinished, used or unusable tutorial proof")
-    job_id = str(proof.get("job_id", ""))
-    nonce = str(proof.get("nonce", ""))
+    job_id = str(proof["job_id"])
+    nonce = str(proof["nonce"])
     job = precheck.load(ctx, job_id) if job_id else None
     if job is None or not job.anonymous or not job.nonce or job.nonce_consumed:
         raise refusal
