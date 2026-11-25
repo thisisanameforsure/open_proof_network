@@ -574,6 +574,7 @@ TOOLS: tuple[Tool, ...] = (
             ("node_id", "bundle"),
         ),
         precheck_submission,
+        keywords=("skeleton", "decomposition", "holes", "lemmas", "partial"),
         write=True,
         access="endpoint",
     ),
@@ -710,6 +711,7 @@ TOOLS: tuple[Tool, ...] = (
             ("artifact_type", "automation"),
         ),
         submit_proof,
+        keywords=("skeleton", "decomposition", "holes", "lemmas", "partial"),
         write=True,
     ),
     Tool(
@@ -858,6 +860,7 @@ TOOLS: tuple[Tool, ...] = (
             ("subject", "text", "licence"),
         ),
         submit_gloss,
+        keywords=("dry run",),
         write=True,
     ),
     Tool(

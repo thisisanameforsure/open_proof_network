@@ -114,6 +114,9 @@ class Tool:
     handler: Handler
     write: bool = False
     access: Access | None = None
+    #: mcpfix WA1: words a caller might search for that the name, title and description do not
+    #: carry (``surface.score``); never shown, never a protocol field.
+    keywords: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.access is None:

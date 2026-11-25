@@ -10,6 +10,7 @@ the request header only, as before (``auth.bearer``); no token ever travels as a
 
 from __future__ import annotations
 
+import difflib
 import re
 from collections.abc import Iterable, Mapping
 from typing import Any
@@ -24,7 +25,10 @@ NAMES = (SEARCH, READ, WRITE)
 DEFAULT_LIMIT = 8
 MAX_LIMIT = 50
 
-STOPWORDS = frozenset({"a", "an", "the", "of", "to", "for", "my", "is", "on", "in", "and", "or"})
+STOPWORDS = frozenset(
+    {"a", "an", "the", "of", "to", "for", "my", "is", "on", "in", "and", "or", "this", "that"}
+    | {"what", "which", "who", "how", "would", "do", "does", "can", "i", "it", "with", "be"}
+)
 WORD_RE = re.compile(r"[a-z0-9]+")
 
 
@@ -34,17 +38,30 @@ def words(text: str) -> set[str]:
     for w in WORD_RE.findall(text.lower().replace("_", " ")):
         if w in STOPWORDS:
             continue
-        out.add(w[:-1] if len(w) > 3 and w.endswith("s") else w)
+        # A plural's ``s`` only: never after another ``s`` (gloss, class) or a ``u`` (status).
+        out.add(w[:-1] if len(w) > 3 and w.endswith("s") and w[-2] not in "su" else w)
     return out
 
 
 def score(tool: Tool, title: str, query: str) -> int:
-    """Name words count three, title words two, description words one; an exact name wins."""
+    """Name words count three, title words and keywords two, description words and parameter
+    names one; an exact name wins."""
     if query.strip() == tool.name:
         return 1_000_000
     q = words(query)
     name, head, body = words(tool.name), words(title), words(tool.description)
-    return sum(3 * (w in name) + 2 * (w in head) + (w in body) for w in q)
+    keys = words(" ".join(tool.keywords))
+    args = words(" ".join(tool.input_schema.get("properties", {})))
+    return sum(
+        3 * (w in name) + 2 * (w in head) + 2 * (w in keys) + (w in body) + (w in args) for w in q
+    )
+
+
+def arguments_of(tool: Tool) -> dict[str, list[str]]:
+    """The operation's argument names from its input schema, required first."""
+    required = list(tool.input_schema.get("required", []))
+    props = tool.input_schema.get("properties", {})
+    return {"required": required, "optional": [p for p in props if p not in required]}
 
 
 def entry(tool: Tool, title: str, *, full: bool, output: bool) -> dict[str, Any]:
@@ -54,8 +71,10 @@ def entry(tool: Tool, title: str, *, full: bool, output: bool) -> dict[str, Any]
         "kind": row.kind,
         "title": title,
         "auth": tool.access,
-        "plain": row.d28,
+        "plain": list(row.plain),
     }
+    if not full:
+        doc["args"] = arguments_of(tool)
     if full:
         doc["description"] = tool.description
         doc["input_schema"] = tool.input_schema
@@ -77,13 +96,14 @@ def search(
     if named:
         unknown = [n for n in named if n not in by_name]
         if unknown:
-            raise unknown_operation(unknown[0])
+            raise unknown_operation(unknown[0], by_name)
         return {
             "operations": [entry(by_name[n], titles[n], full=True, output=output) for n in named]
         }
     query = str(arguments.get("query") or "").strip()
     if not query:
         return {
+            "count": len(tools),
             "operations": [entry(t, titles[t.name], full=False, output=False) for t in tools],
             "next": "search with a query, or with operations naming the ones you need, for "
             "their arguments; then read or write.",
@@ -97,10 +117,17 @@ def search(
     return {"operations": [entry(t, titles[t.name], full=True, output=output) for t in hits]}
 
 
-def unknown_operation(name: str) -> ToolError:
+def suggestion(name: str, names: Iterable[str]) -> str:
+    """``; did you mean X?`` for the closest known name, or nothing."""
+    close = difflib.get_close_matches(name, list(names), n=1, cutoff=0.75)
+    return f"; did you mean {close[0]}?" if close else ""
+
+
+def unknown_operation(name: str, names: Iterable[str] = ()) -> ToolError:
     return error(
         "operation-unknown",
-        f"no operation named {name}; call search to find operations by what they do",
+        f"no operation named {name}{suggestion(name, names)}; call search to find operations "
+        "by what they do",
         "adapter",
     )
 

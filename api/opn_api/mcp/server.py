@@ -341,7 +341,7 @@ async def run_through(
     name = arguments.get("operation")
     tool = BY_NAME.get(name) if isinstance(name, str) else None
     if tool is None:
-        return bare_error(surface.unknown_operation(str(name)).doc)
+        return bare_error(surface.unknown_operation(str(name), BY_NAME).doc)
     actual = "write" if tool.write else "read"
     if actual != kind:
         return bare_error(surface.kind_mismatch(tool.name, wanted=kind, actual=actual).doc)
@@ -382,9 +382,11 @@ def build_server(
         if legacy:
             tool = BY_NAME.get(name)
             if tool is None:
-                return error_result(
-                    "server_info", error("tool-unknown", f"no such tool {name}", "adapter").doc
+                message = (
+                    f"no such tool {name}{surface.suggestion(name, BY_NAME)}; this surface has "
+                    f"{len(TOOLS)} tools, named by tools/list"
                 )
+                return error_result("server_info", error("tool-unknown", message, "adapter").doc)
             return await run_operation(ctx, host, tool, arguments)
         return await run_surface(ctx, host, name, arguments)
 

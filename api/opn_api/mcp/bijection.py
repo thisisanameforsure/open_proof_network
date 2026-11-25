@@ -68,7 +68,8 @@ TABLE: tuple[Row, ...] = (
     Row(
         "get_submission",
         "read",
-        ("attestations/<id>.json", "GET /submissions/{submission_id}"),
+        # mcpfix WA1: the file is named by the zero-padded pull request number (002041.json).
+        ("attestations/<pr_number>.json", "GET /submissions/{submission_id}"),
         "attestations/<id>.json",
     ),
     # F09-T7: D-28's read table, notation note of 2026-09-14 — an existing route (F07-T16).
