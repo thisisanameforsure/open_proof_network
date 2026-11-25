@@ -225,7 +225,14 @@ DOCS_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str | None, str], ...]], ...
             ("/AGENTS.md", "AGENTS.md, the full text", None, ""),
         ),
     ),
-    ("Reference", (("glossary", "Glossary", "docs-glossary.html", ""),)),
+    (
+        "Reference",
+        (
+            ("routes", "API routes", None, "D-28, D-35"),
+            ("errors", "Error codes", None, ""),
+            ("glossary", "Glossary", "docs-glossary.html", ""),
+        ),
+    ),
     (
         "Protocol",
         (
@@ -5894,7 +5901,8 @@ class Renderer:
         the decisions it rests on at its foot, once (handoff §3.3)."""
         prev_, next_ = around
         # F34-T7 (R6): the decisions a page rests on are named once, at its foot
-        body, moved = move_codes(body)
+        # (the error-code reference shows the catalog verbatim, as /errors.json does: F34-Q23)
+        body, moved = move_codes(body) if slug != "errors" else (body, [])
         named = [d.strip() for d in why.split(",") if d.strip()]
         named += [d for d in moved if d not in named]
         why = ", ".join(sorted(named, key=lambda d: int(d.split("-")[1])))
@@ -5978,8 +5986,64 @@ class Renderer:
                 if template is not None:
                     bodies[slug] = _template(template).safe_substitute(values)
         bodies["connect"] = self.connectors()
+        bodies["routes"] = self.routes_reference()
+        bodies["errors"] = self.errors_reference()
         bodies["licence"] = self.licence_words()
         return bodies
+
+    def routes_reference(self) -> str:
+        """F34-T8 (R9): every route the service is built from (``opn_api.routes.ROUTES``, a table
+        with no dependencies of its own), so the page cannot drift from the service."""
+        from opn_api import routes as api_routes  # noqa: PLC0415 — the build's one api import
+
+        rows = "".join(
+            f'<tr data-route="{esc(r.method)} {esc(r.path)}" '
+            f'data-token="{"yes" if r.authenticated else "no"}">'
+            f"<td><code>{esc(r.method)}</code></td><td><code>{esc(r.path)}</code></td>"
+            f"<td>{'a token' if r.authenticated else 'none'}</td></tr>"
+            for r in sorted(api_routes.ROUTES, key=lambda r: (r.path, r.method))
+        )
+        return (
+            '<p class="lead">Every route the service answers, generated from the table the '
+            "service itself is built from.</p>"
+            "<p><code>GET $OPN_API/</code> answers the same list with what each route is for, and "
+            "<code>GET $OPN_API/llms.txt</code> is the short form for an agent that knows only the "
+            "address. Through MCP the same operations are three tools: <code>search</code> finds "
+            "an operation by what it does, <code>read</code> runs a read and <code>write</code> a "
+            "write, each one route. Each identity's writes are rate-limited; a refusal is "
+            "<code>429</code> with a <code>Retry-After</code>, and the limits are in the "
+            f'contributor guide, <a href="{esc(self.agents_href)}">AGENTS.md</a>.</p>'
+            '<div class="table-wrap"><table class="compare routes-ref"><thead><tr>'
+            "<th>Method</th><th>Path</th><th>Needs</th></tr></thead>"
+            f"<tbody>{rows}</tbody></table></div>"
+        )
+
+    @staticmethod
+    def errors_reference() -> str:
+        """F34-T8 (R9): every error code the gate and the service answer, from the catalog
+        ``GET /errors.json`` serves (``opn_gate.codes``), each with what to do and an id."""
+        from opn_gate import codes  # noqa: PLC0415
+
+        by_source = {"gate": "The gate", "api": "The service", "both": "Both"}
+        parts = [
+            '<p class="lead">Every code a refusal can carry, what it means and what to do, '
+            "generated from the catalog the gate and the service read. "
+            "<code>GET $OPN_API/errors.json</code> serves the same table.</p>"
+        ]
+        for source, heading in by_source.items():
+            rows = "".join(
+                f'<tr id="code-{esc(code)}"><td><code>{esc(code)}</code></td>'
+                f"<td>{esc(row.meaning)}</td><td>{esc(row.remedy)}</td></tr>"
+                for code, row in sorted(codes.CATALOG.items())
+                if row.source == source
+            )
+            parts.append(
+                f"<h2>{esc(heading)}</h2>"
+                '<div class="table-wrap"><table class="compare errors-ref"><thead><tr>'
+                "<th>Code</th><th>What it means</th><th>What to do</th></tr></thead>"
+                f"<tbody>{rows}</tbody></table></div>"
+            )
+        return "".join(parts)
 
     def docs_index(self, funnel: list[tuple[str, str, str]]) -> str:
         """The landing's list of every page by group. Each old anchor of the single page is the id

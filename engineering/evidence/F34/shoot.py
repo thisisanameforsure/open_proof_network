@@ -39,6 +39,8 @@ PAGES = {
     "docs-submit": "/docs/submit/",
     "docs-how": "/docs/how-it-works/",
     "docs-leiden": "/docs/leiden/",
+    "docs-routes": "/docs/routes/",
+    "docs-errors": "/docs/errors/",
     "contributors": "/contributors/",
     "docs": "/docs/",
     "rules": "/rules/",

@@ -192,8 +192,9 @@ def test_the_pages_t6_wrote_are_short(pages: dict[str, str], rel: str) -> None:
 
 
 def test_every_docs_page_names_its_decisions_only_at_its_foot(pages: dict[str, str]) -> None:
-    """F34-T7 (R6, handoff §3.3): "Decision codes appear once, at the foot of a page"."""
-    for rel in docs_rels():
+    """F34-T7 (R6, handoff §3.3): "Decision codes appear once, at the foot of a page". The error
+    codes reference shows the catalog as /errors.json serves it (F34-Q23)."""
+    for rel in (r for r in docs_rels() if r != "docs/errors/index.html"):
         html = pages[rel]
         main = html[html.index('<article class="docs-main">') : html.index("</article>")]
         prose_ = main.split('<p class="docs-foot">', 1)[0]

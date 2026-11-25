@@ -35,7 +35,7 @@ def test_the_reference_group_lists_both_pages() -> None:
 
 def test_every_error_code_is_on_its_page_with_what_to_do(pages: dict[str, str]) -> None:
     page = pages["docs/errors/index.html"]
-    shown = re.findall(r'<tr id="code-([a-z0-9-]+)">', page)
+    shown = re.findall(r'<tr id="code-([^"]+)">', page)
     assert sorted(shown) == sorted(codes.CATALOG)
     for code, row in list(codes.CATALOG.items())[:40]:
         tr = page[page.index(f'<tr id="code-{code}">') :]
@@ -46,7 +46,9 @@ def test_every_error_code_is_on_its_page_with_what_to_do(pages: dict[str, str]) 
 def test_every_route_is_on_its_page_with_whether_it_needs_a_token(pages: dict[str, str]) -> None:
     page = pages["docs/routes/index.html"]
     rows = re.findall(r'<tr data-route="([A-Z]+) ([^"]+)" data-token="(yes|no)">', page)
-    assert {(m, html.unescape(p)) for m, p, _t in rows} == {(r.method, r.path) for r in routes.ROUTES}
+    assert {(m, html.unescape(p)) for m, p, _t in rows} == {
+        (r.method, r.path) for r in routes.ROUTES
+    }
     needs = {(m, html.unescape(p)): t == "yes" for m, p, t in rows}
     for r in routes.ROUTES:
         assert needs[(r.method, r.path)] == r.authenticated, r.label

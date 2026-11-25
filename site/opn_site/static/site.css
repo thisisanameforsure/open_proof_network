@@ -1433,3 +1433,5 @@ table.waiting .wstmt { overflow-wrap: anywhere; }
   .ways { grid-template-columns: minmax(0, 1fr); }
   .docs-main h1 { font-size: 36px; }
 }
+/* F34-T8: a code or a route is read whole, never broken at its hyphens */
+.errors-ref td:first-child code, .routes-ref td code { white-space: nowrap; }

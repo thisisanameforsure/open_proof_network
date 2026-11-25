@@ -413,6 +413,14 @@ operator (v3.51) and its one-time backfill.</p>
     (4,000 words with its state map) moved as it was. The Leiden row's &ldquo;an explainer still waits
     for a person to press merge&rdquo; may be stale now that the merge actor takes appends, and was
     not changed without checking.</td></tr>
+  <tr><td>F34-Q23</td><td><strong>The reference pages (T8).</strong> API routes is generated from
+    <code>opn_api.routes.ROUTES</code>, which imports nothing, so the site build gains
+    <code>api</code> on its path (site-deploy) and still needs none of the service's packages; what
+    each route is for stays with the live <code>GET /</code>, whose builder imports the web stack.
+    Error codes is generated from <code>opn_gate.codes.CATALOG</code> and shown verbatim, decision
+    numbers included, so the page reads exactly as <code>GET /errors.json</code> does; it is the
+    one Docs page the codes rule (R6) does not hold. MCP operations and rate limits are pointed at
+    (the service's <code>search</code>, AGENTS.md) rather than copied.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -428,7 +436,8 @@ T6 done (Docs one page per topic: 17 tests, red against the previous commit; /do
 2,005px on the live graph; AGENTS.md served whole and copied nowhere; Q21; <code>task-6.txt</code>) ·
 T7 partly done (codes out of every Docs page's prose and to its foot; Claim a statement, Precheck and
 submit, How a problem is worked; two stale Leiden claims corrected; two guides left, Q22;
-<code>task-7.txt</code>) · T8&ndash;T22 todo · v3.51 approved 2026-11-25 (Q9)</div>
+<code>task-7.txt</code>) · T8 done (API routes and error codes generated from the service's own tables,
+Q23; <code>task-8.txt</code>) · T9&ndash;T22 todo · v3.51 approved 2026-11-25 (Q9)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, in the handoff's order of work (§7). Each task: red test
