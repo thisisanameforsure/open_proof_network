@@ -636,6 +636,7 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
     # mcpfix WA2 (item 3): the sets in pages, enumerated in full first so that a page and its
     # count are of one enumeration; truncated says some set was left out of this answer.
     chunk, where = page(every, args, default=SETS_LIMIT[0])
+    detail = args.get("detail", "compact")
     out: dict[str, Any] = {
         "read_at": ctx.head or ctx.settings.graph_branch,
         **doc,
@@ -643,8 +644,12 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
         "set_id": set_id,
         "truncated": found.truncated or where["next"] is not None or where["cursor"] is not None,
         "capped": found.truncated,
-        "sets": chunk,
-        "routes": page_routes(doc["routes"], doc["sets"], chunk),
+        "sets": chunk if detail == "full" else [compact_set(s) for s in chunk],
+        "routes": [
+            r if detail == "full" else compact_route(r)
+            for r in page_routes(doc["routes"], doc["sets"], chunk)
+        ],
+        "detail": detail,
         "closable": closable,
     }
     if args.get("include_selector"):
@@ -654,7 +659,29 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
 
 
 #: mcpfix WA2: list_sufficient_sets' page of sets, default and most.
-SETS_LIMIT = (20, 200)
+SETS_LIMIT = (5, 200)
+#: mcpfix (lead, 2026-11-25): how much of each set and route row the answer carries.
+DETAIL = ("compact", "full")
+COMPACT_SUMMARY = ("holes", "proved", "open", "dead", "unresolved")
+
+
+def compact_set(sufficient: dict[str, Any]) -> dict[str, Any]:
+    """A set without ``statements``, which is its ``proved`` and its ``open`` together."""
+    return {k: v for k, v in sufficient.items() if k != "statements"}
+
+
+def compact_route(route: dict[str, Any]) -> dict[str, Any]:
+    """A route row with what a reader needs to choose a set: no approach text, and each hole only
+    its node and status (erdos-1094's default answer was 98,730 characters, 52,872 of them route
+    rows repeating every hole's label, attempts and refuted classes)."""
+    return {
+        "id": route["id"],
+        "node": route["node"],
+        "live": route["live"],
+        "resolved": route["resolved"],
+        "holes": [{"node": h["node"], "status": h["status"]} for h in route["holes"]],
+        "summary": {k: route["summary"][k] for k in COMPACT_SUMMARY},
+    }
 
 
 def page_routes(
@@ -1949,6 +1976,12 @@ TOOLS: tuple[Tool, ...] = (
                 "include_selector": {
                     "type": "boolean",
                     "description": "Also answer the selector tree over every set.",
+                },
+                "detail": {
+                    "enum": list(DETAIL),
+                    "description": "compact (default): a set without `statements` (its proved "
+                    "and open), a route its id, node, live, resolved, holes' node and status and "
+                    "counts; full: every fact.",
                 },
             },
             ("target_id",),

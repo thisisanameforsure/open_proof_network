@@ -42,7 +42,18 @@ def served_entries(client: McpClient) -> list[dict[str, Any]]:
 #: selector and, since mcpfix WA2 (F09, the compact reads of 2026-11-25), the page's place
 #: and the cap.
 ANSWER_KEYS = frozenset(
-    {"read_at", "closable", "selector", "count", "limit", "cursor", "next", "set_id", "capped"}
+    {
+        "read_at",
+        "closable",
+        "selector",
+        "count",
+        "limit",
+        "cursor",
+        "next",
+        "set_id",
+        "capped",
+        "detail",
+    }
 )
 
 
@@ -65,7 +76,10 @@ def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
     assert row.kind == "read"
     assert row.plain == ("targets/<id>/graph.json", "GET /frontier.json")
 
-    got = client.ok("list_sufficient_sets", {"target_id": TARGET, "include_selector": True})
+    got = client.ok(
+        "list_sufficient_sets",
+        {"target_id": TARGET, "include_selector": True, "detail": "full"},
+    )
     assert results.violations("list_sufficient_sets", got) == []
     found = routes.read(graph, served_entries(client))
     expected = found.as_dict()
@@ -124,7 +138,7 @@ def test_at_proved_follow_lists_what_each_proved_statement_rests_on(harness: Har
     harness.githost.files[f"targets/{TARGET}/graph.json"] = json.dumps(graph).encode()
     harness.context.files.clear()
     client = McpClient(harness)
-    sel = {"include_selector": True}
+    sel = {"include_selector": True, "detail": "full", "limit": 200}  # one page, every set
     stop = client.ok("list_sufficient_sets", {"target_id": TARGET, **sel})
     follow = client.ok("list_sufficient_sets", {"target_id": TARGET, "at_proved": "follow", **sel})
     assert results.version_of("list_sufficient_sets") == "v5"  # mcpfix WA2; v4 settles, side
@@ -174,7 +188,10 @@ def test_both_sides_reach_the_tool_with_the_fork(harness: Harness) -> None:
     harness.githost.files["targets/erdos-257/graph.json"] = json.dumps(graph).encode()
     harness.context.files.clear()
     client = McpClient(harness)
-    got = client.ok("list_sufficient_sets", {"target_id": "erdos-257", "include_selector": True})
+    got = client.ok(
+        "list_sufficient_sets",
+        {"target_id": "erdos-257", "include_selector": True, "detail": "full"},
+    )
     assert results.violations("list_sufficient_sets", got) == [], results.violations(
         "list_sufficient_sets", got
     )
@@ -195,7 +212,10 @@ def test_both_sides_reach_the_tool_with_the_fork(harness: Harness) -> None:
     assert "refutes" in (tool.description or "")
     # the erdos-1094 shape has one side: no fork, side null everywhere, still v4-valid
     seed(harness)
-    one = client.ok("list_sufficient_sets", {"target_id": TARGET, "include_selector": True})
+    one = client.ok(
+        "list_sufficient_sets",
+        {"target_id": TARGET, "include_selector": True, "detail": "full"},
+    )
     assert results.violations("list_sufficient_sets", one) == []
     assert one["selector"]["side"] is None and one["selector"]["node"] is not None
     assert {s["settles"] for s in one["sets"]} == {"proves"}

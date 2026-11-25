@@ -38,13 +38,14 @@ def seed(harness: Harness) -> tuple[dict[str, Any], list[dict[str, Any]]]:
 # --- item 3: list_sufficient_sets -------------------------------------------------------------
 
 
-def test_sets_come_in_pages_of_twenty_with_an_honest_count(harness: Harness) -> None:
+def test_sets_come_in_pages_of_five_with_an_honest_count(harness: Harness) -> None:
     graph, entries = seed(harness)
     every = routes.read(graph, entries, cut="any").as_dict()["sets"]
     out = McpClient(harness).ok("list_sufficient_sets", {"target_id": TARGET, "cut": "any"})
     assert out["count"] == len(every) == 225
-    assert [s["id"] for s in out["sets"]] == [s["id"] for s in every[:20]]
-    assert out["truncated"] is True and out["next"] == "20"
+    # mcpfix lead (2026-11-25): pages of 5 (erdos-1094 live: 20 sets were 62,088 characters)
+    assert [s["id"] for s in out["sets"]] == [s["id"] for s in every[:5]]
+    assert out["truncated"] is True and out["next"] == "5"
     assert "selector" not in out
     assert results.violations("list_sufficient_sets", out) == []
     last = McpClient(harness).ok(
@@ -75,7 +76,8 @@ def test_one_set_by_id(harness: Harness) -> None:
     wanted = every[100]
     client = McpClient(harness)
     out = client.ok(
-        "list_sufficient_sets", {"target_id": TARGET, "cut": "any", "set_id": wanted["id"]}
+        "list_sufficient_sets",
+        {"target_id": TARGET, "cut": "any", "set_id": wanted["id"], "detail": "full"},
     )
     assert out["sets"] == [wanted] and out["count"] == 1
     missing = client.failed("list_sufficient_sets", {"target_id": TARGET, "set_id": "s-0000000000"})

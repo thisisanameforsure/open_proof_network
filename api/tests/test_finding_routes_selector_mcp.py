@@ -113,7 +113,9 @@ def test_list_sufficient_sets_carries_each_routes_approach_and_each_holes_label(
     harness: Harness,
 ) -> None:
     seed_routes(harness, labelled_graph())
-    got = McpClient(harness).ok("list_sufficient_sets", {"target_id": ROUTES_TARGET})
+    got = McpClient(harness).ok(
+        "list_sufficient_sets", {"target_id": ROUTES_TARGET, "detail": "full"}
+    )  # mcpfix lead: approach and label are full-detail facts
     by_id = {r["id"]: r for r in got["routes"]}
     assert by_id["t@1"]["approach"] == APPROACHES["t@1"]
     assert by_id["t@2"]["approach"] == APPROACHES["t@2"]
