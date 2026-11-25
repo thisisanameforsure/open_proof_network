@@ -1329,6 +1329,13 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "heartbeats is not true or false.",
         "Send heartbeats as a boolean.",
     ),
+    "echo-invalid": (
+        "api",
+        None,
+        "POST /check's echo (check_lean's) is not true or false.",
+        "Send echo as a boolean, or leave it out: the answer then omits the checker's echo of "
+        "the composed program and gives every position as a line of your own text.",
+    ),
     "heartbeats-not-used": (
         "api",
         None,

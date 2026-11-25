@@ -16,3 +16,17 @@ Branch `mcpfix-wb1` from origin/main ae6c445c.
   tracking `namespace`/`section` (named, anonymous, `noncomputable`, attributes and visibility
   before it)/`mutual`/`end`, and `forward` appends the closers after each module. Green 3 passed
   (wb1-1-green.txt); 655 passed over the 50 api test files that touch the check.
+- Item 2 (echo): red 3 failed of 4 (wb1-2-red.txt: `content` in result; echo "yes" accepted;
+  no `echo` in the MCP schema). `result` now drops AXLE's `content` unless `echo: true`
+  (route field and check_lean input `echo`, boolean, 400 `echo-invalid` otherwise, catalogued).
+  heartbeats_of reads its own measuring answer's echo, which is never returned, so it is
+  untouched.
+- Item 6 (description): red 1 failed (wb1-6-red.txt). check_lean's description rewritten inside
+  its 1,000-character cap: positions are lines of your text; a skeleton aims for
+  `result.okay: true` in check with only sorry-present (`okay` stays false, F13-Q31); verify
+  reports sorry as failure. NOT as the brief worded it: the brief said a skeleton aims for
+  `okay: true` in check, but gate_verdict makes check-mode `okay` false whenever the caller's
+  text carries sorry (F13-T30, F13-Q31, guide line ~384, tests in
+  test_finding_check_verdicts_gate.py). The description says what the code does.
+  The tools/list budget went 114,974 -> 115,069 and was re-pinned 115,500 with the measurement.
+- Green: 453 passed over every check and MCP test file plus test_error_codes (wb1-2-6-green.txt).

@@ -315,7 +315,10 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # `lean` (+581 of input schema), list_open_pairs and get_review at v2, each open direction's
 # templates and refutation declared (+397 of output schema each, structure only), their `n`
 # parameter, and a clause each on submit_proof, get_review and list_open_pairs. Pinned 115,000.
-TOOLS_LIST_BUDGET = 115_000
+# mcpfix WB1 (testers 2026-11-25) measured 114,974 before and 115,069 after (+95, 0.1%):
+# check_lean's `echo` parameter and its description rewritten to say which okay a skeleton
+# aims for and that positions are the caller's lines, inside its 1,000. Pinned 115,500.
+TOOLS_LIST_BUDGET = 115_500
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

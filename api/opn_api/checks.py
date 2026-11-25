@@ -52,7 +52,9 @@ if TYPE_CHECKING:
 log = logging.getLogger("opn_api.checks")
 
 SERVICE = hosted.SERVICE
-FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps", "heartbeats"})
+FIELDS = frozenset(
+    {"target_id", "node_id", "content", "mode", "statement", "deps", "heartbeats", "echo"}
+)
 MODES = ("check", "verify", "witness", "hazards")
 #: F13-T14: the modes that read the node's own statement, so cannot do without a node.
 NODE_MODES = ("verify", "witness", "hazards")
@@ -125,6 +127,9 @@ class CheckRequest:
     deps: Any = None
     #: F13-T27: also measure each theorem's heartbeats, on a copy of the text.
     heartbeats: bool = False
+    #: mcpfix WB1: return the checker's echo of the text it compiled (``result.content``) and its
+    #: positions as it gave them; by default both are left out or mapped to the caller's lines.
+    echo: bool = False
 
 
 @dataclass(frozen=True)
@@ -181,7 +186,21 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
         statement,
         fields.get("deps"),
         heartbeats_field(fields, mode),
+        echo_field(fields),
     )
+
+
+def echo_field(fields: dict[str, Any]) -> bool:
+    """mcpfix WB1 (testers 2026-11-25, t883 item 4): ``echo`` is true or false. The checker's
+    echo is the whole composed program, every inlined definition included (61,728 characters on
+    erdos-883), which overflows an MCP client's tool-result limit; it is returned only on
+    request."""
+    raw = fields.get("echo")
+    if raw is None:
+        return False
+    if not isinstance(raw, bool):
+        raise api_error(400, "echo-invalid", "echo must be true or false")
+    return raw
 
 
 def heartbeats_field(fields: dict[str, Any], mode: str) -> bool:
@@ -3036,6 +3055,9 @@ async def post_check(ctx: Context, request: Request) -> Response:
         req.node_id,
         inlined_hole_names(ctx, req.target_id, defs, flagged_names(answer.body)),
     )
+    if not req.echo:
+        # mcpfix WB1: the echo is the composed program, not the caller's text; on request only
+        shown = {k: v for k, v in shown.items() if k != "content"}
     return JSONResponse(
         {
             "authoritative": False,
