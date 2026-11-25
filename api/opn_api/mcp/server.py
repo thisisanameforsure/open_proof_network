@@ -70,7 +70,8 @@ def instructions(tutorial: str, *, guide: str | None = None, errors: str | None 
         "check (F13). "
         # F09-T16 (audit 2026-10-04): where the rest is written down, and the usual order.
         f"The contributor guide is {guide or 'AGENTS.md in the graph repository'}. A first "
-        "contribution usually goes: list_frontier for an open node, get_node for its statement "
+        "contribution usually goes: list_frontier for the open problems, list_frontier with a "
+        "target_id for one problem's open nodes and holes, get_node for its statement "
         "and context, claim_node, check_lean while you iterate, precheck_submission and "
         "get_precheck until it is done, submit_proof with the passing precheck, and "
         "get_submission to follow its pull request. "

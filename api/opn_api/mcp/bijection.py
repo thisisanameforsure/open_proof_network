@@ -54,7 +54,7 @@ TABLE: tuple[Row, ...] = (
     Row(
         "list_frontier",
         "read",
-        ("GET /frontier.json",),
+        ("GET /frontier.json", "targets/index.json"),  # mcpfix: the compact summary reads both
         "frontier.json, regenerated on every merge",
     ),
     Row(
