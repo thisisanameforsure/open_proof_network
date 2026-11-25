@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: 2 < p
+  justification: '`2 < p` is the registry''s range "primes p > 2" (strict): p = 2 is excluded because !2 = 0! + 1! = 2 is divisible by 2, so the statement would be false there; Kurepa''s conjecture is stated for n > 2.'
+- checker: div-zero
+  location: (!p) % p
+  justification: '`% p` never divides by zero: p carries the hypothesis `2 < p` (and is prime), so p ≥ 3 and the junk value at p = 0 is never reached. NOTE for the lead: the checker''s printed location for this finding could not be read on the real statement (the target is not live, so `POST /check` mode hazards cannot inline its defs); the probe with `left_factorial` unfolded printed `(∑ m ∈ Finset.range p, m.factorial) % p`. Copy the location from the step-6 output.'

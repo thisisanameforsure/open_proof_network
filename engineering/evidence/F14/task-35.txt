@@ -1,0 +1,46 @@
+F14-T35 — hand curation of the 26 refused rows by four agents (2026-11-25)
+
+The 26 rows of the T32 run the driver refused, curated on the owner's word ("use agents to do the
+hand curation"). Four background agents, one brief (scratchpad agents/CURATION-BRIEF.md: faithful,
+never improved; ports copied byte for byte; autoImplicit off; check on POST /check; decline
+honestly; touch nothing on the graph). Their files and notes are
+engineering/onramp/open/bulk/curated/<target-id>/{Statement.lean, Witness.lean, defs/, CURATION.md}
+and LOG-A..D.md.
+
+Outcomes (agents' claims, then the lead's checks):
+  A cross-file (6): arithmetic-sum-s 1.1 and both weak-BSD rows prepared; strong BSD x2 declined
+    (StrongBSD needs Module.Finite from mordell_weil, unproved upstream); Margulis 1.1 declined
+    (its witness, a compact diagonal orbit in SL_n(R)/SL_n(Z), is real formalization).
+  B (4): subprime Fibonacci, Wikipedia Selfridge, Artin parts i and ii prepared (Artin's rows are
+    the unconditional conjectures; `open GRH` kept by porting GRH.trivialZeros).
+  C answer-shaped (8): Green 24 as stated; 25.lower, 27.upper, 31.lower, 31.upper, 38.upper
+    adapted as "∃ answer, the registry's text" (each shown equal to that by Iff.rfl); 25.upper
+    declined (its ∃ form follows from the file's solved variant; reduction proved in Lean); 35.lower
+    declined (half already published, White 2024).
+  D variants (8): Green 75 and 76 as partial variants of the live green-75/green-76; new Mersenne
+    `prime` as a resolves variant of new-mersenne-conjecture; Maxwell, Dixmier, Poisson, Green 41
+    as own targets titled as variants; Kurepa `prime` (equivalent to the unimported parent).
+
+Lead's checks before any import: each as-stated statement against the registry declaration through
+wave.extract (8 equal; Dixmier/Poisson add exactly the file's section variable; the weak-BSD rows
+are their namespace's variables plus the theorem, read by hand); the five adapted statements read
+for triviality (each asserts an improvement or a limit the literature leaves open; none is
+satisfied by the answer itself); every line of all 34 ported defs files found in the registry, no
+sorry/axiom/opaque.
+
+Import (scratchpad open_curated.py: wave_open's steps, an honest body): seven intakes opened,
+graph #2045–#2051 (subprime Fibonacci, Wikipedia Selfridge, Artin i, Artin ii, arithmetic sum S
+1.1, Green 24, Green 41 polynomial bound). Refused by intake and withheld: both weak-BSD rows and
+Poisson (D-6: algebraic geometry is outside Stage 0 intake), Maxwell and Dixmier (their AMS classes
+map to no graph domain; target/v3 needs one). Found on the way: a target id is a root node id, at
+most 64 characters, so T32's qualified ids over 64 are shortened (file stem, then a cut with a
+hash); red first in test_finding_wave_id_collisions (9 ids over 64), green after, no live id moved.
+
+For the owner: the five adapted Green rows; Kurepa (import the parent first?); strong BSD (adapt by
+adding Mordell–Weil as a hypothesis?); Margulis (an agent to write the witness?); the three variant
+proposals (green-75, green-76, new-mersenne-conjecture) need a write token; D-6's domain list and
+the AMS→domain map decide whether BSD, Poisson, Maxwell and Dixmier can ever come in. Defect found
+by curator D: POST /check witness and hazards modes fail for green-75, because the service inlines
+its defs into one file and a scoped notation leaks between modules (the same leak T26's harness
+met).
+Verification: `uv run --frozen python -m pytest gate/tests/test_finding_wave_id_collisions.py`

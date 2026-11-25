@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import functools
+import hashlib
 import json
 import re
 import shutil
@@ -786,7 +787,11 @@ def target_id_for(row: dict[str, Any]) -> str:
     # F14-T32: only an id the grammar refuses is respelled, so no id that could be live moves:
     # a Greek letter by its name (`reed_conjecture_δ_6_ω_2`), anything else outside it dropped
     # (`«167»`).
-    return short if _ID_RE.fullmatch(short) else _kebab(_ascii(decl))
+    short = short if _ID_RE.fullmatch(short) else _kebab(_ascii(decl))
+    if len(short) <= NODE_ID_MAX:
+        return short
+    digest = hashlib.sha256(str(row["key"]).encode()).hexdigest()[:8]
+    return f"{short[: NODE_ID_MAX - 9].rstrip('-')}-{digest}"  # no id that long can be live
 
 
 class WaveError(Exception):
@@ -870,7 +875,20 @@ def qualified_id(row: dict[str, Any]) -> str:
     """A shared short id's other claimants: the registry file (less ``FormalConjectures/`` and
     ``.lean``) and the full declaration, in kebab case."""
     path = str(row["file"]).removeprefix("FormalConjectures/").removesuffix(".lean")
-    return _kebab(f"{path}-{row['decl']}")
+    full = _kebab(f"{path}-{row['decl']}")
+    if len(full) <= NODE_ID_MAX:
+        return full
+    # A target id is its root node's id, at most 64 characters: the file's stem then, and past
+    # that a cut with a hash of the row's key so two long rows cannot meet (F14-T32).
+    short = _kebab(f"{Path(path).name}-{row['decl']}")
+    if len(short) <= NODE_ID_MAX:
+        return short
+    digest = hashlib.sha256(str(row["key"]).encode()).hexdigest()[:8]
+    return f"{short[: NODE_ID_MAX - 9].rstrip('-')}-{digest}"
+
+
+#: A node id's length limit (``layout``'s id grammar), which a target's root id meets.
+NODE_ID_MAX = 64
 
 
 def draftable_id(r: dict[str, Any]) -> bool:
