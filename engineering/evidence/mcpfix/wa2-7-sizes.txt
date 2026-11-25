@@ -1,0 +1,66 @@
+== wa2-base
+the graph's head could not be read, serving the branch: no head configured
+targets/propositional/glosses.json: graph returned 404
+targets/erdos-1094/glosses.json: graph returned 404
+server_info              {}                                            1462
+list_targets             {}                                            805631
+get_target               {"target_id": "propositional"}                9602
+list_frontier            {}                                            386475
+get_node                 {"node_id": "and-reassoc", "include": []}     101287
+get_defs                 {"target_id": "propositional"}                57
+get_gate_spec            {"target_id": "propositional"}                489
+get_dco                  {}                                            1966
+list_routes              {}                                            10321
+get_hosted_checkers      {}                                            49315
+list_error_codes         {}                                            136281
+list_words_needed        {}                                            499021
+list_registrations       {}                                            64
+list_review_questions    {}                                            284
+list_open_pairs          {}                                            56
+list_sufficient_sets     {"target_id": "erdos-1094"}                   15590
+get_node                 {"node_id": "and-reassoc"}                    102694
+== opn-mcpfix-wa2
+the graph's head could not be read, serving the branch: no head configured
+targets/propositional/glosses.json: graph returned 404
+targets/propositional/target.yaml: graph returned 404
+targets/erdos-1094/glosses.json: graph returned 404
+targets/erdos-1094/target.yaml: graph returned 404
+targets/propositional/glosses.json: graph returned 404
+targets/erdos-1094/glosses.json: graph returned 404
+server_info              {}                                            1462
+list_targets             {}                                            11846
+get_target               {"target_id": "propositional"}                9602
+list_frontier            {}                                            4777
+get_node                 {"node_id": "and-reassoc", "include": []}     7115
+get_defs                 {"target_id": "propositional"}                57
+get_gate_spec            {"target_id": "propositional"}                489
+get_dco                  {}                                            1966
+list_routes              {}                                            10321
+get_hosted_checkers      {}                                            493
+list_error_codes         {}                                            13937
+list_words_needed        {}                                            14310
+list_registrations       {}                                            64
+list_review_questions    {}                                            321
+list_open_pairs          {}                                            56
+list_sufficient_sets     {"target_id": "erdos-1094"}                   14975
+get_node                 {"node_id": "and-reassoc"}                    102694
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+    from opn_api.mcp import reads
+  File "/Users/mikehiggins/Desktop/repos/opn-mcpfix-wa2/api/opn_api/mcp/reads.py", line 30, in <module>
+    from opn_api import glosses as glossroutes
+  File "/Users/mikehiggins/Desktop/repos/opn-mcpfix-wa2/api/opn_api/glosses.py", line 62, in <module>
+    from opn_site import prose
+ModuleNotFoundError: No module named 'opn_site'
+erdos-1094 finest limit 20 count 46 answer 98730 (sets 45680 routes 52872 58 of 59 )
+erdos-1094 finest limit 5 count 46 answer 56787 (sets 11512 routes 45099 50 of 59 )
+erdos-1094 any limit 20 count 569 answer 39942 (sets 18145 routes 21622 25 of 59 )
+erdos-1094 any limit 5 count 569 answer 27401 (sets 5606 routes 21622 25 of 59 )
+erdos-849 finest limit 20 count 2 answer 28024 (sets 4179 routes 23670 24 of 24 )
+erdos-849 finest limit 5 count 2 answer 28023 (sets 4179 routes 23670 24 of 24 )
+erdos-849 any limit 20 count 1000 answer 90286 (sets 66442 routes 23670 24 of 24 )
+erdos-849 any limit 5 count 1000 answer 38813 (sets 14971 routes 23670 24 of 24 )
+erdos-257 finest limit 20 count 10 answer 30323 (sets 5107 routes 25040 24 of 24 )
+erdos-257 finest limit 5 count 10 answer 20856 (sets 2941 routes 17741 18 of 24 )
+erdos-257 any limit 20 count 21 answer 34767 (sets 9554 routes 25040 24 of 24 )
+erdos-257 any limit 5 count 21 answer 15097 (sets 3179 routes 11747 11 of 24 )

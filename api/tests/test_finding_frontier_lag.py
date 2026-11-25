@@ -81,7 +81,7 @@ def test_mcp_reads_follow_server_info_to_the_new_commit(harness: Harness) -> Non
     force_stale(harness, "info.json")
     assert client.ok("server_info")["rendered_from"] == NEW, "guard: server_info moved"
 
-    listed = client.ok("list_frontier")
+    listed = client.ok("list_frontier", {"full": True})  # mcpfix WA2: the entries
     graph = client.ok("get_target", {"target_id": TARGET})["graph"]
     assert (listed["rendered_from"], graph["rendered_from"]) == (NEW, NEW)
     assert MOVED not in {e["node_id"] for e in listed["entries"]}

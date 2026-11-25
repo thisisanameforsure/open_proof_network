@@ -159,12 +159,14 @@ def test_the_golden_frontier_is_v6() -> None:
 
 
 def test_frontier_v6_is_served_and_v5_still_is(harness: Harness) -> None:
+    """mcpfix WA2 (F09, the compact reads of 2026-11-25): ``list_frontier``'s default is one row per
+    target, so the entries are read with ``full: true``, the plain path's document."""
     for version in ("frontier/v6", "frontier/v5"):
         serve(harness, frontier_at(version))
         r = harness.client.get("/frontier.json")
         assert r.status_code == 200, (version, r.text)
         assert r.json()["schema"] == version
-        got = McpClient(harness).ok("list_frontier", {})
+        got = McpClient(harness).ok("list_frontier", {"full": True})
         assert got["entries"], version
 
 

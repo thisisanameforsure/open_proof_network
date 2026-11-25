@@ -220,17 +220,21 @@ def test_a_v4_frontier_is_still_served(harness: Harness) -> None:
 def test_list_frontier_filters_on_the_new_fields(harness: Harness) -> None:
     """The filter set is drawn from the newest version, so an agent can ask for the nodes whose
     proposed status awaits a steward. F08-T42 (D-12 v3.43): ``circular`` is no longer one of
-    them, since the newest version (frontier/v6) does not carry it."""
+    them, since the newest version (frontier/v6) does not carry it. mcpfix WA2 (F09, the compact
+    reads of 2026-11-25): the entries
+    are read with ``full: true``; the default is one row per target."""
     for field in STANDING_FIELDS:
         assert field in reads._entry_fields(), field
         assert f"`{field}`" in reads.filters_param()["description"], field
     assert "circular" not in reads._entry_fields()
     serve_frontier(harness, frontier_v5())
     client = McpClient(harness)
-    got = client.ok("list_frontier", {"filters": {"literature_proposed.status": "known"}})
+    got = client.ok(
+        "list_frontier", {"filters": {"literature_proposed.status": "known"}, "full": True}
+    )
     assert [e["node_id"] for e in got["entries"]] == [LISTED_NODE]
     assert results.violations("list_frontier", got) == []
-    nothing = client.ok("list_frontier", {"filters": {"literature.status": "known"}})
+    nothing = client.ok("list_frontier", {"filters": {"literature.status": "known"}, "full": True})
     assert nothing["entries"] == []
 
 

@@ -60,10 +60,12 @@ def test_the_tool_is_the_route_body_for_body(harness: Harness) -> None:
     assert TOOL in tools
     annotations = tools[TOOL].annotations
     assert annotations is not None and annotations.readOnlyHint
-    doc = client.ok(TOOL)
+    # mcpfix WA2 (F09, the compact reads of 2026-11-25): body for body is the full: true form;
+    # the default is each code and its meaning, in pages.
+    doc = client.ok(TOOL, {"full": True})
     assert doc == harness.client.get(PATH).json()
     assert results.violations(TOOL, doc) == []
-    narrowed = client.ok(TOOL, {"prefix": "relation-"})
+    narrowed = client.ok(TOOL, {"prefix": "relation-", "full": True})
     assert narrowed == harness.client.get(PATH, params={"prefix": "relation-"}).json()
     assert narrowed["codes"] and narrowed["prefix"] == "relation-"
 

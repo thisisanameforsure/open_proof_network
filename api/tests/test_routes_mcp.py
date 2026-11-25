@@ -32,13 +32,30 @@ def seed(harness: Harness) -> dict[str, Any]:
 
 
 def served_entries(client: McpClient) -> list[dict[str, Any]]:
-    entries: list[dict[str, Any]] = client.ok("list_frontier", {})["entries"]
+    """mcpfix WA2 (F09, the compact reads of 2026-11-25): the entries are list_frontier's ``full:
+    true`` form."""
+    entries: list[dict[str, Any]] = client.ok("list_frontier", {"full": True})["entries"]
     return entries
+
+
+#: The answer's own keys beside the library's: where it was read, the closable nodes, the
+#: selector and, since mcpfix WA2 (F09, the compact reads of 2026-11-25), the page's place
+#: and the cap.
+ANSWER_KEYS = frozenset(
+    {"read_at", "closable", "selector", "count", "limit", "cursor", "next", "set_id", "capped"}
+)
+
+
+def library_view(got: dict[str, Any]) -> dict[str, Any]:
+    """The answer as ``routes.read`` gives it: equal while one page holds every set."""
+    return {k: v for k, v in got.items() if k not in ANSWER_KEYS}
 
 
 def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
     """AC9: listed read-only with its bijection row; the answer is the library's over the two
-    products, and it validates against its schema."""
+    products, and it validates against its schema. mcpfix WA2 (F09, the compact reads of
+    2026-11-25): the selector is asked for with ``include_selector``, and the answer's paging keys
+    are set aside."""
     graph = seed(harness)
     client = McpClient(harness)
     (tool,) = [t for t in client.list_tools() if t.name == "list_sufficient_sets"]
@@ -48,13 +65,11 @@ def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
     assert row.kind == "read"
     assert row.plain == ("targets/<id>/graph.json", "GET /frontier.json")
 
-    got = client.ok("list_sufficient_sets", {"target_id": TARGET})
+    got = client.ok("list_sufficient_sets", {"target_id": TARGET, "include_selector": True})
     assert results.violations("list_sufficient_sets", got) == []
     found = routes.read(graph, served_entries(client))
     expected = found.as_dict()
-    assert {
-        k: v for k, v in got.items() if k not in {"read_at", "closable", "selector"}
-    } == expected
+    assert library_view(got) == expected
     assert got["closable"] == [c.as_dict() for c in closing.closable(graph)]
     assert got["selector"] == routes.selector_tree(found).as_dict()  # F29-T4
     assert got["cut"] == "finest"
@@ -66,16 +81,18 @@ def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
 def test_cut_any_adds_the_coarser_sets_up_to_the_cap(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """F27-R8: ``cut: any`` returns every coarser cut; the service's cap truncates and says so."""
+    """F27-R8: ``cut: any`` returns every coarser cut; the service's cap truncates and says so.
+    mcpfix WA2 (F09, the compact reads of 2026-11-25): every cut is counted, and a page holds 20 of
+    them unless asked for more."""
     seed(harness)
     client = McpClient(harness)
-    coarse = client.ok("list_sufficient_sets", {"target_id": TARGET, "cut": "any"})
-    assert (len(coarse["sets"]), coarse["truncated"]) == (225, False)
+    coarse = client.ok("list_sufficient_sets", {"target_id": TARGET, "cut": "any", "limit": 200})
+    assert (coarse["count"], len(coarse["sets"]), coarse["capped"]) == (225, 200, False)
     monkeypatch.setattr(
         harness.context, "settings", replace(harness.context.settings, routes_max_sets=10)
     )
     capped = client.ok("list_sufficient_sets", {"target_id": TARGET, "cut": "any"})
-    assert capped["truncated"] is True
+    assert capped["truncated"] is True and capped["capped"] is True
     assert len(capped["sets"]) <= 10
     assert results.violations("list_sufficient_sets", capped) == []
 
@@ -95,28 +112,28 @@ def test_unknown_target_and_bad_cut_are_refused(harness: Harness) -> None:
 
 
 def test_at_proved_follow_lists_what_each_proved_statement_rests_on(harness: Harness) -> None:
-    """F27-T9 (R13, AC13): erdos-1094 as published on 2026-10-19, whose ``h2--h2--h2`` is proved
-    by closure. ``at_proved: follow`` answers the library's own follow reading: the same sets
-    (ids, open statements, selector) with the proved structure beneath each proved statement
-    listed, and ``proof_routes`` naming the assemblies the proofs went through; the default
-    stops, as before, and both validate against ``v3``."""
+    """F27-T9 (R13, AC13): erdos-1094 as published on 2026-10-19, whose ``h2--h2--h2`` is proved by
+    closure. ``at_proved: follow`` answers the library's own follow reading: the same sets (ids,
+    open statements, selector) with the proved structure beneath each proved statement listed, and
+    ``proof_routes`` naming the assemblies the proofs went through; the default stops, as before,
+    and both validate against ``v3``. mcpfix WA2 (F09, the compact reads of 2026-11-25): the
+    selector is asked for, and the answer's paging keys are set aside."""
     graph: dict[str, Any] = json.loads((LIVE / f"{TARGET}-20261019.json").read_text("utf-8"))[
         "graph"
     ]
     harness.githost.files[f"targets/{TARGET}/graph.json"] = json.dumps(graph).encode()
     harness.context.files.clear()
     client = McpClient(harness)
-    stop = client.ok("list_sufficient_sets", {"target_id": TARGET})
-    follow = client.ok("list_sufficient_sets", {"target_id": TARGET, "at_proved": "follow"})
-    assert results.version_of("list_sufficient_sets") == "v4"  # F09-T76: settles, side
+    sel = {"include_selector": True}
+    stop = client.ok("list_sufficient_sets", {"target_id": TARGET, **sel})
+    follow = client.ok("list_sufficient_sets", {"target_id": TARGET, "at_proved": "follow", **sel})
+    assert results.version_of("list_sufficient_sets") == "v5"  # mcpfix WA2; v4 settles, side
     for got in (stop, follow):
         assert results.violations("list_sufficient_sets", got) == []
     assert (stop["at_proved"], follow["at_proved"]) == ("stop", "follow")
     entries = served_entries(client)
     expected = routes.read(graph, entries, at_proved="follow").as_dict()
-    assert {k: v for k, v in follow.items() if k not in {"read_at", "closable", "selector"}} == (
-        expected
-    )
+    assert library_view(follow) == expected
     assert [s["id"] for s in stop["sets"]] == [s["id"] for s in follow["sets"]]
     assert [s["open"] for s in stop["sets"]] == [s["open"] for s in follow["sets"]]
     assert stop["selector"] == follow["selector"]
@@ -149,14 +166,15 @@ def test_a_target_with_no_routes_is_its_own_set(harness: Harness) -> None:
 
 
 def test_both_sides_reach_the_tool_with_the_fork(harness: Harness) -> None:
-    """F09-T76 (D-25, D-28 v3.46): the erdos-257 shape — a root with one route and a refutes
-    variant with its own — answers one set per side, each saying which way it settles, the
-    selector forking on the side with the proving family first, and validates against v4."""
+    """F09-T76 (D-25, D-28 v3.46): the erdos-257 shape — a root with one route and a refutes variant
+    with its own — answers one set per side, each saying which way it settles, the selector forking
+    on the side with the proving family first, and validates against v4. mcpfix WA2 (F09, the
+    compact reads of 2026-11-25): the selector is asked for, and the paging keys set aside."""
     graph: dict[str, Any] = json.loads((LIVE / "erdos-257-shape.json").read_text("utf-8"))["graph"]
     harness.githost.files["targets/erdos-257/graph.json"] = json.dumps(graph).encode()
     harness.context.files.clear()
     client = McpClient(harness)
-    got = client.ok("list_sufficient_sets", {"target_id": "erdos-257"})
+    got = client.ok("list_sufficient_sets", {"target_id": "erdos-257", "include_selector": True})
     assert results.violations("list_sufficient_sets", got) == [], results.violations(
         "list_sufficient_sets", got
     )
@@ -165,9 +183,7 @@ def test_both_sides_reach_the_tool_with_the_fork(harness: Harness) -> None:
         ("refutes", "spec-a70fcca4"),
     ]
     expected = routes.read(graph, served_entries(client))
-    assert {k: v for k, v in got.items() if k not in {"read_at", "closable", "selector"}} == (
-        expected.as_dict()
-    )
+    assert library_view(got) == expected.as_dict()
     selector = got["selector"]
     assert selector == routes.selector_tree(expected).as_dict()
     assert (selector["node"], selector["side"], selector["sets"]) == (None, None, 2)
@@ -179,7 +195,7 @@ def test_both_sides_reach_the_tool_with_the_fork(harness: Harness) -> None:
     assert "refutes" in (tool.description or "")
     # the erdos-1094 shape has one side: no fork, side null everywhere, still v4-valid
     seed(harness)
-    one = client.ok("list_sufficient_sets", {"target_id": TARGET})
+    one = client.ok("list_sufficient_sets", {"target_id": TARGET, "include_selector": True})
     assert results.violations("list_sufficient_sets", one) == []
     assert one["selector"]["side"] is None and one["selector"]["node"] is not None
     assert {s["settles"] for s in one["sets"]} == {"proves"}

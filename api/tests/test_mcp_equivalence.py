@@ -81,8 +81,10 @@ def test_read_tools_equal_plain_path(
     client = McpClient(harness)
 
     assert client.ok("server_info") == harness.client.get("/info.json").json()
-    assert client.ok("list_targets") == plain(harness, "targets/index.json")
-    assert client.ok("list_frontier") == harness.client.get("/frontier.json").json()
+    # mcpfix WA2 (F09, the compact reads of 2026-11-25): the two answer compactly by default;
+    # the plain path's document is their full: true form.
+    assert client.ok("list_targets", {"full": True}) == plain(harness, "targets/index.json")
+    assert client.ok("list_frontier", {"full": True}) == harness.client.get("/frontier.json").json()
     assert client.ok("get_gate_spec", {"target_id": TARGET}) == plain(
         harness, f"targets/{TARGET}/gate-spec.json"
     )
