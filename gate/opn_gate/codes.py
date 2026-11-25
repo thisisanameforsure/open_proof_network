@@ -1947,6 +1947,18 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Shelve the statements beneath it, or retire one of its decompositions by its route; a "
         "problem is retired by its target's status, not by a shelving.",
     ),
+    "node-dominated": (
+        "api",
+        None,
+        "The statement lies only on routes that are strictly harder than another: every way to "
+        "settle the root through it needs everything some other way needs, and more (D-25 v3.51). "
+        "It is off the frontier and out of the sufficient sets, so it is not offered for claims. "
+        "Work on it is not refused; a proof that passes the gate merges as before. The refusal's "
+        "details.routes names the routes through it that are not offered.",
+        "Claim a statement of an offered set instead: list_sufficient_sets and list_frontier "
+        "carry only those. A statement becomes offered again by itself once the extra work it "
+        "needs is proved or a new route changes the picture; nothing has to be lifted.",
+    ),
     "node-shelved": (
         "both",
         None,

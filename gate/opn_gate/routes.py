@@ -16,10 +16,12 @@ documents and cannot disagree (F27-Q1).
 The published sets are the *finest* cuts: an open node is expanded into each of its live routes
 and taken directly only where none is live; a proved node ends the cut as a closed member. With
 ``cut="any"`` an open node is also taken directly in place of its routes, which yields every
-coarser cut (F27-Q2). The finest cuts are every full expansion, one per choice of routes, even
-one whose open statements strictly contain another's (F27-T7, the owner's ruling); among the
-coarser cuts only minimal sets are kept, since a set containing another says nothing the smaller
-one does not. Sets are listed in the order the record
+coarser cut (F27-Q2). The finest cuts are every full expansion, one per choice of routes, except
+one that needs strictly more open statements than another of its side: a strictly harder route is
+not offered (F27-R14, D-25 v3.51, overturning F27-T7), and ``dominated`` names the routes and
+statements only such sets reach, which the frontier omits. Among the coarser cuts only minimal sets
+are kept, since a set containing another says nothing the smaller one does not. Sets are listed in
+the order the record
 gives them — the root's routes in their merge order, then a direct proof, then the variants — and
 never ranked (D-25).
 
@@ -536,6 +538,10 @@ class _Option:
     variant: str | None = None
     beneath: frozenset[str] = frozenset()
     proof_routes: tuple[str, ...] = ()
+    #: F27-R14: the routes of options merged into this one because they needed the same
+    #: statements (``bounded`` keeps one per key) — a tie, so those routes are offered too.
+    #: Never part of ``key`` and never published.
+    also: frozenset[str] = frozenset()
 
     def key(self) -> tuple[frozenset[str], frozenset[str]]:
         return self.members, frozenset(self.assemblies)
@@ -571,6 +577,7 @@ class _Enumerator:
                 variant=variants[0] if variants else None,
                 beneath=frozenset().union(*(o.beneath for o in combo)),
                 proof_routes=_ordered(*(o.proof_routes for o in combo)),
+                also=frozenset().union(*(o.also for o in combo)),
             )
 
     def proved(self, node_id: str) -> _Option:
@@ -599,10 +606,15 @@ class _Enumerator:
             if len(out) >= ceiling:
                 self.truncated = True
                 break
-            out.setdefault(o.key(), o)
-        # F27-T7 (the owner, 2026-10-15): the finest cuts keep every full expansion, one per
-        # choice of routes, even one that needs strictly more than another; only the coarser cuts,
-        # which number in the hundreds, keep the minimal ones alone.
+            seen = out.get(o.key())
+            if seen is None:
+                out[o.key()] = o
+            elif o.routes != seen.routes or o.also - seen.also:
+                # F27-R14: the same statements by other routes; remember them, a tie is offered
+                out[o.key()] = replace(seen, also=seen.also | set(o.routes) | o.also)
+        # The finest cuts are judged once, at the root (F27-R14: domination is a fact about the
+        # whole target, never one node), so here they keep every expansion; only the coarser
+        # cuts, which number in the hundreds, keep the minimal ones alone at every node.
         kept = _minimal(list(out.values()), self.rows) if self.cut == "any" else list(out.values())
         if len(kept) > cap:
             self.truncated = True
@@ -645,6 +657,7 @@ class _Enumerator:
                     o.variant,
                     o.beneath,
                     o.proof_routes,
+                    o.also,
                 )
                 for o in self.combine(parts)
             )
@@ -704,41 +717,14 @@ def read(
     if at_proved not in AT_PROVED:
         msg = f"unknown at_proved {at_proved!r}: expected one of {', '.join(AT_PROVED)}"
         raise ValueError(msg)
-    rows = _rows(graph)
-    target_id = str(graph.get("target_id"))
-    root = str(graph.get("root"))
-    entries = _entries(frontier_entries, target_id)
-    by_node: dict[str, list[Route]] = {}
-    for node_id in rows:
-        approaches = _approaches(node_id, rows)
-        for k, (partial, holes) in enumerate(_hole_nodes(node_id, rows), start=1):
-            by_node.setdefault(node_id, []).append(
-                _route_of(
-                    node_id,
-                    k=k,
-                    partial=partial,
-                    holes=holes,
-                    rows=rows,
-                    entries=entries,
-                    approach=approaches[k - 1],
-                )
-            )
-    # The record's order: the products list nodes sorted, and each node's routes in merge order.
-    all_routes = tuple(r for node_id in rows for r in by_node.get(node_id, ()))
-    walker = _Enumerator(rows, by_node, cut, max(1, max_sets), at_proved)
-    proving: list[_Option] = []
-    refuting: list[_Option] = []
-    if root in rows:
-        status = walker.status(root)
-        proving, _ = walker.close(root, frozenset())
-        # A refuted root (D-12 #2) is settled: its resolves variants close nothing now, as a
-        # proved root's close nothing more.
-        if status not in (PROVED, "refuted"):
-            proving.extend(_via(walker, rows, root, RESOLVES))
-        # D-25 v3.46: the other side — each refutes variant (D-30 v3.46) closed exactly as a
-        # resolves one is — while the root is neither proved (nothing to refute) nor dead.
-        if status != PROVED and status not in DEAD_STATUSES:
-            refuting = _via(walker, rows, root, REFUTES)
+    e = _enumerate(graph, frontier_entries, cut=cut, max_sets=max_sets, at_proved=at_proved)
+    rows, walker, target_id, root, all_routes = e.rows, e.walker, e.target_id, e.root, e.routes
+    proving, refuting = e.proving, e.refuting
+    # F27-R14 (D-25 v3.51): a finest set that needs strictly more than another of its side is
+    # not offered; an enumeration already cut short leaves nothing out (it cannot know).
+    if cut == "finest" and not walker.truncated:
+        proving = _undominated(proving, rows)
+        refuting = _undominated(refuting, rows)
     # Domination (cut: any) is judged within a side: a refuting set is never dropped for a
     # proving set it contains, or the other way round. The cap is overall, the proving sets
     # first: the refuting side gets the room the proving side left.
@@ -770,6 +756,130 @@ def read(
         for o, settles in minimal
     )
     return Routes(target_id, root, cut, walker.truncated, all_routes, sets, at_proved)
+
+
+@dataclass
+class _Enumerated:
+    rows: dict[str, Mapping[str, Any]]
+    walker: _Enumerator
+    target_id: str
+    root: str
+    routes: tuple[Route, ...]
+    proving: list[_Option]
+    refuting: list[_Option]
+
+
+def _enumerate(
+    graph: Mapping[str, Any],
+    frontier_entries: Iterable[Mapping[str, Any]],
+    *,
+    cut: str,
+    max_sets: int,
+    at_proved: str,
+) -> _Enumerated:
+    """Every route of the target and every way to settle its root, before the cap and before
+    F27-R14 leaves out the dominated: what ``read`` and ``dominated`` share."""
+    rows = _rows(graph)
+    target_id = str(graph.get("target_id"))
+    root = str(graph.get("root"))
+    entries = _entries(frontier_entries, target_id)
+    by_node: dict[str, list[Route]] = {}
+    for node_id in rows:
+        approaches = _approaches(node_id, rows)
+        for k, (partial, holes) in enumerate(_hole_nodes(node_id, rows), start=1):
+            by_node.setdefault(node_id, []).append(
+                _route_of(
+                    node_id,
+                    k=k,
+                    partial=partial,
+                    holes=holes,
+                    rows=rows,
+                    entries=entries,
+                    approach=approaches[k - 1],
+                )
+            )
+    # The record's order: the products list nodes sorted, and each node's routes in merge order.
+    all_routes = tuple(r for node_id in rows for r in by_node.get(node_id, ()))
+    walker = _Enumerator(rows, by_node, cut, max(1, max_sets), at_proved)
+    proving: list[_Option] = []
+    refuting: list[_Option] = []
+    if root in rows:
+        status = walker.status(root)
+        proving, _ = walker.close(root, frozenset())
+        proving = list(proving)  # the memo's list is the walker's; never extend it in place
+        # A refuted root (D-12 #2) is settled: its resolves variants close nothing now, as a
+        # proved root's close nothing more.
+        if status not in (PROVED, "refuted"):
+            proving.extend(_via(walker, rows, root, RESOLVES))
+        # D-25 v3.46: the other side — each refutes variant (D-30 v3.46) closed exactly as a
+        # resolves one is — while the root is neither proved (nothing to refute) nor dead.
+        if status != PROVED and status not in DEAD_STATUSES:
+            refuting = _via(walker, rows, root, REFUTES)
+    return _Enumerated(rows, walker, target_id, root, all_routes, proving, refuting)
+
+
+def _needs(o: _Option, rows: Mapping[str, Mapping[str, Any]]) -> frozenset[str]:
+    """F27-R14: what a set needs — its open members. Its assemblies add no work: the network
+    closes each once its inputs are proved (D-12 v3.42), so a route that reaches the same open
+    statements through one more assembly ties, it is not harder."""
+    return frozenset(m for m in o.members if str(rows[m].get("status")) != PROVED)
+
+
+def _undominated(options: list[_Option], rows: Mapping[str, Mapping[str, Any]]) -> list[_Option]:
+    """F27-R14 (D-25 v3.51): drop a set another of the same side needs a proper subset of; keep
+    every set with equal needs, in the record's order."""
+    needs = [_needs(o, rows) for o in options]
+    distinct = set(needs)
+    return [
+        o for o, mine in zip(options, needs, strict=True) if not any(n < mine for n in distinct)
+    ]
+
+
+@dataclass(frozen=True)
+class Dominated:
+    """F27-R14 (D-25 v3.51): the routes and statements that appear only in dominated sets, and
+    the proved among those statements. ``truncated``: the enumeration was cut short, so nothing
+    is called dominated."""
+
+    routes: frozenset[str]
+    statements: frozenset[str]
+    proved: frozenset[str]
+    truncated: bool
+
+
+def _reach(options: Iterable[_Option]) -> tuple[set[str], set[str]]:
+    """The statements and routes a family of sets touches: members, assemblies and, followed,
+    what the proved members' proofs rest on (R13); the routes chosen, those tied with them, and
+    those the followed proofs went through."""
+    nodes: set[str] = set()
+    used: set[str] = set()
+    for o in options:
+        nodes |= o.members | set(o.assemblies) | o.beneath
+        used |= set(o.routes) | o.also | set(o.proof_routes)
+    return nodes, used
+
+
+def dominated(graph: Mapping[str, Any], *, max_sets: int = DEFAULT_MAX_SETS) -> Dominated:
+    """F27-R14 (D-25 v3.51): a route or statement is dominated when it appears in some finest
+    set and only in sets another set of its side strictly undercuts. Read with ``follow``, so a
+    statement a kept set's proved member rests on is live (a kernel-checked fact a live proof
+    uses is live) and one only a dominated proved member rests on is dominated with it. A capped
+    enumeration calls nothing dominated."""
+    e = _enumerate(graph, (), cut="finest", max_sets=max_sets, at_proved="follow")
+    if e.walker.truncated:
+        return Dominated(frozenset(), frozenset(), frozenset(), truncated=True)
+    kept = [*_undominated(e.proving, e.rows), *_undominated(e.refuting, e.rows)]
+    if len(kept) > e.walker.max_sets:
+        return Dominated(frozenset(), frozenset(), frozenset(), truncated=True)
+    every_node, every_route = _reach([*e.proving, *e.refuting])
+    live_nodes, live_routes = _reach(kept)
+    statements = frozenset(every_node - live_nodes)
+    return Dominated(
+        routes=frozenset(every_route - live_routes),
+        statements=statements,
+        proved=frozenset(s for s in statements if str(e.rows[s].get("status")) == PROVED),
+        truncated=False,
+    )
 
 
 def _via(

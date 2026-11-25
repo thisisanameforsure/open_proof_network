@@ -1,0 +1,49 @@
+F27-T13 (R14): the problem page and the service.
+
+== erdos-1094's page, rendered by this branch's site from graph 257feba234 (task-13-shoot.py) ==
+{
+ "url_path": "/problems/erdos-1094/",
+ "default-1440": {
+  "pills_shown": 36,
+  "junctions_shown": 24,
+  "harder_shown": 0,
+  "harder_total": 95,
+  "toggle": "Show 60 more statements (60 on strictly harder routes, 9 of them proved)",
+  "sets": 4,
+  "scroll": 1440,
+  "width": 1440
+ },
+ "toggled-1440": {
+  "pills_shown": 96,
+  "junctions_shown": 59,
+  "harder_shown": 95,
+  "harder_total": 95,
+  "toggle": "Hide the 60 statements (60 on strictly harder routes, 9 of them proved)",
+  "sets": 4,
+  "scroll": 1440,
+  "width": 1440
+ },
+ "default-390": {
+  "pills_shown": 36,
+  "junctions_shown": 24,
+  "harder_shown": 0,
+  "harder_total": 95,
+  "toggle": "Show 60 more statements (60 on strictly harder routes, 9 of them proved)",
+  "sets": 4,
+  "scroll": 390,
+  "width": 390
+ }
+}
+
+harder_total 95 = 60 statements + 35 route junctions. Screenshots: task-13-1440-default.png (the routes view),
+task-13-1440-toggled.png (toggle on: the strictly harder pills dimmed and dashed), task-13-390-default.png
+(phone width, scroll width 390 = viewport, no sideways scroll).
+
+== mutation checks ==
+the views' 'i not in harder' filter removed: test_one_view_dominated 2 failed; restored, 3 passed
+the claim refusal branch disabled: test_finding_dominated_claims 1 failed; restored, 3 passed
+
+== golden: site/tests/golden/docs/index.html regenerated; the only difference is one inserted glossary row (strictly harder) ==
+
+== verification command ==
+6 passed, 2 warnings in 0.38s

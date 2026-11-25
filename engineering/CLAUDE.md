@@ -1986,3 +1986,14 @@ The law of the project:
   half was slow. One recursive tree read per head answers every listing (F14-T33; the live graph's
   tree is 0.93 s and untruncated at 23k entries). After the 2026-11-24 entry, grep every route for a
   loop over `target_ids` before calling a load done: three walked it, and only one had been fixed.
+
+- 2026-11-25 — Strictly harder routes are no longer offered (F27-T12/T13, decisions v3.51), from the owner's
+  question whether erdos-1094 had dead routes: 46 sets became 4, and 60 of 96 statements left the offer. Three
+  things worth keeping. **Count only what someone has to do**: the first rule counted assemblies as needs and
+  kept every set that avoided one closing proof at the price of dozens of open leaves, while D-12 v3.42 closes
+  an assembly by itself; leaves-only was what the hand analysis had used, and the two disagreed until the rule
+  did too. **Domination is a fact about the whole target**: at `--h3` alone the residue sieve is not worse than
+  the Konyagin route; it is worse only because every proof of the root already needs BHP elsewhere, so a
+  per-node rule would have hidden nothing that mattered. **A fixture node with a `Proof.lean` turns a partial's
+  attestation into a proof** (F03-Q7), so a frontier test built on one decomposed a node that was then proved
+  and judged nothing; give a partial's holder the live shape (no proof file) before asserting about its routes.

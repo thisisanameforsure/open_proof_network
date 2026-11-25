@@ -652,6 +652,16 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "shelving record (D-14 v3.47)",
     ),
     (
+        "harder",
+        "strictly harder",
+        "Every way to settle the problem through this statement needs everything some other "
+        "way needs, and more, so it is not offered: it is hidden from the routes view, off the "
+        "frontier and out of the sets, and no one can claim it. Nobody decided this; it is "
+        "worked out again at every merge, so it comes back by itself once the extra work is "
+        "done or a new route changes the picture. Work on it is still accepted.",
+        "strictly harder route (D-25 v3.51)",
+    ),
+    (
         "attempt",
         "Attempt",
         "Any proof submitted, pass or fail. Failures are kept on the record and count as "
@@ -691,6 +701,7 @@ ROUTE_MARK_KEYS = (
     "relation-refutes",
     "relation-partial",  # F30-T16
     SHELVED,  # F31-T10 (R7): a mark on a statement's pill, not a status (F31-Q7)
+    "harder",  # F27-R14 (D-25 v3.51): a mark too, never a status
 )
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven

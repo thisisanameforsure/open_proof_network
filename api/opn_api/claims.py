@@ -14,6 +14,7 @@ read, with nothing written and its ``released`` left null; it simply stops being
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from datetime import timedelta
@@ -28,7 +29,7 @@ from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.store import Claim, Identity, release
 from opn_gate import graph as graphmod
-from opn_gate import intake
+from opn_gate import intake, routes
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -176,7 +177,9 @@ def ambiguous(node_id: str) -> ApiError:
     return ApiError(409, "node-ambiguous", f"{node_id} exists in several targets; pass target_id")
 
 
-def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
+def off_frontier(  # noqa: PLR0911 — one refusal per reason a node is off the frontier
+    ctx: Context, node_id: str, target_id: str | None
+) -> ApiError:
     """A node the frontier does not list: what the graph says it is (D-25). Only the graph
     knows, because the frontier holds open nodes alone."""
     graph = precheck.graph_doc(ctx)
@@ -201,6 +204,9 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
         if precheck.witness_awaits_render(ctx, node_id, facts):  # F06-T8: one state, one answer
             return precheck.awaits_render(ctx, node_id, f"{node_id}'s witness has merged")
         return blocked(ctx, node_id, facts, graph)
+    harder = dominated_routes(ctx, rows[0][0], node_id)
+    if harder:
+        return dominated(node_id, harder)
     details = precheck.standing(ctx, node_id, facts)
     successor = f" {details['replacement']} replaced it." if details["replacement"] else ""
     return ApiError(
@@ -209,6 +215,42 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
         f"{node_id} is {facts['status']} and not on the frontier at main; only an open node on "
         f"the frontier can be claimed (D-25).{successor}",
         details=details,
+    )
+
+
+def dominated_routes(ctx: Context, target_id: str, node_id: str) -> list[str]:
+    """F27-R14 (D-25 v3.51): the routes through ``node_id`` that are not offered, when the
+    statement is dominated, read from the committed ``graph.json`` by the function the products
+    use; empty when it is not, or when the graph cannot say."""
+    try:
+        doc = json.loads(frontier.committed(ctx, f"targets/{target_id}/graph.json"))
+    except (ApiError, ValueError):
+        return []
+    found = routes.dominated(doc)
+    if node_id not in found.statements:
+        return []
+    out: list[str] = []
+    for row in doc.get("nodes") or []:
+        for k, dec in enumerate(row.get("decompositions") or [], start=1):
+            rid = f"{row['node_id']}@{k}"
+            holes = dec.get("holes") or []
+            if rid in found.routes and any(h.get("node") == node_id for h in holes):
+                out.append(rid)
+    return sorted(out)
+
+
+def dominated(node_id: str, harder: list[str]) -> ApiError:
+    """``409 node-dominated`` (F27-R14): not offered for claims, because only strictly harder
+    routes reach the statement; work on it is not refused."""
+    return ApiError(
+        409,
+        "node-dominated",
+        f"{node_id} lies only on routes that are strictly harder than another "
+        f"({', '.join(harder)}): "
+        "every way to settle the root through it needs everything some other way needs, and more, "
+        "so it is not offered for claims (D-25 v3.51). Work on it is still accepted; to claim, "
+        "pick a statement of an offered set (list_sufficient_sets)",
+        details={"node_id": node_id, "routes": harder},
     )
 
 

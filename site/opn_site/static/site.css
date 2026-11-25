@@ -1147,7 +1147,11 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
    colour and is dimmed, its outline dotted; the key's swatch is the same dotted ring. */
 .dag .node.shelved { opacity: .45; }
 .dag .node.shelved rect.pill { stroke-dasharray: 2 3; }
+/* F27-R14 (D-25 v3.51): a strictly harder statement or route, drawn only on request */
+.dag .node.harder, .dag .junction.harder { opacity: .45; }
+.dag .node.harder rect.pill { stroke-dasharray: 6 3; }
 .dot-shelved { border-style: dotted; border-color: var(--n500); opacity: .7; }
+.dot-harder { border-style: dashed; border-color: var(--n500); opacity: .7; }
 /* F04-T55 (D-30 v3.46): the relation trunks from a variant into the root — solid and a little
    heavier than a dependency; the refuting one in --refute, with the selector branch beneath it. */
 .dag .edge.relation.resolves { stroke: var(--n500); stroke-width: 2; }

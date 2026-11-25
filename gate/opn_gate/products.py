@@ -44,6 +44,7 @@ from opn_gate import (
     qa,
     records,
     registrations,
+    routes,
     schemas,
     sections,
     signed,
@@ -65,7 +66,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 #: docs/architecture_decisions.html (v3.43: circularity retired; v3.42: proved by closure)
-PROTOCOL_VERSION = "3.50"
+PROTOCOL_VERSION = "3.51"
 #: F08-T42 (D-12 v3.43): graph/v11 drops ``circular``, the retired circularity label.
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
@@ -1555,10 +1556,13 @@ def generate(
         # loop's ``tg`` and read the last target's statuses (ruff B023).
         statuses = tg.statuses
         status_of = functools.partial(status_or_ready, statuses)
+        # F27-R14 (D-25 v3.51): a statement only strictly harder routes reach is not offered,
+        # derived from the graph just rendered, so the frontier and the sets cannot disagree.
+        not_offered = routes.dominated(gdoc).statements
         for node_id in tg.order:
             node = tg.nodes[node_id]
             products.meta_status[node.path.relative_to(graph_root)] = tg.statuses[node_id]
-            if not in_frontier(tg.statuses[node_id], node, status_of):
+            if node_id in not_offered or not in_frontier(tg.statuses[node_id], node, status_of):
                 continue
             # R6 before R13: the scan is the one place the products elaborate a statement, so a
             # statement the pinned toolchain refuses is learned here, and such a node is not
