@@ -164,12 +164,10 @@ def blocked(
     """The shared ``409 node-blocked``, naming an open witness pull request for a hole waiting on
     its witness, as a precheck does (F06-T13): a claimant whose witness is open is not told to send
     one."""
-    waiting = (
-        precheck.open_witness(ctx, node_id)
-        if facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
-        else None
-    )
-    return precheck.blocked_error(node_id, facts, graph, pending_witness=waiting)
+    missing = facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
+    waiting = precheck.open_witness(ctx, node_id) if missing else None
+    merged = precheck.merged_witness(ctx, node_id) if missing and waiting is None else None
+    return precheck.blocked_error(node_id, facts, graph, pending_witness=waiting, merged=merged)
 
 
 def ambiguous(node_id: str) -> ApiError:

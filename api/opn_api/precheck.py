@@ -385,12 +385,33 @@ def open_witness(ctx: Context, node_id: str) -> dict[str, Any] | None:
     return None
 
 
+def merged_witness(ctx: Context, node_id: str) -> dict[str, Any] | None:
+    """mcpfix (verifier VC, item 2): a witness for ``node_id`` that merged and is not in the
+    products yet, as ``{pr_number, merged_at, retry_after_s}``; ``None`` when there is none or the
+    products already carry it. Read from the service's own records of recent merges."""
+    from opn_api import pending  # noqa: PLC0415 — pending imports this module
+
+    for found in reversed(pending.recent_merges(ctx)):
+        if (
+            found.kind == "witness"
+            and found.node_id == node_id
+            and pending.awaits_render(ctx, found)
+        ):
+            return {
+                "pr_number": found.pr_number,
+                "merged_at": found.closed,
+                "retry_after_s": pending.products_retry_after_s(ctx, found.closed),
+            }
+    return None
+
+
 def blocked_error(
     node_id: str,
     facts: dict[str, Any],
     graph: dict[str, list[dict[str, Any]]],
     *,
     pending_witness: dict[str, Any] | None = None,
+    merged: dict[str, Any] | None = None,
 ) -> ApiError:
     """The one ``409 node-blocked`` every route gives a blocked node (F05-T9, F06-T6): the cause
     and the unproved dependencies, in the message and as ``details``, and the way out where the
@@ -408,6 +429,12 @@ def blocked_error(
             )
         elif cause:
             why += f" (cause {cause})"
+    elif cause == graphmod.CAUSE_WITNESS_MISSING and merged is not None:
+        why = (
+            f"cause {cause}: its witness merged as pull request #{merged['pr_number']} at "
+            f"{merged['merged_at']} and the products do not show it yet (they usually land about "
+            f"fourteen minutes after a merge); retry in about {merged['retry_after_s']} s"
+        )
     elif cause == graphmod.CAUSE_WITNESS_MISSING and pending_witness is not None:
         why = (
             f"cause {cause}: its witness slot is empty, and a witness for it is open as pull "
@@ -434,6 +461,11 @@ def blocked_error(
             # F06-T13: only when there is one, so every other refusal keeps its shape
             **(
                 {"pending": pending_witness} if pending_witness is not None and not unproved else {}
+            ),
+            **(
+                {"merged_witness": merged, "retry_after_s": merged["retry_after_s"]}
+                if merged is not None and not unproved
+                else {}
             ),
         },
     )
@@ -576,7 +608,12 @@ def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
             if facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
             else None
         )
-        raise blocked_error(node_id, facts, graph_doc(ctx), pending_witness=waiting)
+        merged = (
+            merged_witness(ctx, node_id)
+            if waiting is None and facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
+            else None
+        )
+        raise blocked_error(node_id, facts, graph_doc(ctx), pending_witness=waiting, merged=merged)
     if facts.get("status") == "superseded":
         raise superseded_error(ctx, node_id, facts)
 
@@ -1090,7 +1127,11 @@ def dispatch(ctx: Context, job: Job, bundle: Bundle) -> None:
         if isinstance(exc, RateLimitError):  # F07-T47: come back at the reset, not a bare 502
             raise host_budget_refusal(ctx, exc) from exc
         raise ApiError(
-            502, "dispatch-failed", f"the precheck job could not be started: {exc}"
+            502,
+            "dispatch-failed",
+            f"the precheck job could not be started: {exc}. Nothing is running for it, so a "
+            "retry is safe; GitHub's own errors usually clear within a minute",
+            details={"retry_after_s": 60},
         ) from exc
 
 
