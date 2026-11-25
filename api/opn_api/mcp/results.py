@@ -26,12 +26,20 @@ VERSION = "v1"
 #: F29-T4: a tool whose result schema has moved on names its current version here; every other
 #: tool's is ``VERSION``. An older version stays served by name (``get_schema``), never declared.
 VERSIONS: dict[str, str] = {
-    # v4: settles, side (D-25 v3.46, F09-T76); v3 at_proved, proof_routes; v2 the selector
-    "list_sufficient_sets": "v4",
+    # v5: sets in pages, routes the page uses, selector on request (mcpfix WA2); v4: settles,
+    # side (D-25 v3.46, F09-T76); v3 at_proved, proof_routes; v2 the selector
+    "list_sufficient_sets": "v5",
     "get_node": "v3",  # proposed_for, in_closure (F22-T9); v2 added the labels (F29-R8)
     # v2: each open direction's templates, the pair record in force (F26-T19)
     "list_open_pairs": "v2",
     "get_review": "v2",
+    # v2: compact and paged by default, full: true the plain path (mcpfix WA2, 2026-11-25)
+    "list_frontier": "v2",
+    "list_targets": "v2",
+    "list_error_codes": "v2",
+    "list_review_questions": "v2",
+    "list_words_needed": "v2",
+    "get_hosted_checkers": "v2",
 }
 NAME_RE = re.compile(r"^mcp/(?P<tool>[a-z][a-z_]*)/(?P<version>v[1-9][0-9]*)$")
 

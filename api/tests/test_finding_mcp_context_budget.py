@@ -29,6 +29,16 @@ from opn_api.mcp.server import MCP_PATH, TOOLS
 
 #: The prose sections of a node's bundle a caller may leave out (T19).
 PROSE = ("annexes", "explainers", "outlines", "gloss_chains", "explainer_chains")
+#: mcpfix WA2: the context's own sections ``include`` may name, and what leaving them out (and
+#: naming fewer than every section) may take from the context.
+CONTEXT_SECTIONS = ("attempts", "deps")
+OMITTABLE = {
+    "attempts.records",
+    "deps[].signature",
+    "lemmas[].signature",
+    "statement.text",
+    "witness.text",
+}
 #: What get_node always answers, whatever ``include`` says (T19).
 ALWAYS = {
     "node_id",
@@ -131,30 +141,43 @@ def test_the_text_keeps_lean_symbols_as_they_are(harness: Harness) -> None:
 
 
 def test_get_node_declares_include() -> None:
+    """mcpfix WA2 (F09, the compact reads of 2026-11-25): ``include`` also names the context's
+    ``attempts`` and ``deps``."""
     [tool] = [t for t in TOOLS if t.name == "get_node"]
     include = tool.input_schema["properties"].get("include")
     assert include is not None, "get_node takes no include"
     assert include["type"] == "array"
-    assert sorted(include["items"]["enum"]) == sorted(PROSE)
+    assert sorted(include["items"]["enum"]) == sorted((*PROSE, *CONTEXT_SECTIONS))
     assert tool.input_schema["required"] == ["node_id"]
 
 
 def test_without_include_get_node_is_the_full_bundle(harness: Harness) -> None:
-    """The owner's ruling of 2026-10-06: full by default, so no client changes."""
+    """The owner's ruling of 2026-10-06: full by default, so no client changes. mcpfix WA2 (F09,
+    the compact reads of 2026-11-25): naming every section, the context's two with the prose, is
+    the same answer."""
     seed_node(harness)
     client = McpClient(harness)
     full = client.ok("get_node", {"node_id": NODE})
     assert set(PROSE) <= set(full)
-    assert client.ok("get_node", {"node_id": NODE, "include": list(PROSE)}) == full
+    every = [*PROSE, *CONTEXT_SECTIONS]
+    assert client.ok("get_node", {"node_id": NODE, "include": every}) == full
 
 
 def test_include_nothing_leaves_every_prose_section_out(harness: Harness) -> None:
+    """mcpfix WA2 (F09, the compact reads of 2026-11-25): ``include: []`` narrows the context too
+    (its attempt records, the dependencies' statements and the Lean ``files`` already carries),
+    naming what it left out under ``omitted``; every other key is the full answer's."""
     seed_node(harness)
     client = McpClient(harness)
     full = client.ok("get_node", {"node_id": NODE})
     lean = client.ok("get_node", {"node_id": NODE, "include": []})
     assert set(lean) == ALWAYS
-    assert {k: lean[k] for k in ALWAYS} == {k: full[k] for k in ALWAYS}
+    same = ALWAYS - {"context"}
+    assert {k: lean[k] for k in same} == {k: full[k] for k in same}
+    narrowed = set(lean["context"]["omitted"])
+    assert narrowed and narrowed <= OMITTABLE
+    kept = set(full["context"]) - {"attempts", "deps", "lemmas", "statement", "witness"}
+    assert {k: lean["context"][k] for k in kept} == {k: full["context"][k] for k in kept}
     assert results.violations("get_node", lean) == []
     # the fixture's annex and explainer carry the injection string; neither reaches the answer
     assert "An informal argument" not in compact(lean)
@@ -175,7 +198,8 @@ def test_include_names_the_sections_it_answers(harness: Harness) -> None:
 
 def test_an_unknown_section_is_refused_by_name(harness: Harness) -> None:
     seed_node(harness)
-    out = McpClient(harness).failed("get_node", {"node_id": NODE, "include": ["attempts"]})
+    # mcpfix WA2: ``attempts`` is a section now, so the unknown one is another name
+    out = McpClient(harness).failed("get_node", {"node_id": NODE, "include": ["bogus"]})
     assert out["error"] == "arguments-invalid"
     assert "include" in out["message"]
 
@@ -315,7 +339,15 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # `lean` (+581 of input schema), list_open_pairs and get_review at v2, each open direction's
 # templates and refutation declared (+397 of output schema each, structure only), their `n`
 # parameter, and a clause each on submit_proof, get_review and list_open_pairs. Pinned 115,000.
-TOOLS_LIST_BUDGET = 115_000
+# mcpfix WA2 (F09, the compact reads of 2026-11-25) measured 114,974 before and 121,661 after
+# (+6,687, 5.8%): `limit`, `cursor` and `full` on six reads, list_targets' `target_id` and
+# `fields`, list_error_codes' `code`, list_sufficient_sets' `set_id` and `include_selector`,
+# get_hosted_checkers' `target_id` (+2,457 of input schema); the compact branches of seven
+# result schemas, structure only (+3,236 of output schema); a sentence or two on each of the
+# eight descriptions (+994). The trade: the default answers they buy are 4,777 characters
+# for list_frontier where it was 386,475 on the budget fixture, 11,846 for list_targets where
+# it was 805,631. Pinned 122,000.
+TOOLS_LIST_BUDGET = 122_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

@@ -15,6 +15,7 @@ emits it, when one does.
 
 from __future__ import annotations
 
+import difflib
 import json
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -3686,6 +3687,12 @@ def document(prefix: str | None = None) -> dict[str, Any]:
         "count": len(rows),
         "codes": rows,
     }
+
+
+def close_matches(code: str, n: int = 5) -> list[str]:
+    """The catalog's codes closest to ``code``, nearest first: the lookup's answer to a near
+    miss (mcpfix WA2), so a misspelt code names the one meant rather than nothing."""
+    return difflib.get_close_matches(code, sorted(CATALOG), n=n, cutoff=0.6)
 
 
 def render_json(prefix: str | None = None) -> str:

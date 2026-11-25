@@ -59,12 +59,18 @@ def test_the_current_frontier_is_served_with_what_each_node_needs(harness: Harne
 
 
 def test_list_frontier_filters_on_needs(harness: Harness) -> None:
-    """The MCP filter set is drawn from the newest version, so ``needs`` is a field an agent can
-    ask for; on a v3 document the same filter matches nothing rather than erroring (F11-R4)."""
+    """The MCP filter set is drawn from the newest version, so ``needs`` is a field an agent can ask
+    for; on a v3 document the same filter matches nothing rather than erroring (F11-R4). mcpfix WA2
+    (F09, the compact reads of 2026-11-25): the entries are read with ``full: true``; the default is
+    one row per target."""
     serve(harness, "frontier-listed.json")
     client = McpClient(harness)
-    got = client.ok("list_frontier", {"filters": {"needs": "proof", "target_id": "listed-target"}})
+    got = client.ok(
+        "list_frontier",
+        {"filters": {"needs": "proof", "target_id": "listed-target"}, "full": True},
+    )
     assert [e["node_id"] for e in got["entries"]] == [LISTED_NODE]
-    assert client.ok("list_frontier", {"filters": {"needs": "witness"}})["entries"] == []
+    full = {"full": True}
+    assert client.ok("list_frontier", {"filters": {"needs": "witness"}, **full})["entries"] == []
     serve(harness, "frontier-listed-v3.json")
-    assert client.ok("list_frontier", {"filters": {"needs": "proof"}})["entries"] == []
+    assert client.ok("list_frontier", {"filters": {"needs": "proof"}, **full})["entries"] == []

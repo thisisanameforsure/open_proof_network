@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/list_targets/v2.json",
+  "title": "mcp/list_targets/v2",
+  "description": "The result of the list_targets tool (F09-R9; D-28). v2 (mcpfix WA2, the owner's ruling of 2026-11-25): a page of summary rows by default, one target's every field with target_id, a projection with fields; full: true is targets/index.json exactly, as v1 answered always. Or an error result naming the source that did not answer (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "schema"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "pattern": "^targets-index/v[1-9][0-9]*$"
+        }
+      },
+      "description": "full: true — targets/index.json exactly."
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The default: the index's rows in pages, each the summary fields, every field (target_id), or the fields asked for (mcpfix WA2).",
+      "required": [
+        "read_at",
+        "index_schema",
+        "rendered_from",
+        "count",
+        "limit",
+        "cursor",
+        "next",
+        "fields",
+        "targets"
+      ],
+      "properties": {
+        "read_at": {
+          "description": "The commit of main the graph was read at, or the branch name when the service could not learn its head (F05-T13).",
+          "type": "string"
+        },
+        "index_schema": {
+          "description": "The schema the committed index declares (targets-index/v<n>); its row fields are what a row carries.",
+          "type": "string"
+        },
+        "rendered_from": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "count": {
+          "description": "How many rows there are in all, across every page.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "description": "The most rows this page could hold.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "cursor": {
+          "description": "Where this page starts, as the call gave it; null for the first page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next": {
+          "description": "The cursor of the page after this one; null on the last page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fields": {
+          "description": "The fields each row carries: the summary (target_id, root, status, track, claimable, node_counts), target_id with the fields asked for, or null for every field (one target).",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "target_id"
+            ],
+            "properties": {
+              "target_id": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}
