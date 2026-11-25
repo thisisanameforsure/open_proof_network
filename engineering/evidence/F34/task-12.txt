@@ -1,0 +1,34 @@
+F34-T12 — routes: the drawing opens on one route; Tree and List (R14). The folds (R15) are T24 (Q25).
+
+Red run (task-12-red.txt):
+FAILED site/tests/test_f34_routes.py::test_the_drawing_opens_on_the_proving_route_with_the_fewest_open
+FAILED site/tests/test_f34_routes.py::test_tree_and_list_are_two_tabs_over_the_selector_and_the_table
+2 failed, 2 passed in 1.16s
+
+Green, static:
+4 passed in 1.00s
+
+Green, in a browser (Playwright 1.58.0; three runs in a row green after the waits became conditions):
+42 passed in 28.92s
+
+Restated (not deleted): test_one_view's whole-drawing tests open at #view=routes and clear to the home route;
+  the follow test reaches follow/<set> by its bookmark (the toggle is off the page, Q7); test_crux_column aligns
+  the column with the tabs; test_shelving_controls presses List before Retire.
+
+Found on the way: a fixed 700ms wait raced the 600ms transition on a busy laptop; the browser test waits
+for data-view instead.
+
+Not T12's: nine browser tests already red at 7fa0514c (T11), checked in a clean worktree:
+FAILED site/tests/test_finding_lemma_edge.py::test_measured_in_a_browser - pl...
+FAILED site/tests/test_finding_problems_by_topic.py::test_a_search_that_empties_a_topic_hides_its_heading
+FAILED site/tests/test_one_view.py::test_unticking_stop_at_proved_shows_the_followed_set
+FAILED site/tests/test_web_flows.py::test_a_stranger_sees_edit_and_no_approve
+FAILED site/tests/test_web_flows.py::test_a_curator_sees_withdraw - playwrigh...
+FAILED site/tests/test_web_flows.py::test_signed_out_the_panel_draws_no_control
+FAILED site/tests/test_web_flows.py::test_a_member_votes_invites_and_acts_on_the_writeups
+FAILED site/tests/test_web_flows.py::test_an_invited_login_accepts - playwrig...
+FAILED site/tests/test_web_flows.py::test_anyone_signed_in_records_a_writeup
+9 failed, 10 passed in 266.25s (0:04:26)
+(test_one_view's follow test among them is restated here; the rest are the next commit's.)
+
+Captures: task-12-erdos-257-{light,dark}-{1440,390}.png on the live graph at 257feba2.

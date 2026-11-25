@@ -60,6 +60,9 @@
   var bandPills = bandSvg ? slice(bandSvg.querySelectorAll("g.node")) : [];
   var links = slice(document.querySelectorAll("path.band-link"));
   var wrap = svg.closest ? svg.closest(".dag-wrap") : null;
+  // F34-T12 (R14): the view the page opens on, and comes back to — one route, the proving set
+  // with the fewest open statements (data-home); a problem with no route opens on routes.
+  var HOME = svg.getAttribute("data-home") || ROUTES;
   var state = {
     node: null,
     view: svg.getAttribute("data-view") || ROUTES,
@@ -111,7 +114,7 @@
   function writeHash() {
     var parts = [];
     if (state.node) { parts.push("node=" + encodeURIComponent(state.node)); }
-    if (state.view !== ROUTES) { parts.push("view=" + encodeURIComponent(state.view)); }
+    if (state.view !== HOME) { parts.push("view=" + encodeURIComponent(state.view)); }
     if (state.band) { parts.push("band=" + encodeURIComponent(state.band)); }
     history.replaceState(null, "", parts.length ? "#" + parts.join("&") : location.pathname);
   }
@@ -495,7 +498,7 @@
   function choose(view) {
     view = withMode(view);
     if (!has(view)) { return; }
-    transition(view === state.view ? ROUTES : view);
+    transition(view === state.view && view !== HOME ? HOME : view);
   }
 
   // -- previews (R8) and the pill hover (R3) ---------------------------------------------------
@@ -713,7 +716,7 @@
   });
 
   document.addEventListener("keydown", function (ev) {
-    if (ev.key === "Escape" && state.view !== ROUTES) { transition(ROUTES); }
+    if (ev.key === "Escape" && state.view !== HOME) { transition(HOME); }
   });
 
   // -- the view-toggle (R4): all <-> routes --------------------------------------------------------
@@ -783,7 +786,7 @@
         sortBy(0, false);  // the record's order
         state.fewestView = null;
         fewest.setAttribute("aria-pressed", "false");
-        transition(ROUTES);
+        transition(HOME);
       }
     });
   }
@@ -807,6 +810,32 @@
 
   // -- the start, and the hash ---------------------------------------------------------------------
 
+  // -- F34-T12 (R14): Tree and List -----------------------------------------------------------------
+
+  var tabs = document.querySelector(".route-tabs");
+  if (tabs) {
+    var tabButtons = slice(tabs.querySelectorAll("button[role=tab]"));
+    var panesOf = {};
+    tabButtons.forEach(function (b) {
+      panesOf[b.getAttribute("aria-controls")] = document.getElementById(b.getAttribute("aria-controls"));
+    });
+    // The table moves up beside the tabs, so List shows where Tree was.
+    var list = panesOf["sets-list"], tree = panesOf["sets-tree"];
+    if (list && tree && tree.parentNode) { tree.parentNode.insertBefore(list, tree.nextSibling); }
+    var showTab = function (id) {
+      tabButtons.forEach(function (b) {
+        var on = b.getAttribute("aria-controls") === id;
+        b.setAttribute("aria-selected", on ? "true" : "false");
+        if (panesOf[b.getAttribute("aria-controls")]) { panesOf[b.getAttribute("aria-controls")].hidden = !on; }
+      });
+    };
+    tabButtons.forEach(function (b) {
+      b.addEventListener("click", function () { showTab(b.getAttribute("aria-controls")); });
+    });
+    showTab("sets-tree");
+    tabs.hidden = false;
+  }
+
   var initial = fromHash();
   if (initial.view && initial.view.indexOf(FOLLOW) === 0 && has(initial.view)) {
     state.follow = true;
@@ -817,8 +846,9 @@
     select(panels[0].getAttribute("data-node"));
   }
   if (initial.band && pillOf(bandSvg, initial.band)) { state.band = initial.band; }
-  if (has(initial.view) && initial.view !== state.view) {
-    transition(initial.view, true);
+  var opening = has(initial.view) ? initial.view : (has(HOME) ? HOME : null);
+  if (opening && opening !== state.view) {
+    transition(opening, true);
   } else if (has(state.view)) {
     settle(state.view, true);
   }
@@ -827,7 +857,7 @@
   window.addEventListener("hashchange", function () {
     var h = fromHash();
     if (h.node) { select(h.node); }
-    var view = h.view || ROUTES;
+    var view = h.view || HOME;
     if (has(view) && view !== state.view) {
       if (isSetView(view) && (view.indexOf(FOLLOW) === 0) !== state.follow) { setFollow(view.indexOf(FOLLOW) === 0); }
       transition(view);

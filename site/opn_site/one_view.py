@@ -598,6 +598,9 @@ class Drawing:
     shelved: int = 0
     #: F31-T11 (R8): the drawn routes (the tree's, not the band's), in the drawing's order.
     routes: tuple[RouteRow, ...] = ()
+    #: F34-T12 (R14): the view the page opens on — the selector's leaf for the proving set with
+    #: the fewest open statements; ``""`` for a problem with no route (it opens on ``routes``).
+    home: str = ""
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -1110,7 +1113,19 @@ def _hidden_counts(
     return len(off_route), sum(1 for n in off_route if n in shelved_rows)
 
 
-def drawing(  # noqa: PLR0913 — the page's inputs
+def opening_view(sets: Sequence[routes.SufficientSet], leaf_of: Mapping[str, str]) -> str:
+    """F34-T12 (R14): the view the page opens on — of the sets that prove the problem, the one
+    with the fewest open statements, ties to the fewer statements, then the record's order; the
+    selector's leaf for it. ``""`` when no proving set has a leaf (no route to draw)."""
+    proving = [
+        (len(s.open), s.total, k, leaf_of[s.id])
+        for k, s in enumerate(sets)
+        if s.settles == routes.PROVES and s.id in leaf_of
+    ]
+    return min(proving)[3] if proving else ""
+
+
+def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
     graph: Mapping[str, Any],
     frontier_entries: Iterable[Mapping[str, Any]],
     *,
@@ -1180,6 +1195,9 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         result = replace(result, sets=())
         follow = replace(follow, sets=())
     leaf_of = {v.sets[0]: k for k, v in vs.items() if v.kind == "leaf" and not k.startswith(FOLLOW)}
+    home = opening_view(result.sets, leaf_of)
+    if home:
+        svg = svg.replace('<svg class="dag" ', f'<svg class="dag" data-home="{escape(home)}" ', 1)
     marks: set[str] = set()
     if any(r.live for r in d.junctions.values()):
         marks.add("route-and")
@@ -1261,4 +1279,5 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         band=band_svg,
         shelved=shelved_hidden,
         routes=route_rows,
+        home=home,
     )

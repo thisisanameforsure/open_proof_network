@@ -435,10 +435,23 @@ operator (v3.51) and its one-time backfill.</p>
     wants them, the record needs the fact first. A steward's GitHub login is on the record, and their
     card shows it. Until operator records group identities (T13&ndash;T15), there is one card per
     identity: 139 on the live graph.</td></tr>
+  <tr><td>F34-Q25</td><td><strong>T12 split: the folds (R15) are T24.</strong> T12 shipped the rest of R14:
+    the drawing opens on the proving set with the fewest open statements (its selector leaf, named on the
+    drawing as <code>data-home</code>), Esc and a second press come back to it rather than to every route,
+    and Tree and List are two tabs over the selector and the sets table, the table moved up beside the
+    tabs so List shows where Tree was; without the script both stay on the page. The List is F27's sets
+    table as it is: set, statements, proved, open, shared, assemblies, and the routes each set goes
+    through with Retire for a steward or curator (F31); a set's kind is its row's colour, and pressing a
+    row draws it, so the mockup's separate Kind, Draw and Statements columns were not added. The fold
+    boxes change the layout model itself (a fold is a mark in every view's layout, and unfolding one is a
+    new layout), which is larger than the rest of T12 and touches every layout test; they are T24 rather
+    than half-built here. Every F30 browser test of the whole drawing now opens at the
+    <code>#view=routes</code> bookmark, which still works, and asserts that clearing lands on the home
+    route. The full drawing is still one press away: the root of the tree.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> specced 2026-11-25 · <strong>Tasks:</strong> (23 tasks; T13&ndash;T15 and T23 are v3.51) T1 done (tokens, fonts, frame: 11 new tests, two restated (Q16), goldens
+<div class="rule"><strong>status:</strong> specced 2026-11-25 · <strong>Tasks:</strong> (24 tasks; T13&ndash;T15 and T23 are v3.51) T1 done (tokens, fonts, frame: 11 new tests, two restated (Q16), goldens
 regenerated; <code>engineering/evidence/F34/task-1.txt</code>, 26 captures) · T2 done (raw TeX and
 markers: 9 new tests, the live scan from six kinds of hit to the two authored ones of Q17;
 <code>task-2.txt</code>) · T3 done (phone and Rules layout: 18 browser checks; every live page at 390,
@@ -457,7 +470,7 @@ T13 done (v3.51 applied; operator/v1 and display-name/v2 in the gate, newest rec
 guide's graph copy on graph branch <code>f34-t13-agents</code>, unpushed; <code>task-13.txt</code>) ·
 T14 done (Contributors lists identities under their operator, by operator record and by GitHub login,
 with display names; test runs never folded in; <code>task-14.txt</code>) · T20 done (Home: §1 the featured problem as Figure 1, §2 the rules numbered and struck, §3, §4;
-<code>task-20.txt</code>) · T11 done (problem page: head with mark and one sentence, &ldquo;On this page&rdquo;, &sect;1 &sect;3&ndash;&sect;6, needs card, definitions linked never printed, follow toggle off (Q7); abc 20,069&rarr;3,463px at 1440; <code>task-11.txt</code>) · T10, T12, T15&ndash;T19, T21&ndash;T23 todo · v3.51 approved 2026-11-25 (Q9)</div>
+<code>task-20.txt</code>) · T11 done (problem page: head with mark and one sentence, &ldquo;On this page&rdquo;, &sect;1 &sect;3&ndash;&sect;6, needs card, definitions linked never printed, follow toggle off (Q7); abc 20,069&rarr;3,463px at 1440; <code>task-11.txt</code>) · T12 done (opens on the fewest-open proving route, Esc comes back to it, Tree and List tabs; the folds split to T24, Q25; <code>task-12.txt</code>) · T10, T15&ndash;T19, T21&ndash;T24 todo · v3.51 approved 2026-11-25 (Q9)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, in the handoff's order of work (§7). Each task: red test
@@ -573,6 +586,12 @@ first, then green; <code>make verify</code>; captures at 1440 and 390 for visual
     <td><code>api/opn_api/{identity,names}.py</code>, <code>site/opn_site/static/me.js</code>,
     <code>api/tests/test_f34_github_link.py</code></td>
     <td>T13</td><td><code>uv run --frozen pytest api/tests/test_f34_github_link.py</code></td></tr>
+  <tr><td>F34-T24</td><td>The folds (R15, Q25): each run of proved statements in a drawn route is a
+    visible box naming how many it holds; activating it unfolds them in place (a new layout); a split with
+    many holes unfolds as a grid, deeper levels as &ldquo;&#9656; n open below&rdquo;.</td>
+    <td><code>site/opn_site/{one_view,dag}.py</code>, <code>site/opn_site/static/graph.js</code>,
+    <code>site/tests/test_f34_folds.py</code></td>
+    <td>T12</td><td><code>uv run --frozen pytest site/tests/test_f34_folds.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F34 spec v1 · 2026-11-25 · specs are authored in HTML</footer>

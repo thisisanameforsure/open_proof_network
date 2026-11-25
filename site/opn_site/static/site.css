@@ -1515,3 +1515,10 @@ details.defs > summary, details.qa-fold > summary, details.known-fold > summary 
 @media (max-width: 760px) {
   .margin-notes { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: var(--s4); }
 }
+
+/* F34-T12 (R14): Tree and List over the routes */
+.route-tabs { display: flex; gap: 0; margin: var(--s4) 0 0; border-bottom: 1px solid var(--rule); font-family: var(--sans); }
+.route-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: var(--s3) var(--s5); font-size: 14px; color: var(--muted); cursor: pointer; margin-bottom: -1px; min-height: 44px; }
+.route-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.route-tabs button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.graph-main > #sets-list { margin: 0 0 var(--s4); overflow-x: auto; }

@@ -1182,6 +1182,14 @@ def topic_of(record: dict[str, Any] | None) -> str:
 
 
 STEWARD_PATH = "/steward/"
+#: F34-T12 (R14): the routes' two views, switched by graph.js.
+ROUTE_TABS = (
+    '<div class="route-tabs" role="tablist" aria-label="Routes" hidden>'
+    '<button type="button" role="tab" aria-controls="sets-tree" aria-selected="true">Tree'
+    "</button>"
+    '<button type="button" role="tab" aria-controls="sets-list" aria-selected="false">List'
+    "</button></div>"
+)
 REDIRECTS = (("targets/index.html", PROBLEMS_PATH), ("frontier/index.html", PROBLEMS_PATH))
 #: F24-R9 (D-32 v3.34): the rules page, every panel setting with its value, day and reason.
 RULES_PATH = "/rules/"
@@ -3095,6 +3103,12 @@ class Renderer:
         sets_block = (
             f'<div class="sets-grid">{picture.table}</div>' if picture.table else ""
         ) + picture.layouts_json
+        # F34-T12 (R14): Tree and List, two tabs over the selector and the table, each pane in a
+        # wrapper of its own; the tabs are hidden until the script can switch them, so without it
+        # both stay on the page.
+        if picture.selector and picture.table:
+            selector_block = f'{ROUTE_TABS}<div id="sets-tree">{selector_block}</div>'
+            sets_block = f'<div id="sets-list">{sets_block}</div>'
         n = len(tv.nodes)
         if tv.approaches:
             approaches = (
