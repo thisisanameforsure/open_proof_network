@@ -1,0 +1,180 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFFFF....                                                               [100%]
+=================================== FAILURES ===================================
+_________ test_read_at_never_moves_backwards_across_instances[memory] __________
+
+pair = (Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_pref...<starlette.applications.Starlette object at 0x10c6cc7d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+
+    def test_read_at_never_moves_backwards_across_instances(pair: tuple[Harness, Harness]) -> None:
+        a, b = pair
+        proof_record(a)
+        a.githost.set_pull_request_state(7)
+        first = block(a)
+        assert first["read_at"] == "2026-09-09T12:00:00Z" and first["runs"] == []
+    
+        a.clock.advance(seconds=10)
+        a.githost.set_pull_request_state(7, runs=[GATE_RUNNING])
+        second = block(b)  # the other instance reads the host afresh
+        assert second["read_at"] == "2026-09-09T12:00:10Z" and len(second["runs"]) == 1
+    
+        a.clock.advance(seconds=10)
+        third = block(a)  # back on the first instance, its own copy is older than the store's
+>       assert third["read_at"] == "2026-09-09T12:00:10Z", third
+E       AssertionError: {'waiting_on': 'gate', 'number': 7, 'url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/7', 'state': 'open', ...}
+E       assert '2026-09-09T12:00:00Z' == '2026-09-09T12:00:10Z'
+E         
+E         - 2026-09-09T12:00:10Z
+E         ?                  ^
+E         + 2026-09-09T12:00:00Z
+E         ?                  ^
+
+api/tests/test_mcpfix_wb2_freshness.py:68: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+________ test_read_at_never_moves_backwards_across_instances[dynamodb] _________
+
+pair = (Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_pref...<starlette.applications.Starlette object at 0x10c70c3e0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+
+    def test_read_at_never_moves_backwards_across_instances(pair: tuple[Harness, Harness]) -> None:
+        a, b = pair
+        proof_record(a)
+        a.githost.set_pull_request_state(7)
+        first = block(a)
+        assert first["read_at"] == "2026-09-09T12:00:00Z" and first["runs"] == []
+    
+        a.clock.advance(seconds=10)
+        a.githost.set_pull_request_state(7, runs=[GATE_RUNNING])
+        second = block(b)  # the other instance reads the host afresh
+        assert second["read_at"] == "2026-09-09T12:00:10Z" and len(second["runs"]) == 1
+    
+        a.clock.advance(seconds=10)
+        third = block(a)  # back on the first instance, its own copy is older than the store's
+>       assert third["read_at"] == "2026-09-09T12:00:10Z", third
+E       AssertionError: {'waiting_on': 'gate', 'number': 7, 'url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/7', 'state': 'open', ...}
+E       assert '2026-09-09T12:00:00Z' == '2026-09-09T12:00:10Z'
+E         
+E         - 2026-09-09T12:00:10Z
+E         ?                  ^
+E         + 2026-09-09T12:00:00Z
+E         ?                  ^
+
+api/tests/test_mcpfix_wb2_freshness.py:68: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+______________ test_the_newer_snapshot_costs_no_host_read[memory] ______________
+
+pair = (Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_pref...<starlette.applications.Starlette object at 0x10c708b90>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+
+    def test_the_newer_snapshot_costs_no_host_read(pair: tuple[Harness, Harness]) -> None:
+        a, b = pair
+        proof_record(a)
+        a.githost.set_pull_request_state(7)
+        block(b)
+        reads = len(a.githost.pull_lookups)
+        a.clock.advance(seconds=5)
+>       assert block(a)["read_at"] == "2026-09-09T12:00:00Z"
+E       AssertionError: assert '2026-09-09T12:00:05Z' == '2026-09-09T12:00:00Z'
+E         
+E         - 2026-09-09T12:00:00Z
+E         ?                   ^
+E         + 2026-09-09T12:00:05Z
+E         ?                   ^
+
+api/tests/test_mcpfix_wb2_freshness.py:81: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_____________ test_the_newer_snapshot_costs_no_host_read[dynamodb] _____________
+
+pair = (Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_pref...<starlette.applications.Starlette object at 0x10c782f10>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+
+    def test_the_newer_snapshot_costs_no_host_read(pair: tuple[Harness, Harness]) -> None:
+        a, b = pair
+        proof_record(a)
+        a.githost.set_pull_request_state(7)
+        block(b)
+        reads = len(a.githost.pull_lookups)
+        a.clock.advance(seconds=5)
+>       assert block(a)["read_at"] == "2026-09-09T12:00:00Z"
+E       AssertionError: assert '2026-09-09T12:00:05Z' == '2026-09-09T12:00:00Z'
+E         
+E         - 2026-09-09T12:00:00Z
+E         ?                   ^
+E         + 2026-09-09T12:00:05Z
+E         ?                   ^
+
+api/tests/test_mcpfix_wb2_freshness.py:81: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+____________ test_a_snapshot_older_than_the_window_is_stale[memory] ____________
+
+pair = (Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_pref...<starlette.applications.Starlette object at 0x10c7e5250>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+
+    def test_a_snapshot_older_than_the_window_is_stale(pair: tuple[Harness, Harness]) -> None:
+        a, _ = pair
+        proof_record(a)
+        a.githost.set_pull_request_state(7)
+        assert block(a)["stale"] is False
+        a.clock.advance(seconds=a.settings.pull_max_stale_s + 30)
+        late = block(a)
+>       assert late["stale"] is True
+E       assert False is True
+
+api/tests/test_mcpfix_wb2_freshness.py:92: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+___________ test_a_snapshot_older_than_the_window_is_stale[dynamodb] ___________
+
+pair = (Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_pref...<starlette.applications.Starlette object at 0x10c819130>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+
+    def test_a_snapshot_older_than_the_window_is_stale(pair: tuple[Harness, Harness]) -> None:
+        a, _ = pair
+        proof_record(a)
+        a.githost.set_pull_request_state(7)
+        assert block(a)["stale"] is False
+        a.clock.advance(seconds=a.settings.pull_max_stale_s + 30)
+        late = block(a)
+>       assert late["stale"] is True
+E       assert False is True
+
+api/tests/test_mcpfix_wb2_freshness.py:92: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb2_freshness.py::test_read_at_never_moves_backwards_across_instances[memory]
+FAILED api/tests/test_mcpfix_wb2_freshness.py::test_read_at_never_moves_backwards_across_instances[dynamodb]
+FAILED api/tests/test_mcpfix_wb2_freshness.py::test_the_newer_snapshot_costs_no_host_read[memory]
+FAILED api/tests/test_mcpfix_wb2_freshness.py::test_the_newer_snapshot_costs_no_host_read[dynamodb]
+FAILED api/tests/test_mcpfix_wb2_freshness.py::test_a_snapshot_older_than_the_window_is_stale[memory]
+FAILED api/tests/test_mcpfix_wb2_freshness.py::test_a_snapshot_older_than_the_window_is_stale[dynamodb]
+6 failed, 4 passed, 2 warnings in 0.92s
+
+=== restated backwards test (instance b reads past the window), run against the pre-fix code:
+E       AssertionError: {'waiting_on': 'gate', 'number': 7, 'url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/7', 'state': 'open', ...}
+E       assert '2026-09-09T12:00:00Z' == '2026-09-09T12:03:20Z'
+E         
+E         - 2026-09-09T12:03:20Z
+E         ?                ^ ^
+E         + 2026-09-09T12:00:00Z
+E         ?                ^ ^
+E       AssertionError: {'waiting_on': 'gate', 'number': 7, 'url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/7', 'state': 'open', ...}
+E       assert '2026-09-09T12:00:00Z' == '2026-09-09T12:03:20Z'
+E         
+E         - 2026-09-09T12:03:20Z
+E         ?                ^ ^
+E         + 2026-09-09T12:00:00Z
+E         ?                ^ ^
+2 failed, 8 deselected, 2 warnings in 0.83s

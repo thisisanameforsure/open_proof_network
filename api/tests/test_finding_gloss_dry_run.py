@@ -92,7 +92,7 @@ def test_a_dry_run_answers_sections_warnings_and_the_page_and_opens_nothing(
 
 
 def test_a_dry_run_of_a_gloss_is_one_whole_section(h: Harness) -> None:
-    r = post(h, h.token_for("code_bob", "bob"), dry(statement_gloss()))
+    r = post(h, h.token_for("code_bob", "bob"), dry(with_math(statement_gloss())))
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["sections"] == [{"key": "whole", "steps": [], "resolved": None}]
@@ -201,3 +201,9 @@ def test_the_prose_renderer_imports_nothing_the_package_lacks() -> None:
                 pending.add(imported)
             else:
                 assert top in stdlib, f"{name} imports {imported}, which the package lacks"
+
+
+def with_math(body: dict[str, Any]) -> dict[str, Any]:
+    """mcpfix WB2 item 5: a statement gloss opens with its statement in LaTeX, or the answer
+    carries a gloss-no-latex warning (test_mcpfix_wb2_gloss.py)."""
+    return {**body, "text": "$p \\land (q \\land r)$ " + str(body["text"])}

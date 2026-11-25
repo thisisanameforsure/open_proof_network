@@ -42,6 +42,7 @@ from opn_gate.paths import ALTERNATE_SUFFIX, Claim
 if TYPE_CHECKING:
     from opn_api.app import Context
     from opn_api.bundles import Bundle
+    from opn_api.store import Submission
 
 log = logging.getLogger(__name__)
 
@@ -643,11 +644,13 @@ def products_commit(ctx: Context, target_id: str) -> tuple[str, str] | None:
 #: The directories under a node whose files no hole plan reads (F06-T18, F-D6 of 2026-10-27): a
 #: statement gloss and an explainer, with their signatures beneath them, and a literature record,
 #: which says what is known about a statement and derives no node's status (F14-T29: one held
-#: Reed's skeleton for 75 minutes, testers 2026-11-24). Everything else under a node counts as a
-#: change to it: the statement, ``META.yaml``, ``Proof.lean``, ``attempts/`` (a partial's holes
-#: are coming), ``annex/`` (a skeleton's citation, ``check_cited_annex``) and the records that
-#: derive statuses (status, shelving, withdrawals, defects).
-WORDS_DIRS = frozenset({"gloss", "explainer", "literature"})
+#: Reed's skeleton for 75 minutes, testers 2026-11-24); and, on the owner's ruling of 2026-11-25
+#: ("an annex is just text", testers 2026-11-25 t883), an annex. A skeleton that *cites* an annex
+#: the products commit lacks is still held, by ``check_cited_annex``, which names the merge it
+#: waits on; one that cites none, or an older one, is not. Everything else under a node counts as
+#: a change to it: the statement, ``META.yaml``, ``Proof.lean``, ``attempts/`` (a partial's holes
+#: are coming) and the records that derive statuses (status, shelving, withdrawals, defects).
+WORDS_DIRS = frozenset({"gloss", "explainer", "literature", "annex"})
 
 
 def is_words(target_id: str, path: str) -> bool:
@@ -807,6 +810,54 @@ def closure_note(ctx: Context, claim: Claim, files: Mapping[str, str]) -> dict[s
     return None
 
 
+def annex_merge(ctx: Context, claim: Claim) -> Submission | None:
+    """The newest merge of an annex on the claim's node the service has seen: a record the
+    service remembers merging, or an open one a live read now finds merged. ``None`` when the
+    annex came another way (a hand-opened pull request) or the store cannot say."""
+    node = (claim.target_id, claim.node_id)
+    found = [s for s in pending.recent_merges(ctx) if (s.target_id, s.node_id) == node]
+    try:
+        for record in ctx.store.list_open_submissions():
+            if record.kind == "annex" and (record.target_id, record.node_id) == node:
+                closed, _, _ = pending.reconcile(ctx, record)
+                if closed.closed is not None and (closed.final_state or {}).get("merged"):
+                    found.append(closed)
+    except Exception as exc:  # any store failure: the refusal still stands, unnamed (C7)
+        log.warning("%s: open annexes not read: %s", claim.node_id, type(exc).__name__)
+    annexes = [s for s in found if s.kind == "annex"]
+    return max(annexes, key=lambda s: (str(s.closed), s.pr_number), default=None)
+
+
+def annex_awaits_render(ctx: Context, claim: Claim, digest: str, graph_commit: str) -> ApiError:
+    """mcpfix (testers 2026-11-25, t883; the owner's ruling "an annex is just text"): the one
+    hold an annex still makes. The bundle cites an annex that ``main`` has and the products
+    commit does not, so step 2 at that commit would refuse the skeleton (F07-T27). The refusal
+    names the merge it waits on — the pull request and when it merged, when the service saw it
+    — and its wait is what is left of the median from that merge, not the flat one."""
+    merge = annex_merge(ctx, claim)
+    details: dict[str, Any] = {
+        "node_id": claim.node_id,
+        "annex": digest,
+        "pr_number": merge.pr_number if merge is not None else None,
+        "merged_at": merge.closed if merge is not None else None,
+    }
+    which = (
+        f"pull request #{merge.pr_number}, merged at {merge.closed}"
+        if merge is not None
+        else "a merge on main"
+    )
+    return pending.products_pending(
+        ctx,
+        f"the skeleton cites annex {digest[:12]}…, which {which} added and graph commit "
+        f"{graph_commit[:12]}…, the commit its products were rendered from, does not carry yet; "
+        "step 2 reads the annex a skeleton cites, so the precheck waits for that merge's "
+        f"products ({pending.NOT_RENDERED}). Retry after details.retry_after_s seconds, or "
+        "precheck now without the citation",
+        details,
+        merged_at=merge.closed if merge is not None else None,
+    )
+
+
 def check_cited_annex(
     ctx: Context, claim: Claim, bundle: bundles.Bundle, graph_commit: str
 ) -> None:
@@ -838,7 +889,7 @@ def check_cited_annex(
             continue
         details = {"annex": digest}
         if on_main:
-            raise awaits_render(ctx, claim.node_id, f"annex {digest[:12]}… has merged", details)
+            raise annex_awaits_render(ctx, claim, digest, graph_commit)
         for found in ctx.store.list_open_submissions():
             if found.kind == "annex" and found.node_id == claim.node_id:
                 raise ApiError(

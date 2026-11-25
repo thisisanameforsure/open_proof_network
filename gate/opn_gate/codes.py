@@ -1220,6 +1220,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An identity already exists for this GitHub login.",
         "Use the token you were issued before; one GitHub login holds one identity.",
     ),
+    "gloss-no-latex": (
+        "gate",
+        None,
+        "A warning POST /glosses answers, never a refusal: a statement, witness or relation gloss "
+        "whose text has no "
+        "LaTeX at all (no $, \\( or \\[). A gloss opens with the statement in math so a reader "
+        "sees the claim before the words.",
+        "Open the text with the statement in LaTeX, for example $\\forall n,\\ P(n)$, then the "
+        "words; or send it as it is if the subject has no formula to show.",
+    ),
     "gloss-absent": (
         "gate",
         None,
