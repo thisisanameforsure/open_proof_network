@@ -44,7 +44,7 @@ from opn_api import uses as usesmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
 from opn_gate import config as gate_config
-from opn_gate import exhibits, hosted, layout, paths, scaffold, schemas
+from opn_gate import exhibits, hosted, labels, layout, paths, scaffold, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -855,6 +855,21 @@ def lint(
                 "and a skeleton is submitted as a partial",
             }
         )
+        # mcpfix WB1 (testers 2026-11-25, t257b item 1): a text with sorry is a skeleton, and a
+        # partial names its approach, licence and each hole's label and claim (D-12 v3.44). The
+        # precheck refuses one that does not; say so here, by the same rule and the same words.
+        missing = labels.problems(content)
+        if missing:
+            warnings.append(
+                {
+                    "code": "partial-unlabelled",
+                    "message": "submitted as a partial, this text would be refused: a partial "
+                    "names its approach, a licence and each hole's label and claim in its "
+                    "comments (D-12 v3.44; the guide's Skeletonization section): "
+                    + "; ".join(p.message for p in missing),
+                    "missing": [p.as_dict() for p in missing],
+                }
+            )
     if ADMIT_TOKEN_RE.search(layout.strip_comments(content)):
         warnings.append(
             {

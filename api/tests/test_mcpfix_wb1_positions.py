@@ -31,9 +31,7 @@ def axle_echo(sent: str) -> str:
     the first command) replaced by ``import Mathlib`` and a blank line."""
     lines = sent.splitlines(keepends=True)
     k = 0
-    while k < len(lines) and (
-        not lines[k].strip() or lines[k].startswith(("import ", "--"))
-    ):
+    while k < len(lines) and (not lines[k].strip() or lines[k].startswith(("import ", "--"))):
         k += 1
     return "import Mathlib\n\n" + "".join(lines[k:]) + "\n"
 
@@ -86,13 +84,7 @@ def test_with_echo_the_positions_are_the_checkers() -> None:
 
 
 DEFS_A = "/- a definition -/\ndef Opn.a : Nat := 1\ndef Opn.bad : Nat := BADDEF\n"
-CONTENT = (
-    "import Mathlib\n"
-    "import Defs.A\n"
-    "\n"
-    "theorem t : Opn.a = 1 := by\n"
-    "  exact BROKEN\n"
-)
+CONTENT = "import Mathlib\nimport Defs.A\n\ntheorem t : Opn.a = 1 := by\n  exact BROKEN\n"
 
 
 def test_a_position_in_inlined_text_names_the_import_that_pulled_it_in() -> None:
@@ -117,8 +109,9 @@ def test_witness_mode_reports_the_witness_and_the_statement_apart() -> None:
     assert r.status_code == 200, r.text
     errors = r.json()["result"]["lean_messages"]["errors"]
     assert errors[0] == "-:3:2-3:5: error: about WBROKEN\n"
-    statement_line = line_of(h.githost.files[f"targets/{TARGET}/nodes/{NODE}/Statement.lean"]
-                             .decode(), "sorry")
+    statement_line = line_of(
+        h.githost.files[f"targets/{TARGET}/nodes/{NODE}/Statement.lean"].decode(), "sorry"
+    )
     assert errors[1].startswith(f"statement:{statement_line}:2-")
 
 
