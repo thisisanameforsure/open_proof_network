@@ -623,9 +623,14 @@ def forward(
     for module, src in defs:
         anchor = removed.get(module, first_anchor)
         b.add("\n", network("a blank line before an inlined module"))
+        # A section of its own (inlined-scopes-leak, F13-T38): closing the scopes a module left
+        # open (scope_closers) cannot reach a `variable` or `open` written outside every scope,
+        # which its own file ends and one pasted text would carry over everything after it.
+        b.add("section\n", network(f"the section {module} is inlined in"))
         b.add(f"-- inlined by the network from {module} (F13-R5)\n", Origin(label, anchor, module))
         b.add(src + "\n", Origin(label, anchor, module, 1), numbered=True)
         b.add(scope_closers(src), network(f"the end lines closing the scopes {module} left open"))
+        b.add("end\n", network(f"the end of the section {module} is inlined in"))
     b.add("\n", network("a blank line after the inlined modules"))
     for line, origin in kept[last_import + 1 :]:
         b.add(line, origin)
@@ -1477,7 +1482,8 @@ def hazards_program(decl_name: str, checkers: list[str], probe: str) -> str:
     sources, registry = hazard_sources()
     probe_text = f"namespace {PROBE_NAMESPACE}\n{probe.strip(chr(10))}\nend {PROBE_NAMESPACE}\n"
     block = "".join(
-        f"\nsection\n-- inlined by the network from {module} (F13-T20)\n{src}\nend\n"
+        f"\nsection\n-- inlined by the network from {module} (F13-T20)\n{src}\n"
+        f"{scope_closers(src)}end\n"  # F13-T38: an inner scope left open would swallow this end
         for module, src in sources
     )
     ids = "[" + ", ".join(json.dumps(c) for c in checkers) + "]"

@@ -203,10 +203,94 @@ def forwarded_text(content: str, defs: Sequence[tuple[str, str]]) -> str:
         )
     ]
     last = max((i for i, line in enumerate(lines) if line.startswith("import ")), default=-1)
+    # F13-T38: as the service composes it (``checks.forward``): each module in a section of its
+    # own, followed by the ``end`` lines for the scopes it left open, so nothing a module puts in
+    # scope reaches the next module or the statement. test_prove_export holds the two together.
     block = "".join(
-        f"\n-- inlined by the network from {module} (F13-R5)\n{src}\n" for module, src in defs
+        f"\nsection\n-- inlined by the network from {module} (F13-R5)\n{src}\n"
+        f"{scope_closers(src)}end\n"
+        for module, src in defs
     )
     return "".join(lines[: last + 1]) + block + "\n" + "".join(lines[last + 1 :])
+
+
+def lean_mask(text: str) -> str:
+    """``text`` with every comment and string body blanked to spaces, character for character:
+    ``--`` to the end of the line, nested ``/- -/`` blocks, the inside of ``"..."`` (the
+    service's ``checks.lean_mask``, without its doc-comment spans)."""
+    out: list[str] = []
+    i, n = 0, len(text)
+
+    def blank(upto: int) -> None:
+        out.extend(ch if ch == "\n" else " " for ch in text[len(out) : upto])
+
+    while i < n:
+        pair = text[i : i + 2]
+        if pair == "/-":
+            depth, i = 1, i + 2
+            while i < n and depth:
+                inner = text[i : i + 2]
+                depth += 1 if inner == "/-" else -1 if inner == "-/" else 0
+                i += 2 if inner in ("/-", "-/") else 1
+            blank(i)
+        elif pair == "--":
+            end = text.find("\n", i)
+            i = n if end == -1 else end
+            blank(i)
+        elif text[i] == '"':
+            end = i + 1
+            while end < n and text[end] != '"':
+                end += 2 if text[end] == "\\" else 1
+            out.append('"')
+            blank(min(end, n))
+            if end < n:
+                out.append('"')
+            i = min(end + 1, n)
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+#: A command that opens or closes a scope (the service's ``checks.SCOPE_RE``).
+SCOPE_RE = re.compile(
+    r"^[ \t]*(?:@\[[^\]\n]*\][ \t]*)*(?:(?:public|private|protected|noncomputable)[ \t]+)*"
+    r"(?P<kw>namespace|section|end|mutual)(?![\w.'!?])[ \t]*(?P<name>[^\s]*)"
+)
+
+
+def scope_closers(source: str) -> str:
+    """The ``end`` lines that close every scope ``source`` leaves open, innermost first, each by
+    the name it was opened with (the service's ``checks.scope_closers``)."""
+    stack: list[tuple[str, str, int]] = []
+    for number, line in enumerate(lean_mask(source).splitlines()):
+        found = SCOPE_RE.match(line)
+        if found is None:
+            continue
+        kw, name = found.group("kw"), found.group("name")
+        if kw == "end":
+            for _ in range(len(name.split(".")) if name else 1):
+                if stack:
+                    stack.pop()
+        elif kw == "mutual":
+            stack.append(("mutual", "", number))
+        elif kw == "namespace" and name:
+            stack += [("namespace", part, number) for part in name.split(".")]
+        elif kw == "section":
+            stack += (
+                [("section", part, number) for part in name.split(".")]
+                if name
+                else [("section", "", number)]
+            )
+    closers: list[str] = []
+    while stack:
+        _, _, opened = stack[-1]
+        parts: list[str] = []
+        while stack and stack[-1][2] == opened:
+            parts.insert(0, stack.pop()[1])
+        name = ".".join(p for p in parts if p)
+        closers.append(f"end {name}\n" if name else "end\n")
+    return "".join(closers)
 
 
 def export(node: Node) -> str:

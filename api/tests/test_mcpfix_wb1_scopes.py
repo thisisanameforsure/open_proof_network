@@ -46,13 +46,16 @@ CONTENT = "import Mathlib\nimport Defs.A\nimport Defs.B\n\ntheorem t : True := t
 def test_unbalanced_module_is_closed_before_the_next() -> None:
     defs = [("Defs.A", UNBALANCED.strip("\n")), ("Defs.B", BALANCED.strip("\n"))]
     text = checks.forwarded_text(CONTENT, defs)
+    # F13-T38: each module also sits in a section of its own, after its closers, so a top-level
+    # `variable` or `open` (which no closer reaches) ends with it too.
     expected = (
         "import Mathlib\n"
-        "\n-- inlined by the network from Defs.A (F13-R5)\n"
+        "\nsection\n-- inlined by the network from Defs.A (F13-R5)\n"
         + UNBALANCED
-        + "end Baz\nend Foo.Bar\nend\n"
-        + "\n-- inlined by the network from Defs.B (F13-R5)\n"
+        + "end Baz\nend Foo.Bar\nend\nend\n"
+        + "\nsection\n-- inlined by the network from Defs.B (F13-R5)\n"
         + BALANCED
+        + "end\n"
         + "\n"
         + "\ntheorem t : True := trivial\n"
     )
@@ -126,8 +129,10 @@ def test_erdos_883_defs_leave_no_scope_open_before_the_callers_theorem() -> None
     assert scopes_open(head) == [], scopes_open(head)
     assert after  # the Vertex file is followed by more inlined text or the caller's
     # every module the statement imports was inlined, and none left a scope open after it
+    # (F13-T38: a block is the module's own section, from its `section` line to the next one's)
+    marker = "\nsection\n-- inlined by the network from "
     for module in r.json()["inlined_defs"]:
-        start = sent.index(f"-- inlined by the network from {module} (F13-R5)")
-        end_of_block = sent.find("\n-- inlined by the network from ", start + 1)
+        start = sent.index(f"{marker}{module} (F13-R5)") + 1
+        end_of_block = sent.find(marker, start)
         end_of_block = end_of_block if end_of_block != -1 else len(sent)
         assert scopes_open(sent[start:end_of_block]) == [], module

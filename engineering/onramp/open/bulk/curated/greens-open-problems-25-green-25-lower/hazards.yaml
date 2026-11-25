@@ -1,0 +1,6 @@
+- checker: off-by-one-range
+  location: '1 ≤ L N'
+  justification: 'The registry''s own range for the answer function (FormalConjectures/GreensOpenProblems/25.lean, line 80: 1 ≤ green_25.lower.answer N ∧ green_25.lower.answer N ≤ N): a number of parts k with 1 ≤ k ≤ N, inclusive at both ends, as the problem asks.'
+- checker: off-by-one-range
+  location: '1 ≤ k N'
+  justification: 'The registry''s own range for k (line 82: 1 ≤ k N ∧ k N ≤ N): Property25 needs k parts with 1 ≤ k ≤ N, inclusive; the registry comments that it keeps Property25 from being false for want of partitions.'
