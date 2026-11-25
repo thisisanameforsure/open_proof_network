@@ -1032,8 +1032,8 @@ def document_head(text: str) -> tuple[str, str]:
 
 _STRIP_RE = re.compile(r"<link\b[^>]*>|<script\b.*?</script>", re.S | re.I)
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
+#: F34-T1 (R3): the wordmark is the way home, so the nav names the four sections only.
 NAV = (
-    ("/", "Home"),
     ("/problems/", "Problems"),
     ("/contributors/", "Contributors"),
     ("/docs/", "Docs"),
@@ -1393,6 +1393,9 @@ class Renderer:
             commit=esc(commit),
             commit_short=esc(commit[:12]),
             commit_url=esc(f"{self.repo_url}/tree/{commit}"),
+            # F34-T1: the repository itself; under links.check's rule a link into the repository
+            # ends past its slash, so the root is written with one.
+            repo_url=esc(self.repo_url.rstrip("/") + "/"),
             products=products,
             sources=sources,
             frontier_link=self.file_link("frontier.json", label="frontier.json ↗"),

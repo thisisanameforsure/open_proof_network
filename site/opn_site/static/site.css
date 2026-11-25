@@ -1,70 +1,119 @@
 /* Open Proof Network site (F04). One stylesheet, no external resources (R10).
-   F04-T12: the Nocturne dark theme of the redesign handoff (site/docs/design_handoff_site_redesign),
-   its tokens translated into variables. Headings are never bolder than 500; status is carried by a
-   9px dot; every definition is a hover card that also opens on focus. */
+   F34-T1 (R1-R3): the "Journal" scheme of the 2026-11-25 handoff (site/docs/design_handoff_2026-11):
+   ink on paper, blue only for proved and rust only for refuted, a dark scheme derived from the same
+   roles, three self-hosted families (static/fonts, pinned by MANIFEST.txt). The September Nocturne
+   names below the new tokens are aliases onto them, so every rule written for the dark theme takes
+   the new look until its page is rebuilt (F34-T5 onwards). */
 :root {
-  --bg: #161826;
-  --surface: #232532;
-  --text: #e9e9ed;
-  --divider: rgba(233, 233, 237, 0.16);
-  --accent: #9184d9;
-  --accent-100: #f5f4ff;
-  --accent-200: #e7e5fe;
-  --accent-300: #d2cefd;
-  --accent-700: #5d5294;
-  --n100: #f3f5fe;
-  --n200: #e4e7f5;
-  --n300: #cfd3e5;
-  --n400: #b2b6ca;
-  --n500: #9397ab;
-  --n600: #75798c;
-  --n700: #595d6c;
-  --n800: #3f424d;
-  --section: #262a60;
-  --section-glow: #353b80;
-  --warn: #d9a441;
-  --bad: #e07a7a;
-  --select: #f2b544; /* F30-T10: a selected node or edge in the sufficient-sets tree */
-  /* F04-T55 (D-25 v3.46): the refuting side — the trunk from a refutes variant into the root and
-     the selector branch beneath it. A teal apart from the accent, the amber selection, the
-     literature marks and the bad/warn reds, readable on this dark ground and on a white one.
-     Statements never wear it: a statement is not refuting by itself. */
-  --refute: #3bbfb2;
-  /* F04-T54 (D-25 v3.45): the literature mark's three statuses — none a proof-status colour,
-     each reading on this dark ground and on a white one. */
-  --lit-open: #4fa3e3;
-  --lit-known: #e8913a;
-  --lit-elementary: #4dbd7a;
-  --proved: var(--accent);
-  --ready: var(--accent-300);
-  --blocked: var(--n600);
-  --speculative: #b5abfc;
+  --paper: #faf9f6;
+  --surface: #ffffff;
+  --tint: #f1efea;
+  --ink: #1b1b1a;
+  --muted: #5c5a55;
+  --rule: #e3e0d9;
+  --rule-strong: #b9b5ac;
+  --proved: #2a4d8f;
+  --proved-tint: #e8edf6;
+  --refuted: #a0461e;
+  --refuted-tint: #f7eae3;
+  /* F04-T54 (D-25 v3.45): the literature mark's three statuses, none a proof-status colour. */
+  --lit-open: #2f6fa8;
+  --lit-known: #a8601c;
+  --lit-elementary: #2e7d52;
+  --serif: "Source Serif 4", "STIX Two Text", Georgia, serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --text-size: 18px; --leading: 1.6;
+  --radius: 4px; --measure: 70ch; --content: 1160px; --gutter: 24px;
+  /* the Nocturne names (F04-T12), as aliases */
+  --bg: var(--paper);
+  --text: var(--ink);
+  --divider: var(--rule);
+  --accent: var(--ink);
+  --accent-100: var(--ink);
+  --accent-200: var(--ink);
+  --accent-300: var(--ink);
+  --accent-700: var(--rule-strong);
+  --n100: var(--ink);
+  --n200: var(--ink);
+  --n300: var(--muted);
+  --n400: var(--muted);
+  --n500: var(--muted);
+  --n600: var(--muted);
+  --n700: var(--rule-strong);
+  --n800: var(--rule);
+  --section: var(--tint);
+  --section-glow: var(--rule);
+  --warn: var(--refuted);
+  --bad: var(--refuted);
+  --select: var(--ink); /* F30-T10: a selected node or edge is filled ink (handoff §3.4.3) */
+  --refute: var(--refuted); /* F04-T55: the refuting side */
+  --ready: var(--ink);
+  --blocked: var(--muted);
+  --speculative: var(--muted);
   --s1: 2.8px; --s2: 5.6px; --s3: 8.4px; --s4: 11.2px; --s5: 14px; --s6: 16.8px; --s8: 22.4px;
   --radius-sm: 4px;
-  --radius-md: 8px;
-  --shadow-sm: 0 0 0 1px #3f424d;
-  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius-md: 4px;
+  --shadow-sm: 0 0 0 1px var(--rule);
+  --shadow-md: 0 0 0 1px var(--rule-strong), 0 6px 18px rgba(27, 27, 26, 0.10);
 }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #161615;
+    --surface: #1e1e1c;
+    --tint: #262624;
+    --ink: #eceae5;
+    --muted: #a8a49b;
+    --rule: #34332f;
+    --rule-strong: #5a5852;
+    --proved: #8fb0f0;
+    --proved-tint: #1f2a3f;
+    --refuted: #e59a72;
+    --refuted-tint: #3a2419;
+    --lit-open: #7fb4e8;
+    --lit-known: #e3a066;
+    --lit-elementary: #79c99a;
+    --shadow-md: 0 0 0 1px var(--rule-strong), 0 6px 18px rgba(0, 0, 0, 0.5);
+  }
+}
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-400-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Source Serif 4"; font-style: italic; font-weight: 400; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-400-italic.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-600-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Source Serif 4"; font-style: italic; font-weight: 600; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-600-italic.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-sans/ibm-plex-sans-latin-400-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/ibm-plex-sans/ibm-plex-sans-latin-500-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/ibm-plex-sans/ibm-plex-sans-latin-600-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-mono/ibm-plex-mono-latin-400-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/ibm-plex-mono/ibm-plex-mono-latin-500-normal.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-ext-400-normal.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Source Serif 4"; font-style: italic; font-weight: 400; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-ext-400-italic.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-ext-600-normal.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Source Serif 4"; font-style: italic; font-weight: 600; font-display: swap; src: url(/fonts/source-serif-4/source-serif-4-latin-ext-600-italic.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-sans/ibm-plex-sans-latin-ext-400-normal.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/ibm-plex-sans/ibm-plex-sans-latin-ext-500-normal.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/ibm-plex-sans/ibm-plex-sans-latin-ext-600-normal.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/ibm-plex-mono/ibm-plex-mono-latin-ext-400-normal.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/ibm-plex-mono/ibm-plex-mono-latin-ext-500-normal.woff2) format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
-body { margin: 0; }
-h1, h2, h3, h4 { font-weight: 500; line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--s2); }
-h1 { font-size: 46px; }
-h2 { font-size: 22px; margin-top: var(--s8); }
-h3 { font-size: 19px; }
-h4 { font-size: 18px; }
+html { background: var(--paper); color: var(--ink); font-size: 15px; line-height: 1.55; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: var(--text-size); line-height: var(--leading); }
+h1, h2, h3, h4 { font-family: var(--serif); font-weight: 400; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 var(--s2); }
+h1 { font-size: 52px; }
+h2 { font-size: 30px; margin-top: var(--s8); }
+h3 { font-size: 22px; }
+h4 { font-size: 19px; }
 p { margin: 0 0 var(--s3); }
-a { color: var(--accent-300); text-decoration: none; text-underline-offset: 3px; }
-a:hover { text-decoration: underline; }
+a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--rule-strong); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
 :focus { outline: none; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-::selection { background: rgba(145, 132, 217, 0.3); }
+:focus-visible { outline: 2px solid var(--proved); outline-offset: 2px; }
+::selection { background: var(--proved-tint); }
 code, pre, .mono { font-family: var(--mono); }
+/* F34-T1 (R2): labels, controls and small UI text are sans; reading text and headings serif. */
+.kicker, .crumbs, .tag, .seg, .legend, .stages, .input, .term-card, button, input, select, label, summary, table th { font-family: var(--sans); }
 code { font-size: 0.92em; }
-main { padding: 0 var(--s8) calc(var(--s8) * 2); max-width: 1440px; margin: 0 auto; }
+main { padding: 0 var(--gutter) calc(var(--s8) * 2); max-width: calc(var(--content) + 2 * var(--gutter)); margin: 0 auto; }
 .lead { font-size: 17px; line-height: 1.6; color: var(--n400); max-width: 60ch; }
 .cue { color: var(--n400); }
 .kicker { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
@@ -72,29 +121,31 @@ main { padding: 0 var(--s8) calc(var(--s8) * 2); max-width: 1440px; margin: 0 au
 main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .crumbs a { color: var(--n500); }
 
-/* — masthead — */
-.masthead { display: flex; align-items: center; gap: var(--s8); padding: var(--s4) var(--s8); box-shadow: inset 0 -1px 0 var(--divider); max-width: 1440px; margin: 0 auto; }
-.site-name { display: flex; align-items: center; gap: var(--s3); font-weight: 500; font-size: 18px; color: var(--text); margin-right: auto; }
+/* — masthead (F34-T1, R3): serif wordmark, sans nav, the current section underlined in ink — */
+.masthead-wrap { border-bottom: 1px solid var(--rule); }
+.masthead { display: flex; align-items: center; gap: var(--s8); padding: 14px var(--gutter); max-width: calc(var(--content) + 2 * var(--gutter)); margin: 0 auto; font-family: var(--sans); }
+.site-name { font-family: var(--serif); font-weight: 400; font-size: 21px; color: var(--ink); margin-right: auto; text-decoration: none; }
 .site-name:hover { text-decoration: none; }
-.brand-mark { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); display: block; }
-.site-nav { display: flex; align-items: center; gap: var(--s8); }
-.site-nav a { color: var(--n400); font-size: 14px; }
-.site-nav a:hover { color: var(--text); text-decoration: none; }
-.site-nav a[aria-current="page"] { color: var(--accent-300); }
-.site-nav .nav-action { color: var(--accent); }
+.site-nav { display: flex; align-items: center; gap: 22px; }
+.site-nav a { color: var(--muted); font-size: 14.5px; text-decoration: none; padding: 6px 0; border-bottom: 2px solid transparent; }
+.site-nav a:hover { color: var(--ink); text-decoration: none; }
+.site-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+.site-nav .nav-action { color: var(--paper); background: var(--ink); border: 1px solid var(--ink); padding: 9px 14px; border-radius: var(--radius); }
+.site-nav .nav-action:hover { color: var(--paper); opacity: .88; }
+.site-nav .session-in { color: var(--ink); border: 1px solid var(--rule-strong); background: var(--surface); padding: 8px 14px; border-radius: var(--radius); }
 .nav-toggle { position: absolute; opacity: 0; width: 0; height: 0; }
 .nav-burger { display: none; width: 36px; height: 36px; border: 1px solid var(--divider); border-radius: var(--radius-md); flex-direction: column; justify-content: center; align-items: center; gap: 4px; cursor: pointer; }
 .nav-burger span { display: block; width: 16px; height: 1.5px; background: var(--text); }
 
 /* — buttons, tags, inputs, cards — */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 500; line-height: 1.2; color: var(--text); background: transparent; border: 1px solid transparent; padding: var(--s3) var(--s6); border-radius: var(--radius-md); white-space: nowrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-family: var(--sans); font-size: 14px; font-weight: 500; line-height: 1.2; color: var(--ink); background: transparent; border: 1px solid transparent; padding: var(--s3) var(--s6); border-radius: var(--radius); white-space: nowrap; text-decoration: none; }
 .btn:hover { text-decoration: none; }
-.btn-primary { color: var(--accent); border-color: var(--accent); }
-.btn-primary:hover { background: rgba(145, 132, 217, 0.12); }
-.btn-secondary { border-color: var(--n700); }
-.btn-secondary:hover { background: rgba(233, 233, 237, 0.07); }
-.btn-ghost { color: var(--accent-300); padding-inline: var(--s2); }
-.btn-ghost:hover { background: rgba(145, 132, 217, 0.1); }
+.btn-primary { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.btn-primary:hover { opacity: .88; }
+.btn-secondary { background: var(--surface); border-color: var(--rule-strong); }
+.btn-secondary:hover { background: var(--tint); }
+.btn-ghost { color: var(--ink); padding-inline: var(--s2); }
+.btn-ghost:hover { background: var(--tint); }
 .btn-block { width: 100%; }
 .tag { display: inline-flex; align-items: center; font-size: 12px; padding: 2px 8px; border-radius: var(--radius-sm); background: var(--n800); color: var(--n200); white-space: nowrap; cursor: help; }
 .tag-outline { background: transparent; border: 1px solid var(--n700); color: var(--n400); }
@@ -178,11 +229,17 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .worked-drawing { flex: 2 1 480px; min-width: 0; max-height: 640px; overflow: hidden; border-radius: var(--radius-md); background: var(--surface); padding: var(--s6); -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent); mask-image: linear-gradient(to bottom, #000 75%, transparent); }
 .worked-drawing svg { display: block; width: 100%; height: auto; }
 
-/* — provenance bar — */
-.provenance { display: flex; gap: var(--s6); flex-wrap: wrap; padding: var(--s5) var(--s8); background: var(--surface); font-family: var(--mono); font-size: 12px; color: var(--n500); max-width: 1440px; margin: 0 auto; }
-.provenance a, .provenance code { color: var(--n300); font-size: inherit; }
-.provenance .links { margin-left: auto; }
-.provenance .sources { flex: 1 1 100%; overflow-wrap: anywhere; }
+/* — footer (F34-T1, R3): one line and three links; the commit and sources in one closed disclosure — */
+.provenance-wrap { border-top: 1px solid var(--rule); margin-top: calc(var(--s8) * 2); }
+.provenance { display: flex; gap: var(--s4) var(--s8); flex-wrap: wrap; align-items: baseline; padding: 28px var(--gutter); max-width: calc(var(--content) + 2 * var(--gutter)); margin: 0 auto; font-family: var(--sans); font-size: 14px; color: var(--muted); }
+.provenance .motto { margin-right: auto; }
+.provenance .links { display: flex; gap: var(--s8); flex-wrap: wrap; }
+.provenance .links a { color: var(--ink); }
+.provenance .page-source { flex: 1 1 100%; font-family: var(--mono); font-size: 12px; }
+.provenance .page-source summary { cursor: pointer; color: var(--muted); }
+.provenance .page-source[open] summary { margin-bottom: var(--s3); }
+.provenance .page-source p { margin: 0 0 var(--s2); overflow-wrap: anywhere; }
+.provenance .page-source a, .provenance .page-source code { color: var(--ink); font-size: inherit; }
 
 /* — problems — */
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s8); padding: calc(var(--s8) * 2) 0 var(--s6); }
@@ -588,9 +645,10 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 
 /* — mobile — */
 @media (max-width: 900px) {
-  main, .masthead, .provenance { padding-left: var(--s6); padding-right: var(--s6); }
+  main, .masthead, .provenance { padding-left: 16px; padding-right: 16px; }
   .masthead { gap: var(--s4); padding-top: var(--s3); padding-bottom: var(--s3); flex-wrap: wrap; }
-  .site-name { font-size: 15px; }
+  .site-name { font-size: 19px; }
+  h2 { font-size: 26px; }
   .nav-burger { display: flex; }
   .site-nav { display: none; flex: 1 1 100%; flex-direction: column; align-items: flex-start; gap: var(--s4); padding: var(--s3) 0; }
   .nav-toggle:checked ~ .site-nav { display: flex; }
