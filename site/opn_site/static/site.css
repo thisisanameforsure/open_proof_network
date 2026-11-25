@@ -646,6 +646,8 @@ main table.ledger { display: block; max-width: 100%; overflow-x: auto; }
 .stmt .node { min-width: 0; }
 .stmt .node a, .stmt .node code { overflow-wrap: anywhere; }
 .qa-state li { overflow-wrap: anywhere; }
+/* F34-T4: beside a sign-in, that contributing needs no account */
+.anon-note { font-family: var(--sans); font-size: 13.5px; color: var(--muted); margin: var(--s3) 0 0; }
 /* F04-T51 (Q50): a gloss's opening formula, shown under a statement, is inline math under
    \displaystyle so KaTeX breaks it after a top-level relation or operator; a formula with no
    break opportunity scrolls in its own box, and math.js marks the box .math-overflows when it does,

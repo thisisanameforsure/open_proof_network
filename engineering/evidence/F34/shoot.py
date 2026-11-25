@@ -29,6 +29,8 @@ PAGES = {
     "abc": "/problems/abc/",
     "singmaster": "/problems/singmaster/",
     "collatz-like": "/problems/collatz-like/",
+    "steward-abc": "/steward/abc/",
+    "me": "/me/",
     "contributors": "/contributors/",
     "docs": "/docs/",
     "rules": "/rules/",
@@ -50,6 +52,7 @@ def main() -> None:
     ap.add_argument("--tag", required=True)
     ap.add_argument("--pages", default=",".join(PAGES))
     ap.add_argument("--out", type=Path, default=Path(__file__).parent)
+    ap.add_argument("--api", default=None, help="the api base the pages name (no calls are made)")
     args = ap.parse_args()
 
     from playwright.sync_api import sync_playwright  # noqa: PLC0415
@@ -63,7 +66,9 @@ def main() -> None:
         check=True,
     ).stdout.strip()
     files = render.render_site(
-        model.load_site(args.graph, commit), repo_url="https://github.com/example/graph"
+        model.load_site(args.graph, commit),
+        repo_url="https://github.com/example/graph",
+        api_url=args.api,
     )
     with tempfile.TemporaryDirectory() as tmp:
         render.write(files, Path(tmp))

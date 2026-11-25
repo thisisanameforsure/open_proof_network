@@ -365,6 +365,14 @@ operator (v3.51) and its one-time backfill.</p>
     a re-pin, left for the owner to schedule. Two hits are authored text, not rendering: an erdos-257
     sentence whose closing <code>$</code> follows a space (not maths under the prose rule, F19-T6),
     and an erdos-1050 explainer record that ends mid-formula. Both are left as written.</td></tr>
+  <tr><td>F34-Q18</td><td><strong>R6 is held page by page (T4).</strong> The live render showed 16,763
+    internal codes in visible text on 1,255 pages, almost all in the site's own sentences on the problem
+    and statement pages (&ldquo;No gloss yet &hellip; (D-3 v3.30)&rdquo; alone some 3,000 times), from
+    140 string literals in <code>render.py</code> and about 40 template lines. Those pages are rebuilt by
+    T11 and after, so rewriting each sentence twice was not worth it: T4 built the guard
+    (<code>test_f34_codes.py</code>, whose <code>CLEAN</code> list holds Rules and About today) and
+    every rebuild task adds its page to that list as it takes the codes out. Contributors' own words
+    are never rewritten, codes included.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -372,7 +380,9 @@ operator (v3.51) and its one-time backfill.</p>
 regenerated; <code>engineering/evidence/F34/task-1.txt</code>, 26 captures) · T2 done (raw TeX and
 markers: 9 new tests, the live scan from six kinds of hit to the two authored ones of Q17;
 <code>task-2.txt</code>) · T3 done (phone and Rules layout: 18 browser checks; every live page at 390,
-17 of 453 too wide before, none after; <code>task-3.txt</code>) · T4&ndash;T22 todo · v3.51 approved 2026-11-25 (Q9)</div>
+17 of 453 too wide before, none after; <code>task-3.txt</code>) · T4 done (the codes guard with Rules and About clean, Q18; a motion
+passed without a vote says so; the no-account note beside Sign in; <code>task-4.txt</code>) ·
+T5&ndash;T22 todo · v3.51 approved 2026-11-25 (Q9)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, in the handoff's order of work (§7). Each task: red test
@@ -395,8 +405,9 @@ first, then green; <code>make verify</code>; captures at 1440 and 390 for visual
     <td><code>site/opn_site/static/site.css</code>, <code>render.py</code> (<code>rules</code>),
     <code>site/tests/test_f34_phone_browser.py</code></td>
     <td>T1</td><td><code>PW site/tests/test_f34_phone_browser.py</code></td></tr>
-  <tr><td>F34-T4</td><td>Codes out of prose (R6), the panel's &ldquo;passed, 0 yes &middot; 0 no&rdquo;
-    wording, and a line under Sign in saying contributing can be anonymous.</td>
+  <tr><td>F34-T4</td><td>The codes guard (R6, held page by page: Q18), the panel's &ldquo;passed, 0 yes
+    &middot; 0 no&rdquo; wording, and a line beside Sign in saying contributing needs no account.
+    Every later task that rebuilds a page adds it to the guard's <code>CLEAN</code> list.</td>
     <td><code>site/opn_site/{render.py,templates/*}</code>, <code>site/tests/test_f34_codes.py</code></td>
     <td>T1</td><td><code>uv run --frozen pytest site/tests/test_f34_codes.py</code></td></tr>
   <tr><td>F34-T5</td><td>Problems (R7): rows, waiting table, filter bar, URL parameters, paging.</td>

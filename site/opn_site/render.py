@@ -183,6 +183,12 @@ MCP_PATH = "/mcp"
 #: The contributor guide's place on the Docs page, and the licences annex prose may carry
 #: (``annex/v1`` takes any SPDX id; these are the three the service accepts, D-23).
 GUIDE_HREF = "/docs/#agents"
+#: F34-T4 (handoff §6): beside every "Sign in with GitHub", that contributing needs no account.
+ANON_NOTE = (
+    '<p class="anon-note">Only stewards and curators sign in, with GitHub. Contributing needs no '
+    "account: prove the tutorial statement and choose a pseudonym "
+    f'(<a href="{GUIDE_HREF}">how</a>).</p>'
+)
 #: F22-T18 (Q): the Docs section a reader of a proof page needs, linked from every reader page.
 READING_HREF = "/docs/#reading"
 #: F22-T18 (P): the one line beside a statement's Lean that says what its ``sorry`` is.
@@ -2376,7 +2382,7 @@ class Renderer:
                 f'<div class="card steward-form-card"><div class="steward-form" '
                 f'data-target="{esc(tid)}" data-return="{esc(self.steward_path(tid))}" '
                 f'data-commitment="{esc(steward.COMMITMENT)}" data-stewards="{esc(held)}"{flag}>'
-                "</div></div>"
+                f"</div>{ANON_NOTE}</div>"
             )
             script = (
                 f'<script src="/steward.js" data-api="{esc(self.api_url)}"></script>'
@@ -2597,7 +2603,7 @@ class Renderer:
             '<section class="page-head"><div><h1>My problems</h1>'
             '<p class="lead me-intro">Signed in with GitHub, this page lists your roles, the '
             "words waiting for your approval on the problems you steward, and your open pull "
-            "requests.</p></div></section>"
+            f"requests.</p>{ANON_NOTE}</div></section>"
             f'<div class="me" data-me data-repo="{esc(self.repo_url)}">{"".join(lists)}</div>'
         )
         script = (
@@ -4407,6 +4413,14 @@ class Renderer:
         )
         if state == "open":
             line = head + f"closes {esc(m['closes'])} · {tally} so far"
+        elif state == "passed" and not m["yes"] and not m["no"]:
+            # F34-T4: a vote passes a motion only with more yes than no, so a passed motion with no
+            # counted vote passed at once: its opener was the panel's only member, or a curator
+            # opened an invitation. "passed, 0 yes · 0 no" read as a vote nobody cast.
+            line = (
+                head + f"closed {esc(m['closes'])}</span> · "
+                '<span class="outcome passed">passed at once, without a vote</span>'
+            )
         else:
             line = (
                 head + f"closed {esc(m['closes'])}</span> · "
@@ -4657,7 +4671,7 @@ class Renderer:
             '<section class="page-head"><div><h1>Rules</h1><p class="lead">Every number a '
             "problem&rsquo;s steward panel runs on, as the graph&rsquo;s "
             f"{self.file_link('policy.json')} sets it. A change is one curator pull request "
-            "naming its reason, and applies from the next motion opened (D-32 v3.34).</p>"
+            "naming its reason, and applies from the next motion opened.</p>"
             f"</div></section>{note}"
             '<div class="table-wrap"><table class="rules"><thead><tr><th>Setting</th>'
             "<th>Value</th><th>What it does</th><th>Set</th></tr></thead><tbody>"
