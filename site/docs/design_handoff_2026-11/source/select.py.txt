@@ -1,0 +1,130 @@
+from common import *
+from panel import panel, fold, facts, holes, sub, holes_html
+from panel import mono
+from proof_section import draw, R2_fold, P, T, primes_chain
+from staticize import resolve
+import re
+def btn(t,primary=False,small=False):
+    pad='7px 12px' if small else '10px 16px'; fs=14 if small else 15
+    return f'<a href="#" style="font-family: {SANS}; text-decoration: none; padding: {pad}; border-radius: 4px; font-size: {fs}px; white-space: nowrap; {"color: #FFFFFF; background: "+INK+"; font-weight: 500" if primary else "color: "+INK+"; border: 1px solid "+LINE+"; background: "+SURF}">{t}</a>'
+SEL='variant-6b364d2b'
+tree=draw(R2_fold, SEL, path={'erdos-257',SEL})
+# ---- the selected statement's record (variant-6b364d2b, live 2026-11-24)
+claim=f"""<p style="margin: 0; font-size: 18px">∑<sub style="font-size: 0.6em">p prime</sub> 1/(2<sup>p</sup> − 1) is irrational.</p>
+<p style="margin: 0; font-size: 15.5px; color: {MUTED}">The case A = primes of the problem. In Lean the sum is a {mono('tsum')} over the primes; 0 and 1 are not prime, so no junk value occurs.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">These words: unverified · <a href="#" style="color: {MUTED}">history</a></p>
+{fold('The Lean','<p style="margin: 0; font-size: 14px">Statement.lean, as the gate checks it.</p>')}"""
+proof=f"""<p style="margin: 0">Open. A direct proof, or a proof of its hole, closes it.</p>
+{sub('Split by a partial proof')}
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">{mono('20261022T160309Z-t1022-l','11.5px')} · merged f082287 · attestation 000948</p>
+<p style="margin: 0; font-size: 15px">Approach: Tao–Teräväinen §5 — rationality forces (5.8) on every prime cube; averaging and the variance bound (5.20) contradict Theorem 5.1.</p>
+{holes([('open','Tao–Teräväinen Theorem 5.1 (technical reduction)','h1'),])}
+<p style="margin: 0 0 0 18px; font-family: {SANS}; font-size: 13px; color: {MUTED}">which is itself split: one open hole, §§5.6–5.14</p>
+{sub('Explained')}
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px">Draft explainer of the partial, by {mono('fable-1111-e257')} with Claude Fable 5.2, 2026-11-12. <a href="#">Read it</a></p>"""
+known=f"""<p style="margin: 0"><strong style="font-weight: 600">Known: a proof is published and not formalised.</strong></p>
+<p style="margin: 0; font-size: 15px">Tao and Teräväinen, arXiv:2512.01739v2, §5.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px; color: {MUTED}">Proposed by {mono('t1022-d')} · <span style="color: {FAIL}">awaiting a steward or curator</span></p>"""
+work=f"""<p style="margin: 0; font-family: {SANS}; font-size: 14px">3 attempts kept · <a href="#">the attempts</a></p>
+<p style="margin: 0; font-size: 15px">Plan: the paper’s §5, stated as one hole. Not yet followed by a merged split of the hole’s own proof.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px"><a href="#">How to contribute</a> · <a href="#">Pull requests in flight</a></p>"""
+record=f"""{facts([('status','open'),('depends on',mono('…--h1')),('used by','hole '+mono('h_primes')+' of the problem, Route 2'),('attempts','3'),('origin','variant (partial)'),('mathlib',mono('0df444a360ea')),('hash',mono('ce18cd51948c')),('annexes','1'),('findings','1 acknowledged')])}"""
+TABS=dict(claim=claim,proof=proof,known=known,work=work,record=record)
+
+def tabbed(tab, header_extra='', inline=False):
+    p=panel('When A is the set of primes', f"{status('open')}<span>{mono('variant-6b364d2b','11px')} · 3 attempts</span>", TABS,
+            btn('Work on this statement',True,True)+btn('Open its page',False,True))
+    p=holes_html(p)
+    # add counts to tab labels
+    for k,lab,cnt in [('proof','Proof','1'),('work','Work','3')]:
+        if cnt: p=p.replace(f'>{lab}</button>',f'>{lab} <span style="font-weight: 400; color: {MUTED}">{cnt}</span></button>',1)
+    wrap_html=f'<!doctype html><html><head><meta charset="utf-8"><title>x</title></head><body><x-dc>{p}</x-dc><script type="text/x-dc" data-dc-script data-props=\'{{}}\'>\nclass Component extends DCLogic {{\nrenderVals() {{\nreturn {{}};\n}}\n}}\n</script></body></html>'
+    out=resolve(wrap_html, tab=tab)
+    inner=out.split('<x-dc>')[1].split('</x-dc>')[0]
+    # header strip that names where it came from
+    crumb=f'''<div style="display: flex; flex-direction: column; gap: 4px; margin: -20px -20px 0; padding: 12px 20px; background: {INK}; color: #FFFFFF; border-radius: 3px 3px 0 0; font-family: {SANS}">
+<span style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75">Selected in Figure 1 {header_extra}</span>
+<span style="font-size: 13px">Erdős problem 257 › case split › <strong>A = primes</strong></span></div>'''
+    inner=inner.replace('<p style="margin: 0; font-family: \'IBM Plex Sans\', system-ui, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #5C5A55">Selected statement</p>', crumb, 1)
+    return inner
+
+def shell(title, body, h):
+    html=page(title, body, 1440, h)
+    return html.replace('font: inherit;',f"font-family: {SANS};")
+
+intro=lambda t: f'<p style="margin: 0; max-width: 820px">{t}</p>'
+headline=f'''<nav aria-label="Breadcrumb" style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><a href="#" style="color: {MUTED}">Problems</a> / erdos-257 · §1 Proof</nav>'''
+figcap=lambda t: f'<figcaption style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><strong style="color: {INK}">Figure 1.</strong> {t}</figcaption>'
+routehead=f'<div style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; font-family: {SANS}"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: {MUTED}">Figure 1 · the selected route</span><span style="font-size: 15px; font-weight: 600">Route 2 · fifteen special cases plus the rest · 16 statements, 2 open</span></span><span style="font-size: 13px; color: {MUTED}">Select any box to read that statement →</span></div>'
+
+# ===== Version A: side panel, linked by a leader line and a matching header
+A_fig=f'''<figure style="margin: 0; display: flex; flex-direction: column; gap: 10px; position: relative">
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; position: relative">{routehead}
+<div style="position: relative">{tree}
+<span aria-hidden="true" style="position: absolute; left: 330px; top: 152px; width: 0; height: 44px; border-left: 2px solid {INK}"></span>
+<span aria-hidden="true" style="position: absolute; left: 330px; top: 196px; right: -46px; height: 0; border-top: 2px solid {INK}"></span>
+</div></div>
+{figcap('The selected statement is filled black, its path from the problem drawn heavier, and a line runs from it to the panel. The panel’s dark header names it, and its tabs hold that statement’s record only.')}</figure>'''
+A_body=f'''<main>{wrap(f"""<div style="display: flex; flex-direction: column; gap: 16px">{headline}{h2('Selecting a statement: the panel beside the tree', num='A')}
+{intro('Click a box in the route tree. It turns black, and the panel on the right switches to that statement: the dark header says which one and where it sits; Claim, Proof, Known, Work and Record are all about it. Click the problem’s box to come back to the problem’s own record.')}
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<div style="flex: 999 1 700px; min-width: 0">{A_fig}</div>
+<div style="flex: 1 1 320px; max-width: 360px; min-width: 0">{tabbed('proof')}</div>
+</div></div>""","44px 24px 0")}</main>'''
+open('/home/claude/canvas/project/New-Select-Side.dc.html','w').write(shell('Selecting a statement — side panel',A_body,1400))
+
+# ===== Version B: the record opens in place, under the selected box
+card=f'''<div style="position: relative; margin-top: 4px">
+<span aria-hidden="true" style="position: absolute; left: 286px; top: -11px; width: 0; height: 0; border-left: 11px solid transparent; border-right: 11px solid transparent; border-bottom: 11px solid {INK}"></span>
+<div style="max-width: 760px">{tabbed('proof','· opened in place')}</div></div>'''
+tree_top=draw(P('Erdős problem 257','root','erdos-257',split='case split: 15 special cases + the rest',children=[P('14 proved · show','fold','f'),P('A = primes (Tao–Teräväinen)','open',SEL),P('every other infinite set (what is left)','open','erdos-257--h18')]), SEL, path={'erdos-257',SEL})
+below=draw(P('Tao–Teräväinen Thm 5.1 (technical reduction)','open','variant-6b364d2b--h1',children=[P('§§5.6–5.14: κ₂–κ₅ for each Lemma 5.2 cube','open','variant-6b364d2b--h1--h1')]))
+B_fig=f'''<figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">{routehead}
+<div>{tree_top}</div>
+{card}
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">↓ the tree continues below the selected statement</p>
+<div style="opacity: 0.85">{below}</div></div>
+{figcap('The selected statement’s record opens directly beneath its box, pointing at it, and the rest of the tree moves down. Selecting another box moves the card there; Esc or the box again closes it.')}</figure>'''
+B_body=f'''<main>{wrap(f"""<div style="display: flex; flex-direction: column; gap: 16px">{headline}{h2('Selecting a statement: the record opens in place', num='B')}
+{intro('No side panel. Click a box and its record unfolds right under it, inside the tree, with the same five tabs. There is never any doubt which statement the tabs are about; the cost is that the tree moves while you read.')}
+<div style="max-width: 900px">{B_fig}</div></div>""","44px 24px 0")}</main>'''
+open('/home/claude/canvas/project/New-Select-Inline.dc.html','w').write(shell('Selecting a statement — in place',B_body,1700))
+print('ok')
+
+# ===== every tab, for the selected statement (h_primes), with the selection header
+def strip(title, sub_t, cols_html, W=1992, H=1250):
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{title}</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&amp;display=swap">
+<style>
+body{{margin:0;background:{BG}}}
+a{{color:{INK};text-decoration-color:#B9B5AC;text-underline-offset:3px}}
+</style>
+</helmet>
+<div style="width: {W}px; min-height: {H}px; box-sizing: border-box; padding: 40px 48px; background: {BG}; color: {INK}; font-family: {SERIF}; font-size: 18px; line-height: 1.6; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">{smallcaps(sub_t)}<h1 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 34px">{title}</h1></div>
+<div style="display: flex; gap: 24px; align-items: flex-start">{cols_html}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{{"$preview":{{"width":{W},"height":{H}}}}}'>
+class Component extends DCLogic {{
+renderVals() {{
+return {{}};
+}}
+}}
+</script>
+</body>
+</html>
+""".replace('font: inherit;',f"font-family: {SANS};")
+cols=''.join(f'<div style="flex: none; width: 360px; display: flex; flex-direction: column; gap: 10px"><p style="margin: 0; font-family: {SANS}; font-size: 14px; color: {MUTED}">Tab: <strong style="color: {INK}">{lab}</strong></p>{tabbed(k)}</div>' for k,lab in [('claim','Claim'),('proof','Proof'),('known','Known'),('work','Work'),('record','Record')])
+open('/home/claude/canvas/project/New-Select-Every-Tab.dc.html','w').write(strip('The selected statement, every tab','erdos-257 · “A = primes” selected in Figure 1 (variant-6b364d2b)',cols))
+print('strip ok')

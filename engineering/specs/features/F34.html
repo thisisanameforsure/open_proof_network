@@ -29,9 +29,7 @@ information map of today's problem page that is this feature's acceptance checkl
 <p>F34 restyles every page; rebuilds Problems, Docs, Contributors, the problem page and the
 steward pages; and fixes the review's defects. It changes no verdict, no product and no schema
 except one: crediting people rather than agent runs needs a record on the graph saying which
-identities belong to one operator, which D-19 does not yet provide (R16&ndash;R18, Q9). That part
-is a drafted amendment, <b>decisions v3.51</b>, and waits for the owner's approval; everything
-else proceeds without it. Implements D-36 (the site), D-19 (credit: identity is the human operator),
+identities belong to one operator, which D-19 does not yet provide (R21&ndash;R23, Q9): <b>decisions v3.51</b>, approved by the owner on 2026-11-25. Implements D-36 (the site), D-19 (credit: identity is the human operator),
 D-25 (no ranking), D-14 v3.47 (shelving controls), D-32 (stewards and the write-up ladder).</p>
 <p>It does not change what the problem page <em>knows</em>: every item on today's page keeps a home
 (R13), and the route facts come from F27/F29/F30's existing products. The handoff is design input
@@ -60,7 +58,7 @@ review's site-wide defects (handoff §6); Problems; Docs split into one page per
 List views, one route drawn with proved statements folded, the selected-statement tabs, &ldquo;Not
 on a route&rdquo;, the empty-problem state, the phone outline); the steward sign-up, My problems and
 review pages; the home page. On the record: one new curator record kind linking identities to their
-operator (draft v3.51) and its one-time backfill.</p>
+operator (v3.51) and its one-time backfill.</p>
 <p><strong>Non-goals:</strong></p>
 <ul>
   <li>A steward pinning which route a problem page opens on. The page opens on the proof route with
@@ -128,7 +126,7 @@ operator (draft v3.51) and its one-time backfill.</p>
     and count until the reader turns on &ldquo;Show test runs&rdquo;; the full ledger lists them
     always.</td></tr>
   <tr><td>F34-R13</td><td>The problem page shall keep every item of today's page, each in the place
-    <code>New-Problem-InfoMap</code> assigns it (part B), and the selected-statement panel shall hold
+    <code>New-Problem-InfoMap</code> assigns it (part B), the follow-the-proof toggle excepted (Q7), and the selected-statement panel shall hold
     each item of part A under its tab: Claim, Proof, Known, Work, Record.</td></tr>
   <tr><td>F34-R14</td><td>The problem page shall show the routes in a Tree view (F29's selector,
     restyled; proof ends ink, refutation ends rust) and a List view (one row per route: kind, name,
@@ -157,14 +155,14 @@ operator (draft v3.51) and its one-time backfill.</p>
   <tr><td>F34-R20</td><td>My problems shall group what waits for a steward by problem and statement,
     most urgent first, and shall approve every unapproved section of one statement's words with one
     act (one <code>POST /approvals</code> per version carrying its sections).</td></tr>
-  <tr><td>F34-R21 <em>(draft v3.51)</em></td><td>A listed curator may append an operator record naming
+  <tr><td>F34-R21 <em>(v3.51)</em></td><td>A listed curator may append an operator record naming
     one operator pseudonym and the ledger identities that are theirs, with a reason; no ledger file is
     changed; an identity belongs to at most one operator; a withdrawal record (D-18 v3.27) sets one
     aside.</td></tr>
-  <tr><td>F34-R22 <em>(draft v3.51)</em></td><td>Where operator records exist, the Contributors page
+  <tr><td>F34-R22 <em>(v3.51)</em></td><td>Where operator records exist, the Contributors page
     shall group each linked identity's entries under its operator; an identity no record names stands
     as its own operator.</td></tr>
-  <tr><td>F34-R23 <em>(draft v3.51, optional part)</em></td><td>Where an operator has recorded a display
+  <tr><td>F34-R23 <em>(v3.51)</em></td><td>Where an operator has recorded a display
     name (D-3 v3.37), the Contributors page may show it beside the pseudonym.</td></tr>
 </table>
 
@@ -309,15 +307,17 @@ operator (draft v3.51) and its one-time backfill.</p>
     problem page now draws only the selected route (R14), the owner's choice in the handoff. F30's tests
     that pin the whole drawing are restated to the route drawing, not deleted, and say which decision
     gave way.</td></tr>
-  <tr><td>F34-Q7</td><td><strong>The follow-the-proof toggle (F27-R13) is not in the info map.</strong>
-    Since nothing on today's page may be dropped (R13), it stays: a control in the Routes box that
-    expands proved statements along their proofs' terms. Unless the owner drops it.</td></tr>
+  <tr><td>F34-Q7</td><td><strong>The follow-the-proof toggle (F27-R13) is dropped from the problem
+    page (owner, 2026-11-25: &ldquo;we are redesigning that page&rdquo;).</strong> It is the one item of
+    today's page R13 does not keep; the products' <code>follow/</code> views (F27-T9) are left as they are
+    and simply not drawn.</td></tr>
   <tr><td>F34-Q8</td><td><strong>Approving a statement's words at once.</strong> <code>POST /approvals</code>
     already takes a <code>sections</code> list per version, so R20 needs no api change: <code>words.js</code>
     sends one request per version instead of one per section. Checked in <code>api/opn_api/approvals.py</code>
     on 2026-11-25.</td></tr>
-  <tr><td>F34-Q9</td><td><strong>Crediting the operator: the drafted amendment, v3.51 (for the owner's
-    approval).</strong> The owner (2026-11-25): agent pseudonyms are not important, the agents under the
+  <tr><td>F34-Q9</td><td><strong>Crediting the operator: the amendment, v3.51, approved by the owner
+    2026-11-25 as drafted, both parts.</strong> The doc text lands with T13's code, because
+    <code>test_finding_protocol_version</code> holds the doc's version to <code>PROTOCOL_VERSION</code>. The owner (2026-11-25): agent pseudonyms are not important, the agents under the
     person are; every agent run so far was his, and the backfill may assume so. What stays necessary: a
     record on the graph saying so, because the site is rebuilt from the graph and must not hold a grouping
     the record does not (AGENTS.md: nothing here becomes a second source of truth). Drafted words, for
@@ -345,14 +345,13 @@ operator (draft v3.51) and its one-time backfill.</p>
     first pass ships without search (handoff §3.3 allows it); T10 adds it and may be dropped.</td></tr>
   <tr><td>F34-Q14</td><td><strong>Steward pages were designed signed out</strong> (handoff §3.5). Each
     signed-in state is checked against the live site before its task closes.</td></tr>
-  <tr><td>F34-Q15</td><td><strong>The handoff folder is untracked</strong> in the main checkout on
-    2026-11-25 (23 MB, 18 MB of it screenshots). This spec cites it by path; committing it (or its
-    README, tokens and mockups only) is the owner's call.</td></tr>
+  <tr><td>F34-Q15</td><td><strong>The handoff folder is committed whole</strong> (owner, 2026-11-25),
+    23 MB of which 18 MB are screenshots, so every worktree sees what this spec cites.</td></tr>
 </table>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> specced 2026-11-25 · <strong>Tasks:</strong> T1&ndash;T22
-todo · T13&ndash;T15 wait on the owner's approval of v3.51 (Q9)</div>
+todo · v3.51 approved 2026-11-25 (Q9)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, in the handoff's order of work (§7). Each task: red test
@@ -420,7 +419,7 @@ first, then green; <code>make verify</code>; captures at 1440 and 390 for visual
     <td><code>docs/architecture_decisions.html</code>, <code>gate/schemas/operator/v1.json</code>,
     <code>gate/schemas/HASHES</code>, <code>gate/opn_gate/{paths,modes}.py</code>,
     <code>gate/tests/test_f34_operator_record.py</code>, goldens</td>
-    <td>owner's approval</td><td><code>uv run --frozen pytest gate/tests/test_f34_operator_record.py</code></td></tr>
+    <td>&mdash;</td><td><code>uv run --frozen pytest gate/tests/test_f34_operator_record.py</code></td></tr>
   <tr><td>F34-T14 <em>(v3.51)</em></td><td>Contributors groups by operator record (R22, and R23 if
     approved).</td>
     <td><code>gate/opn_gate/ledger.py</code>, <code>site/opn_site/render.py</code>,
