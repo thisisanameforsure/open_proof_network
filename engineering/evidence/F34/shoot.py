@@ -26,6 +26,8 @@ PAGES = {
     "home": "/",
     "problems": "/problems/",
     "erdos-257": "/problems/erdos-257/",
+    "abc": "/problems/abc/",
+    "singmaster": "/problems/singmaster/",
     "contributors": "/contributors/",
     "docs": "/docs/",
     "rules": "/rules/",

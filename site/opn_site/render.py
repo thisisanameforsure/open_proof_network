@@ -1184,6 +1184,15 @@ def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
     return f'<span class="math">{prose.inline_statement(text, allowed_urls=allowed_urls)}</span>'
 
 
+def record_words(text: str) -> str:
+    """F34-T2 (R4): one line of a record's words (a title, a label, a review's question, an annex's
+    title): escaped, its inline Markdown rendered, and marked for the math renderer only when it
+    carries a ``$``, so a plain line stays plain and its page loads no KaTeX for it."""
+    if "$" in text:
+        return math(text)
+    return prose.inline_statement(text, allowed_urls=frozenset())
+
+
 def static_files() -> tuple[dict[str, str], dict[str, bytes]]:
     """The static tree, text files (stylesheets, scripts, the vendor manifest and licence) apart
     from binary ones (the fonts), each keyed by its path under the site root."""
@@ -1712,7 +1721,7 @@ class Renderer:
         full = esc(f"{self.node_path(tv.target_id, nv.node_id)}#{annex_anchor(a)}")
         return (
             f'<li class="{cls}" data-annex="{esc(digest)}">{label}<span class="untrusted-title">'
-            f'{esc(title)}</span>{by} — {state} · <a href="{full}">full text →</a></li>'
+            f'{record_words(title)}</span>{by} — {state} · <a href="{full}">full text →</a></li>'
         )
 
     def outline_checklist(self, tv: TargetView, nv: NodeView) -> str:
@@ -1730,7 +1739,8 @@ class Renderer:
                 )
                 steps.append(
                     f"<li><code>{esc(s['step'])}</code> "
-                    f'<span class="untrusted-title">{esc(s["summary"])}</span> — {where}</li>'
+                    f'<span class="untrusted-title">{record_words(s["summary"])}</span>'
+                    f" — {where}</li>"
                 )
             out += (
                 '<p class="cue">The stepped outline this statement&rsquo;s skeleton followed, '
@@ -2831,7 +2841,8 @@ class Renderer:
             fidelity_tag=self.fidelity_tag(tv),
             review_state=self.review_state_tag(tv),
             informal=self.informal_words(tv),
-            provenance=(f"{esc(sentence(title))} " if title else "") + self.source_line(tv),
+            provenance=(f"{record_words(sentence(title))} " if title else "")
+            + self.source_line(tv),
             stages=self.stage_marks(tv),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
@@ -3350,7 +3361,7 @@ class Renderer:
         body = _template("review.html").substitute(
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
-            words=esc(str(head.get("words") or "")),
+            words=record_words(str(head.get("words") or "")),
             opened=opened,
             state_words=state_words,
             stats=stats,
@@ -3807,7 +3818,7 @@ class Renderer:
         if label is None:
             return f'<span class="panel-title mono">{ident}</span>', ""
         return (
-            f'<span class="panel-title">{esc(label)}</span>',
+            f'<span class="panel-title">{record_words(label)}</span>',
             f'<span class="panel-id">{ident}</span>',
         )
 
@@ -3818,7 +3829,7 @@ class Renderer:
         label = self.node_label(nv)
         if label is None:
             return f'<h1 class="mono">{ident}</h1>'
-        return f'<h1>{esc(label)}</h1>\n<p class="panel-id">{ident}</p>'
+        return f'<h1>{record_words(label)}</h1>\n<p class="panel-id">{ident}</p>'
 
     def statement_words_href(self, tv: TargetView, nv: NodeView) -> str:
         """Where a statement's words live in full: its page, at the words (``#statement-words``),

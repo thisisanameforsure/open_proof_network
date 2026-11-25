@@ -353,11 +353,25 @@ operator (v3.51) and its one-time backfill.</p>
     <code>--warn</code> all resolve to <code>--refuted</code>. <code>test_the_refuting_colour_is_its_own_token</code>
     is restated to that rule (rust apart from proved, ink and the literature marks), not deleted. The
     Nocturne names stay as aliases until each page is rebuilt, so the September rules keep working.</td></tr>
+  <tr><td>F34-Q17</td><td><strong>What the T2 scan of the live graph found (2026-11-25, graph
+    257feba2).</strong> Raw TeX or Markdown markers reached readers in six places, all fixed: the
+    provenance sentence under a problem's statement (128 pages), the review page's lead (16), annex
+    titles, a statement's label as heading and panel title, the label in a drawing's SVG (markers
+    dropped, since SVG carries no markup), and a hole claim on singmaster. That last one is a
+    <strong>gate defect the site only works around</strong>: the post-merge job writes a hole's gloss
+    as <code>$$&lt;claim&gt;$$</code> after dropping the claim's outer dollars, which breaks a claim
+    of words and inline maths (<code>$\{...\}$ is finite for every $t$</code>). The site reads a
+    paragraph that is wholly such a block as the author's line; the writer's fix is a gate task with
+    a re-pin, left for the owner to schedule. Two hits are authored text, not rendering: an erdos-257
+    sentence whose closing <code>$</code> follows a space (not maths under the prose rule, F19-T6),
+    and an erdos-1050 explainer record that ends mid-formula. Both are left as written.</td></tr>
 </table>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> specced 2026-11-25 · <strong>Tasks:</strong> T1 done (tokens, fonts, frame: 11 new tests, two restated (Q16), goldens
-regenerated; <code>engineering/evidence/F34/task-1.txt</code>, 26 captures) · T2&ndash;T22 todo · v3.51 approved 2026-11-25 (Q9)</div>
+regenerated; <code>engineering/evidence/F34/task-1.txt</code>, 26 captures) · T2 done (raw TeX and
+markers: 9 new tests, the live scan from six kinds of hit to the two authored ones of Q17;
+<code>task-2.txt</code>) · T3&ndash;T22 todo · v3.51 approved 2026-11-25 (Q9)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, in the handoff's order of work (§7). Each task: red test
