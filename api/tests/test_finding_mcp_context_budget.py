@@ -31,7 +31,7 @@ from opn_api.mcp.server import MCP_PATH, TOOLS
 PROSE = ("annexes", "explainers", "outlines", "gloss_chains", "explainer_chains")
 #: mcpfix WA2: the context's own sections ``include`` may name, and what leaving them out (and
 #: naming fewer than every section) may take from the context.
-CONTEXT_SECTIONS = ("attempts", "deps")
+CONTEXT_SECTIONS = ("attempts", "deps", "witness", "proof")  # mcpfix lead: and the two files
 OMITTABLE = {
     "attempts.records",
     "deps[].signature",
@@ -171,8 +171,13 @@ def test_include_nothing_leaves_every_prose_section_out(harness: Harness) -> Non
     client = McpClient(harness)
     full = client.ok("get_node", {"node_id": NODE})
     lean = client.ok("get_node", {"node_id": NODE, "include": []})
-    assert set(lean) == ALWAYS
-    same = ALWAYS - {"context"}
+    # mcpfix lead (verifier A8): the witness and proof files are sections too, named when left out
+    assert set(lean) == ALWAYS | {"files_omitted"}
+    assert lean["files_omitted"] == ["Witness.lean", "Proof.lean"]
+    same = ALWAYS - {"context", "files"}
+    assert {k: lean["files"][k] for k in ("Statement.lean", "Context.lean")} == {
+        k: full["files"][k] for k in ("Statement.lean", "Context.lean")
+    }
     assert {k: lean[k] for k in same} == {k: full[k] for k in same}
     narrowed = set(lean["context"]["omitted"])
     assert narrowed and narrowed <= OMITTABLE
@@ -190,7 +195,7 @@ def test_include_names_the_sections_it_answers(harness: Harness) -> None:
     client = McpClient(harness)
     full = client.ok("get_node", {"node_id": NODE})
     some = client.ok("get_node", {"node_id": NODE, "include": ["annexes", "gloss_chains"]})
-    assert set(some) == ALWAYS | {"annexes", "gloss_chains", "chains_source"}
+    assert set(some) == ALWAYS | {"annexes", "gloss_chains", "chains_source", "files_omitted"}
     assert some["annexes"] == full["annexes"]
     assert some["gloss_chains"] == full["gloss_chains"]
     assert results.violations("get_node", some) == []

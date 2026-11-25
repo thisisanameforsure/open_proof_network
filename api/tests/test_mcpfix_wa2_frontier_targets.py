@@ -69,10 +69,14 @@ def test_list_frontier_with_a_target_answers_its_entries_in_pages(harness: Harne
     mine = [e for e in frontier["entries"] if e["target_id"] == target_id(0)]
     out = client.ok("list_frontier", {"target_id": target_id(0)})
     assert out["target_id"] == target_id(0) and out["count"] == len(mine) == 69
-    assert [e["node_id"] for e in out["entries"]] == [e["node_id"] for e in mine[:50]]
-    rest = client.ok("list_frontier", {"target_id": target_id(0), "cursor": out["next"]})
-    assert [e["node_id"] for e in rest["entries"]] == [e["node_id"] for e in mine[50:]]
-    assert rest["next"] is None
+    # mcpfix lead (verifier VA, N2): a target's entries come 20 to a page (50 of erdos-1094's
+    # were 32,225 characters live); the open-problems summary keeps 50 rows
+    assert [e["node_id"] for e in out["entries"]] == [e["node_id"] for e in mine[:20]]
+    seen = [e["node_id"] for e in out["entries"]]
+    while out["next"] is not None:
+        out = client.ok("list_frontier", {"target_id": target_id(0), "cursor": out["next"]})
+        seen += [e["node_id"] for e in out["entries"]]
+    assert seen == [e["node_id"] for e in mine]
 
 
 def test_list_frontier_filters_still_apply_to_entries(harness: Harness) -> None:

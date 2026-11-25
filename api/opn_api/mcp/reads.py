@@ -792,7 +792,7 @@ async def list_frontier(call: Call, args: dict[str, Any]) -> dict[str, Any]:
             raise error("arguments-invalid", "full answers every entry; it is not paged", "adapter")
         return {**doc, "entries": entries}
     if target_id is not None:
-        chunk, where = page(entries, args, default=FRONTIER_LIMIT[0])
+        chunk, where = page(entries, args, default=ENTRIES_LIMIT)
         return {
             "rendered_from": doc.get("rendered_from"),
             "target_id": target_id,
@@ -805,6 +805,9 @@ async def list_frontier(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 #: mcpfix WA2: list_frontier's page size, default and most.
 FRONTIER_LIMIT = (50, 200)
+#: mcpfix lead (verifier VA, N2): one target's entries carry every field, so a smaller page
+#: (50 of erdos-1094's were 32,225 characters live, 20 are about 13,000).
+ENTRIES_LIMIT = 20
 
 
 def frontier_targets(ctx: Context, entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1009,7 +1012,10 @@ PROSE_SECTIONS: tuple[str, ...] = (
 #: and each dependency's (and lemma's) statement. Every section is answered when ``include`` is
 #: omitted; named ones only when it is given.
 CONTEXT_SECTIONS: tuple[str, ...] = ("attempts", "deps")
-INCLUDE_SECTIONS: tuple[str, ...] = (*PROSE_SECTIONS, *CONTEXT_SECTIONS)
+#: mcpfix (lead; verifier VA, A8): the node's own Lean files a caller may leave out too, by
+#: section name; a witness can be tens of thousands of characters.
+FILE_SECTIONS: dict[str, str] = {"witness": "Witness.lean", "proof": "Proof.lean"}
+INCLUDE_SECTIONS: tuple[str, ...] = (*PROSE_SECTIONS, *CONTEXT_SECTIONS, *FILE_SECTIONS)
 #: The context's Lean text that ``files`` carries byte for byte: answered once when ``include``
 #: leaves any section out.
 CONTEXT_LEAN: tuple[tuple[str, str], ...] = (
@@ -1149,6 +1155,9 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     lemmas = list(bundle.get("lemmas") or [])  # whole at the top level, whatever is narrowed
     if narrowed:
         bundle = narrowed_context(bundle, wanted, files)
+    files_omitted = [name for key, name in FILE_SECTIONS.items() if narrowed and key not in wanted]
+    for name in files_omitted:
+        files[name] = None
     out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
@@ -1169,6 +1178,8 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # a bundle older than context/v6 has no key and the answer says none.
         "lemmas": lemmas,
     }
+    if files_omitted:
+        out["files_omitted"] = files_omitted
     # A section not asked for is not read from the host either (T19).
     if "annexes" in wanted:
         out["annexes"] = _prose(call.ctx, f"{node_dir}/annex")
@@ -1644,7 +1655,10 @@ TOOLS: tuple[Tool, ...] = (
         "`full: true` is GET /frontier.json exactly (large).",
         params(
             {
-                "target_id": {**ID_PARAM, "description": "Only this target's open nodes."},
+                "target_id": {
+                    **ID_PARAM,
+                    "description": "Only this target's open nodes, 20 to a page by default.",
+                },
                 "filters": filters_param(),
                 "limit": limit_param(*FRONTIER_LIMIT, "rows"),
                 "cursor": CURSOR_PARAM,
@@ -1665,8 +1679,8 @@ TOOLS: tuple[Tool, ...] = (
         "id) and `claim` (the statement in notation from its gloss, or null), "
         "annexes, explainers and the submissions open on it. `include` names the sections to "
         "answer (all of them when omitted): the prose ones, `attempts` (the context's attempt "
-        "records) and `deps` (each dependency's and lemma's statement in the context); "
-        "`include: []` answers the Lean files, the context without those (its `omitted` names "
+        "records), `deps` (dependencies' statements), `witness`, `proof` (those files); "
+        "`include: []` answers Statement.lean and Context.lean, the context without those (its `omitted` names "
         "what was left out), the claims, lemmas, label and open submissions.",
         params(
             {
