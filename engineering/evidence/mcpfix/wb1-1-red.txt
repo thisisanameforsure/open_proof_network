@@ -1,0 +1,94 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_______________ test_unbalanced_module_is_closed_before_the_next _______________
+
+    def test_unbalanced_module_is_closed_before_the_next() -> None:
+        defs = [("Defs.A", UNBALANCED.strip("\n")), ("Defs.B", BALANCED.strip("\n"))]
+        text = checks.forwarded_text(CONTENT, defs)
+        expected = (
+            "import Mathlib\n"
+            "\n-- inlined by the network from Defs.A (F13-R5)\n"
+            + UNBALANCED
+            + "end Baz\nend Foo.Bar\nend\n"
+            + "\n-- inlined by the network from Defs.B (F13-R5)\n"
+            + BALANCED
+            + "\n"
+            + "\ntheorem t : True := trivial\n"
+        )
+>       assert text == expected
+E       AssertionError: assert 'import Mathl... := trivial\n' == 'import Mathl... := trivial\n'
+E         
+E         Skipping 322 identical leading characters in diff, use -v to show
+E            Nat := 2
+E         - end Baz
+E         - end Foo.Bar
+E         - end
+E           ...
+E         
+E         ...Full output truncated (11 lines hidden), use '-vv' to show
+
+api/tests/test_mcpfix_wb1_scopes.py:60: AssertionError
+_________________ test_closers_follow_dotted_and_partial_ends __________________
+
+    def test_closers_follow_dotted_and_partial_ends() -> None:
+        """``namespace A.B`` closed by ``end B`` leaves ``A`` open; it is closed by its own name."""
+        src = "namespace A.B\ndef p : Nat := 0\nend B\nsection S\nnamespace C"
+>       assert checks.scope_closers(src) == "end C\nend S\nend A\n"
+E       AssertionError: assert '' == 'end C\nend S\nend A\n'
+E         
+E         - end C
+E         - end S
+E         - end A
+
+api/tests/test_mcpfix_wb1_scopes.py:66: AssertionError
+______ test_erdos_883_defs_leave_no_scope_open_before_the_callers_theorem ______
+
+    def test_erdos_883_defs_leave_no_scope_open_before_the_callers_theorem() -> None:
+        """The live case, end to end through the route: the nine defs files of erdos-883 inlined for
+        a check with the node, and the caller's own theorem starts at the top level."""
+        h = make_harness()
+        seed_node(h)
+        files = h.githost.files
+        files[f"targets/{TARGET}/gate-spec.json"] = schemas.canonical_json(
+            samples.gate_spec(mathlib_sha=PIN)
+        )
+        statement = (FIXTURES / "Statement.lean").read_text(encoding="utf-8")
+        files[NODE_DIR + "Statement.lean"] = statement.encode()
+        for path in FIXTURES.glob("*.lean"):
+            if path.name != "Statement.lean":
+                files[f"targets/{TARGET}/defs/{path.name}"] = path.read_bytes()
+        h.context.files.clear()
+    
+        content = (
+            "import Mathlib\nimport Defs.CombinatoricsSimpleGraphColoringVertex\n\n"
+            "theorem my_gcd_lemma (a : ℕ) : Nat.gcd a a = a := Nat.gcd_self a\n"
+        )
+        r = h.client.post("/check", json={"node_id": NODE, "content": content})
+        assert r.status_code == 200, r.text
+        assert "Defs.CombinatoricsSimpleGraphColoringVertex" in r.json()["inlined_defs"]
+        sent = h.axle.calls[-1].content
+        vertex = sent.index("-- inlined by the network from Defs.CombinatoricsSimpleGraphColoringVertex")
+        after = sent[vertex:].split("\n-- inlined by the network from ", 2)[1:]
+        # the next inlined module (or the caller's text) begins only after the Vertex closers
+>       assert "end SimpleGraph\nend\n" in sent[vertex:]
+E       AssertionError: assert 'end SimpleGraph\nend\n' in '-- inlined by the network from Defs.CombinatoricsSimpleGraphColoringVertex (F13-R5)\n/-\nCopyright 2025 The Formal Co...impleGraph.fromRel Nat.Coprime\n\nend Erdos883\n\n\ntheorem my_gcd_lemma (a : ℕ) : Nat.gcd a a = a := Nat.gcd_self a\n'
+
+api/tests/test_mcpfix_wb1_scopes.py:123: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb1_scopes.py::test_unbalanced_module_is_closed_before_the_next
+FAILED api/tests/test_mcpfix_wb1_scopes.py::test_closers_follow_dotted_and_partial_ends
+FAILED api/tests/test_mcpfix_wb1_scopes.py::test_erdos_883_defs_leave_no_scope_open_before_the_callers_theorem
+3 failed, 2 warnings in 10.55s

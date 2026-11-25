@@ -352,6 +352,9 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # eight descriptions (+994). The trade: the default answers they buy are 4,777 characters
 # for list_frontier where it was 386,475 on the budget fixture, 11,846 for list_targets where
 # it was 805,631. Pinned 122,000.
+# mcpfix WB1 (testers 2026-11-25) measured 114,974 before and 115,069 after (+95, 0.1%):
+# check_lean's `echo` parameter and its description rewritten to say which okay a skeleton
+# aims for and that positions are the caller's lines, inside its 1,000. Pinned 115,500.
 # Both together, and WB1's check_lean `echo`: re-measured at the merge (below). Pinned 125,000.
 TOOLS_LIST_BUDGET = 125_000
 

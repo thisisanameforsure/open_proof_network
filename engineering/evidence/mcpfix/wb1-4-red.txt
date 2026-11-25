@@ -1,0 +1,38 @@
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+__________ test_an_unlabelled_skeleton_is_told_what_its_partial_lacks __________
+
+    def test_an_unlabelled_skeleton_is_told_what_its_partial_lacks() -> None:
+        found = [w for w in lint_of(TEXT) if w["code"] == "partial-unlabelled"]
+>       assert len(found) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+api/tests/test_mcpfix_wb1_partial_lint.py:34: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_______________________ test_one_missing_label_is_named ________________________
+
+    def test_one_missing_label_is_named() -> None:
+        text = HALF_LABELLED.replace("import Nodes.X.Context\n\n", "")
+>       (found,) = [w for w in lint_of(text) if w["code"] == "partial-unlabelled"]
+        ^^^^^^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+api/tests/test_mcpfix_wb1_partial_lint.py:44: ValueError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb1_partial_lint.py::test_an_unlabelled_skeleton_is_told_what_its_partial_lacks
+FAILED api/tests/test_mcpfix_wb1_partial_lint.py::test_one_missing_label_is_named
+2 failed, 1 passed, 2 warnings in 1.13s

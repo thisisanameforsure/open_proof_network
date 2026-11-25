@@ -129,6 +129,7 @@ async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "statement",
         "deps",
         "heartbeats",
+        "echo",
     )
     return await forward(call, "POST", "/check", body)
 
@@ -595,17 +596,16 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "check_lean",
         (
-            "Check Lean text within 20 s on the hosted checker (AXLE) matched to the "
-            "target's pinned Mathlib: errors, goals, `okay` (null with `user_error` when "
-            "no verdict) and `lint` where the gate would refuse what the checker "
-            "accepts. Defs and the node's Context are inlined; `target_id` is derived "
-            "from the node if omitted. Modes: check (default, and for a proof using a "
-            "dependency); verify, against the node's statement; witness, with a node_id "
-            "or a `statement` and `deps`: the `expected` type step 7 holds a witness to "
-            "and, with content, whether it `matches`. Mode hazards, with a node_id or a "
-            "`statement`, runs step 6's checkers: send no content (400 "
-            "content-not-used); a finding META.yaml acknowledges has `acknowledged: "
-            "true`. Never authoritative." + USES_NOTE
+            "Check Lean in 20 s on the hosted checker (AXLE) at the target's Mathlib: "
+            "errors at lines of your text, `okay` (null with `user_error` if no verdict), "
+            "`lint` where the gate would refuse it. Defs and Context are inlined; `target_id` "
+            "is derived from the node if omitted. Modes: check (default); verify, against the "
+            "node's statement; witness (node_id, or `statement` and `deps`): step 7's "
+            "`expected` type and whether content `matches`. Mode hazards (node_id or "
+            "`statement`) runs step 6's checkers: send no content (400 content-not-used); a "
+            "finding META.yaml acknowledges has `acknowledged: true`. A skeleton aims for "
+            "`result.okay: true` in check with only sorry-present (`okay` stays false); verify "
+            "reports sorry as failure. Never authoritative." + USES_NOTE
         ),
         params(
             {
@@ -634,6 +634,10 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "boolean",
                     "description": "modes check and verify: also measure each theorem's "
                     "heartbeats on a copy of the text (a second hosted check, charged as one)",
+                },
+                "echo": {
+                    "type": "boolean",
+                    "description": "also return the composed program and its raw positions",
                 },
             },
         ),

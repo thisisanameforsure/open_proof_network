@@ -44,7 +44,7 @@ from opn_api import uses as usesmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
 from opn_gate import config as gate_config
-from opn_gate import exhibits, hosted, layout, paths, scaffold, schemas
+from opn_gate import exhibits, hosted, labels, layout, paths, scaffold, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -52,7 +52,9 @@ if TYPE_CHECKING:
 log = logging.getLogger("opn_api.checks")
 
 SERVICE = hosted.SERVICE
-FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps", "heartbeats"})
+FIELDS = frozenset(
+    {"target_id", "node_id", "content", "mode", "statement", "deps", "heartbeats", "echo"}
+)
 MODES = ("check", "verify", "witness", "hazards")
 #: F13-T14: the modes that read the node's own statement, so cannot do without a node.
 NODE_MODES = ("verify", "witness", "hazards")
@@ -125,6 +127,9 @@ class CheckRequest:
     deps: Any = None
     #: F13-T27: also measure each theorem's heartbeats, on a copy of the text.
     heartbeats: bool = False
+    #: mcpfix WB1: return the checker's echo of the text it compiled (``result.content``) and its
+    #: positions as it gave them; by default both are left out or mapped to the caller's lines.
+    echo: bool = False
 
 
 @dataclass(frozen=True)
@@ -181,7 +186,21 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
         statement,
         fields.get("deps"),
         heartbeats_field(fields, mode),
+        echo_field(fields),
     )
+
+
+def echo_field(fields: dict[str, Any]) -> bool:
+    """mcpfix WB1 (testers 2026-11-25, t883 item 4): ``echo`` is true or false. The checker's
+    echo is the whole composed program, every inlined definition included (61,728 characters on
+    erdos-883), which overflows an MCP client's tool-result limit; it is returned only on
+    request."""
+    raw = fields.get("echo")
+    if raw is None:
+        return False
+    if not isinstance(raw, bool):
+        raise api_error(400, "echo-invalid", "echo must be true or false")
+    return raw
 
 
 def heartbeats_field(fields: dict[str, Any], mode: str) -> bool:
@@ -433,25 +452,293 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
     return ordered
 
 
-def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
-    """The content with its ``import Defs.*`` lines removed and the definitions' sources placed
-    after its remaining header, where a module's own declarations would begin."""
-    if not defs:
-        return content
-    inlined = {module for module, _ in defs}
-    lines = [
-        line
-        for line in content.splitlines(keepends=True)
-        if not (
-            line.startswith("import ")
-            and (layout.module_origin(line.split()[1])[0] == "defs" or line.split()[1] in inlined)
-        )
-    ]
-    last_import = max((i for i, line in enumerate(lines) if line.startswith("import ")), default=-1)
-    block = "".join(
-        f"\n-- inlined by the network from {module} (F13-R5)\n{src}\n" for module, src in defs
+#: A command that opens or closes a scope, read on a line of ``lean_mask``'s output (comments and
+#: strings blanked): attributes and modifiers, then ``namespace``, ``section``, ``end`` or
+#: ``mutual``, and the name it gives (none for an anonymous section, a bare ``end``, ``mutual``).
+SCOPE_RE = re.compile(
+    r"^[ \t]*(?:@\[[^\]\n]*\][ \t]*)*(?:(?:public|private|protected|noncomputable)[ \t]+)*"
+    r"(?P<kw>namespace|section|end|mutual)(?![\w.'!?])[ \t]*(?P<name>[^\s]*)"
+)
+
+
+def scope_closers(source: str) -> str:
+    """mcpfix WB1 (testers 2026-11-25, t883 item 3): the ``end`` lines that close every scope
+    ``source`` leaves open, innermost first, each closed by the name it was opened with
+    (``namespace A.B`` by ``end A.B``, an anonymous or ``noncomputable section`` by ``end``).
+
+    In a module's own file Lean closes them at the end of the file; pasted before another module
+    or the caller's text, they would put everything after them inside the namespace, under its
+    ``variable``s and ``open``s. Read one line at a time over ``lean_mask``, so a scope word in a
+    comment or a string is not a command. ``namespace A.B`` opens two scopes and ``end B`` closes
+    one of them, as Lean counts them; a ``variable`` or scoped notation declared inside stays
+    local to the scope, as it was in its own file."""
+    mask, _ = lean_mask(source)
+    stack: list[tuple[str, str, int]] = []  # (kind, name component, the command that opened it)
+    for number, line in enumerate(mask.splitlines()):
+        found = SCOPE_RE.match(line)
+        if found is None:
+            continue
+        kw, name = found.group("kw"), found.group("name")
+        if kw == "end":
+            for _ in range(len(name.split(".")) if name else 1):
+                if stack:
+                    stack.pop()
+        elif kw == "mutual":
+            stack.append(("mutual", "", number))
+        elif kw == "namespace" and name:
+            stack += [("namespace", part, number) for part in name.split(".")]
+        elif kw == "section":
+            stack += (
+                [("section", part, number) for part in name.split(".")]
+                if name
+                else [("section", "", number)]
+            )
+    closers: list[str] = []
+    while stack:
+        _, _, opened = stack[-1]
+        parts: list[str] = []
+        while stack and stack[-1][2] == opened:
+            parts.insert(0, stack.pop()[1])
+        name = ".".join(p for p in parts if p)
+        closers.append(f"end {name}\n" if name else "end\n")
+    return "".join(closers)
+
+
+@dataclass(frozen=True)
+class Origin:
+    """mcpfix WB1 (testers 2026-11-25, L4): where one line of the text sent to the checker came
+    from. ``label`` names the text a position is reported in (``-`` for the caller's ``content``,
+    ``statement`` for the node's or the sent statement); ``line`` is the line in that text, or
+    ``None`` for text the network wrote (``what`` says which). An inlined module's line carries
+    its ``module`` and ``module_line``, and ``line`` is then the import line in ``label`` that
+    pulled it in (``None`` when none of the text's own imports did)."""
+
+    label: str
+    line: int | None
+    module: str | None = None
+    module_line: int | None = None
+    what: str | None = None
+
+    def at(self, k: int) -> Origin:
+        """The origin of the ``k``-th line after this one (0 is this one) in the same text."""
+        if self.module is not None and self.module_line is not None:
+            return replace(self, module_line=self.module_line + k)
+        if self.module is None and self.line is not None:
+            return replace(self, line=self.line + k)
+        return self
+
+
+@dataclass(frozen=True)
+class Composed:
+    """A text sent to the checker and each of its lines' ``Origin``."""
+
+    text: str
+    origins: tuple[Origin, ...]
+
+    def origin(self, line: int) -> Origin | None:
+        return self.origins[line - 1] if 1 <= line <= len(self.origins) else None
+
+
+class _Builder:
+    """Concatenates pieces of text, recording each new line's origin: one ``Origin`` for every
+    line of a piece, or ``Origin.at(k)``'s for its ``k``-th line when ``numbered``. A piece that
+    continues an unterminated line keeps that line's origin."""
+
+    def __init__(self) -> None:
+        self.parts: list[str] = []
+        self.origins: list[Origin] = []
+        self.mid = False
+
+    def add(self, piece: str, origin: Origin, *, numbered: bool = False) -> None:
+        if not piece:
+            return
+        segments = piece.split("\n")
+        for k, segment in enumerate(segments):
+            if k == len(segments) - 1 and segment == "":
+                break
+            if not (k == 0 and self.mid):
+                self.origins.append(origin.at(k) if numbered else origin)
+        self.mid = not piece.endswith("\n")
+        self.parts.append(piece)
+
+    def extend(self, composed: Composed) -> None:
+        for k, line in enumerate(composed.text.splitlines(keepends=True)):
+            self.add(line, composed.origin(k + 1) or network("composed text"))
+
+    def build(self) -> Composed:
+        return Composed("".join(self.parts), tuple(self.origins))
+
+
+def network(what: str) -> Origin:
+    return Origin("network", None, what=what)
+
+
+def plain(text: str, label: str = "-", first: int = 1) -> Composed:
+    """``text`` as one label's own lines, ``first`` being the number of its first line."""
+    count = len(text.splitlines())
+    return Composed(text, tuple(Origin(label, first + k) for k in range(count)))
+
+
+def _is_inlined_import(line: str, inlined: set[str]) -> bool:
+    return line.startswith("import ") and (
+        layout.module_origin(line.split()[1])[0] == "defs" or line.split()[1] in inlined
     )
-    return "".join(lines[: last_import + 1]) + block + "\n" + "".join(lines[last_import + 1 :])
+
+
+def forward(
+    content: str | Composed,
+    defs: list[tuple[str, str]],
+    *,
+    label: str = "-",
+    anchors: dict[str, int] | None = None,
+) -> Composed:
+    """The content with its ``import Defs.*`` lines removed and the definitions' sources placed
+    after its remaining header, where a module's own declarations would begin, each followed by
+    the ``end`` lines that close the scopes it left open (``scope_closers``); with each line's
+    origin (mcpfix WB1). ``anchors`` are the import lines that pulled each module in, when the
+    content's own import lines were already blanked (an exhibit); otherwise they are read off
+    the import lines removed here, and a module no import of the content names is anchored to
+    the first of them."""
+    base = plain(content, label) if isinstance(content, str) else content
+    if not defs:
+        return base
+    inlined = {module for module, _ in defs}
+    lines = base.text.splitlines(keepends=True)
+    kept: list[tuple[str, Origin]] = []
+    removed: dict[str, int] = dict(anchors or {})
+    for k, line in enumerate(lines):
+        origin = base.origin(k + 1) or network("composed text")
+        if _is_inlined_import(line, inlined):
+            if origin.line is not None:
+                removed.setdefault(line.split()[1], origin.line)
+            continue
+        kept.append((line, origin))
+    first_anchor = min(removed.values(), default=None)
+    last_import = max(
+        (i for i, (line, _) in enumerate(kept) if line.startswith("import ")), default=-1
+    )
+    b = _Builder()
+    for line, origin in kept[: last_import + 1]:
+        b.add(line, origin)
+    for module, src in defs:
+        anchor = removed.get(module, first_anchor)
+        b.add("\n", network("a blank line before an inlined module"))
+        b.add(f"-- inlined by the network from {module} (F13-R5)\n", Origin(label, anchor, module))
+        b.add(src + "\n", Origin(label, anchor, module, 1), numbered=True)
+        b.add(scope_closers(src), network(f"the end lines closing the scopes {module} left open"))
+    b.add("\n", network("a blank line after the inlined modules"))
+    for line, origin in kept[last_import + 1 :]:
+        b.add(line, origin)
+    return b.build()
+
+
+#: A Lean message's position as the checker prints it, ``<file>:<line>:<col>`` and an optional
+#: ``-<line>:<col>`` end, before the ``: error:`` (``: info:``, ``: warning:``) that follows.
+POSITION_RE = re.compile(
+    r"^(?P<file>[^:\n]*):(?P<l1>[0-9]+):(?P<c1>[0-9]+)(?:-(?P<l2>[0-9]+):(?P<c2>[0-9]+))?(?=:)"
+)
+#: How a note names each label's text.
+LABEL_TEXT = {"-": "your text", "statement": "the statement"}
+
+
+def echo_shift(sent: str, echo: Any) -> int | None:
+    """How many lines the checker's echo of ``sent`` has more than ``sent`` above the same body:
+    AXLE puts ``import Mathlib`` and a blank line in place of the text's header (its imports,
+    blank lines and ``--`` comments before the first command; probed 2026-11-25), and the rest
+    is the text as sent. ``None`` when there is no echo, or its last line is not the sent
+    text's, so the two cannot be lined up and nothing is mapped."""
+    if not isinstance(echo, str):
+        return None
+    sent_lines, echo_lines = sent.splitlines(), echo.splitlines()
+    while sent_lines and not sent_lines[-1].strip():
+        sent_lines.pop()
+    while echo_lines and not echo_lines[-1].strip():
+        echo_lines.pop()
+    if not sent_lines or not echo_lines or sent_lines[-1] != echo_lines[-1]:
+        return None
+    return len(echo_lines) - len(sent_lines)
+
+
+def _with_note(text: str, note: str) -> str:
+    body = text.rstrip("\n")
+    return f"{body}\n[{note}]" + ("\n" if text.endswith("\n") else "")
+
+
+def relocate(message: str, composed: Composed, shift: int) -> str:
+    """mcpfix WB1 (testers 2026-11-25, L4): a Lean message with its position moved from the
+    checker's echo (``shift`` lines below the text sent, ``echo_shift``) to the text it came
+    from. A line of the caller's text, or of the statement, keeps its column and is labelled
+    with that text (``-``, ``statement``); a line of an inlined module is reported at the import
+    line that pulled it in, column 0, with a note naming the module and its own line; a line the
+    network wrote is labelled ``network`` with a note saying what it is. Untrusted text: only
+    the leading position is read, and a message with none is returned as it is."""
+    found = POSITION_RE.match(message)
+    if found is None:
+        return message
+    sent_line = int(found.group("l1")) - shift
+    origin = composed.origin(sent_line)
+    if origin is None:
+        return message
+    col, rest = found.group("c1"), message[found.end() :]
+    if origin.module is None and origin.line is not None:
+        end = ""
+        if found.group("l2") is not None:
+            last = composed.origin(int(found.group("l2")) - shift)
+            if (
+                last is not None
+                and last.module is None
+                and last.line is not None
+                and last.label == origin.label
+            ):
+                end = f"-{last.line}:{found.group('c2')}"
+        return f"{origin.label}:{origin.line}:{col}{end}{rest}"
+    if origin.module is not None:
+        where = (
+            f"line {origin.module_line} of {origin.module} as inlined, column {col}"
+            if origin.module_line is not None
+            else f"the network's header line for {origin.module}"
+        )
+        if origin.line is not None:
+            text = LABEL_TEXT.get(origin.label, origin.label)
+            note = (
+                f"position: {where}; inlined by the network for the import on line "
+                f"{origin.line} of {text}"
+            )
+            return _with_note(f"{origin.label}:{origin.line}:0{rest}", note)
+        note = f"position: {where}; inlined by the network"
+        return _with_note(f"{origin.module}:{origin.module_line or 0}:{col}{rest}", note)
+    note = f"position: in text the network added ({origin.what}), line {sent_line} of the text sent"
+    return _with_note(f"network:{sent_line}:{col}{rest}", note)
+
+
+#: The blocks of the checker's answer whose messages carry positions.
+MESSAGE_BLOCKS = ("lean_messages", "tool_messages")
+
+
+def remap_body(body: dict[str, Any], composed: Composed) -> dict[str, Any]:
+    """The checker's body with every positioned message ``relocate``d to the caller's text: a
+    copy, the body the log reads stays the checker's (R9). Unchanged when the echo cannot be
+    lined up with the text sent (``echo_shift``)."""
+    shift = echo_shift(composed.text, body.get("content"))
+    if shift is None:
+        return body
+    out = dict(body)
+    for key in MESSAGE_BLOCKS:
+        block = body.get(key)
+        if not isinstance(block, dict):
+            continue
+        out[key] = {
+            kind: [relocate(m, composed, shift) if isinstance(m, str) else m for m in found]
+            if isinstance(found, list)
+            else found
+            for kind, found in block.items()
+        }
+    return out
+
+
+def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
+    """``forward``'s text: the content with the definitions inlined in place of its imports."""
+    return forward(content, defs).text
 
 
 # --- the lint ------------------------------------------------------------------------------------
@@ -568,6 +855,21 @@ def lint(
                 "and a skeleton is submitted as a partial",
             }
         )
+        # mcpfix WB1 (testers 2026-11-25, t257b item 1): a text with sorry is a skeleton, and a
+        # partial names its approach, licence and each hole's label and claim (D-12 v3.44). The
+        # precheck refuses one that does not; say so here, by the same rule and the same words.
+        missing = labels.problems(content)
+        if missing:
+            warnings.append(
+                {
+                    "code": "partial-unlabelled",
+                    "message": "submitted as a partial, this text would be refused: a partial "
+                    "names its approach, a licence and each hole's label and claim in its "
+                    "comments (D-12 v3.44; the guide's Skeletonization section): "
+                    + "; ".join(p.message for p in missing),
+                    "missing": [p.as_dict() for p in missing],
+                }
+            )
     if ADMIT_TOKEN_RE.search(layout.strip_comments(content)):
         warnings.append(
             {
@@ -968,18 +1270,42 @@ def witness_text(formal: str, content: str, decl_name: str, proved: Sequence[int
     """What the checker is sent in witness mode: the node's statement under its own header (the
     definitions already inlined), ``import Lean`` for the metaprogram, the witness without its
     import lines, then the program; ``proved`` is the hole's record, if it has one (F07-T44)."""
-    lines = formal.splitlines(keepends=True)
+    return witness_composed(plain(formal, "statement"), content, decl_name, proved).text
+
+
+def _with_import_lean(formal: Composed, what: str) -> _Builder:
+    """``formal`` with ``import Lean`` placed after its imports when it has none, as the
+    statement modes send it; the builder, so the mode's own text can follow."""
+    lines = formal.text.splitlines(keepends=True)
     imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
     at = imports[-1] + 1 if imports else 0
-    header = "" if "Lean" in layout.imports_of(formal) else "import Lean\n"
-    witness = IMPORT_LINE_RE.sub("", content).strip()
-    return (
-        "".join(lines[:at])
-        + header
-        + "".join(lines[at:])
-        + (f"\n{witness}\n" if witness else "")
-        + witness_program(decl_name, bool(witness), proved)
+    b = _Builder()
+    for k, line in enumerate(lines):
+        if k == at and "Lean" not in layout.imports_of(formal.text):
+            b.add("import Lean\n", network(f"import Lean for {what}"))
+        b.add(line, formal.origin(k + 1) or network("composed text"))
+    if at == len(lines) and "Lean" not in layout.imports_of(formal.text):
+        b.add("import Lean\n", network(f"import Lean for {what}"))
+    return b
+
+
+def witness_composed(
+    formal: Composed, content: str, decl_name: str, proved: Sequence[int] = ()
+) -> Composed:
+    """``witness_text`` with each line's origin (mcpfix WB1): the witness's lines are the
+    caller's own, numbered as in ``content``."""
+    b = _with_import_lean(formal, "the witness preview")
+    stripped = IMPORT_LINE_RE.sub("", content)
+    witness = stripped.strip()
+    if witness:
+        lead = stripped[: len(stripped) - len(stripped.lstrip())]
+        b.add("\n", network("a blank line before the witness"))
+        b.add(witness + "\n", Origin("-", lead.count("\n") + 1), numbered=True)
+    b.add(
+        witness_program(decl_name, bool(witness), proved),
+        network("the network's witness preview program (WitnessType.lean)"),
     )
+    return b.build()
 
 
 def axiom_names(raw: Any) -> list[str] | None:
@@ -1213,6 +1539,19 @@ def hazards_text(
     probe = IMPORT_LINE_RE.sub("", formal if statement is None else statement)
     program = hazards_program(decl_name, checkers, probe)
     return "".join(lines[:at]) + header + "".join(lines[at:]) + program
+
+
+def hazards_composed(
+    formal: Composed, decl_name: str, checkers: list[str], *, statement: str | None = None
+) -> Composed:
+    """``hazards_text`` with each line's origin (mcpfix WB1)."""
+    b = _with_import_lean(formal, "the hazard checkers")
+    probe = IMPORT_LINE_RE.sub("", formal.text if statement is None else statement)
+    b.add(
+        hazards_program(decl_name, checkers, probe),
+        network("the network's hazard pre-screen (Hazards*.lean)"),
+    )
+    return b.build()
 
 
 def hazards_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
@@ -2490,7 +2829,7 @@ def exhibit_check_text(
     node_id: str | None,
     exhibit: str,
     found: tuple[list[str], set[str]],
-) -> str:
+) -> Composed:
     """The exhibit as the gate elaborates it, in one file: the target's committed ``Defs`` and,
     when the exhibit imports it, the node's committed Context, inlined in place of the imports
     the checker cannot resolve, under the union of their library imports. ``found`` is
@@ -2514,7 +2853,17 @@ def exhibit_check_text(
         if layout.module_origin(m)[0] == "library"
     ]
     header = "".join(f"import {m}\n" for m in dict.fromkeys([*library, *imports]))
-    return forwarded_text(header + IMPORT_LINE_RE.sub("", exhibit), defs)
+    # mcpfix WB1: the exhibit's own lines keep their numbers (its import lines are blanked, not
+    # removed), and each inlined module is anchored to the exhibit's import line that names it.
+    anchors = {
+        imported.group(1): line
+        for line, text in enumerate(exhibit.splitlines(), 1)
+        if (imported := re.match(r"^import\s+(\S+)", text)) is not None
+    }
+    base = _Builder()
+    base.add(header, network("the library imports of the exhibit and what it inlines"))
+    base.extend(plain(IMPORT_LINE_RE.sub("", exhibit)))
+    return forward(base.build(), defs, anchors=anchors)
 
 
 def lean_errors(body: dict[str, Any]) -> list[str]:
@@ -2571,10 +2920,10 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
         if entry is None or entry.environment is None:
             raise api_error(422, "no-hosted-environment", f"{target_id} has no hosted checker")
         environment = entry.environment
-        text = exhibit_check_text(ctx, target_id, node_id, exhibit, found)
+        sent = exhibit_check_text(ctx, target_id, node_id, exhibit, found)
         budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
         answer = await asyncio.to_thread(
-            call_checker, ctx, req, text, environment, None, timeout_s=budget
+            call_checker, ctx, req, sent.text, environment, None, timeout_s=budget
         )
         if answer.body.get("error_type") == LEAN_TIMEOUT:
             raise timed_out(ctx, answer.request_id)
@@ -2598,7 +2947,7 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
     okay = verdict(answer.body)
     if okay is True:
         return PREFLIGHT_ELABORATES
-    errors = lean_errors(answer.body)
+    errors = lean_errors(remap_body(answer.body, sent))  # mcpfix WB1: the exhibit's own lines
     if okay is None or not errors:
         return PREFLIGHT_INCONCLUSIVE
     raise api_error(
@@ -2620,14 +2969,17 @@ def statement_mode_text(
     ctx: Context,
     req: CheckRequest,
     statement: layout.Statement,
-    formal: str,
+    formal: str | Composed,
     *,
     proposed: bool = False,
-) -> str:
+) -> Composed:
     """The text sent in a mode that reads the statement: the witness program (F13-T14) or the
-    hazard checkers (F13-T20), after ``formal``, the statement with its definitions inlined."""
+    hazard checkers (F13-T20), after ``formal``, the statement with its definitions inlined;
+    with each line's origin (mcpfix WB1)."""
+    if isinstance(formal, str):
+        formal = plain(formal, "statement")
     if req.mode == "hazards":
-        return hazards_text(
+        return hazards_composed(
             formal,
             statement.decl_name,
             target_checkers(ctx, req.target_id),
@@ -2641,7 +2993,7 @@ def statement_mode_text(
     if req.node_id is not None and req.statement is None and not proposed:
         meta = frontier.committed(ctx, f"targets/{req.target_id}/nodes/{req.node_id}/META.yaml")
         proved = proved_binders_of(meta)
-    return witness_text(formal, req.content, statement.decl_name, proved)
+    return witness_composed(formal, req.content, statement.decl_name, proved)
 
 
 def request_statement(
@@ -2756,7 +3108,7 @@ def text_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
 
-async def post_check(ctx: Context, request: Request) -> Response:
+async def post_check(ctx: Context, request: Request) -> Response:  # noqa: PLR0915 — one per step
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
     fields, _ = await identity.body_fields(request, FIELDS)
@@ -2780,7 +3132,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
         reading, defs = composed(ctx, req, statement, context)
-        text = forwarded_text(req.content, defs)
+        sent = forward(req.content, defs)
         # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
         # so the gate-gap lints (R4), which are about proofs, say nothing true of it.
         unknown = unknown_node_imports(ctx, reading.rest, req.node_id)
@@ -2815,16 +3167,20 @@ async def post_check(ctx: Context, request: Request) -> Response:
                     }
                 )
         try:
-            formal = forwarded_text(statement.text, defs) if statement is not None else None
+            # mcpfix WB1: the statement is the caller's own text only in hazards mode with a
+            # ``statement`` (there is no content then); otherwise it is labelled apart.
+            label = "-" if req.mode == "hazards" and req.statement is not None else "statement"
+            formal_c = forward(statement.text, defs, label=label) if statement is not None else None
+            formal = formal_c.text if formal_c is not None else None
             if req.mode in STATEMENT_MODES:
-                assert statement is not None and formal is not None  # NODE_MODES, above
-                text = statement_mode_text(ctx, req, statement, formal, proposed=proposed)
+                assert statement is not None and formal_c is not None  # NODE_MODES, above
+                sent = statement_mode_text(ctx, req, statement, formal_c, proposed=proposed)
             answer, counted = await checked(
                 ctx,
                 request,
                 req,
                 caller,
-                text=text,
+                text=sent.text,
                 environment=environment,
                 formal=formal,
                 defs=defs,
@@ -2872,6 +3228,10 @@ async def post_check(ctx: Context, request: Request) -> Response:
         req.node_id,
         inlined_hole_names(ctx, req.target_id, defs, flagged_names(answer.body)),
     )
+    if not req.echo:
+        # mcpfix WB1: positions name the caller's lines, and the echo (the composed program,
+        # which they no longer refer to) is left out; ``echo: true`` returns both as given
+        shown = {k: v for k, v in remap_body(shown, sent).items() if k != "content"}
     return JSONResponse(
         {
             "authoritative": False,
