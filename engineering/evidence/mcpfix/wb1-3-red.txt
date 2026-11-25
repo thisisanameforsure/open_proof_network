@@ -1,0 +1,95 @@
+F.FFF.                                                                   [100%]
+=================================== FAILURES ===================================
+_____________ test_a_broken_three_line_proof_reports_its_own_line ______________
+
+    def test_a_broken_three_line_proof_reports_its_own_line() -> None:
+        """qa-eb L4's call: the error on line 3 of the caller's proof read ``-:5:9``."""
+        h = harness_with()
+        seed(h)
+        proof = "theorem t (h : True ∧ True) : True := by\n  have := h.1\n  exact h.2 BROKEN\n"
+        h.axle.replies = [failing_at("BROKEN", col=9)]
+        r = post(h, {"target_id": TARGET, "content": proof})
+        assert r.status_code == 200, r.text
+        result = r.json()["result"]
+>       assert result["lean_messages"]["errors"] == ["-:3:9-3:12: error: about BROKEN\n"]
+E       AssertionError: assert ['-:5:9-5:12:...out BROKEN\n'] == ['-:3:9-3:12:...out BROKEN\n']
+E         
+E         At index 0 diff: '-:5:9-5:12: error: about BROKEN\n' != '-:3:9-3:12: error: about BROKEN\n'
+E         Use -v to get more diff
+
+api/tests/test_mcpfix_wb1_positions.py:75: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+______ test_a_position_in_inlined_text_names_the_import_that_pulled_it_in ______
+
+    def test_a_position_in_inlined_text_names_the_import_that_pulled_it_in() -> None:
+        h = harness_with()
+        seed(h, defs={"A": "import Mathlib\n" + DEFS_A})
+        h.axle.replies = [failing_at("BROKEN", "BADDEF")]
+        r = post(h, {"target_id": TARGET, "content": CONTENT})
+        assert r.status_code == 200, r.text
+        errors = r.json()["result"]["lean_messages"]["errors"]
+>       assert errors[0] == "-:5:2-5:5: error: about BROKEN\n"
+E       AssertionError: assert '-:9:2-9:5: e...bout BROKEN\n' == '-:5:2-5:5: e...bout BROKEN\n'
+E         
+E         - -:5:2-5:5: error: about BROKEN
+E         ?     ------
+E         + -:9:2-9:5: error: about BROKEN
+E         ?  ++++++
+
+api/tests/test_mcpfix_wb1_positions.py:105: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+________ test_witness_mode_reports_the_witness_and_the_statement_apart _________
+
+    def test_witness_mode_reports_the_witness_and_the_statement_apart() -> None:
+        witness = "import Mathlib\n\ntheorem witness : True := WBROKEN\n"
+        h = make_harness(axle=FakeAxle(replies=[failing_at("WBROKEN", "sorry")]))
+        seed(h)
+        r = post(h, {"target_id": TARGET, "node_id": NODE, "mode": "witness", "content": witness})
+        assert r.status_code == 200, r.text
+        errors = r.json()["result"]["lean_messages"]["errors"]
+>       assert errors[0] == "-:3:2-3:5: error: about WBROKEN\n"
+E       AssertionError: assert '-:6:2-6:5: e...out WBROKEN\n' == '-:3:2-3:5: e...out WBROKEN\n'
+E         
+E         - -:3:2-3:5: error: about WBROKEN
+E         ?   ^   ^
+E         + -:6:2-6:5: error: about WBROKEN
+E         ?   ^   ^
+
+api/tests/test_mcpfix_wb1_positions.py:119: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+________ test_a_defect_claims_exhibit_error_is_on_the_exhibits_own_line ________
+
+    def test_a_defect_claims_exhibit_error_is_on_the_exhibits_own_line() -> None:
+        """qa-eb L4: a one-line exhibit's error read ``-:3:23``."""
+        exhibit = f"import Nodes.«and-reassoc».Context\n\n{EXHIBIT_LINE}"
+        h = dep_harness(failing_at("BROKEN", col=23))
+        r = claim(h, exhibit=exhibit)
+        assert r.status_code == 422, r.text
+>       assert r.json()["details"]["errors"] == ["-:3:23-3:26: error: about BROKEN\n"]
+E       AssertionError: assert ['-:10:23-10:...out BROKEN\n'] == ['-:3:23-3:26...out BROKEN\n']
+E         
+E         At index 0 diff: '-:10:23-10:26: error: about BROKEN\n' != '-:3:23-3:26: error: about BROKEN\n'
+E         Use -v to get more diff
+
+api/tests/test_mcpfix_wb1_positions.py:134: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb1/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb1_positions.py::test_a_broken_three_line_proof_reports_its_own_line
+FAILED api/tests/test_mcpfix_wb1_positions.py::test_a_position_in_inlined_text_names_the_import_that_pulled_it_in
+FAILED api/tests/test_mcpfix_wb1_positions.py::test_witness_mode_reports_the_witness_and_the_statement_apart
+FAILED api/tests/test_mcpfix_wb1_positions.py::test_a_defect_claims_exhibit_error_is_on_the_exhibits_own_line
+4 failed, 2 passed, 2 warnings in 1.04s

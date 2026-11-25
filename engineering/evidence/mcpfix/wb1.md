@@ -30,3 +30,20 @@ Branch `mcpfix-wb1` from origin/main ae6c445c.
   test_finding_check_verdicts_gate.py). The description says what the code does.
   The tools/list budget went 114,974 -> 115,069 and was re-pinned 115,500 with the measurement.
 - Green: 453 passed over every check and MCP test file plus test_error_codes (wb1-2-6-green.txt).
+- Item 3 (positions): red 4 failed of 6 (wb1-3-red.txt; the three-line proof read `-:5:9`,
+  exactly qa-eb's report, and the one-line exhibit `-:10:23`). `forward` records each line's
+  `Origin` (caller line, inlined module + its line + the import line that pulled it in, or
+  network text); `witness_composed`/`hazards_composed`/`exhibit_check_text` likewise.
+  `remap_body` lines AXLE's echo up with the text sent (`echo_shift`: line-count difference,
+  checked by the last line; no echo or no match = nothing mapped, which keeps every fake-body
+  test as it was) and `relocate` rewrites each `-:L:C[-L:C]` in lean_messages and
+  tool_messages (errors, warnings, infos). Inlined positions -> `-:<import line>:0` plus a
+  `[position: line N of Defs.X as inlined ...]` note line; statement lines in witness mode ->
+  `statement:L:C`; network text -> `network:L:C` plus a note. `echo: true` returns the raw
+  positions beside the echo. Applied to POST /check and to the exhibit pre-flight
+  (`exhibit-elaboration` details.errors, both defect claims and revision requests, which share
+  `preflight_exhibit`). NOT applied: `witness-fails`, `statement-fails`,
+  `relation-elaboration` details on the proposal pre-flights (they keep the checker's lines).
+- Green: 6 passed; broad run 1175 passed, 1 failed (wb1-3-green-broad.txt): the failure is
+  gate/tests/test_walkthrough.py::test_graph_copy_is_identical, the sibling graph checkout's
+  AGENTS.md copy drifted (no AGENTS.md change on this branch; known stale-checkout case).
