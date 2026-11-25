@@ -37,6 +37,7 @@ from opn_gate import (
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
+from opn_gate import names as namesmod
 from opn_site import activity, dag, links, one_view, prose
 from opn_site.config import DEFAULT_TEST_IDENTITIES
 from opn_site.model import (
@@ -5855,20 +5856,44 @@ class Renderer:
         return f'<div class="steward-cards">{"".join(cards)}{need}</div>'
 
     def people_section(self, contributions: dict[str, list[dict[str, Any]]]) -> str:
-        """R10, R11: one card per operator, newest activity first. Until operator records group
-        identities (F34-T14), each identity is its own operator."""
+        """R10, R11, R23 (D-19 v3.51 (iii)): one card per operator, newest activity first. An
+        identity an operator record names, or whose display name carries a GitHub login another
+        identity's also carries, is listed under that person; any other identity stands alone. A
+        test run is never folded into a person: it keeps its own card, held back (R12)."""
+        named = ledgermod.operators(self.site.root)
+        records = namesmod.latest(self.site.root)
+        by_github: dict[str, list[str]] = {}
+        for pseudonym, rec in sorted(records.items()):
+            if rec.github:
+                by_github.setdefault(rec.github, []).append(pseudonym)
+        groups: dict[str, list[str]] = {}
+        for identity in contributions:
+            if self.is_test_identity(identity):
+                key = identity
+            elif identity in named:
+                key = named[identity]
+            elif records.get(identity) and records[identity].github:
+                login = str(records[identity].github)
+                key = by_github[login][0] if len(by_github[login]) > 1 else identity
+            else:
+                key = identity
+            groups.setdefault(key, []).append(identity)
         cards = []
-        for identity, entries in contributions.items():
+        for key, members in groups.items():
+            entries = [e for m in members for e in contributions[m]]
             dates = [str(e.get("date", ""))[:10] for e in entries]
-            cards.append((max(dates, default=""), identity, entries))
+            cards.append((max(dates, default=""), key, members, entries))
         cards.sort(key=lambda c: (c[0], c[1]), reverse=True)
-        shown = [self.person_card(identity, entries, last) for last, identity, entries in cards]
+        shown = [
+            self.person_card(key, entries, last, members=members, record=records.get(key))
+            for last, key, members, entries in cards
+        ]
         if not shown:
             return (
                 "<p>No ledger files exist yet: nothing has been credited. The first merged proof "
                 "and the first postmortem will start the ledger.</p>"
             )
-        tests = sum(1 for _l, identity, _e in cards if self.is_test_identity(identity))
+        tests = sum(1 for _l, key, _m, _e in cards if self.is_test_identity(key))
         toggle = (
             '<p class="people-tools" data-tools hidden><label><input type="checkbox" '
             f"data-show-tests> Show test runs ({tests})</label></p>"
@@ -5877,8 +5902,17 @@ class Renderer:
         )
         return f'{toggle}<div class="people">{"".join(shown)}</div>'
 
-    def person_card(self, identity: str, entries: list[dict[str, Any]], last: str) -> str:
-        """R11: a sentence of counts by ledger line, the tools, the problems, the identities."""
+    def person_card(
+        self,
+        identity: str,
+        entries: list[dict[str, Any]],
+        last: str,
+        *,
+        members: list[str] | None = None,
+        record: namesmod.Record | None = None,
+    ) -> str:
+        """R11, R23: a sentence of counts by ledger line, the tools, the problems, and the
+        identities the card holds; the display name and GitHub login the operator published."""
         test = self.is_test_identity(identity)
         live = [e for e in entries if e.get("status") != "revoked"]
         tally = {"proof": 0, "partial": 0, "statement": 0, "attempts": 0, "other": 0}
@@ -5932,12 +5966,33 @@ class Renderer:
             if tid in self.site.targets
         )
         hidden = ' data-test="1" hidden' if test else ""
+        others = sorted(m for m in (members or [identity]) if m != identity)
+        github = record.github if record is not None else None
+        if github is None and others:
+            logins = {r.github for m in others if (r := namesmod.latest(self.site.root).get(m))}
+            github = next(iter(sorted(x for x in logins if x)), None)
+        title = record.name if record is not None and record.name else identity
+        who = [f"GitHub · <code>{esc(github)}</code>"] if github else []
+        if title != identity:
+            who.append(f"<code>{esc(identity)}</code>")
+        held = (
+            '<details class="identities"><summary>Identities '
+            f"({len(others) + 1})</summary><p>"
+            + ", ".join(f"<code>{esc(m)}</code>" for m in [identity, *others])
+            + "</p></details>"
+            if others
+            else ""
+        )
         return (
             f'<article class="person" data-operator="{esc(identity)}" data-last="{esc(last)}"'
-            f"{hidden}><h3>{esc(identity)}</h3>"
-            f'<p class="muted">active to {esc(last)}' + (" · a test run" if test else "") + "</p>"
+            f"{hidden}><h3>{esc(title)}</h3>"
+            + (f'<p class="muted">{" · ".join(who)}</p>' if who else "")
+            + f'<p class="muted">active to {esc(last)}'
+            + (" · a test run" if test else "")
+            + "</p>"
             f'<p class="tally">{esc(sentence)}</p>{tools}'
             + (f'<p class="kicker">Worked on</p><p class="worked">{worked}</p>' if worked else "")
+            + held
             + "</article>"
         )
 

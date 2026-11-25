@@ -195,3 +195,96 @@ def test_the_full_ledger_is_folded_and_marks_revoked_entries(built: tuple[model.
 def test_no_internal_codes(built: tuple[model.Site, str]) -> None:
     _site, page = built
     assert visible_codes(page) == []
+
+
+# --- F34-T14 (R23; D-19 v3.51 (iii)): identities under their operator ---------------------------
+
+
+def write_yaml(root: Path, rel: str, doc: dict[str, Any]) -> None:
+    import yaml  # noqa: PLC0415
+
+    (root / rel).parent.mkdir(parents=True, exist_ok=True)
+    (root / rel).write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+
+
+def name_record(
+    pseudonym: str, *, name: str | None = None, github: str | None = None
+) -> dict[str, Any]:
+    """A display-name/v2 record as the service files it; the site reads it, the gate checks it."""
+    return {
+        "schema": "display-name/v2",
+        "pseudonym": pseudonym,
+        "name": name,
+        "link": None,
+        "github": github,
+        "date": "2026-11-25",
+        "via": "approval-key",
+        "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKHDEGJlALYV4+SkVajmPDtD/Pu6CMzBMnH36leBU0mr",
+        "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lH\n-----END SSH SIGNATURE-----\n",
+    }
+
+
+@pytest.fixture(scope="module")
+def grouped(tmp_path_factory: pytest.TempPathFactory) -> str:
+    root = fixture.build_with_stewards(tmp_path_factory.mktemp("f34-operators"))
+    for who, day in (
+        ("op-a1", "10"),
+        ("op-a2", "12"),
+        ("op-self", "05"),
+        ("gh-1", "01"),
+        ("gh-2", "03"),
+    ):
+        write_ledger(root, who, [entry(TARGET, "and-reassoc", f"2026-10-{day}T09:00:00Z")])
+    write_ledger(root, "tester-op", [entry(TARGET, "and-reassoc", "2026-11-20T09:00:00Z")])
+    write_yaml(
+        root,
+        "operators/op-self/20261125T120000Z-founder.yaml",
+        {
+            "schema": "operator/v1",
+            "operator": "op-self",
+            "identities": ["op-a1", "op-a2", "tester-op"],
+            "reason": "one person ran all three",
+            "author": "founder",
+            "date": "2026-11-25",
+        },
+    )
+    write_yaml(root, "names/op-self.yaml", name_record("op-self", name="Ada Operator"))
+    write_yaml(root, "names/gh-1.yaml", name_record("gh-1", github="grace-h"))
+    write_yaml(root, "names/gh-2.yaml", name_record("gh-2", github="grace-h"))
+    site = model.load_site(root, fixture.COMMIT)
+    return render.render_site(site, repo_url=REPO)["contributors/index.html"]
+
+
+def people_cards(page: str) -> dict[str, str]:
+    return {
+        m.group(1): m.group(0)
+        for m in re.finditer(
+            r'<article class="person"[^>]*data-operator="([^"]+)".*?</article>',
+            section(page, "people"),
+            re.S,
+        )
+    }
+
+
+def test_an_operator_record_puts_its_identities_under_one_card(grouped: str) -> None:
+    cards = people_cards(grouped)
+    assert "op-a1" not in cards and "op-a2" not in cards
+    card = cards["op-self"]
+    assert "Ada Operator" in card  # the display name the operator recorded
+    assert "3 proofs" in card  # its own and its two identities' (the test run is not counted)
+    assert "op-a1" in card and "op-a2" in card  # the identities, folded in the card
+
+
+def test_identities_with_one_github_login_are_one_person(grouped: str) -> None:
+    cards = people_cards(grouped)
+    github = [k for k, v in cards.items() if "grace-h" in v]
+    assert len(github) == 1, github
+    card = cards[github[0]]
+    assert "2 proofs" in card and "gh-1" in card and "gh-2" in card
+    assert "GitHub · <code>grace-h</code>" in card
+
+
+def test_a_test_run_is_never_counted_into_a_person(grouped: str) -> None:
+    cards = people_cards(grouped)
+    assert "tester-op" in cards and 'data-test="1"' in cards["tester-op"]
+    assert "tester-op" not in cards["op-self"].split("</p>", 3)[-1].split("Identities", 1)[0]
