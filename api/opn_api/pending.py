@@ -1495,6 +1495,48 @@ def snapshot(ctx: Context) -> dict[str, Any]:
 #: F22-T8: the filters ``GET /submissions.json`` takes, equality only; ``kind=words`` is a gloss
 #: or an explainer, the words of a subject (F21-R5).
 SUBMISSION_FILTERS: tuple[str, ...] = ("target", "node", "kind")
+#: mcpfix (testers 2026-11-25, qa-ea): every kind a route records, the one union of the sets the
+#: modules keep for their own rules (``duplicates.WORDS_KINDS``/``PROOF_KINDS``/``APPEND_KINDS``,
+#: ``ATTESTING_KINDS``, ``store.PROPOSAL_KINDS``, ``WORDS_KINDS_ON_*``), which a test holds to
+#: each of them and to every ``kind=`` the routes pass. A ``kind`` filter outside it is refused.
+SUBMISSION_KINDS: tuple[str, ...] = (
+    # POST /submissions' artifact types (ATTESTING_KINDS), and a proof of a pair (F26)
+    "proof",
+    "counterexample",
+    "vacuity",
+    "reduction",
+    "partial",
+    "pair-proof",
+    # proposals (store.PROPOSAL_KINDS) and a witness
+    "speculative",
+    "variant",
+    "witness",
+    # appends
+    "annex",
+    "postmortem",
+    "approach-record",
+    "gloss",
+    "explainer",
+    "gloss-withdrawal",
+    "approval",
+    "literature",
+    "literature-confirmation",
+    "defect-claim",
+    "revision-request",
+    "display-name",
+    # stewards, panels, shelvings, registrations
+    "steward",
+    "motion",
+    "vote",
+    "writeup",
+    "shelving",
+    "registration",
+    # formalization reviews (F26)
+    "review",
+    "candidate",
+    "review-answer",
+    "review-signature",
+)
 WORDS_FILTER = "words"
 _FILTER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _FILTER_KIND_RE = re.compile(r"^[a-z][a-z-]*$")
@@ -1518,14 +1560,33 @@ def submission_filters(request: Request) -> dict[str, str]:
         raise ApiError(400, "target-id-invalid", "target must match ^[a-z0-9][a-z0-9-]*$")
     if "node" in out and not _FILTER_ID_RE.match(out["node"]):
         raise ApiError(400, "node-id-invalid", "node must match ^[a-z0-9][a-z0-9-]*$")
-    if "kind" in out and not _FILTER_KIND_RE.match(out["kind"]):
+    if "kind" in out and (
+        not _FILTER_KIND_RE.match(out["kind"])
+        or out["kind"] not in (WORDS_FILTER, *SUBMISSION_KINDS)
+    ):
         raise ApiError(
             400,
             "filter-unknown",
-            f"kind is {WORDS_FILTER} (a gloss or an explainer) or one submission kind, "
-            "as GET /submissions.json spells it",
+            f"kind is {WORDS_FILTER} (a gloss or an explainer) or one submission kind: "
+            + ", ".join(SUBMISSION_KINDS),
+            details={"accepted_kinds": [WORDS_FILTER, *SUBMISSION_KINDS]},
         )
     return out
+
+
+def known_filter_target(ctx: Context, target_id: str) -> None:
+    """mcpfix (testers 2026-11-25, qa-ea): a ``target`` the graph's ``targets/index.json`` does
+    not list is ``404 not-found``, as the list tools answer for one, rather than an empty list a
+    typo cannot be told from."""
+    from opn_api import session  # noqa: PLC0415 — session reads the MCP adapter, which reads this
+
+    if target_id not in session.target_ids(ctx):
+        raise ApiError(
+            404,
+            "not-found",
+            f"no target {target_id} in targets/index.json at main",
+            details={"target": target_id},
+        )
 
 
 def matches(entry: dict[str, Any], filters: dict[str, str]) -> bool:
@@ -1547,6 +1608,8 @@ def site_headers(ctx: Context) -> dict[str, str]:
 
 async def get_submissions(ctx: Context, request: Request) -> Response:
     filters = submission_filters(request)
+    if "target" in filters:
+        known_filter_target(ctx, filters["target"])
     doc = snapshot(ctx)
     if filters:
         doc["open"] = [e for e in doc["open"] if matches(e, filters)]
