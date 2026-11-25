@@ -42,6 +42,8 @@ NEW_PAGES = (
     "docs/how-it-works/index.html",  # T7
     "docs/claim/index.html",  # T7
     "docs/submit/index.html",  # T7
+    "docs/sign-explainer/index.html",  # T7, the owner's word 2026-11-25
+    "docs/faithful/index.html",  # T7
 )
 
 
@@ -232,6 +234,27 @@ def test_moving_a_code_keeps_it_on_the_page() -> None:
                 "409 node-blocked",
                 "/claims/mine",
                 "DELETE",
+            ),
+        ),
+        (
+            "sign-explainer",
+            (
+                "I can explain this proof without the tool that produced it.",
+                "active steward of the problem, or a listed curator",
+                "every section of the explainer is verified",
+                "approval key",
+                "explainer sign",
+            ),
+        ),
+        (
+            "faithful",
+            (
+                "/reviews/&lt;id&gt;/candidates",
+                "read_others",
+                "IsPrime",
+                "pair-proof",
+                "review-signer-wrote-candidate",
+                "independent signer",
             ),
         ),
         (

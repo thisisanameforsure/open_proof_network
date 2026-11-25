@@ -39,3 +39,13 @@ New pages, each fact checked against AGENTS.md: How a problem is worked, Claim a
 Corrected on the Leiden page: two claims that the home page carries counts, untrue since decisions v3.48.
 Not done (F34-Q22): "Sign an explainer" and "Check a statement is faithful" are not written; the reading
 page keeps its length. Site suite: 958 passed.
+
+Part two (the owner's word, 2026-11-25): Sign an explainer, Check a statement is faithful.
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/sign-explainer/index.html] PASSED [ 16%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/faithful/index.html] PASSED [ 33%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/sign-explainer/index.html] PASSED [ 50%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/faithful/index.html] PASSED [ 66%]
+site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[sign-explainer-facts1] PASSED [ 83%]
+site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[faithful-facts2] PASSED [100%]
+====================== 6 passed, 27 deselected in 40.95s =======================
+Red against 0e4ac9e6: task-7b-red.txt

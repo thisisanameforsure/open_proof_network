@@ -207,12 +207,14 @@ DOCS_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str | None, str], ...]], ...
             ("stewards", "Steward a problem", "docs-stewards.html", "D-32"),
             ("propose", "Propose a problem", "docs-propose.html", "D-6"),
             ("review", "How a statement is reviewed", "docs-review.html", "D-9"),
+            ("sign-explainer", "Sign an explainer", "docs-sign-explainer.html", "D-3, D-33"),
         ),
     ),
     (
         "Readers of Lean",
         (
             ("words", "Write the words for a statement", "docs-words.html", "D-3, D-19"),
+            ("faithful", "Check a statement is faithful", "docs-faithful.html", "D-9"),
             ("reading", "Read a proof page", "docs-reading.html", "D-3, D-25"),
         ),
     ),
@@ -6141,6 +6143,7 @@ class Renderer:
             "api_sentence": api_sentence,
             "index": self.docs_index(funnel),
             "agents_href": esc(self.agents_href),
+            "explainer_affirmation": esc(explainers.AFFIRMATION),
         }
         bodies: dict[str, str] = {}
         for _g, entries in DOCS_GROUPS:
