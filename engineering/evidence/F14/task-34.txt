@@ -1,0 +1,16 @@
+F14-T34 — the duplicate buchi-problem-m5 removed (2026-11-25, on the owner's word)
+
+graph #1903 imported FormalConjectures/Wikipedia/Buchi.lean#buchi_problem_M5 a second time, as
+buchi-problem-m5, after T25 changed the id rule; buchi-problem--m5 (#1616) is the first import.
+Before removal: the two Statement.lean files identical byte for byte (diff, no output); the
+duplicate carried no claim, attempt, attestation beyond its intake, or ledger line (git grep over
+origin/main: references only in the products frontier.json, info.json, targets/index.json and
+THIRD_PARTY_NOTICES.md, all regenerated). target-status/v2 has no status that withdraws a target
+(listed, active, resolved, dormant, known-result), so the owner's "remove" is a curator commit.
+
+graph f0c28ebcbc "F14-T34: remove buchi-problem-m5, a duplicate of buchi-problem--m5" (20 files,
+422 deletions); its gate run passed and the render it dispatched landed as 5671d6479a: the index
+lists 444 targets, buchi-problem and buchi-problem--m5 among them, and no product names
+buchi-problem-m5. The holders map (docs/lean_conjecture_holders.json) keeps the row on
+buchi-problem--m5, so no run drafts it again.
+Verification: `git -C ../open_proof_network_graph grep -c buchi-problem-m5 origin/main` finds nothing.
