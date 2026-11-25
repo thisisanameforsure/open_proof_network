@@ -112,7 +112,7 @@ def test_v2_labels_on_the_problem_page(pages: dict[str, str]) -> None:
     page = pages[f"problems/{STEWARDLESS_TARGET}/index.html"]
     card = page[page.index('<aside class="card steward-card">') :]
     card = card[: card.index("</aside>")]
-    section = page[page.index("<h2>Steward</h2>") :]
+    section = page[page.index('<h3 id="steward">Steward</h3>') :]  # F34-T11
     for where in (card, section):
         assert label_after(where, "Self Steward") == "self-admitted"
         assert label_after(where, "Reviewed Steward") == f"admitted by {CURATOR}"

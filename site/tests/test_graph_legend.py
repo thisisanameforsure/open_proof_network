@@ -61,7 +61,7 @@ def legend_words(html: str) -> list[str]:
 
 def test_the_key_is_inside_the_graph_card(tmp_path: Path) -> None:
     html = page(tmp_path)
-    head = re.search(r'<div class="section-head">(.*?)<div class="graph-grid">', html, re.S)
+    head = re.search(r'<div class="statements-head">(.*?)<div class="graph-grid">', html, re.S)
     assert head is not None
     assert "dot-proved" not in head.group(1), "the key still sits above the selected statement"
     assert "mini-legend" not in html

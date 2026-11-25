@@ -3083,8 +3083,8 @@ class Renderer:
             '<p class="sel-cue">Each set proves the problem or refutes it. Select a node or an '
             "edge to filter the drawing to that part of the proof; select it again to come "
             "back.</p>"
-            # F27-R13: the owner's toggle lives in the box that holds the sufficient-set tree
-            f"{picture.follow_toggle}</div>"
+            # F34-Q7: the follow-the-proof toggle is off the page (the owner, 2026-11-25)
+            "</div>"
             f"{picture.selector}{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
@@ -3131,6 +3131,11 @@ class Renderer:
             provenance=(f"{record_words(sentence(title))} " if title else "")
             + self.source_line(tv),
             stages=self.stage_marks(tv),
+            # F34-T11 (handoff §3.4.1): the head's kicker, mark and one sentence; the needs card
+            kicker=self.problem_kicker(tv),
+            stage_mark=self.stage_mark(tv),
+            head_sentence=self.head_sentence(tv),
+            needs=self.needs_card(tv),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
             registrations=self.registration_lines(tv),
@@ -3745,29 +3750,70 @@ class Renderer:
         return next(((sec, v) for sec, v in found if sec is not None and not sec.steps), found[0])
 
     def definitions_section(self, tv: TargetView) -> str:
-        """F20-T8 (R13): each definition module of the problem, its Lean and its gloss beside it.
-        Nothing for a problem with none, so such a page is unchanged."""
+        """F34-T11 (R19): each definition module of the problem linked, never printed, with its
+        words beside it (F20-R13's gloss), folded. The bulk load gave many problems every module
+        of their source, printed in full: 19,500px of Lean on abc, none of it abc's."""
         if not tv.definitions:
             return ""
         prefix = f"targets/{tv.target_id}/defs/"
-        blocks = []
+        items = []
         for f in tv.definitions:
             module = f.path.removeprefix(prefix)
-            blocks.append(
-                self.lean_artifact(
-                    f,
-                    what=module,
-                    provenance="a definition module the problem&rsquo;s statements import, "
-                    "content-hashed and changed only by a curator&rsquo;s revision (D-3, D-8).",
-                    label=self.provenance(
-                        "definition", "shared by every statement of this problem (D-3 defs/)."
-                    ),
-                    block="definition",
-                    pre_class="definition",
-                )
-                + self.gloss_slot(tv, "definition", f"defs/{module}", module=module)
+            items.append(
+                f"<li>{self.file_link(f.path, label=module)}"
+                f"{self.gloss_slot(tv, 'definition', f'defs/{module}', module=module)}</li>"
             )
-        return "<h2>Definitions</h2>\n" + "".join(blocks)
+        return (
+            f'<details class="defs"><summary>Shared definitions ({len(items)})</summary>'
+            '<p class="cue">Modules the problem\'s statements import, each a file in the graph; '
+            f'they change only by a curator\'s revision.</p><ul class="defs-list">{"".join(items)}'
+            "</ul></details>"
+        )
+
+    def problem_kicker(self, tv: TargetView) -> str:
+        """F34-T11: the small caps above the headline — the area, and the collection if any."""
+        parts = [topic_words(topic_of(tv.record))]
+        collection = collection_label(tv.record)
+        if collection:
+            parts.append(collection)
+        return esc(" · ".join(parts))
+
+    def head_sentence(self, tv: TargetView) -> str:
+        """F34-T11 (handoff §3.4.1): one sentence under the headline — who stewards the problem,
+        or what it lacks, and how many of its statements are open."""
+        open_ = self.open_count(tv)
+        count = f"{open_} statement{'' if open_ == 1 else 's'} open"
+        if tv.stewards:
+            names = ", ".join(self.steward_named(tv, s) for s in tv.stewards)
+            return f"Stewarded by {names}. {count}."
+        if tv.calibration:
+            return f"A calibration target: it takes no steward. {count}."
+        if self.takes_steward(tv):
+            href = esc(self.steward_path(tv.target_id))
+            return f'No steward yet (<a href="{href}">steward it</a>). {count}.'
+        return f"{count[0].upper()}{count[1:]}."
+
+    def needs_card(self, tv: TargetView) -> str:
+        """F34-T11 (R19; handoff §3.4.5): what a problem with no work on the record needs, each
+        with its way in; nothing for a problem with work."""
+        if self.has_work(tv):
+            return ""
+        tid = tv.target_id
+        review = (
+            f'<a href="{esc(self.target_path(tid))}review/">Its review →</a>'
+            if tv.review_records is not None
+            else '<a href="/docs/review/">How a statement is reviewed →</a>'
+        )
+        return (
+            '<div class="needs-card"><h3>What this problem needs</h3><ol>'
+            "<li><strong>A steward.</strong> A mathematician who will understand what comes of it "
+            f'and write it up. <a href="{esc(self.steward_path(tid))}">Steward this problem →</a>'
+            "</li><li><strong>A check that the Lean says the conjecture.</strong> Read the "
+            f"statement below against the problem's words. {review}</li>"
+            "<li><strong>A first attempt.</strong> Prove a statement, or write up where an "
+            'attempt stopped: both count. <a href="/docs/quick-start/">Start here →</a></li>'
+            "</ol></div>"
+        )
 
     @staticmethod
     def is_tutorial(tv: TargetView) -> bool:

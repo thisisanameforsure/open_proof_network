@@ -1,17 +1,23 @@
 <section class="problem-head">
 <div class="problem-head-main">
 <p class="crumbs"><a href="/problems/">Problems</a> / $target_id</p>
-<div class="problem-id-row"><h1 class="mono">$target_id</h1>$status_tag$fidelity_tag$review_state</div>
+<p class="kicker">$kicker</p>
 <p class="informal-big">$informal</p>
-<p class="provenance-line">$provenance</p>
-$stages
-$claimable$calibration$registrations
+<div class="problem-id-row"><h1 class="mono">$target_id</h1>$status_tag$stage_mark$fidelity_tag$review_state</div>
+<p class="head-sentence">$head_sentence</p>
+$claimable$calibration
 </div>
-$steward_card
+<aside class="margin-notes">
+<p class="provenance-line">$provenance</p>
+$registrations
+</aside>
 </section>
+<nav class="onpage" aria-label="On this page"><span>On this page:</span> <a href="#proof">Proof</a> · <a href="#statement">The statement and its review</a> · <a href="#people">Stewards, panel and write-up</a> · <a href="#known">What is known and tried</a> · <a href="#record">Record</a></nav>
 <section class="statements-section">
-<div class="section-head">
-<div><h2>Statements</h2><p class="cue">$count_words. The problem's own statement is the one selected when the page opens. A statement is drawn above the statements it depends on, so the pieces of its proof are below it and a variant that uses it is above it. Select one to see its record.</p></div>
+<h2 id="proof"><span class="sec">§1</span> Proof</h2>
+$needs
+<div class="statements-head">
+<p class="cue">$count_words. The problem's own statement is the one selected when the page opens. A statement is drawn above the statements it depends on, so the pieces of its proof are below it and a variant that uses it is above it. Select one to see its record.</p>
 </div>
 <div class="graph-grid">
 <div class="dag-wrap card"><div class="dag-legend">$legend</div><div class="graph-body"><div class="graph-main">$selector<div class="dag-scroll">$dag</div></div>$band</div><span class="dag-caption">labels drop the problem&rsquo;s own name (a pill&rsquo;s title has its full id); <span class="on-hover">hover</span><span class="on-touch">tap</span> a statement to light its lines; select a set in the tree above to see its tree here</span></div>
@@ -20,31 +26,37 @@ $panels
 </div>
 </div>
 $sets
-</section>
 $proved_in_words
+</section>
 <section class="detail">
-<h2>$digestion_heading, explained, written up</h2>
-$digestion
-<h2>Steward</h2>
-$stewards
-<div class="panel-writeup">
-<h2 id="panel">Panel</h2>
-$panel
-<h2 id="writeup">Write-up</h2>
-$writeup
-</div>
-<h2>Where the statement comes from</h2>
+<h2 id="statement"><span class="sec">§3</span> The statement and its review</h2>
 <p class="informal">$informal_full</p>
-$sources
 $qa_block
-<p>Fast check (<a href="$agents_href">POST /check</a>, non-authoritative): $fast_check. Rendered from $graph_link.</p>
 <p class="review">$review</p>
-<h2>Does the Lean say the conjecture?</h2>
-<p class="cue">What the mechanizable pass checked on each subject, who signed, the attempts that count, and whether the statement moved upstream.</p>
+<details class="qa-fold"><summary>Does the Lean say the conjecture? Quality checks by subject</summary>
 $qa
+</details>
 $definitions
-<h2>Approach records</h2>
+<h2 id="people"><span class="sec">§4</span> Stewards, panel and write-up</h2>
+$steward_card
+<h3 id="steward">Steward</h3>
+$stewards
+<h3 id="panel">Panel</h3>
+$panel
+<h3 id="writeup">Write-up</h3>
+$writeup
+<h2 id="known"><span class="sec">§5</span> What is known and tried</h2>
+<details class="known-fold"><summary>Approach records</summary>
 $approaches
-<h2>State of the problem</h2>
+</details>
+<details class="known-fold"><summary>State of the problem</summary>
 $note
+</details>
+<h2 id="record"><span class="sec">§6</span> Record</h2>
+<h3>$digestion_heading, explained, written up</h3>
+$stages
+$digestion
+<h3>Where the statement comes from</h3>
+$sources
+<p>Fast check (<a href="$agents_href">POST /check</a>, non-authoritative): $fast_check. Rendered from $graph_link.</p>
 </section>

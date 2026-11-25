@@ -119,10 +119,16 @@ def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> Non
                 or 'data-block="informal"' in slot
             ), (rel, file)
     # Every kind is printed somewhere: statements on node pages, panels and the reading view, a
-    # witness and a relation on node pages, a definition module on the problem page.
-    assert seen.keys() == {"statement", "witness", "relation", "definition"}, seen.keys()
+    # witness and a relation on node pages. F34-T11 (R19): a definition module is linked, never
+    # printed, and its gloss slot sits beside the link in the problem page's folded list.
+    assert seen.keys() == {"statement", "witness", "relation"}, seen.keys()
     problem = pages[f"problems/{TARGET}/index.html"]
-    assert seen["definition"] == {f"problems/{TARGET}/index.html"}
+    def_list = re.search(r'<ul class="defs-list">(.*?)</ul></details>', problem, re.S)
+    assert def_list is not None
+    items = re.findall(r"<li>(.*?)</li>", def_list.group(1), re.S)
+    assert items
+    for item in items:
+        assert 'data-block="gloss"' in item or "No gloss yet" in item, item[:200]
     assert any("/proofs/" in rel for rel in seen["statement"])
 
     # The tutorial's statement: the revision is current (written, then signed), the second chain
@@ -147,10 +153,11 @@ def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> Non
     assert escape(gf.RELATION_GLOSS) in variant
     assert f"machine-drafted by {gf.DRAFTER['model']}" in variant
 
-    # The definition module is printed on its problem page with its gloss.
+    # The definition module is linked on its problem page with its gloss (F34-T11, R19: linked,
+    # never printed — its Lean is one click away in the graph).
     defs = slot_of(problem, f"{TARGET}/defs/{gf.MODULE}")
     assert escape(gf.DEFINITION_GLOSS) in defs and "written by carol" in defs
-    assert "Opn.fact" in problem
+    assert "Opn.fact" not in problem and f"/defs/{gf.MODULE}" in problem
 
     # The curated root: its informal statement of record first, the steward's gloss after it,
     # labelled unverified — on its node page and in its selected-statement card.

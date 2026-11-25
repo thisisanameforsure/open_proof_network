@@ -1,0 +1,27 @@
+F34-T11 — the problem page in the handoff's order (R13, R19; handoff §3.4.1, §3.4.5)
+
+Red run (task-11-red.txt): 7 failed, 4 passed — the nothing-dropped guard green before the change, as it must be.
+
+Green:
+11 passed in 2.49s
+
+Restated (not deleted), each to the element that now carries the fact:
+  test_finding_resolution_words (heading is an h3 under §6), test_graph_legend (statements-head),
+  test_panel_pages (panel/write-up h3s under §4), test_steward_labels (Steward h3; head sentence names
+  stewards with their admission label, R14), test_glosses (definitions linked never printed, R19),
+  test_one_view_markup (follow toggle off the page, Q7), goldens regenerated.
+
+Page heights on the live graph at 257feba2, rendered before (HEAD) and after (heights11.py):
+{"page": "abc", "width": 1440, "before": {"h": 20069, "w": 1440}, "after": {"h": 3463, "w": 1440}}
+{"page": "abc", "width": 390, "before": {"h": 22881, "w": 390}, "after": {"h": 5017, "w": 390}}
+{"page": "erdos-257", "width": 1440, "before": {"h": 7773, "w": 1440}, "after": {"h": 7322, "w": 1440}}
+{"page": "erdos-257", "width": 390, "before": {"h": 17558, "w": 390}, "after": {"h": 16453, "w": 390}}
+{"page": "erdos-1094", "width": 1440, "before": {"h": 28758, "w": 1440}, "after": {"h": 28365, "w": 1440}}
+{"page": "erdos-1094", "width": 390, "before": {"h": 113776, "w": 390}, "after": {"h": 112869, "w": 390}}
+{"page": "singmaster", "width": 1440, "before": {"h": 18311, "w": 1440}, "after": {"h": 3838, "w": 1440}}
+{"page": "singmaster", "width": 390, "before": {"h": 21454, "w": 390}, "after": {"h": 5696, "w": 390}}
+{"page": "goldbach", "width": 1440, "before": {"h": 3400, "w": 1440}, "after": {"h": 3315, "w": 1440}}
+{"page": "goldbach", "width": 390, "before": {"h": 5201, "w": 390}, "after": {"h": 4884, "w": 390}}
+
+erdos-1094 is unchanged in length: its height is the routes and panels, T12/T17.
+Captures: task-11-{abc,erdos-257}-{light,dark}-{1440,390}.png; no page scrolls sideways at 390.

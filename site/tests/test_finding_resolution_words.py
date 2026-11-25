@@ -79,8 +79,9 @@ def test_a_problem_settled_against_its_statement_does_not_read_proved(
     assert "Proved:" not in page and "is proved but not explained" not in page
     assert f"{word.capitalize()}:" in page
     assert f"is {word} but not explained" in page
-    assert "<h2>Proved, explained, written up</h2>" not in page
-    assert f"<h2>{word.capitalize()}, explained, written up</h2>" in page
+    # F34-T11: the heading sits under §6 Record now, an h3
+    assert "<h3>Proved, explained, written up</h3>" not in page
+    assert f"<h3>{word.capitalize()}, explained, written up</h3>" in page
 
 
 def test_each_resolution_says_what_is_on_the_record(built: tuple[Path, dict[str, str]]) -> None:

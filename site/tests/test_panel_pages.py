@@ -48,7 +48,8 @@ def pages(root: Path) -> dict[str, str]:
 
 
 def section(page: str, sid: str) -> str:
-    start = page.index(f'<h2 id="{sid}">')
+    # F34-T11: the panel and the write-up are h3s under §4 now
+    start = page.index(f'<h3 id="{sid}">')
     end = page.find("<h2", start + 1)
     return page[start : end if end >= 0 else len(page)]
 
