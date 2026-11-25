@@ -1,0 +1,38 @@
+Measured 2026-11-25 from raw.githubusercontent.com/thisisanameforsure/open_proof_network_graph/main/targets/<t>/glosses.json for all 444 targets in targets/index.json (read-only GETs).
+Every record object carrying drafted_with; regex ^.+ \(.+\)$
+records 800 null 8 non-null 792 match 503 no match 289
+non-matching values by count:
+    67  'claude-opus-5-5'
+    49  'Claude Opus 5.5'
+    41  'claude-fable-5-1'
+    18  'Claude Opus 5.5 (claude-opus-5-5) in a Claude Code agent session'
+    17  'claude-opus-5-5 via Claude Code'
+    15  'Claude Opus 5.5 (Anthropic) via Claude Code, tester agent W4'
+    12  'Claude Opus 5.5 (claude-opus-5-5) via Claude Code, as an agent'
+    12  'Claude Opus 5.5 (claude-opus-5-5), read by thisisanameforsure before submission'
+    10  'claude-fable-5-2'
+     7  'Claude Opus 5.5 as agent t1008-c'
+     7  'Claude Opus 5.5 via Claude Code'
+     7  'Claude Opus 5.5 (claude-opus-5-5) through Claude Code'
+     6  'claude-opus-5-5, claude-fable-5-2'
+     4  'claude-fable-5-2 via Claude Code'
+     4  'Claude Fable 5.1'
+     2  'Claude Fable 5.1 as tester agent t1009-c'
+     2  'Claude Opus 5.5 (claude-opus-5-5) as agent t1009-a'
+     2  'Claude Opus 5.5 (claude-opus-5-5); words by t1022-f, filed by t1023-f3'
+     2  'Claude Opus 5.5 (claude-opus-5-5); words by t1022-g, filed by t1023-f3'
+     1  "Claude Opus 5.5 (agent t1022-o); Erdős-1948 helpers from t1022-c's Aristotle proof of variant-2f5236aa"
+     1  'Claude Opus 5.5 (claude-opus-5-5); words by t1022-j, filed by t1023-f3'
+     1  'Claude Opus 5.5 (claude-opus-5-5); Aristotle (Harmonic) for Lemma 5.2'
+     1  'Claude Opus 5.5 (claude-opus-5-5); words by t1022-l, filed by t1023-f3'
+     1  'anthropic/claude-opus-5.5 via Claude Code'
+matching values by count:
+   272  'Claude Fable 5.1 (claude-fable-5-1)'
+   114  'Claude Opus 5.5 (claude-opus-5-5)'
+   100  'Claude Fable 5.2 (claude-fable-5-2)'
+     6  'claude-opus-5-5 via Claude Code (agent t1026e-c)'
+     6  'claude-opus-5-5 via Claude Code (Claude Agent SDK)'
+     2  'Claude Opus 5.5 (agent t1022-f, Claude Code)'
+     1  'claude-fable-5-2 (agent, Claude Code)'
+     1  'Claude Opus 5.5 (agent t1022-t)'
+     1  'claude-opus-5-5 via Claude Code (agent t1028-a)'

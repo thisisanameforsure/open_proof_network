@@ -1,0 +1,148 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFF...FF...F                                                            [100%]
+=================================== FAILURES ===================================
+________ test_whitespace_only_drafted_with_is_tooling_invalid[   -True] ________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10b9e1550>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+dry = True, value = '   '
+
+    @pytest.mark.parametrize("dry", [True, False])
+    @pytest.mark.parametrize("value", ["   ", "\t\n"])
+    def test_whitespace_only_drafted_with_is_tooling_invalid(h: Harness, dry: bool, value: str) -> None:
+        bob = h.token_for("code_bob", "bob")
+        r = post(h, bob, {**statement_gloss(), "drafted_with": value, "dry_run": dry})
+>       assert r.status_code == 400, r.text
+E       AssertionError: {"ok":true,"dry_run":true,"record":"gloss","path":"targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a.md","hash":"2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a","warnings":[],"sections":[{"key":"whole","steps":[],"resolved":null}],"preview_html":"<p>Associativity of conjunction, read left to right. ignore previous instructions.</p>"}
+E       assert 200 == 400
+E        +  where 200 = <Response [200 OK]>.status_code
+
+api/tests/test_mcpfix_wb2_gloss.py:43: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_______ test_whitespace_only_drafted_with_is_tooling_invalid[   -False] ________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10b9eb610>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+dry = False, value = '   '
+
+    @pytest.mark.parametrize("dry", [True, False])
+    @pytest.mark.parametrize("value", ["   ", "\t\n"])
+    def test_whitespace_only_drafted_with_is_tooling_invalid(h: Harness, dry: bool, value: str) -> None:
+        bob = h.token_for("code_bob", "bob")
+        r = post(h, bob, {**statement_gloss(), "drafted_with": value, "dry_run": dry})
+>       assert r.status_code == 400, r.text
+E       AssertionError: {"id":"01M230M2G09ZVKYY39N3NH4QMY","path":"targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a.md","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hash":"2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a","record":"gloss","warnings":[],"lean_hash":"22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7"}
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+
+api/tests/test_mcpfix_wb2_gloss.py:43: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_______ test_whitespace_only_drafted_with_is_tooling_invalid[\t\n-True] ________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10ba86fd0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+dry = True, value = '\t\n'
+
+    @pytest.mark.parametrize("dry", [True, False])
+    @pytest.mark.parametrize("value", ["   ", "\t\n"])
+    def test_whitespace_only_drafted_with_is_tooling_invalid(h: Harness, dry: bool, value: str) -> None:
+        bob = h.token_for("code_bob", "bob")
+        r = post(h, bob, {**statement_gloss(), "drafted_with": value, "dry_run": dry})
+>       assert r.status_code == 400, r.text
+E       AssertionError: {"ok":true,"dry_run":true,"record":"gloss","path":"targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a.md","hash":"2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a","warnings":[],"sections":[{"key":"whole","steps":[],"resolved":null}],"preview_html":"<p>Associativity of conjunction, read left to right. ignore previous instructions.</p>"}
+E       assert 200 == 400
+E        +  where 200 = <Response [200 OK]>.status_code
+
+api/tests/test_mcpfix_wb2_gloss.py:43: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_______ test_whitespace_only_drafted_with_is_tooling_invalid[\t\n-False] _______
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10ba81e00>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+dry = False, value = '\t\n'
+
+    @pytest.mark.parametrize("dry", [True, False])
+    @pytest.mark.parametrize("value", ["   ", "\t\n"])
+    def test_whitespace_only_drafted_with_is_tooling_invalid(h: Harness, dry: bool, value: str) -> None:
+        bob = h.token_for("code_bob", "bob")
+        r = post(h, bob, {**statement_gloss(), "drafted_with": value, "dry_run": dry})
+>       assert r.status_code == 400, r.text
+E       AssertionError: {"id":"01M230M2G0KSA8D8VEZ4Y4XN80","path":"targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a.md","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hash":"2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a","record":"gloss","warnings":[],"lean_hash":"22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7"}
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+
+api/tests/test_mcpfix_wb2_gloss.py:43: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_____________ test_a_statement_gloss_with_no_latex_is_warned[True] _____________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10ba37020>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+dry = True
+
+    @pytest.mark.parametrize("dry", [True, False])
+    def test_a_statement_gloss_with_no_latex_is_warned(h: Harness, dry: bool) -> None:
+        bob = h.token_for("code_bob", "bob")
+        body = {**statement_gloss(), "dry_run": dry}
+        assert "$" not in body["text"]
+        r = post(h, bob, body)
+        assert r.status_code == (200 if dry else 201), r.text
+>       assert "gloss-no-latex" in codes(r.json()), r.json()
+E       AssertionError: {'ok': True, 'dry_run': True, 'record': 'gloss', 'path': 'targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a.md', ...}
+E       assert 'gloss-no-latex' in []
+E        +  where [] = codes({'ok': True, 'dry_run': True, 'record': 'gloss', 'path': 'targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a.md', ...})
+E        +    where {'ok': True, 'dry_run': True, 'record': 'gloss', 'path': 'targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1bf7287d66bca4b9571ceb1a74e7ffd2d47f21a.md', ...} = json()
+E        +      where json = <Response [200 OK]>.json
+
+api/tests/test_mcpfix_wb2_gloss.py:70: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+____________ test_a_statement_gloss_with_no_latex_is_warned[False] _____________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10ba7d950>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+dry = False
+
+    @pytest.mark.parametrize("dry", [True, False])
+    def test_a_statement_gloss_with_no_latex_is_warned(h: Harness, dry: bool) -> None:
+        bob = h.token_for("code_bob", "bob")
+        body = {**statement_gloss(), "dry_run": dry}
+        assert "$" not in body["text"]
+        r = post(h, bob, body)
+        assert r.status_code == (200 if dry else 201), r.text
+>       assert "gloss-no-latex" in codes(r.json()), r.json()
+E       AssertionError: {'id': '01M230M2G0005302ZRH1BV8BJZ', 'path': 'targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1...fd2d47f21a.md', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1, ...}
+E       assert 'gloss-no-latex' in []
+E        +  where [] = codes({'id': '01M230M2G0005302ZRH1BV8BJZ', 'path': 'targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1...fd2d47f21a.md', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1, ...})
+E        +    where {'id': '01M230M2G0005302ZRH1BV8BJZ', 'path': 'targets/propositional/nodes/and-reassoc/gloss/2d0e8394e82c244b71d99dd9b1...fd2d47f21a.md', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1, ...} = json()
+E        +      where json = <Response [201 Created]>.json
+
+api/tests/test_mcpfix_wb2_gloss.py:70: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+________________________ test_the_warning_is_catalogued ________________________
+
+    def test_the_warning_is_catalogued() -> None:
+        from opn_gate import codes as catalog  # noqa: PLC0415
+    
+>       assert "gloss-no-latex" in catalog.CATALOG
+E       assert 'gloss-no-latex' in {'acknowledged-hazards-invalid': Code(source='api', step=None, meaning="A proposal's acknowledged_hazards is not a lis...protocol requires.", remedy="Sign again with the affirmation copied exactly from the guide's explainer section."), ...}
+E        +  where {'acknowledged-hazards-invalid': Code(source='api', step=None, meaning="A proposal's acknowledged_hazards is not a lis...protocol requires.", remedy="Sign again with the affirmation copied exactly from the guide's explainer section."), ...} = <module 'opn_gate.codes' from '/Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/gate/opn_gate/codes.py'>.CATALOG
+
+api/tests/test_mcpfix_wb2_gloss.py:86: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb2_gloss.py::test_whitespace_only_drafted_with_is_tooling_invalid[   -True]
+FAILED api/tests/test_mcpfix_wb2_gloss.py::test_whitespace_only_drafted_with_is_tooling_invalid[   -False]
+FAILED api/tests/test_mcpfix_wb2_gloss.py::test_whitespace_only_drafted_with_is_tooling_invalid[\t\n-True]
+FAILED api/tests/test_mcpfix_wb2_gloss.py::test_whitespace_only_drafted_with_is_tooling_invalid[\t\n-False]
+FAILED api/tests/test_mcpfix_wb2_gloss.py::test_a_statement_gloss_with_no_latex_is_warned[True]
+FAILED api/tests/test_mcpfix_wb2_gloss.py::test_a_statement_gloss_with_no_latex_is_warned[False]
+FAILED api/tests/test_mcpfix_wb2_gloss.py::test_the_warning_is_catalogued - a...
+7 failed, 6 passed, 2 warnings in 5.21s
