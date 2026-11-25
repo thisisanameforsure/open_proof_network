@@ -156,14 +156,17 @@ operator (v3.51) and its one-time backfill.</p>
     most urgent first, and shall approve every unapproved section of one statement's words with one
     act (one <code>POST /approvals</code> per version carrying its sections).</td></tr>
   <tr><td>F34-R21 <em>(v3.51)</em></td><td>A listed curator may append an operator record naming
-    one operator pseudonym and the ledger identities that are theirs, with a reason; no ledger file is
-    changed; an identity belongs to at most one operator; a withdrawal record (D-18 v3.27) sets one
-    aside.</td></tr>
-  <tr><td>F34-R22 <em>(v3.51)</em></td><td>Where operator records exist, the Contributors page
-    shall group each linked identity's entries under its operator; an identity no record names stands
-    as its own operator.</td></tr>
-  <tr><td>F34-R23 <em>(v3.51)</em></td><td>Where an operator has recorded a display
-    name (D-3 v3.37), the Contributors page may show it beside the pseudonym.</td></tr>
+    one operator pseudonym, the ledger identities that are theirs, and a reason; the newest record for
+    an operator is the one read, and one with no identities releases them; no ledger file is changed;
+    an identity belongs to at most one operator.</td></tr>
+  <tr><td>F34-R22 <em>(v3.51)</em></td><td>A display-name record may carry the GitHub login its
+    pseudonym is paired with, written only by the service from its own record of the pairing: when an
+    identity is first made through GitHub (the sign-in having said the link will be public), and for an
+    identity paired before, only when its holder asks.</td></tr>
+  <tr><td>F34-R23 <em>(v3.51)</em></td><td>The Contributors page shall list identities, with their
+    agents' work, under their operator: the identities an operator record names, and those whose
+    display-name records carry the same GitHub login; an identity neither groups stands alone. It may
+    show the display name an identity recorded.</td></tr>
 </table>
 
 <h2>5. Acceptance criteria</h2>
@@ -315,23 +318,26 @@ operator (v3.51) and its one-time backfill.</p>
     already takes a <code>sections</code> list per version, so R20 needs no api change: <code>words.js</code>
     sends one request per version instead of one per section. Checked in <code>api/opn_api/approvals.py</code>
     on 2026-11-25.</td></tr>
-  <tr><td>F34-Q9</td><td><strong>Crediting the operator: the amendment, v3.51, approved by the owner
-    2026-11-25 as drafted, both parts.</strong> The doc text lands with T13's code, because
-    <code>test_finding_protocol_version</code> holds the doc's version to <code>PROTOCOL_VERSION</code>. The owner (2026-11-25): agent pseudonyms are not important, the agents under the
-    person are; every agent run so far was his, and the backfill may assume so. What stays necessary: a
-    record on the graph saying so, because the site is rebuilt from the graph and must not hold a grouping
-    the record does not (AGENTS.md: nothing here becomes a second source of truth). Drafted words, for
-    D-19: <em>&ldquo;v3.51 &mdash; operator records. A listed curator may append
-    <code>operators/&lt;pseudonym&gt;/&lt;timestamp&gt;-&lt;curator&gt;.yaml</code>, naming an operator
-    pseudonym, ledger identities that are theirs, and a reason. No ledger entry is changed; an identity
-    belongs to at most one operator; a withdrawal (v3.27) sets a record aside. The site credits a linked
-    identity's entries to its operator. An operator who runs many agents should use one pseudonym; this
-    record exists for the identities made before that was said.&rdquo;</em> Optionally, for D-3 v3.37:
-    <em>&ldquo;the site may show the display name an identity recorded beside its pseudonym.&rdquo;</em>
-    Considered and not proposed: v3.27's credit corrections, which would revoke and rewrite all 461
-    entries (each then shown &ldquo;revoked&rdquo;); a merge route with token proof, unneeded while one
-    operator has more than one pseudonym, and impossible for most old identities, whose tokens lapsed or
-    were lost.</td></tr>
+  <tr><td>F34-Q9</td><td><strong>Crediting the operator: the amendment, v3.51, as the owner ruled
+    on 2026-11-25.</strong> Approved first as drafted (a curator's operator record, undone by a
+    withdrawal), then revised the same day on three rulings: &ldquo;list agents under that user's
+    name&rdquo;; &ldquo;newest record wins&rdquo; rather than a withdrawal (the owner chose it over
+    extending <code>withdrawal/v2</code> to records outside a target); and option (a) for GitHub, the
+    link published from now on with a notice at sign-in and an existing GitHub identity asked first.
+    Words for D-19: <em>&ldquo;v3.51 &mdash; operators. (i) A listed curator may append
+    <code>operators/&lt;pseudonym&gt;/&lt;timestamp&gt;-&lt;curator&gt;.yaml</code> naming an operator
+    pseudonym, ledger identities that are theirs and a reason; the newest such record for an operator is
+    the one read, a record with no identities releases them, no ledger entry is changed, and an identity
+    belongs to at most one operator. (ii) A pseudonym's display-name record (D-3 v3.37) may carry the
+    GitHub login the pseudonym is paired with, filled by the service from its own record of the pairing
+    and never from the request: the service files it when an identity is first made through GitHub,
+    having said so at sign-in, and for an identity paired before this only when its holder asks.
+    (iii) The site credits identities under their operator, those an operator record names and those
+    whose display-name records carry the same GitHub login, and may show a display name an identity
+    recorded.&rdquo;</em> The doc text lands with T13's code, because
+    <code>test_finding_protocol_version</code> holds the doc's version to <code>PROTOCOL_VERSION</code>.
+    Considered and not proposed: v3.27's credit corrections (they would revoke and rewrite all 461
+    entries); a merge route with token proof (unneeded while one operator has several pseudonyms).</td></tr>
   <tr><td>F34-Q10</td><td><strong>No run label.</strong> The owner ruled run names unimportant; the
     tools and models are already in each entry's <code>automation</code> (ledger/v2), so no ledger/v3.</td></tr>
   <tr><td>F34-Q11</td><td><strong>The backfill links every identity, testers included.</strong> All
@@ -421,7 +427,8 @@ operator (v3.51) and its one-time backfill.</p>
     numbers included, so the page reads exactly as <code>GET /errors.json</code> does; it is the
     one Docs page the codes rule (R6) does not hold. MCP operations and rate limits are pointed at
     (the service's <code>search</code>, AGENTS.md) rather than copied.</td></tr>
-  <tr><td>F34-Q24</td><td><strong>No &ldquo;GitHub linked&rdquo; badge or filter (T9).</strong> The mockup
+  <tr><td>F34-Q24</td><td><strong>No &ldquo;GitHub linked&rdquo; badge or filter (T9); the owner's
+    answer, 2026-11-25: track contributors by GitHub, built by v3.51 (ii) and T13, T14, T23.</strong> The mockup
     marks each person GitHub-linked or anonymous and filters on it. Whether an identity proved itself
     with GitHub is in the service's token store, not on the graph, so the site cannot say it from the
     record (D-35: nothing here becomes a second source of truth). The cards carry neither; if the owner
@@ -431,7 +438,7 @@ operator (v3.51) and its one-time backfill.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> specced 2026-11-25 · <strong>Tasks:</strong> T1 done (tokens, fonts, frame: 11 new tests, two restated (Q16), goldens
+<div class="rule"><strong>status:</strong> specced 2026-11-25 · <strong>Tasks:</strong> (23 tasks; T13&ndash;T15 and T23 are v3.51) T1 done (tokens, fonts, frame: 11 new tests, two restated (Q16), goldens
 regenerated; <code>engineering/evidence/F34/task-1.txt</code>, 26 captures) · T2 done (raw TeX and
 markers: 9 new tests, the live scan from six kinds of hit to the two authored ones of Q17;
 <code>task-2.txt</code>) · T3 done (phone and Rules layout: 18 browser checks; every live page at 390,
@@ -509,15 +516,16 @@ first, then green; <code>make verify</code>; captures at 1440 and 390 for visual
     <td><code>site/opn_site/{render.py,one_view.py,routes_view.py,dag.py,static/graph.js}</code>,
     <code>site/tests/test_f34_routes.py</code></td>
     <td>T11</td><td><code>uv run --frozen pytest site/tests/test_f34_routes.py</code></td></tr>
-  <tr><td>F34-T13 <em>(v3.51)</em></td><td>Apply the amendment to the decisions doc as approved, and the
-    gate's operator record: schema <code>operator/v1</code>, the path role, curator mode, refusals
-    (R21).</td>
+  <tr><td>F34-T13 <em>(v3.51)</em></td><td>Apply the amendment to the decisions doc, and the gate's
+    two records: <code>operator/v1</code> (path role, curator mode, newest-wins reading, an identity
+    held by one operator) and <code>display-name/v2</code> with the GitHub login (written by the
+    service only) (R21, R22).</td>
     <td><code>docs/architecture_decisions.html</code>, <code>gate/schemas/operator/v1.json</code>,
     <code>gate/schemas/HASHES</code>, <code>gate/opn_gate/{paths,modes}.py</code>,
     <code>gate/tests/test_f34_operator_record.py</code>, goldens</td>
     <td>&mdash;</td><td><code>uv run --frozen pytest gate/tests/test_f34_operator_record.py</code></td></tr>
-  <tr><td>F34-T14 <em>(v3.51)</em></td><td>Contributors groups by operator record (R22, and R23 if
-    approved).</td>
+  <tr><td>F34-T14 <em>(v3.51)</em></td><td>Contributors lists identities under their operator, by
+    operator record and by GitHub login, with display names (R23).</td>
     <td><code>gate/opn_gate/ledger.py</code>, <code>site/opn_site/render.py</code>,
     <code>site/tests/test_f34_contributors.py</code></td>
     <td>T9, T13</td><td><code>uv run --frozen pytest site/tests/test_f34_contributors.py</code></td></tr>
@@ -555,6 +563,12 @@ first, then green; <code>make verify</code>; captures at 1440 and 390 for visual
     the api, never the site), the live pages captured.</td>
     <td>&mdash;</td><td>T21</td><td><code>engineering/evidence/F34/task-22.txt</code>: run ids and live
     captures</td></tr>
+  <tr><td>F34-T23 <em>(v3.51)</em></td><td>The service files the GitHub link (R22): at an identity's
+    first GitHub token, after the sign-in says so; for an existing GitHub identity, when its holder asks
+    from My problems (<code>POST /me/name</code> with the link).</td>
+    <td><code>api/opn_api/{identity,names}.py</code>, <code>site/opn_site/static/me.js</code>,
+    <code>api/tests/test_f34_github_link.py</code></td>
+    <td>T13</td><td><code>uv run --frozen pytest api/tests/test_f34_github_link.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F34 spec v1 · 2026-11-25 · specs are authored in HTML</footer>
