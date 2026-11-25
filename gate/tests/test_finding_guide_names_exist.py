@@ -26,8 +26,6 @@ import json
 import re
 from pathlib import Path
 
-import pytest
-
 from opn_api import config, pending, racers, routes, withdraw
 from opn_api.mcp import server
 from opn_gate import codes
@@ -123,18 +121,9 @@ def test_every_tool_the_guide_names_is_a_tool() -> None:
     assert not stale, f"tools the guide names that the MCP server lacks: {sorted(stale)}"
 
 
-#: Tools whose appendix row the lead writes into gate/agents/AGENTS.md (mcpfix WA1).
-APPENDIX_PENDING = frozenset({"accept_dco"})
-
-
 def test_the_appendix_has_a_row_for_every_tool() -> None:
-    missing = set(server.BY_NAME) - appendix_tools() - APPENDIX_PENDING
+    missing = set(server.BY_NAME) - appendix_tools()
     assert not missing, f"MCP tools with no appendix row: {sorted(missing)}"
-
-
-@pytest.mark.xfail(strict=True, reason="lead adds the guide's appendix row for accept_dco")
-def test_the_appendix_has_a_row_for_accept_dco() -> None:
-    assert appendix_tools() >= APPENDIX_PENDING
 
 
 def test_every_status_and_code_the_guide_names_is_in_the_catalog() -> None:

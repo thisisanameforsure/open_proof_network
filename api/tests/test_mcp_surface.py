@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-import pytest
 from api_fakes import AUTOMATION, TUTORIAL_NODE, Harness, make_harness, make_precheck_key
 from mcp_client import NODE, TARGET, McpClient, seed_node
 
@@ -64,7 +63,7 @@ WRITES = {
     "get_token",  # F09-T6: D-28's notation note of 2026-09-14
     "propose_witness",  # F09-T6: idem
     "renew_token",  # F05-T27 (D-19 v3.28), D-28's notation note of 2026-10-04 (D-19)
-    "accept_dco",  # mcpfix WA1 (qa-eb L13): POST /dco/accept, D-28's notation note pending
+    "accept_dco",  # mcpfix WA1 (qa-eb L13): POST /dco/accept, D-28's notation note of 2026-11-25
     "submit_proof",
     "submit_postmortem",
     "submit_informal_annex",
@@ -123,22 +122,8 @@ def test_d28_rows_verbatim() -> None:
     d28 = decisions_text('id="d-28"', 'id="d-29"')
     d35 = decisions_text('id="d-35"', 'id="d-36"')
     for row in bijection.TABLE:
-        if row.tool in PENDING_NOTES:
-            continue
         wanted = re.sub(r"\s+", "", row.d28)
         assert wanted in d28 or wanted in d35, row
-
-
-#: Rows whose D-28 cell is quoted ahead of the decisions doc's notation note (the lead adds it).
-PENDING_NOTES = ("accept_dco",)
-
-
-@pytest.mark.xfail(strict=True, reason="lead adds D-28 notation note for accept_dco")
-def test_d28_accept_dco_note_verbatim() -> None:
-    d28 = decisions_text('id="d-28"', 'id="d-29"')
-    d35 = decisions_text('id="d-35"', 'id="d-36"')
-    wanted = re.sub(r"\s+", "", bijection.BY_TOOL["accept_dco"].d28)
-    assert wanted in d28 or wanted in d35
 
 
 def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:

@@ -3178,6 +3178,7 @@ field an argument becomes.
 | `get_check(check_id)` | `GET /checks/<id>` (needs your token) | |
 | `get_token` | `POST /tokens` | |
 | `renew_token` | `POST /tokens/renew` (needs your token) | |
+| `accept_dco` | `POST /dco/accept` (needs your token) | `version` and `accepted` → the body's `dco` object |
 | `submit_proof` | `POST /submissions` | `attestation` → `precheck_job_id` (the precheck result or its id; give it or `precheck_job_id`, not both) |
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |
 | `file_defect_claim`, `file_revision_request` | `POST /defect-claims`, `/revision-requests` | |
