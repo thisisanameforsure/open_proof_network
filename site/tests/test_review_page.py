@@ -44,7 +44,8 @@ PAGE = f"problems/{TARGET}/review/index.html"
 PROBLEM = f"problems/{TARGET}/index.html"
 # F34-T19 (handoff §3.5): the questions first, then the exhibits (folded), then the signatures
 SECTIONS = ("questions", "candidates", "pairs", "tests", "screens", "signatures")
-STATE_LINE = 'class="tag tag-outline review-state"'
+#: F34-T29: the review's state is a sentence of the head's note, no longer a badge
+STATE_LINE = 'class="review-note"'
 
 
 class _Text(HTMLParser):
@@ -84,8 +85,14 @@ def section(page: str, sid: str) -> str:
 
 
 def state_line(page: str) -> str | None:
-    m = re.search(r'<a class="tag tag-outline review-state" href="([^"]+)">(.*?)</a>', page, re.S)
-    return None if m is None else text_of(m.group(2))
+    """F34-T29: the review's sentence in the head's note ("Its review ..."), or ``None``."""
+    m = re.search(r'<div class="review-note" role="note">(.*?)</div>', page, re.S)
+    if m is None:
+        return None
+    words = text_of(m.group(1))
+    if "Its review" not in words:
+        return None
+    return words[words.index("Its review") :].removesuffix("Open the review →").strip()
 
 
 @pytest.fixture(scope="module")
@@ -336,15 +343,14 @@ def test_the_target_page_shows_the_state_beside_the_grade_linking_the_review(
     pages: dict[str, str],
 ) -> None:
     head = pages[PROBLEM]
-    row = head[
-        head.index('<div class="problem-id-row">') : head.index(
-            "</div>", head.index('<div class="problem-id-row">')
-        )
-    ]
+    # F34-T29: the state is a sentence of the head's note, with the way to the review
+    row = head[head.index('<section class="problem-head">') : head.index("</section>")]
     assert STATE_LINE in row
     # T2's derivation (merged after this test was written): two survivors in one cluster.
-    assert state_line(head) == "review: 4 candidates, 1 cluster, 1 question waiting"
-    assert f'href="/problems/{TARGET}/review/"' in row
+    assert (
+        state_line(head) == "Its review is under way: 4 candidates, 1 cluster, 1 question waiting."
+    )
+    assert f'href="/problems/{TARGET}/review/">Open the review →</a>' in row
 
 
 @pytest.mark.parametrize(
@@ -352,11 +358,11 @@ def test_the_target_page_shows_the_state_beside_the_grade_linking_the_review(
     [
         (
             {"state": "open", "candidates": 6, "clusters": 1, "questions_waiting": 2},
-            "review: 6 candidates, 1 cluster, 2 questions waiting",
+            "Its review is under way: 6 candidates, 1 cluster, 2 questions waiting.",
         ),
         (
             {"state": "open", "candidates": 1, "clusters": 1, "questions_waiting": 0},
-            "review: 1 candidate, 1 cluster, no question waiting",
+            "Its review is under way: 1 candidate, 1 cluster, no question waiting.",
         ),
         (
             {
@@ -365,11 +371,11 @@ def test_the_target_page_shows_the_state_beside_the_grade_linking_the_review(
                 "clusters": 1,
                 "questions_waiting": 2,
             },
-            "review: needs an intent signer · 3 candidates, 1 cluster, 2 questions waiting",
+            "Its review waits for the intent signer: 2 questions.",
         ),
         (
             {"state": "complete", "candidates": 4, "clusters": 1, "questions_waiting": 0},
-            "review: complete · 4 candidates, 1 cluster",
+            "Its review is complete.",
         ),
     ],
 )
@@ -385,7 +391,7 @@ def test_the_state_line_words_for_each_state(
 def test_a_target_with_no_review_shows_nothing(tmp_path_factory: pytest.TempPathFactory) -> None:
     root = fixture.build(tmp_path_factory.mktemp("none"))
     pages = render.render_site(model.load_site(root, COMMIT), repo_url=REPO)
-    assert STATE_LINE not in pages[PROBLEM] and PAGE not in pages
+    assert state_line(pages[PROBLEM]) is None and PAGE not in pages
 
 
 def test_an_older_graph_json_renders_with_no_line(
@@ -394,7 +400,7 @@ def test_an_older_graph_json_renders_with_no_line(
     root = fixture.build_with_review(tmp_path_factory.mktemp("older"))
     fixture.publish_v8(root)
     pages = render.render_site(model.load_site(root, COMMIT), repo_url=REPO)
-    assert STATE_LINE not in pages[PROBLEM]
+    assert state_line(pages[PROBLEM]) is None
     assert PAGE in pages  # the records are on the graph; the page still renders from them
 
 

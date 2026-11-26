@@ -49,9 +49,9 @@ def fragments(r: render.Renderer, tv: Any) -> dict[str, str]:
     """What today's page was built from, by name: each must render on the new page."""
     picture = r.problem_drawing(tv)
     return {
-        "status": r.status_tag(tv),
-        "fidelity": r.fidelity_tag(tv),
-        "review state": r.review_state_tag(tv),
+        # F34-T29: the status is a dot and a word; the grade and the review state, one note
+        "status": r.status_head(tv),
+        "check and review": r.review_note(tv),
         "informal": r.informal_words(tv),
         "source line": r.source_line(tv),
         "claimable": r.target_claimable(tv),
@@ -118,7 +118,11 @@ def test_the_head_is_the_statement_with_its_mark_and_one_sentence(
         sentence = re.search(r'<p class="head-sentence">(.*?)</p>', head, re.S)
         assert sentence is not None, tid
         open_ = r.open_count(tv)
-        assert f"{open_} statement{'' if open_ == 1 else 's'} open" in sentence.group(1), tid
+        # F34-T29: "Open for work: n statements are open" on a problem that takes work
+        assert re.search(rf"\b{open_} statements? (?:is |are )?open", sentence.group(1)), (
+            tid,
+            sentence.group(1),
+        )
 
 
 def test_definitions_are_linked_never_printed(tmp_path_factory: pytest.TempPathFactory) -> None:
