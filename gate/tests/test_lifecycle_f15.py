@@ -219,7 +219,7 @@ def test_the_whole_life(  # noqa: PLR0915 — one life, walked in order
     pages = render.render_site(model.load_site(root, COMMIT), repo_url="https://github.com/x/g")
     proposed = pages[f"problems/{PROPOSED}/index.html"]  # F04-T12: the problem page
     assert "Alice" in proposed and "committed 2026-09-18" in proposed
-    assert "This problem is open for work." in proposed
+    assert "Open for work:" in proposed  # F34-T29: said in the head sentence
     resolved = pages[f"problems/{RESOLVED}/index.html"]
     assert "Resolved — <strong>written-up</strong>" in resolved and "The paper" in resolved
     written_up = '<span class="stage on"><span class="dot dot-proved"></span>Written up</span>'

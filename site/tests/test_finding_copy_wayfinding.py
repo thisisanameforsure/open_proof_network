@@ -111,7 +111,8 @@ def test_open_for_work_is_said_only_when_a_statement_is_workable(
     site, _pages = built
     r = render.Renderer(site, repo_url=REPO)
     tv = site.targets[TARGET]
-    assert "This problem is open for work." in r.target_claimable(tv)
+    # F34-T29: said in the head sentence, no longer on a line of its own
+    assert "Open for work:" in r.head_sentence(tv) and r.target_claimable(tv) == ""
     none_open = dataclasses.replace(
         tv,
         nodes={
@@ -121,6 +122,7 @@ def test_open_for_work_is_said_only_when_a_statement_is_workable(
     )
     words = r.target_claimable(none_open)
     assert "open for work" not in words and "no statement" in words
+    assert "Open for work" not in r.head_sentence(none_open)
 
 
 # -- the statement page --------------------------------------------------------------------------

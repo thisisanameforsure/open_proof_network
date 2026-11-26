@@ -322,7 +322,8 @@ def test_problems_page_free_text_is_escaped(tmp_path: Path) -> None:
     assert f"Not claimable: {ESCAPED}." in page
     own = r.target(targets[TARGET])
     _assert_clean(own)
-    assert f'<span class="tag tag-outline">{ESCAPED}</span>' in own
+    # F34-T29: an unknown grade is named in the head's note, escaped
+    assert f"<strong>The statement:</strong> {ESCAPED}." in own
 
 
 # --- the prose renderer's edges (Q2) --------------------------------------------------------------
