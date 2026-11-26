@@ -66,7 +66,7 @@ jobs:
       - name: Render
         if: steps.stale.outputs.deploy == 'true'
         env:
-          PYTHONPATH: gate:site
+          PYTHONPATH: gate:api:site  # F34-T8: the API routes page reads opn_api.routes
           # F04-T9: the api origin the Frontier page links /claims.json on. The repository variable
           # api-deploy already uses; unset, it is empty and the page draws no link (C7).
           OPN_SITE_API_URL: ${{ vars.OPN_API_URL }}

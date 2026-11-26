@@ -19,9 +19,11 @@ An outside contributor's list, 2026-09-18, each a sentence the page could not ba
 from __future__ import annotations
 
 import dataclasses
+import re
 
 import fixture
 import pytest
+from docs_pages import docs_all, docs_page
 from harness import TARGET
 
 from opn_site import model, render
@@ -99,7 +101,8 @@ def test_the_open_badge_promises_no_steward() -> None:
 def test_the_card_link_is_a_verb_not_a_status(built: tuple[model.Site, dict[str, str]]) -> None:
     _site, pages = built
     assert "Open problem →" not in pages["problems/index.html"]
-    assert "View problem →" in pages["problems/index.html"]
+    # F34-T5: a row's link is the problem's id, which is a name, not a status
+    assert 'class="id" href="/problems/' in pages["problems/index.html"]
 
 
 def test_open_for_work_is_said_only_when_a_statement_is_workable(
@@ -140,7 +143,7 @@ def test_the_statement_page_leads_to_the_guide_and_the_pull_requests_in_flight(
 ) -> None:
     _site, pages = built
     page = pages[f"nodes/{TARGET}/{ROOT}/index.html"]
-    assert 'href="/docs/#agents"' in page
+    assert 'href="/docs/quick-start/"' in page
     assert f'href="{API}/submissions.json"' in page
 
 
@@ -150,12 +153,13 @@ def test_without_a_service_url_no_service_link_is_drawn(
     site, _pages = built
     pages = render.render_site(site, repo_url=REPO)  # no api_url: C7, nothing knows a hostname
     assert "submissions.json" not in pages[f"nodes/{TARGET}/{ROOT}/index.html"]
-    assert "dco.json" not in pages["docs/index.html"]
+    # F34-T6: the token guide names the route in a code sample; nothing links the service
+    assert not re.search(r'href="[^"]*dco\.json', docs_all(pages))
 
 
 def test_the_problem_page_leads_to_the_guide(built: tuple[model.Site, dict[str, str]]) -> None:
     _site, pages = built
-    assert 'href="/docs/#agents"' in pages[f"problems/{TARGET}/index.html"]
+    assert 'href="/docs/quick-start/"' in pages[f"problems/{TARGET}/index.html"]
 
 
 # -- Home, Docs, Contributors ---------------------------------------------------------------------
@@ -171,7 +175,7 @@ def test_docs_say_what_the_sign_off_is_and_where_it_is_served(
     built: tuple[model.Site, dict[str, str]],
 ) -> None:
     _site, pages = built
-    docs = pages["docs/index.html"]
+    docs = docs_all(pages)
     assert "No sign-off (DCO) text is committed" not in docs
     assert f'href="{API}/dco.json"' in docs and "Developer Certificate of Origin" in docs
     assert "CC-BY-4.0" in docs  # annex prose carries its author's licence
@@ -179,9 +183,10 @@ def test_docs_say_what_the_sign_off_is_and_where_it_is_served(
 
 def test_docs_open_with_jump_links(built: tuple[model.Site, dict[str, str]]) -> None:
     _site, pages = built
-    head = pages["docs/index.html"].split('<h2 id="stewards">', 1)[0]
-    for anchor in ("#agents", "#glossary", "#stewards"):
-        assert f'href="{anchor}"' in head, anchor
+    # F34-T6: the landing opens with the ways in and a link to every page
+    landing = docs_page(pages, "")
+    for href in ("/docs/quick-start/", "/docs/glossary/", "/docs/stewards/"):
+        assert f'href="{href}"' in landing, href
 
 
 def test_a_partial_is_not_listed_as_a_proof(built: tuple[model.Site, dict[str, str]]) -> None:
@@ -194,8 +199,10 @@ def test_a_partial_is_not_listed_as_a_proof(built: tuple[model.Site, dict[str, s
         "artifact": "attempts/20260917T000000Z-agent-partial.lean",
         "date": "2026-09-17",
     }
-    assert "<td>partial proof</td>" in r._ledger_row(entry)
-    assert "<td>proof</td>" in r._ledger_row({**entry, "artifact": "Proof.lean"})
+    assert "<td>partial proof</td>" in r._ledger_row(
+        "agent", entry
+    )  # F34-T9: the row names its identity
+    assert "<td>proof</td>" in r._ledger_row("agent", {**entry, "artifact": "Proof.lean"})
 
 
 def test_the_footer_names_the_products_commit_when_it_differs(

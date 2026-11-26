@@ -1,0 +1,129 @@
+# Design tokens — "Journal": the site as a well-made mathematics journal that happens to be live.
+BG='#FAF9F6'; SURF='#FFFFFF'; INK='#1B1B1A'; MUTED='#5C5A55'; LINE='#E3E0D9'; SOFT='#F1EFEA'
+PROVED='#2A4D8F'; PROVED_SOFT='#E8EDF6'; FAIL='#A0461E'; FAIL_SOFT='#F7EAE3'
+ACC=PROVED; ACC_SOFT=PROVED_SOFT; OK=PROVED; WARN=FAIL; WARN_SOFT=FAIL_SOFT
+SERIF="'Source Serif 4', 'STIX Two Text', Georgia, serif"; SANS="'IBM Plex Sans', system-ui, sans-serif"; MONO="'IBM Plex Mono', ui-monospace, monospace"
+LINK=f'color: {INK}; text-decoration: underline; text-decoration-color: #B9B5AC; text-underline-offset: 3px'
+
+def page(title, body, w=1440, h=2400, logic='return {};'):
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{title}</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&amp;display=swap">
+<style>
+body{{margin:0;background:{BG}}}
+a{{color:{INK};text-decoration-color:#B9B5AC;text-underline-offset:3px}}a:hover{{color:{PROVED};text-decoration-color:{PROVED}}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: {BG}; color: {INK}; font-family: {SERIF}; font-size: 18px; line-height: 1.6">
+{header(title)}
+{body}
+{footer()}
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{{"$preview":{{"width":{w},"height":{h}}}}}'>
+class Component extends DCLogic {{
+renderVals() {{
+{logic}
+}}
+}}
+</script>
+</body>
+</html>
+'''
+
+NAV=['Problems','Contributors','Docs','About']
+def header(active):
+    links=''.join(
+        f'<a href="#" style="color: {INK if n in active else MUTED}; text-decoration: none; font-size: 15px; padding: 10px 2px; {"box-shadow: inset 0 -2px 0 "+INK if n in active else ""}">{n}</a>'
+        for n in NAV)
+    return f'''<header style="font-family: {SANS}; border-bottom: 1px solid {LINE}">
+<div style="max-width: 1160px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px">
+<a href="#" style="display: flex; align-items: baseline; gap: 10px; color: {INK}; text-decoration: none; margin-right: auto">
+<span style="font-family: {SERIF}; font-size: 22px; letter-spacing: 0.01em">Open Proof Network</span></a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px 24px; align-items: center">{links}</nav>
+<div style="display: flex; gap: 10px; align-items: center">
+<a href="#" style="color: {INK}; font-size: 15px; padding: 9px 14px; text-decoration: none; border: 1px solid {LINE}; border-radius: 4px">Sign in</a>
+<a href="#" style="color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 500; padding: 9px 16px; border-radius: 4px; background: {INK}">Work on a statement</a>
+</div>
+</div>
+</header>'''
+
+def footer():
+    return f'''<footer style="font-family: {SANS}; border-top: 1px solid {LINE}; margin-top: 88px">
+<div style="max-width: 1160px; margin: 0 auto; padding: 28px 24px 44px; display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; font-size: 14px; color: {MUTED}">
+<span style="margin-right: auto">Every result checked by Lean. Every attempt kept. Done when a person has explained it.</span>
+<a href="#" style="color: {MUTED}">Rules</a><a href="#" style="color: {MUTED}">Contact</a><a href="#" style="color: {MUTED}">Repository</a>
+<details style="font-family: {MONO}; font-size: 12px"><summary style="cursor: pointer; color: {MUTED}">Source of this page</summary><div style="padding-top: 8px">graph commit b6c40d0 · rendered ad3ae09 · rebuilt on every merge</div></details>
+</div>
+</footer>'''
+
+# ---- status glyphs: shape carries meaning, colour repeats it
+def glyph(kind, size=12):
+    if kind=='proved': st=f'background: {PROVED}; border: 1.5px solid {PROVED}'
+    elif kind=='failed': st=f'background: linear-gradient(45deg, transparent 43%, {FAIL} 43%, {FAIL} 57%, transparent 57%); border: 1.5px solid {FAIL}'
+    else: st=f'background: transparent; border: 1.5px solid {INK}'
+    return f'<span aria-hidden="true" style="flex: none; display: inline-block; width: {size}px; height: {size}px; border-radius: 50%; box-sizing: border-box; {st}"></span>'
+def status(kind, label=None):
+    label=label or {'proved':'proved','open':'open','failed':'refuted'}[kind]
+    col={'proved':PROVED,'failed':FAIL}.get(kind,INK)
+    return f'<span style="display: inline-flex; align-items: center; gap: 6px; font-family: {SANS}; font-size: 14px; color: {col}; white-space: nowrap">{glyph(kind)}{label}</span>'
+
+def stages(done=0, compact=False):
+    """The signature mark: proved → explained → written up. done = how many are reached."""
+    names=['proved','explained','written up']
+    parts=[]
+    for i,n in enumerate(names):
+        on=i<done
+        dot=f'<span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid {PROVED if on else "#9A968D"}; background: {PROVED if on else "transparent"}"></span>'
+        lab='' if compact else f'<span style="color: {INK if on else MUTED}">{n}</span>'
+        parts.append(f'<span style="display: inline-flex; align-items: center; gap: 6px">{dot}{lab}</span>')
+        if i<2: parts.append(f'<span aria-hidden="true" style="width: {10 if compact else 16}px; height: 1.5px; background: {PROVED if i+1<done else "#C9C5BC"}"></span>')
+    aria=f'{done} of 3: ' + ', '.join(f"{n} {'yes' if i<done else 'not yet'}" for i,n in enumerate(names))
+    return f'<span role="img" aria-label="{aria}" style="display: inline-flex; align-items: center; gap: 6px; font-family: {SANS}; font-size: 13px; white-space: nowrap">{"".join(parts)}</span>'
+
+def smallcaps(t): return f'<p style="margin: 0; font-family: {SANS}; font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: {MUTED}">{t}</p>'
+eyebrow=smallcaps
+def h1(t): return f'<h1 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 52px; line-height: 1.08; letter-spacing: -0.01em">{t}</h1>'
+def h2(t, extra='', num=None):
+    n=f'<span style="font-family: {SANS}; font-size: 14px; font-weight: 500; color: {MUTED}; margin-right: 12px; letter-spacing: 0.04em">{num}</span>' if num else ''
+    return f'<h2 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 30px; line-height: 1.2{extra}">{n}{t}</h2>'
+def wrap(inner, pad='56px 24px 0'): return f'<section style="max-width: 1160px; margin: 0 auto; padding: {pad}">{inner}</section>'
+def card(inner, extra=''): return f'<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 24px; {extra}">{inner}</div>'
+def rule(): return f'<hr style="border: 0; border-top: 1px solid {LINE}; margin: 0">'
+def pill(text, kind='open'):
+    m={'proved':'proved','open':'open','warn':'failed','accent':'open','ok':'proved'}
+    return status(m.get(kind,'open'), text)
+def avatar(initials, bg=None, fg=None, size=44):
+    return f'<span aria-hidden="true" style="flex: none; width: {size}px; height: {size}px; border-radius: 50%; border: 1px solid {INK}; color: {INK}; display: inline-flex; align-items: center; justify-content: center; font-family: {SANS}; font-weight: 500; font-size: {size/2.8:.0f}px">{initials}</span>'
+def sidenote(t): return f'<aside style="font-family: {SANS}; font-size: 13px; line-height: 1.5; color: {MUTED}; border-left: 1px solid {LINE}; padding-left: 12px">{t}</aside>'
+def code(t): return f'<pre style="margin: 0; padding: 16px 18px; background: {SOFT}; color: {INK}; border: 1px solid {LINE}; border-radius: 4px; font-family: {MONO}; font-size: 14px; line-height: 1.6; overflow-x: auto; white-space: pre">{t}</pre>'
+def stat(n,l): return f'<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: {SERIF}; font-size: 38px; line-height: 1">{n}</span><span style="font-family: {SANS}; font-size: 14px; color: {MUTED}">{l}</span></div>'
+
+# ---- figure drawing: absolutely placed nodes and straight edges (no single <svg>)
+import math as _m
+def edge(x1,y1,x2,y2,color='#B9B5AC',w=1.25,dash=False,op=1):
+    L=_m.hypot(x2-x1,y2-y1); a=_m.degrees(_m.atan2(y2-y1,x2-x1))
+    st=f'border-top: {w}px dashed {color}; height: 0' if dash else f'height: {w}px; background: {color}'
+    return f'<span aria-hidden="true" style="position: absolute; left: {x1:.1f}px; top: {y1:.1f}px; width: {L:.1f}px; {st}; transform: rotate({a:.2f}deg); transform-origin: 0 50%; opacity: {op}"></span>'
+def node(x,y,label,kind='open',sel=False,op=1,size=12.5,mono=False,maxw=None):
+    ff=MONO if mono else SANS
+    bd=f'2px solid {INK}' if sel else f'1px solid {"#CFCBC2" if op<1 else INK if kind=="root" else "#CFCBC2"}'
+    mw=f'width: max-content; max-width: {maxw}px; white-space: normal;' if maxw else 'white-space: nowrap;'
+    g=glyph('open' if kind=='root' else kind,10)
+    bgc, fgc = (INK, '#FFFFFF') if sel else (SURF, INK)
+    if sel: g=g.replace(f'border: 1.5px solid {INK}','border: 1.5px solid #FFFFFF')
+    return f'<a href="#" style="position: absolute; left: {x}px; top: {y}px; transform: translate(-50%, -50%); display: inline-flex; gap: 7px; align-items: center; padding: 6px 10px; background: {bgc}; border: {bd}; border-radius: 4px; text-decoration: none; color: {fgc}; font-family: {ff}; font-size: {size}px; line-height: 1.3; {mw} opacity: {op}">{g}<span>{label}</span></a>'
+def junction(x,y,op=1,kind='all'):
+    if kind=='any': return f'<span aria-hidden="true" style="position: absolute; left: {x-5}px; top: {y-5}px; width: 10px; height: 10px; background: {SURF}; border: 1.5px solid {INK}; transform: rotate(45deg); opacity: {op}"></span>'
+    return f'<span aria-hidden="true" style="position: absolute; left: {x-4}px; top: {y-4}px; width: 8px; height: 8px; border-radius: 50%; background: {INK}; opacity: {op}"></span>'
+def canvas_box(inner,w,h,label):
+    return f'<div role="group" aria-label="{label}" style="position: relative; width: {w}px; height: {h}px; flex: none">{inner}</div>'

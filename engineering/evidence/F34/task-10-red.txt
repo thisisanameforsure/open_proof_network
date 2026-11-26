@@ -1,0 +1,4 @@
+FAILED site/tests/test_f34_docs_search.py::test_the_index_has_one_entry_per_docs_page
+FAILED site/tests/test_f34_docs_search.py::test_every_docs_page_carries_the_hidden_box_and_the_script
+FAILED site/tests/test_f34_docs_search.py::test_typing_finds_the_pages_that_hold_every_word
+3 failed, 1 passed in 34.40s

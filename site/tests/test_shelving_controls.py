@@ -304,8 +304,10 @@ def test_a_steward_shelves_unshelves_and_retires_from_the_site(served: str) -> N
         assert POSTED[-1]["body"]["node_id"] == SHELVED
         # Retire a route from the problem page.
         page.goto(served + f"/problems/{TARGET}/")
-        page.wait_for_selector(".retire-act button")
-        first = page.locator(".retire-act").nth(0)
+        # F34-T12 (R14): the table is the List tab's, filtered to the route the page opens on.
+        page.locator('.route-tabs [aria-controls="sets-list"]').click()
+        page.wait_for_selector("tr.set-row:not([hidden]) .retire-act button")
+        first = page.locator("tr.set-row:not([hidden]) .retire-act").nth(0)
         partial = first.get_attribute("data-partial")
         first.locator("button").click()
         first.locator("textarea").fill("A distraction.")

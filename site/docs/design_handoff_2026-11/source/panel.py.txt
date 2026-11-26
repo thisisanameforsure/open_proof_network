@@ -1,0 +1,35 @@
+from common import *
+KEYS=[('claim','Claim'),('proof','Proof'),('known','Known'),('work','Work'),('record','Record')]
+LOGIC="""const t = (this.state || {}).tab || 'claim';
+const v = {};
+['claim','proof','known','work','record'].forEach((k) => {
+const on = t === k;
+v['is_' + k] = on;
+v['sel_' + k] = on ? 'true' : 'false';
+v['sh_' + k] = on ? 'inset 0 -2px 0 #1B1B1A' : 'none';
+v['col_' + k] = on ? '#1B1B1A' : '#5C5A55';
+v['fw_' + k] = on ? 600 : 400;
+v['pick_' + k] = () => this.setState({ tab: k });
+});
+return v;"""
+def mono(t,sz='0.85em'): return f'<code style="font-family: {MONO}; font-size: {sz}">{t}</code>'
+def sub(t): return f'<p style="margin: 0; font-family: {SANS}; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: {MUTED}">{t}</p>'
+def fold(summary, body):
+    return f'<details style="border-top: 1px solid {LINE}; padding: 10px 0 0"><summary style="cursor: pointer; font-family: {SANS}; font-size: 14px">{summary}</summary><div style="padding-top: 8px; display: flex; flex-direction: column; gap: 6px">{body}</div></details>'
+def facts(rows):
+    return '<dl style="margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 12px; font-family: '+SANS+'; font-size: 13.5px">'+''.join(f'<dt style="grid-column: span 1; color: {MUTED}">{a}</dt><dd style="grid-column: span 2; margin: 0; overflow-wrap: anywhere">{b}</dd>' for a,b in rows)+'</dl>'
+def holes(items):
+    return '<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-family: '+SANS+'; font-size: 13.5px">'+''.join(f'<li style="display: flex; gap: 8px; align-items: flex-start">{glyph(k,10)}<span style="margin-top: -3px"><a href="#">{l}</a>{(" " + mono(n,"11.5px")) if n else ""}</span></li>' for k,l,n in items)+'</ul>'
+def panel(title, meta, tabs, actions, accent=True):
+    bar='<div role="tablist" aria-label="About this statement" style="display: flex; gap: 0; border-bottom: 1px solid '+LINE+'">'+''.join(
+      f'<button type="button" role="tab" aria-selected="[[ sel_{k} ]]" onClick="[[ pick_{k} ]]" style="font-family: {SANS}; font-size: 13.5px; padding: 8px 6px; border: 0; background: transparent; cursor: pointer; white-space: nowrap; color: [[ col_{k} ]]; box-shadow: [[ sh_{k} ]]; font-weight: [[ fw_{k} ]]">{lab}</button>' for k,lab in KEYS)+'</div>'
+    bodies=''.join(f'<sc-if value="[[ is_{k} ]]" hint-placeholder-val="[[ {"true" if k=="claim" else "false"} ]]"><div role="tabpanel" style="display: flex; flex-direction: column; gap: 12px; font-size: 16.5px">{tabs[k]}</div></sc-if>' for k,_ in KEYS)
+    return f'''<div style="background: {SURF}; border: 1px solid {INK if accent else LINE}; border-radius: 4px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+{smallcaps('Selected statement')}
+<h3 style="margin: 0; font-family: {SERIF}; font-size: 24px; font-weight: 400; line-height: 1.25">{title}</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-family: {SANS}; font-size: 13px; color: {MUTED}">{meta}</div>
+{bar}
+{bodies}
+<div style="display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; border-top: 1px solid {LINE}">{actions}</div>
+</div>'''
+def holes_html(s): return s.replace('[[','{{').replace(']]','}}')

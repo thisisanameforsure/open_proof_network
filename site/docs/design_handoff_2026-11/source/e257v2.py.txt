@@ -1,0 +1,252 @@
+from common import *
+mono=lambda t,sz='0.85em': f'<code style="font-family: {MONO}; font-size: {sz}">{t}</code>'
+def frac(num,den): return f'<span style="display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.15; margin: 0 2px"><span style="padding: 0 4px; border-bottom: 1.5px solid {INK}">{num}</span><span style="padding: 0 4px">{den}</span></span>'
+sumA=f'<span style="display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1"><span style="font-size: 1.4em">∑</span><span style="font-size: 0.5em; font-style: italic">n∈A</span></span>'
+statement=f'<span style="font-style: italic">A</span> ⊆ ℕ infinite: is {sumA} {frac("1","2<sup>n</sup> − 1")} irrational?'
+def btn(t,primary=False,small=False):
+    pad='7px 12px' if small else '10px 16px'; fs=14 if small else 15
+    return f'<a href="#" style="font-family: {SANS}; text-decoration: none; padding: {pad}; border-radius: 4px; font-size: {fs}px; {"color: #FFFFFF; background: "+INK+"; font-weight: 500" if primary else "color: "+INK+"; border: 1px solid "+LINE+"; background: "+SURF}">{t}</a>'
+def stew(t): return f'<span style="font-family: {SANS}; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: {MUTED}; border: 1px solid {LINE}; border-radius: 3px; padding: 2px 5px; margin-left: 6px">{t}</span>'
+def rowx(main, note='', gap='18px'):
+    return f'<div style="display: flex; flex-wrap: wrap; gap: 12px 40px; align-items: flex-start"><div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: {gap}">{main}</div><div style="flex: 1 1 200px; max-width: 250px; display: flex; flex-direction: column; gap: 14px">{note}</div></div>'
+def det(summary, body, open_=False):
+    return f'<details{" open" if open_ else ""} style="border-top: 1px solid {LINE}; padding: 14px 0"><summary style="cursor: pointer; font-family: {SANS}; font-size: 15px; font-weight: 500">{summary}</summary><div style="padding-top: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 17px">{body}</div></details>'
+
+# ---------- header
+top=rowx(f'''<nav aria-label="Breadcrumb" style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><a href="#" style="color: {MUTED}">Problems</a> / erdos-257</nav>
+{smallcaps('Erdős problem 257 · number theory')}
+<h1 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 40px; line-height: 1.35">{statement}</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center">{status('open')}{stages(0)}</div>
+<p style="margin: 0">Stewarded by <a href="#">Michael Higgins</a> and <a href="#">riversupport</a>. Open for work: 26 statements are open.</p>
+<div role="note" style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; border-left: 3px solid {FAIL}; padding: 6px 0 6px 14px; font-family: {SANS}; font-size: 15px"><span><strong>The statement is not yet checked.</strong> Its review waits for the intent signer: 8 questions.</span><a href="#">Open the review →</a></div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">{btn('Work on an open statement',True)}{btn('How to read this page')}</div>''',
+ sidenote(f'Imported from {mono("formal-conjectures")} (Apache-2.0), ErdosProblems/257.lean · erdosproblems.com/257.')+sidenote('Stewards: Michael Higgins since 2026-10-19 (self-admitted); riversupport since 2026-10-29, invited by the panel.')+sidenote('Registry: not yet registered in Palomar.'))
+
+toc=' · '.join(f'<a href="#" style="color: {INK}">{t}</a>' for t in ['Statements','Ways to settle it','The statement and its review','Stewards, panel and write-up','What is known and tried','Record'])
+tocbar=f'<nav aria-label="On this page" style="font-family: {SANS}; font-size: 14px; color: {MUTED}; border-top: 1px solid {LINE}; border-bottom: 1px solid {LINE}; padding: 12px 0">On this page: {toc}</nav>'
+
+# ---------- navigator (small OR tree of route choices)
+NW,NH=300,168
+P={'R':(150,14),'A':(70,58),'B':(210,58),'C':(160,100),'E':(255,100),'F':(125,136),'G':(240,136)}
+leaves={1:(45,100),2:(95,100),3:(105,154),4:(145,154),5:(185,136),6:(205,100),7:(222,154),8:(258,154),9:(280,136),10:(290,100)}
+par={'A':'R','B':'R','C':'B','E':'B','F':'C','G':'E'}
+lpar={1:'A',2:'A',3:'F',4:'F',5:'C',6:'B',7:'G',8:'G',9:'E',10:'E'}
+sel_path={('R','A'),('A',2)}
+ne=''
+for k,p in par.items(): ne+=edge(*P[p],*P[k],color='#B9B5AC')
+for l,p in lpar.items():
+    on=(p,l) in sel_path
+    ne+=edge(*P[p],*leaves[l],color=INK if on else '#B9B5AC',w=2 if on else 1.25)
+ne+=edge(*P['R'],*P['A'],color=INK,w=2)
+for k,(x,y) in P.items(): ne+=f'<span aria-hidden="true" style="position: absolute; left: {x-5}px; top: {y-5}px; width: 10px; height: 10px; background: {SURF}; border: 1.5px solid {INK if k in ("R","A") else "#8F8B82"}"></span>'
+for l,(x,y) in leaves.items():
+    on=l==2; ref=l>=3
+    ne+=f'<button type="button" aria-pressed="{"true" if on else "false"}" aria-label="Route {l}{", refutes a variant" if ref else ""}" style="position: absolute; left: {x-11}px; top: {y-11}px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid {INK if not ref else FAIL}; background: {INK if on else SURF}; color: {"#FFFFFF" if on else (FAIL if ref else INK)}; font-family: {SANS}; font-size: 11px; font-weight: 600; padding: 0; cursor: pointer">{l}</button>'
+nav=f'''<div style="display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-start; padding-bottom: 18px; border-bottom: 1px solid {LINE}">
+{canvas_box(ne,NW,NH,'Ways to settle the problem: a tree of route choices')}
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; font-family: {SANS}; font-size: 14px">
+<p style="margin: 0; font-weight: 600; font-size: 15px">Ways to settle the problem</p>
+<p style="margin: 0; color: {MUTED}">Each numbered end is one route: a set of statements that settles the problem. Black routes prove it; rust routes are the ones the record marks “refutes”, each through a variant. Choose one to draw only its part of the graph; choose it again to see everything.</p>
+<p style="margin: 0"><strong>Route 2 selected</strong> · 16 statements · 14 proved · 2 open</p>
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked> Stop at proved statements</label>
+</div></div>'''
+
+# ---------- big graph (existing layout, restyled), Route 2 selected
+GW,GH=760,680
+g=''; ns=''
+root=(300,104)
+var=(560,34)
+g+=edge(*var,*root,color='#B9B5AC',dash=True,op=0.45)
+ns+=node(*var,'a set and its complement are not both rational','open',op=0.45,maxw=200)
+J1=(140,168); J2=(520,180)
+g+=edge(*root,*J1,op=0.45)+edge(*root,*J2,color=INK,w=1.75)
+r1=[(75,232,'one half is the sum of an infinite set','proved'),(220,232,'no rational is an infinite greedy sum (open core)','open')]
+for x,y,l,k in r1:
+    g+=edge(*J1,x,y-18,op=0.45); ns+=node(x,y,l,k,op=0.45,maxw=130)
+holes=[('proved','A = all natural numbers'),('proved','an arithmetic progression'),('proved','eventually periodic'),('proved','pairwise coprime, ∑ 1/n finite'),
+('proved','squarefree numbers'),('proved','perfect k-th powers'),('proved','sums of two squares'),('open','A = the primes'),
+('proved','lacunary, ratio two'),('proved','Liouville criterion'),('proved','long gaps'),('proved','powers of two and three'),
+('proved','two bases 2 ≤ a < b'),('proved','two divisibility chains'),('proved','finitely many lacunary'),('open','every other infinite set')]
+xs=[390,530,670]; ys=[262,330,398,466,534,602]
+for i,(k,l) in enumerate(holes):
+    x=xs[i%3]; y=ys[i//3]
+    g+=edge(*J2,x,y-16,color='#8F8B82',w=1)
+    ns+=node(x,y,l,k,maxw=92,size=12)
+ns+=node(*root,'Erdős problem 257','root',sel=True)+junction(*J1,op=0.45)+junction(*J2)
+ns+=f'<span style="position: absolute; left: 0; top: 650px; font-family: {SANS}; font-size: 13px; color: {MUTED}">Faded: statements off Route 2. Statements below proved ones are hidden while “Stop at proved” is ticked.</span>'
+graph=canvas_box(g+ns,GW,GH,'Statement graph of erdos-257, Route 2 selected')
+legend=f'''<details style="font-family: {SANS}; font-size: 14px"><summary style="cursor: pointer">Key</summary>
+<div style="display: flex; flex-wrap: wrap; gap: 8px 22px; padding-top: 10px; color: {MUTED}">
+<span style="display: inline-flex; gap: 6px; align-items: center">{glyph('proved',10)} proved</span><span style="display: inline-flex; gap: 6px; align-items: center">{glyph('open',10)} open</span><span style="display: inline-flex; gap: 6px; align-items: center">{glyph('failed',10)} refuted or blocked</span>
+<span>● all of its holes</span><span>◇ any one route closes it</span><span>— depends on</span><span>– – a weaker version</span><span>dotted box: speculative</span><span>dashed outline: proposed (open, known, elementary)</span></div></details>'''
+figure=f'''<figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+{nav}
+<div style="display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: space-between; align-items: center; font-family: {SANS}; font-size: 14px">{legend}<span style="color: {MUTED}">Speculative statements (14) <a href="#">show</a> · <a href="#">Full screen</a></span></div>
+<div style="overflow-x: auto">{graph}</div></div>
+<figcaption style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><strong style="color: {INK}">Figure 1.</strong> The 71 statements of erdos-257, drawn with each statement above the statements its proof needs. Route 2 is chosen in the tree; the problem’s own statement is selected. Hover a statement to light its lines; select one to read it in the panel.</figcaption></figure>'''
+
+# ---------- selected statement panel with tabs (root selected, real record)
+from panel import panel, fold, facts, holes, sub, LOGIC, holes_html
+from panel import mono as pmono
+lean_root="theorem Opn.erdos_257 :\n    ∀ (A : Set ℕ), A.Infinite →\n    Irrational (∑' n : A, (1 : ℝ) / (2 ^ n.1 - 1)) := by\n  sorry"
+claim=f"""<p style="margin: 0; font-size: 19px">∀ A ⊆ ℕ infinite: {sumA} {frac('1','2<sup>n</sup> − 1')} is irrational.</p>
+<p style="margin: 0; font-size: 15.5px; color: {MUTED}">The sum is Lean’s {pmono('tsum')} over A, in ℝ; every such family is summable, so it is the ordinary sum. In Lean the term at n = 0 is 1/0 = 0, so a set containing 0 has the same sum as the set without it. This is the affirmative reading of Erdős’s question.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">These words: unverified · <a href="#" style="color: {MUTED}">history</a> · <a href="#" style="color: {MUTED}">Rename or correct</a></p>
+{fold('The Lean', f'<pre style="margin: 0; padding: 10px; background: {SOFT}; border-radius: 4px; font-family: {MONO}; font-size: 12px; white-space: pre-wrap">{lean_root}</pre>')}
+{fold('Why does it end in sorry?', f'<p style="margin: 0; font-size: 15px">A statement is a theorem with its proof left out. A proof is the same file with the {pmono("sorry")} replaced; nothing else may change.</p>')}"""
+r2=[('proved','A = all natural numbers','h_naturals'),('proved','an arithmetic progression','h_progressions'),('proved','eventually periodic','h_periodic'),('proved','pairwise coprime, ∑ 1/n finite','h_coprime'),('proved','squarefree numbers','h_squarefree'),('proved','perfect k-th powers','h_powers'),('proved','sums of two squares','h_two_squares'),('open','A = the primes','h_primes'),('proved','lacunary, ratio two','h_ratio_two'),('proved','Liouville criterion','h_liouville'),('proved','long gaps','h_long_gaps'),('proved','powers of two and three','h_two_and_three'),('proved','two bases 2 ≤ a < b','h_two_bases'),('proved','two divisibility chains','h_two_chains'),('proved','finitely many lacunary','h_lacunary_union'),('open','every other infinite set','h_rest')]
+proof=f"""<p style="margin: 0">Open. A direct proof, or proofs of all the holes of one split, close it. Two splits are merged.</p>
+{sub('Route 1 · split by a partial proof')}
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">{pmono('20261020T203102Z-fable-1020-e257-c','11.5px')} · merged 3dbbb39 · attestation 000781 · explained (draft)</p>
+{holes([('proved','the greedy set of a rational','h_greedy'),('open','a greedy set for a rational is finite','h_core')])}
+{sub('Route 2 · split by a partial proof')}
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">{pmono('20261023T133847Z-t1023-f1','11.5px')} · merged 6c84a6b · attestation 000955</p>
+{holes(r2)}
+{fold('Read the partial proofs (Lean)', '<p style="margin: 0; font-size: 15px">Both partial proofs, whole, each beside its attestation.</p>')}
+{fold('Closing it through its holes', '<p style="margin: 0; font-size: 15px">When every hole of one route is proved, the post-merge job joins the proofs and the root reads proved.</p>')}"""
+known=f"""<p style="margin: 0"><strong style="font-weight: 600">Open problem: no proof is known.</strong></p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px; color: {MUTED}">Proposed by {pmono('t1022-d')} · <span style="color: {FAIL}">awaiting a steward or curator</span></p>
+{fold('References and summary', '<p style="margin: 0; font-size: 15px">Erdős (1948) for A = ℕ; arithmetic progressions; Luca–Tachiya (2014) for eventually periodic sets; Tao–Teräväinen for sets of primes; the summary as filed.</p>')}
+{sub('Notes (5)')}
+<ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 15px">
+<li>A literature map for provers, written 2026-10-22 from the papers themselves. <a href="#">Full text</a></li>
+<li>Working notes from a two-hour session (2026-10-19), checked by computation where stated. <a href="#">Full text</a></li>
+<li>Written by agent B of the 2026-10-22 run. <a href="#">Full text</a></li>
+<li>A reader’s map, so the two open holes can be read against each other. <a href="#">Full text</a></li>
+<li>Notes from one session (2026-11-12), drafted by a model. <a href="#">Full text</a></li></ul>"""
+work=f"""<p style="margin: 0; font-family: {SANS}; font-size: 14px">4 attempts kept, failed ones included · <a href="#">the attempts</a></p>
+{sub('Plans (1)')}
+<p style="margin: 0; font-size: 15px">An informal argument by the greedy walk, written as a skeleton: one assembly, two holes. The second hole is the open core, and the experts expect it to be false. <a href="#">Full text</a></p>
+{sub('Approaches recorded as tried (5)')}
+<ul style="margin: 0; padding-left: 18px; font-family: {MONO}; font-size: 11.5px; display: flex; flex-direction: column; gap: 3px">{''.join(f'<li><a href="#">{x}</a></li>' for x in ['20261020T075934Z-fable-1019-e257','20261023T042434Z-t1022-d','20261111T190631Z-fable-1111-e257','20261112T080133Z-fable-1111-e257','20261112T094931Z-fable-1111-e257'])}</ul>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px"><a href="#">How to contribute</a> · <a href="#">Pull requests in flight</a></p>"""
+record=f"""{facts([('status','open'),('depends on',pmono('erdos-257--h1')+', '+pmono('--h2')+', '+pmono('--h18')),('lemmas','15 variants · <a href="#">list</a>'),('used by','none'),('attempts','4'),('origin','authored'),('mathlib',pmono('0df444a360ea')),('hash',pmono('f0a2c09892da')),('files','<a href="#">Statement.lean ↗</a>')])}
+{sub('Words on this statement')}
+<ul style="margin: 0; padding-left: 18px; font-family: {SANS}; font-size: 13.5px; display: flex; flex-direction: column; gap: 3px"><li>Reading of the statement · unverified</li><li>Explainer of the Route 1 partial · draft, by t1022-e with Claude Opus 5.5</li><li>Explainer of the Route 2 partial · draft</li></ul>
+{fold('How to read this panel', '<p style="margin: 0; font-size: 15px">Status is the gate’s; words are people’s, labelled with who drafted, wrote or verified them.</p>')}"""
+panel_html=panel('Erdős problem 257', f"{status('open')}<span>the problem’s statement · 4 attempts</span>",
+  dict(claim=claim,proof=proof,known=known,work=work,record=record),
+  btn('Work on this statement',True,True)+btn('Open its page',False,True))
+panel=panel_html
+
+s1=f'''<div style="display: flex; flex-direction: column; gap: 18px">{h2('Statements', num='§1')}
+<p style="margin: 0; max-width: 760px">The problem is taken apart into Lean statements. A statement sits above the statements its proof needs. Use the small tree to pick a route; select any statement to read what it claims, how it is being proved, what is known about it and what has been tried.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<div style="flex: 999 1 720px; min-width: 0">{figure}</div>
+<div style="flex: 1 1 300px; max-width: 360px; min-width: 0">{panel}</div></div></div>'''
+
+# ---------- §2 ways to settle (table)
+rows=[(1,2,1,1,0,2,'','ink'),(2,16,14,2,0,3,'','sel'),(3,4,3,1,3,4,'goes through the variant spec-a70fcca4-v2','ref'),(4,4,3,1,4,4,'goes through the variant spec-a70fcca4-v2','ref'),(5,4,3,1,4,4,'goes through the variant spec-a70fcca4-v2','ref'),(6,3,2,1,0,1,'goes through the variant spec-a70fcca4-v2','ref'),(7,3,2,1,1,2,'goes through the variant variant-cce9b284','ref'),(8,2,1,1,1,2,'goes through the variant variant-cce9b284','ref'),(9,6,5,1,2,1,'goes through the variant variant-cce9b284','ref'),(10,5,4,1,2,1,'goes through the variant variant-cce9b284','ref')]
+th=lambda t,al='right': f'<th scope="col" style="text-align: {al}; font-family: {SANS}; font-weight: 500; font-size: 13px; color: {MUTED}; padding: 8px 10px; border-bottom: 1px solid {INK}">{t}</th>'
+def td(t,al='right',bold=False): return f'<td style="text-align: {al}; padding: 10px; border-bottom: 1px solid {LINE}; font-family: {SANS}; font-size: 14px; {"font-weight: 600" if bold else ""}">{t}</td>'
+def rnum(n,kind):
+    ref=kind=='ref'; on=kind=='sel'
+    return f'<span style="display: inline-flex; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; border: 1.5px solid {FAIL if ref else INK}; background: {INK if on else SURF}; color: {"#FFFFFF" if on else (FAIL if ref else INK)}">{n}</span>'
+tbl='<table style="width: 100%; border-collapse: collapse; min-width: 760px"><caption style="caption-side: bottom; text-align: left; font-family: '+SANS+'; font-size: 13px; color: '+MUTED+'; padding-top: 8px">Table 1. Every route, in the record’s order. Numbers match the tree in Figure 1. Shared: statements a route shares with another; assemblies: partial proofs it rests on.</caption><thead><tr>'+th('Route','left')+th('Kind','left')+th('Statements')+th('Proved')+th('Open')+th('Shared')+th('Assemblies')+th('Goes through','left')+th('','left')+'</tr></thead><tbody>'+''.join(
+ f'<tr style="background: {PROVED_SOFT if k=="sel" else "transparent"}">'+td(rnum(n,k),'left')+td('refutes, via a variant' if k=='ref' else 'proves','left')+td(a)+td(b)+td(c,bold=True)+td(d)+td(e)+td(f'<span style="font-family: {MONO}; font-size: 12px">{nt.replace("goes through the variant ","") if nt else "the problem itself"}</span>','left')+td(f'<a href="#">which</a>{stew("steward") if False else ""}','left')+'</tr>' for n,a,b,c,d,e,nt,k in rows)+'</tbody></table>'
+s2=rowx(f'''{h2('Ways to settle it', num='§2')}
+<p style="margin: 0">Ten routes are on the record: two prove the problem as stated, and eight, marked “refutes”, go through a variant. “Which” lists a route’s statements.</p>
+<div style="overflow-x: auto">{tbl}</div>
+<p style="margin: 0; font-family: {SANS}; font-size: 14px; color: {MUTED}">Order: <a href="#" style="color: {MUTED}">record</a> · <a href="#" style="color: {MUTED}">fewest open first</a></p>''',
+ sidenote('A steward of the problem or a curator sees Retire on each route: it takes a route off the root’s path by a signed record with a cause (decision D-14 v3.47).'))
+
+# ---------- §3 statement and review
+s3=rowx(f'''{h2('The statement and its review', num='§3')}
+<p style="margin: 0">Erdős problem 257: let A ⊆ ℕ be an infinite set. Is the sum of 1/(2<sup>n</sup> − 1) over n in A irrational? In Lean the sum is a {mono('tsum')} over A; the term at n = 0 is 1/(2⁰ − 1) = 1/0 = 0 in Lean, so a set containing 0 has the same sum as the set without it. This states the affirmative reading, with A ranging over infinite sets.</p>
+<div style="border: 1px solid {LINE}; border-radius: 4px; background: {SURF}; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; justify-content: space-between"><span style="font-family: {SANS}; font-size: 15px; font-weight: 600">Does the Lean say the conjecture?</span><a href="#" style="font-family: {SANS}; font-size: 14px">Open the review →</a></div>
+<ol style="margin: 0; padding-left: 20px; font-family: {SANS}; font-size: 14px; display: flex; flex-direction: column; gap: 4px">
+<li>Candidates: 1, surviving, in 1 cluster</li><li>Questions for the intent signer: <strong>8 waiting</strong></li><li>Intent tests: none yet · mutants caught 0 of 8</li><li>Screens: compile and soundness passed</li><li>Signatures: intent signer and independent signer both empty</li></ol></div>
+{det('Shared definitions (7)', f'<p style="margin: 0; font-family: {SANS}; font-size: 14px">Linked, not printed: {", ".join(mono(d) for d in ["AlgebraWeylAlgebra","DataNatPrimeFinset","…"])}</p>')}
+{det('Quality checks by subject', f'<p style="margin: 0; font-family: {SANS}; font-size: 14px; color: {MUTED}">Back-translation, brief, compile, equivalence and screens per subject, who signed, attempts that count, upstream drift. (Today’s “Does the Lean say the conjecture?” table.)</p>')}''',
+ sidenote('Fast check (POST /check, non-authoritative): lean-4.33.1 on AXLE (exact).')+sidenote('Catalog evidence score and drift: in the Record (§6).'))
+
+# ---------- §4 people
+ladder=['drafted','written','steward-signed','panel-verified','released','on arXiv','submitted','accepted']
+lad=''.join(f'<span style="display: inline-flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #9A968D"></span>{w}</span>' for w in ladder)
+s4=rowx(f'''{h2('Stewards, panel and write-up', num='§4')}
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+{card(f"""<div style="display: flex; flex-direction: column; gap: 8px"><p style="margin: 0; font-family: {SANS}; font-size: 15px; font-weight: 600">Stewards</p>
+<p style="margin: 0">Michael Higgins and riversupport. Each committed to understand and write up whatever the network produces here, and to sign the explainer of the proof that closes it.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">{btn('Invite a co-steward',False,True)}{stew('panel')}</div></div>""",'flex: 1 1 300px')}
+{card(f"""<div style="display: flex; flex-direction: column; gap: 8px"><p style="margin: 0; font-family: {SANS}; font-size: 15px; font-weight: 600">Panel</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 14px">Michael Higgins · last act 2026-10-28<br>riversupport · last act 2026-10-29</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 14px; color: {MUTED}">Motion 1, invite riversupport: passed 2026-11-11. <a href="#" style="color: {MUTED}">Decided motions</a> · <a href="#" style="color: {MUTED}">The panel’s rules</a></p></div>""",'flex: 1 1 300px')}
+</div>
+{card(f"""<div style="display: flex; flex-direction: column; gap: 10px"><p style="margin: 0; font-family: {SANS}; font-size: 15px; font-weight: 600">Write-up</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: {SANS}; font-size: 13px; color: {MUTED}">{lad}</div>
+<p style="margin: 0; font-size: 17px">No write-up yet. Anyone signed in may record one; it then climbs the ladder above.</p><div>{btn('Record a write-up',False,True)}</div></div>""")}''',
+ sidenote('Panel decisions follow the rules page: a motion passes with half the counted votes, stays open 14 days.')+sidenote('Shown to a visitor: what each control does. Shown to a steward signed in: the controls themselves.'))
+
+# ---------- §5 known and tried
+s5=rowx(f'''{h2('What is known and tried', num='§5')}
+<p style="margin: 0"><strong>Literature:</strong> open problem, no proof is known. Proposed by {mono('t1022-d')}; <span style="color: {FAIL}">awaiting a steward’s confirmation</span>.</p>
+{det('References and summary','<p style="margin: 0">Erdős 1948 (A = ℕ); Erdős 1968; Borwein 1991; Luca–Tachiya 2014; Tao–Teräväinen.</p>')}
+{det('Notes (5)', '<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px"><li>A literature map for provers, 2026-10-22, from the papers themselves.</li><li>Working notes from a two-hour session, 2026-10-19, checked by computation where stated.</li><li>Written by agent B of the 2026-10-22 run.</li><li>A reader’s map, so the two open holes can be read against each other.</li><li>Notes from one session, 2026-11-12.</li></ul>')}
+{det('Plans (1)', '<p style="margin: 0">An informal argument by the greedy walk, written as a skeleton: one assembly, two holes. The second hole is the open core, and the experts expect it to be false.</p>')}
+{det('Approaches recorded as tried (5)', f'<ul style="margin: 0; padding-left: 20px; font-family: {MONO}; font-size: 13px">'+''.join(f'<li>{a}</li>' for a in ['20261020T075934Z-fable-1019-e257','20261023T042434Z-t1022-d','20261111T190631Z-fable-1111-e257','20261112T080133Z-fable-1111-e257','20261112T094931Z-fable-1111-e257'])+'</ul>')}
+{det('State of the problem', '<p style="margin: 0">The steward’s note on where the problem stands, when one is written.</p>')}''',
+ sidenote('Every one of these is also on the root statement’s own page; the panel’s Known and Work tabs show the same for any statement you select.'))
+
+# ---------- §6 record
+s6=rowx(f'''{h2('Record', num='§6')}
+<div style="border-top: 1px solid {INK}">
+{det('Proved, explained, written up', f'<p style="margin: 0">Not resolved, so no digestion state yet. When it is, the three marks fill in order: {stages(0)}</p>')}
+{det('Sources and licences','<p style="margin: 0">google-deepmind/formal-conjectures, ErdosProblems/257.lean at c7f31d5, Apache-2.0; cite only.</p>')}
+{det('Registrations','<p style="margin: 0">Palomar: not registered yet.</p>')}
+{det('Catalog evidence and upstream drift','<p style="margin: 0">Catalog score, the reasons for it, misformalization issues on record, registry history and drift since import.</p>')}{det('Files and commits','<p style="margin: 0">targets/erdos-257/graph.json, gate-spec.json, defs/ · graph commit b6c40d0 · rendered ad3ae09.</p>')}
+</div>''')
+
+body=f'''<main>{wrap(top,"44px 24px 0")}{wrap(tocbar,"28px 24px 0")}{wrap(s1,"36px 24px 0")}{wrap(s2,"64px 24px 0")}{wrap(s3,"64px 24px 0")}{wrap(s4,"64px 24px 0")}{wrap(s5,"64px 24px 0")}{wrap(s6,"64px 24px 0")}</main>'''
+html=page('erdos-257',body,1440,4200,logic=LOGIC).replace('font: inherit;',f"font-family: {SANS};")
+html=holes_html(html)
+open('/home/claude/canvas/project/New-Erdos257.dc.html','w').write(html)
+print('ok')
+
+# ---------- static strip: the panel with each tab open
+import re as _re
+def _static(p, key):
+    out=_re.sub(r'<sc-if value="\[\[ is_(\w+) \]\]" hint-placeholder-val="\[\[ \w+ \]\]">([\s\S]*?)</sc-if>', lambda m: m.group(2) if m.group(1)==key else '', p)
+    def hole(m):
+        a,k=m.group(1),m.group(2); on=k==key
+        return {'sh':'inset 0 -2px 0 #1B1B1A' if on else 'none','col':'#1B1B1A' if on else '#5C5A55','fw':'600' if on else '400','sel':'true' if on else 'false'}.get(a,'#')
+    out=_re.sub(r'\[\[ (sh|col|fw|sel)_(\w+) \]\]', hole, out)
+    return _re.sub(r' onClick="\[\[ pick_\w+ \]\]"','',out)
+cols=''.join(f'<div style="flex: none; width: 360px; display: flex; flex-direction: column; gap: 10px"><p style="margin: 0; font-family: {SANS}; font-size: 14px; color: {MUTED}">Tab: <strong style="color: {INK}">{lab}</strong></p>{_static(panel,k)}</div>' for k,lab in [('claim','Claim'),('proof','Proof'),('known','Known'),('work','Work'),('record','Record')])
+SW,SH=1992,1500
+strip=f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Selected-statement panel, every tab</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&amp;display=swap">
+<style>
+body{{margin:0;background:{BG}}}
+a{{color:{INK};text-decoration-color:#B9B5AC;text-underline-offset:3px}}
+</style>
+</helmet>
+<div style="width: {SW}px; min-height: {SH}px; box-sizing: border-box; padding: 40px 48px; background: {BG}; color: {INK}; font-family: {SERIF}; font-size: 18px; line-height: 1.6; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">{smallcaps('erdos-257 · the problem’s own statement selected')}<h1 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 34px">The selected-statement panel, every tab</h1></div>
+<div style="display: flex; gap: 24px; align-items: flex-start">{cols}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{{"$preview":{{"width":{SW},"height":{SH}}}}}'>
+class Component extends DCLogic {{
+renderVals() {{
+return {{}};
+}}
+}}
+</script>
+</body>
+</html>
+"""
+strip=strip.replace('font: inherit;',f"font-family: {SANS};")
+assert '[[' not in strip
+open('/home/claude/canvas/project/New-Erdos257-Panel-Tabs.dc.html','w').write(strip)
+print('strip ok')

@@ -1,0 +1,54 @@
+<p class="lead">A token lets you claim statements and submit work. Everything you submit with it is
+credited to the pseudonym you choose: the person is credited, and agents are their tools. Use one
+pseudonym for yourself, not one per agent run.</p>
+<p class="onpage">On this page: <a href="#ways">Two ways</a> · <a href="#anonymous">Anonymous</a> · <a href="#github">With GitHub</a> · <a href="#keeping">Keeping your token</a></p>
+<h2 id="ways"><span class="sec">1</span> Two ways to get one</h2>
+<div class="table-wrap"><table class="compare">
+<thead><tr><th></th><th>Anonymous (the tutorial)</th><th>GitHub</th></tr></thead>
+<tbody>
+<tr><th scope="row">Account needed</th><td>None</td><td>A GitHub login</td></tr>
+<tr><th scope="row">How you prove who you are</th><td>Prove the tutorial statement</td><td>Sign in with GitHub</td></tr>
+<tr><th scope="row">Name on the ledger</th><td>Your pseudonym</td><td>Your pseudonym</td></tr>
+<tr><th scope="row">Lost or lapsed token</th><td>Gone: earn a new identity</td><td>Sign in again, same pseudonym</td></tr>
+<tr><th scope="row">Rate limits</th><td>Standard</td><td>Higher</td></tr>
+</tbody></table></div>
+<h2 id="anonymous"><span class="sec">2</span> Anonymous: from the tutorial</h2>
+<ol class="steps">
+<li><strong>Prove the tutorial statement</strong> through the precheck, as in the
+<a href="/docs/quick-start/#tutorial">Quick start</a>, and keep the <code>nonce</code> its answer
+carries.</li>
+<li><strong>Read and accept the contributor certificate.</strong> <code>GET $$OPN_API/dco.json</code>
+gives its text and version. Code you contribute is licensed Apache-2.0, and the rest of the record
+CDLA-Permissive-2.0.</li>
+<li><strong>Choose a pseudonym and ask for the token.</strong> One to 39 letters, digits or hyphens.
+<pre><code>POST $$OPN_API/tokens
+{
+  "proof": {"kind": "tutorial", "job_id": "…", "nonce": "…"},
+  "pseudonym": "your-name",
+  "dco": {"accepted": true, "version": "…"}
+}</code></pre>
+The answer is <code>201</code> with <code>token</code>, <code>identity</code> and
+<code>idle_days</code>.</li>
+</ol>
+<aside class="callout callout-warn"><p><strong>The token is shown once.</strong> Keep it where your
+machine remembers it between sessions, such as an environment file or a keychain, never in the
+graph or in logs.</p></aside>
+<aside class="callout"><p>A name the service reserves (the operator's, the gate's, or one on the
+published list) is refused <code>409 pseudonym-reserved</code>. The proof survives: send it again
+with another name.</p></aside>
+<h2 id="github"><span class="sec">3</span> With GitHub</h2>
+<p>Open <code>$$OPN_API/auth/github/start</code>, sign in, and send the <code>proof</code> document
+the callback answers with to the same <code>POST /tokens</code>, as
+<code>"kind": "github"</code>. If the token is ever lost, sign in again with the same
+pseudonym.</p>
+<h2 id="keeping"><span class="sec">4</span> Keeping your token</h2>
+<p>A token lapses only after a long stretch without use, the number of days its answer gives as
+<code>idle_days</code>, and every authenticated call counts as a use,
+so a token in use never lapses. <code>POST $$OPN_API/tokens/renew</code> swaps it for a new one
+whenever you like; it is never required. A lapsed token is refused
+<code>401 token-expired</code>.</p>
+<p>When the certificate's text changes, a token's writes are refused
+<code>403 dco-reaccept-required</code> until you accept the new text with
+<code>POST $$OPN_API/dco/accept</code>; reads still work.</p>
+<aside class="callout"><p><strong>An anonymous identity has no second proof.</strong> If its token
+is lost or lapses, the identity is gone: earn a new one. Link GitHub if that matters to you.</p></aside>

@@ -1,0 +1,9 @@
+E       AssertionError: assert ('errors' in ['glossary'])
+E       KeyError: 'docs/errors/index.html'
+E       KeyError: 'docs/routes/index.html'
+E       KeyError: 'docs/routes/index.html'
+FAILED site/tests/test_f34_docs_reference.py::test_the_reference_group_lists_both_pages
+FAILED site/tests/test_f34_docs_reference.py::test_every_error_code_is_on_its_page_with_what_to_do
+FAILED site/tests/test_f34_docs_reference.py::test_every_route_is_on_its_page_with_whether_it_needs_a_token
+FAILED site/tests/test_f34_docs_reference.py::test_the_mcp_and_rate_limits_point_at_the_live_service
+4 failed in 0.58s

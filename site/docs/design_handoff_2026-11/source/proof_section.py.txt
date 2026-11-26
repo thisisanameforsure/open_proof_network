@@ -1,0 +1,159 @@
+from common import *
+from panel import mono
+GAP=176; DY=96
+pos_out=[]
+def T(label,kind='open',ident='',children=None,uses=None,split=None,spec=None):
+    return dict(label=label,kind=kind,id=ident,children=children or [],uses=uses,split=split,spec=spec)
+def _leaves(n):
+    return 1 if not n['children'] else sum(_leaves(c) for c in n['children'])
+def draw(tree, sel_id=None, path=()):
+    items=[]; edges=[]; maxd=[0]; pos={}
+    def place(n,x0,d):
+        w=_leaves(n)*GAP; x=x0+w/2; y=40+d*DY; maxd[0]=max(maxd[0],d)
+        if n['children']:
+            cx=x0; jy=y+DY*0.5
+            edges.append(edge(x,y+16,x,jy,color=INK,w=2.25 if n['id'] in path else 1.25))
+            for c in n['children']:
+                cw=_leaves(c)*GAP; ccx=cx+cw/2
+                onp=c['id'] in path
+                edges.append(edge(x,jy,ccx,y+DY-16,color=INK if onp else '#8F8B82',w=2.25 if onp else 1.1))
+                place(c,cx,d+1); cx+=cw
+            items.append(junction(x,jy))
+            if n.get('split'): items.append(f'<span style="position: absolute; left: {x-10}px; top: {jy-9}px; transform: translateX(-100%); font-family: {SANS}; font-size: 11.5px; color: {MUTED}; white-space: nowrap; background: {SURF}; padding: 0 2px">{n["split"]}</span>')
+        k=n['kind']
+        if k=='fold':
+            items.append(f'<button type="button" style="position: absolute; left: {x}px; top: {y}px; transform: translate(-50%,-50%); font-family: {SANS}; font-size: 12.5px; padding: 7px 11px; border: 1px dashed {PROVED}; border-radius: 4px; background: {PROVED_SOFT}; color: {PROVED}; cursor: pointer; white-space: nowrap; width: max-content; text-align: left; line-height: 1.3">{n["label"]}</button>')
+        else:
+            items.append(node(x,y,n['label'],'root' if k=='root' else k,sel=(n['id']==sel_id),maxw=140,size=12.5))
+        if n.get('spec'):
+            right=bool(n['children'])
+            sx=x+82 if right else x; sy=y-11 if right else y+30
+            items.append(f'<a href="#spec" style="position: absolute; left: {sx}px; top: {sy}px; transform: {"none" if right else "translateX(-50%)"}; font-family: {SANS}; font-size: 11.5px; color: {MUTED}; background: {SURF}; border: 1px dotted #8F8B82; border-radius: 4px; padding: 3px 7px; white-space: nowrap; text-decoration: none">+ {n["spec"]} ↓</a>')
+        if n.get('uses'):
+            ux=x+GAP*0.42; uy=y+DY*0.55
+            edges.append(edge(x+40,y+12,ux-30,uy-12,color='#8F8B82',dash=True))
+            items.append(f'<span style="position: absolute; left: {ux}px; top: {uy}px; transform: translate(-50%,-50%); font-family: {SANS}; font-size: 11.5px; color: {MUTED}; background: {BG}; border: 1px dashed #B9B5AC; border-radius: 4px; padding: 4px 8px; white-space: nowrap">uses: {n["uses"]}</span>')
+    place(tree,0,0)
+    W=_leaves(tree)*GAP; H=40+maxd[0]*DY+44
+    pos_out[:] = []
+    return canvas_box(''.join(edges)+''.join(items), W, H, 'Route drawn as a tree')
+
+P=lambda t,k,i,**kw: T(t,k,i,**kw)
+# ---- real routes (graph.json, 2026-11-24)
+r2_holes=[('A = all naturals (Erdős 1948)','proved','variant-2f5236aa'),('every arithmetic progression','proved','variant-886b66da'),('eventually periodic A','proved','variant-5274cf38'),('pairwise coprime, Σ1/a < ∞','proved','variant-c91009b9'),('squarefree numbers','proved','variant-970a2ffa'),('perfect k-th powers','proved','variant-7a0f5735'),('sums of two squares','proved','variant-d08712d9'),('A = primes (Tao–Teräväinen)','open','variant-6b364d2b'),('lacunary of ratio two','proved','variant-d144ccc1'),('Liouville criterion','proved','variant-1629563f'),('long gaps','proved','variant-41d1f19b'),('powers of two and three','proved','variant-037e597d'),('powers of two bases a < b','proved','variant-f93b89d8'),('two fast divisibility chains','proved','variant-77c0756e'),('finitely many lacunary','proved','variant-90827f46'),('every other infinite set','open','erdos-257--h18')]
+primes_chain=P('A = primes (Tao–Teräväinen)','open','variant-6b364d2b',children=[P('Tao–Teräväinen Thm 5.1 (technical reduction)','open','variant-6b364d2b--h1',children=[P('§§5.6–5.14: κ₂–κ₅ for each Lemma 5.2 cube','open','variant-6b364d2b--h1--h1')])])
+R2_fold=P('Erdős problem 257','root','erdos-257',split='case split: 15 special cases + the rest',spec='2 speculative',children=[P('14 proved · show','fold','f'),primes_chain,P('every other infinite set (what is left)','open','erdos-257--h18',spec='4 speculative')])
+R1=P('Erdős problem 257','root','erdos-257',split='greedy walk',spec='2 speculative',children=[P('a representation of a rational is greedy','proved','erdos-257--h1',uses='gap lemma'),P('no rational is an infinite greedy sum (open core)','open','erdos-257--h2',children=[P('a rational’s greedy set is finite or co-finite','open','erdos-257--h2--h1')])])
+R3=P('one half is the sum of an infinite set','open','spec-a70fcca4-v2',split='greedy walk for 1/2',children=[P('greedy remainder bookkeeping','proved','spec-a70fcca4--h1'),P('no finite subsum is one half','proved','spec-a70fcca4--h2'),P('the Mersenne reciprocal series converges','proved','spec-a70fcca4--h3'),P('the greedy walk for one half never stalls','open','spec-a70fcca4--h4',children=[P('a skipped step leaves at most 2⁻ᵐ + 4⁻ᵐ/3','open','spec-a70fcca4--h4--h1',children=[P('after a skipped m ≥ 2, another skip within (m, 2m]','open','spec-a70fcca4--h4--h1--h1',children=[P('… for m > 100','open','spec-a70fcca4--h4--h1--h1--h1')])])])])
+R3_fold=P('one half is the sum of an infinite set','open','spec-a70fcca4-v2',split='greedy walk for 1/2',children=[P('3 proved · show','fold','f'),R3['children'][3]])
+
+def grid16(sel=None):
+    # unfolded route 2: root, split, 16 holes in a grid of 4; deeper levels as "+n below"
+    W,H=GAP*4+20,490
+    e=''; n=''
+    rx=W/2; n+=node(rx,30,'Erdős problem 257','root',sel=(sel=='erdos-257'))
+    jy=78; e+=edge(rx,46,rx,jy,color=INK,w=1.25); n+=junction(rx,jy)
+    n+=f'<span style="position: absolute; left: {rx+10}px; top: {jy-9}px; font-family: {SANS}; font-size: 11.5px; color: {MUTED}; white-space: nowrap">case split: 15 special cases + the rest</span>'
+    xs=[GAP*i+GAP/2+10 for i in range(4)]; ys=[150,240,330,420]
+    e+=edge(rx,jy,rx,104,color=INK,w=1.25)
+    e+=f'<span aria-hidden="true" style="position: absolute; left: 6px; top: 104px; width: {W-12}px; height: 360px; border: 1px solid #CFCBC2; border-radius: 6px; box-sizing: border-box"></span>'
+    e+=f'<span style="position: absolute; left: 16px; top: 110px; font-family: {SANS}; font-size: 11.5px; color: {MUTED}">16 holes · all of them prove it</span>'
+    for i,(l,k,ident) in enumerate(r2_holes):
+        x=xs[i%4]; y=ys[i//4]
+        n+=node(x,y,l,k,maxw=140,size=12.5)
+        if ident in ('variant-6b364d2b','variant-5274cf38'):
+            more='2 open below' if ident=='variant-6b364d2b' else '3 below · folded under a proof'
+            n+=f'<span style="position: absolute; left: {x}px; top: {y+34}px; transform: translateX(-50%); font-family: {SANS}; font-size: 11px; color: {MUTED}; white-space: nowrap">▸ {more}</span>'
+    return canvas_box(e+n,W,H,'Route 2, every statement')
+
+ROUTES=[(1,'proves','Greedy walk: one open core',2,1,1,0,2,'erdos-257, split by fable-1020-e257-c'),
+ (2,'proves','Fifteen special cases plus the rest',16,14,2,0,3,'erdos-257, split by t1023-f1'),
+ (3,'refutes','Counterexample: one half is the sum of an infinite set',4,3,1,3,4,'spec-a70fcca4-v2 (greedy walk for 1/2)'),
+ (4,'refutes','Counterexample: one half, second walk',4,3,1,4,4,'spec-a70fcca4-v2'),
+ (5,'refutes','Counterexample: one half, third walk',4,3,1,4,4,'spec-a70fcca4-v2'),
+ (6,'refutes','Counterexample: one half, carry form',3,2,1,0,1,'spec-a70fcca4-v2 (carry form)'),
+ (7,'refutes','Counterexample: some set with a rational sum, repair walk',3,2,1,1,2,'variant-cce9b284'),
+ (8,'refutes','… repair walk, second form',2,1,1,1,2,'variant-cce9b284'),
+ (9,'refutes','… calm points for 2⁻²⁰',6,5,1,2,1,'variant-cce9b284'),
+ (10,'refutes','… calm points for some 2⁻ʲ',5,4,1,2,1,'variant-cce9b284')]
+
+def route_list():
+    out=''
+    for n,kind,title,st,pr,op,sh,asm,via in ROUTES:
+        out+=f'''<li style="border-top: 1px solid {LINE}"><div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px 4px; background: [[ rl_bg_{n} ]]">
+<button type="button" onClick="[[ pick_r{n} ]]" aria-pressed="[[ rp_{n} ]]" style="flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid {FAIL if kind=='refutes' else INK}; background: [[ rb_bg_{n} ]]; color: [[ rb_fg_{n} ]]; font-family: {SANS}; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0">{n}</button>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; font-family: {SANS}">
+<span style="font-size: 14px; font-weight: 500">{title}</span>
+<span style="font-size: 12.5px; color: {MUTED}">{"proves the problem" if kind=="proves" else "would disprove it"} · {st} statements · {pr} proved · <strong style="color: {INK}">{op} open</strong></span>
+<span style="font-size: 12px; color: {MUTED}">through {mono(via,'11.5px')}</span>
+<span style="display: flex; gap: 12px; font-size: 12.5px"><a href="#" onClick="[[ pick_r{n} ]]">Draw</a><a href="#">Statements</a><a href="#" style="color: {FAIL}">Retire…</a></span>
+</div></div></li>'''
+    return f'<ol style="list-style: none; margin: 0; padding: 0; border-bottom: 1px solid {LINE}">{out}</ol>'
+
+def nav_tree():
+    NW,NH=300,168
+    Pn={'R':(150,14),'A':(70,58),'B':(210,58),'C':(160,100),'E':(255,100),'F':(125,136),'G':(240,136)}
+    leaves={1:(45,100),2:(95,100),3:(105,154),4:(145,154),5:(185,136),6:(205,100),7:(222,154),8:(258,154),9:(280,136),10:(290,100)}
+    par={'A':'R','B':'R','C':'B','E':'B','F':'C','G':'E'}
+    lpar={1:'A',2:'A',3:'F',4:'F',5:'C',6:'B',7:'G',8:'G',9:'E',10:'E'}
+    ne=''
+    for k,p in par.items(): ne+=edge(*Pn[p],*Pn[k],color='#B9B5AC')
+    for l,p in lpar.items(): ne+=edge(*Pn[p],*leaves[l],color='#B9B5AC')
+    for k,(x,y) in Pn.items(): ne+=f'<span aria-hidden="true" style="position: absolute; left: {x-5}px; top: {y-5}px; width: 10px; height: 10px; background: {SURF}; border: 1.5px solid #8F8B82"></span>'
+    for l,(x,y) in leaves.items():
+        ref=l>=3
+        ne+=f'<button type="button" onClick="[[ pick_r{l} ]]" aria-pressed="[[ rp_{l} ]]" aria-label="Route {l}" style="position: absolute; left: {x-11}px; top: {y-11}px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid {FAIL if ref else INK}; background: [[ rb_bg_{l} ]]; color: [[ rb_fg_{l} ]]; font-family: {SANS}; font-size: 11px; font-weight: 600; padding: 0; cursor: pointer">{l}</button>'
+    return canvas_box(ne,NW,NH,'Route choices as a tree')
+
+def seg(label,key):
+    return f'<button type="button" onClick="[[ pick_{key} ]]" aria-pressed="[[ on_{key} ]]" style="font-family: {SANS}; font-size: 13px; padding: 6px 12px; border: 1px solid {INK}; background: [[ bg_{key} ]]; color: [[ fg_{key} ]]; cursor: pointer; margin-left: -1px">{label}</button>'
+
+def figure():
+    def block(flag, inner, hint=False):
+        return f'<sc-if value="[[ {flag} ]]" hint-placeholder-val="[[ {"true" if hint else "false"} ]]">{inner}</sc-if>'
+    figs=block('fig2f',draw(R2_fold,'erdos-257'),True)+block('fig2u',grid16('erdos-257'))+block('fig1f',draw(R1,'erdos-257'))+block('fig1u',draw(R1,'erdos-257'))+block('fig3f',draw(R3_fold))+block('fig3u',draw(R3))
+    figs+=block('figx',f'<p style="margin: 0; padding: 40px 0; font-family: {SANS}; font-size: 14px; color: {MUTED}">Route [[ route ]] is drawn the same way (this mockup draws routes 1–3).</p>')
+    return figs
+
+ROUTE_LOGIC="""const st = this.state || {};
+const r = st.route || 2;
+const nav = st.nav || 'tree';
+const fold = st.fold !== false;
+v.route = r;
+for (let n = 1; n <= 10; n++) {
+  const on = r === n;
+  v['rp_' + n] = on ? 'true' : 'false';
+  v['rb_bg_' + n] = on ? '#1B1B1A' : '#FFFFFF';
+  v['rb_fg_' + n] = on ? '#FFFFFF' : (n >= 3 ? '#A0461E' : '#1B1B1A');
+  v['rl_bg_' + n] = on ? '#E8EDF6' : 'transparent';
+  v['pick_r' + n] = () => this.setState({ route: n });
+}
+[1, 2, 3].forEach((n) => { v['fig' + n + 'f'] = r === n && fold; v['fig' + n + 'u'] = r === n && !fold; });
+v.figx = r > 3;
+const titles = {1: 'Route 1 · greedy walk · 2 statements, 1 open', 2: 'Route 2 · fifteen special cases plus the rest · 16 statements, 2 open', 3: 'Route 3 · would disprove it: one half is the sum of an infinite set · 1 open'};
+v.route_title = titles[r] || ('Route ' + r + ' · would disprove it');
+v.is_tree = nav === 'tree'; v.is_list = nav === 'list';
+[['tree', 'navtree'], ['list', 'navlist']].forEach(([m, key]) => {
+  const on = nav === m;
+  v['on_' + key] = on ? 'true' : 'false'; v['bg_' + key] = on ? '#1B1B1A' : '#FFFFFF'; v['fg_' + key] = on ? '#FFFFFF' : '#1B1B1A';
+  v['pick_' + key] = () => this.setState({ nav: m });
+});
+v.fold_on = fold ? 'true' : 'false';
+v.fold_label = fold ? 'Proved statements folded · unfold' : 'Fold proved statements';
+v.toggle_fold = () => this.setState({ fold: !fold });"""
+
+def section():
+    navbox=f'''<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 10px"><p style="margin: 0; font-family: {SANS}; font-size: 15px; font-weight: 600">Routes</p><div role="group" aria-label="Show routes as" style="display: inline-flex">{seg('Tree','navtree')}{seg('List','navlist')}</div></div>
+<sc-if value="[[ is_tree ]]" hint-placeholder-val="[[ true ]]"><div style="display: flex; flex-direction: column; gap: 8px">{nav_tree()}<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">Each numbered end is a route; click one to draw it below. <span style="color: {INK}">Black</span>: proves the problem. <span style="color: {FAIL}">Rust</span>: would disprove it, through a counterexample statement.</p></div></sc-if>
+<sc-if value="[[ is_list ]]" hint-placeholder-val="[[ false ]]">{route_list()}</sc-if>
+<p style="margin: 0; padding-top: 10px; border-top: 1px solid {LINE}; font-family: {SANS}; font-size: 14px">Drawn below ↓ <strong>[[ route_title ]]</strong></p>
+</div>'''
+    head=f'''<div style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; font-family: {SANS}">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: {MUTED}">Figure 1 · the selected route</span><span style="font-size: 15px; font-weight: 600">[[ route_title ]]</span></span>
+<span style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><button type="button" onClick="[[ toggle_fold ]]" aria-pressed="[[ fold_on ]]" style="font-family: {SANS}; font-size: 13px; padding: 6px 10px; border: 1px solid {LINE}; border-radius: 4px; background: {SURF}; color: {INK}; cursor: pointer">[[ fold_label ]]</button>
+<a href="#" style="font-size: 13px; padding: 6px 10px; border: 1px solid {FAIL}; border-radius: 4px; color: {FAIL}; text-decoration: none">Retire this route…</a></span></div>'''
+    fig=f'''<figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">{head}<div style="overflow-x: auto">{figure()}</div></div>
+<figcaption style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><strong style="color: {INK}">Figure 1.</strong> The selected route as a tree: each statement above the statements its proof needs; ● dot joins statements proved together. Proved statements fold into one box. Select a statement to read it in the panel.</figcaption></figure>'''
+    return navbox, fig

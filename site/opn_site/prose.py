@@ -193,10 +193,24 @@ def _emphasis(escaped: str) -> str:
     return _EM_RE.sub(lambda m: f"<em>{m.group(1)}</em>", escaped)
 
 
+#: F34-T2 (Q17): a paragraph that is one display block whose inside holds a lone ``$`` -- the
+#: post-merge job's gloss writer put ``$$...$$`` around a claim of words and inline math after
+#: dropping the claim's outer dollars. Only the whole paragraph is read so: a ``$$`` that closes
+#: one block and the ``$$`` that opens the next never pair up.
+_REWRAPPED_RE = re.compile(r"\$\$((?:[^$]|\$(?!\$))*\$(?:[^$]|\$(?!\$))*)\$\$", re.DOTALL)
+
+
+def _unwrap_display(text: str) -> str:
+    """``$$X$$`` as the whole text, with a lone ``$`` inside ``X``, as ``$X$``: the line the author
+    wrote, words and inline math, which KaTeX can read; anything else is left as it is."""
+    m = _REWRAPPED_RE.fullmatch(text.strip())
+    return f"${m.group(1)}$" if m else text
+
+
 def words_inline(text: str) -> str:
     """A contributor's inline Markdown (F22-T15): `code`, math marked ``.math``, strong and
     emphasis, a link as its text and url; everything escaped first."""
-    return _inline(text, math_re=_PROSE_MATH_RE, math_span=True, allowed_urls=None)
+    return _inline(_unwrap_display(text), math_re=_PROSE_MATH_RE, math_span=True, allowed_urls=None)
 
 
 def inline(text: str) -> str:

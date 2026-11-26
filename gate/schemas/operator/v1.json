@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/operator/v1.json",
+  "title": "operator/v1",
+  "description": "D-19 v3.51 (i), F34-T13: a listed curator's record that ledger identities belong to one operator, the person who ran them. Appended under operators/<operator>/<timestamp>-<curator>.yaml; the newest record for an operator is the one read, and a record with no identities releases them. No ledger entry is changed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "operator",
+    "identities",
+    "reason",
+    "author",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "operator/v1"
+    },
+    "operator": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9-]{1,39}$",
+      "description": "the operator's own pseudonym; the directory is named after it"
+    },
+    "identities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9-]{1,39}$"
+      },
+      "description": "the ledger identities that are the operator's; empty releases every identity an earlier record named"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "why, in the curator's words: the published reasoning a curator's act owes the record (D-22)"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "the curator's pseudonym"
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

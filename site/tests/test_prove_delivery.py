@@ -35,7 +35,7 @@ def test_no_copy_in_the_static_tree() -> None:
 
 
 def test_docs_shows_the_chain(tmp_path: Path) -> None:
-    docs = rendered(tmp_path)["docs/index.html"]
+    docs = rendered(tmp_path)["docs/connect/index.html"]  # F34-T6
     card = docs[docs.index('id="connector-opn-prove"') :]
     card = card[: card.index("</section>")]
     for step in ("export", "run", "import", "submit", "sha256sum -c -"):

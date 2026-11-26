@@ -1,0 +1,21 @@
+F34-T14 verification: uv run --frozen pytest site/tests/test_f34_contributors.py
+site/tests/test_f34_contributors.py::test_the_page_says_who_is_credited_and_that_nobody_is_ranked PASSED [  6%]
+site/tests/test_f34_contributors.py::test_stewards_come_first_each_once_with_their_problems PASSED [ 13%]
+site/tests/test_f34_contributors.py::test_one_card_per_person_by_last_activity PASSED [ 20%]
+site/tests/test_f34_contributors.py::test_a_card_counts_in_words_and_lists_tools_and_problems PASSED [ 26%]
+site/tests/test_f34_contributors.py::test_model_names PASSED             [ 33%]
+site/tests/test_f34_contributors.py::test_test_runs_hidden PASSED        [ 40%]
+site/tests/test_f34_contributors.py::test_the_full_ledger_is_folded_and_marks_revoked_entries PASSED [ 46%]
+site/tests/test_f34_contributors.py::test_no_internal_codes PASSED       [ 53%]
+site/tests/test_f34_contributors.py::test_an_operator_record_puts_its_identities_under_one_card PASSED [ 60%]
+site/tests/test_f34_contributors.py::test_identities_with_one_github_login_are_one_person PASSED [ 66%]
+site/tests/test_f34_contributors.py::test_a_test_run_is_never_counted_into_a_person PASSED [ 73%]
+gate/tests/test_f34_display_github.py::test_the_service_writes_the_github_login PASSED [ 80%]
+gate/tests/test_f34_display_github.py::test_a_curator_may_carry_the_login_the_graph_pairs_with_her PASSED [ 86%]
+gate/tests/test_f34_display_github.py::test_a_hand_written_github_login_is_refused PASSED [ 93%]
+gate/tests/test_f34_display_github.py::test_the_reader_takes_both_versions_and_the_login PASSED [100%]
+============================== 15 passed in 1.86s ==============================
+
+Red (task-14-red.txt): the two grouping cases against 57d54bd9; the test-run case held already and guards
+the regression. The live graph has no operator records until T15's backfill (after the re-pin), so on it
+every identity still stands alone; the fixture shows both groupings.

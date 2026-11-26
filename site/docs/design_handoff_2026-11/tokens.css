@@ -1,0 +1,43 @@
+/* Open Proof Network — "Journal" design tokens (design handoff 2026-11).
+   Drop into site/opn_site/static/site.css (one stylesheet, F04-R10). Every text pair below is
+   checked at >= 4.5:1 against --paper and --surface in both schemes. */
+:root {
+  /* ground and text */
+  --paper: #FAF9F6;        /* page ground */
+  --surface: #FFFFFF;      /* figures, cards, tables */
+  --tint: #F1EFEA;         /* code blocks, tool chips, empty bar track */
+  --ink: #1B1B1A;          /* text, links (underlined), primary button */
+  --muted: #5C5A55;        /* secondary text — 6.5:1 on paper */
+  --rule: #E3E0D9;         /* hairlines, borders */
+  --rule-strong: #B9B5AC;  /* figure connectors, link underlines */
+  /* meaning — colour is used for nothing else */
+  --proved: #2A4D8F;       /* proved (filled ●); also the focus ring */
+  --proved-tint: #E8EDF6;  /* selected route row */
+  --refuted: #A0461E;      /* refuted / failed (⊘), warnings */
+  --refuted-tint: #F7EAE3;
+
+  /* type — vendor the woff2 files same-origin with a sha256 MANIFEST.txt (see F04-Q15) */
+  --serif: "Source Serif 4", "STIX Two Text", Georgia, serif;   /* reading + headings */
+  --sans: "IBM Plex Sans", system-ui, sans-serif;               /* controls, labels, sidenotes */
+  --mono: "IBM Plex Mono", ui-monospace, monospace;             /* Lean, ids, code */
+  --text: 18px; --leading: 1.6;
+  --h1: 52px; --h2: 30px; --h3: 22px; --small: 14px; --note: 13px;
+
+  /* shape and space */
+  --radius: 4px; --measure: 70ch; --content: 1160px; --gutter: 24px;
+  --margin-col: 250px;      /* sidenote column; wraps under the text on a phone */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #161615; --surface: #1E1E1C; --tint: #262624;
+    --ink: #ECEAE5; --muted: #A8A49B; --rule: #34332F; --rule-strong: #5A5852;
+    --proved: #8FB0F0; --proved-tint: #1F2A3F;
+    --refuted: #E59A72; --refuted-tint: #3A2419;
+  }
+}
+/* Status marks: shape carries the meaning, colour repeats it.
+   .mark-proved  = filled circle in --proved
+   .mark-open    = 1.5px --ink outline circle
+   .mark-refuted = --refuted outline circle with a diagonal stroke
+   Stage mark (proved → explained → written up): three 10px circles joined by 1.5px lines,
+   filled --proved up to the stage reached. See mockups/ and source/common.py (stages()). */

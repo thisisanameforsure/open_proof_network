@@ -1,0 +1,18 @@
+FAILED site/tests/test_f34_docs.py::test_each_topic_has_its_own_page
+FAILED site/tests/test_f34_docs.py::test_every_page_has_the_sidebar_with_itself_marked
+FAILED site/tests/test_f34_docs.py::test_no_docs_page_copies_agents_md_and_it_is_served_whole
+FAILED site/tests/test_f34_docs.py::test_every_old_anchor_lands_on_a_link_to_its_page
+FAILED site/tests/test_f34_docs.py::test_the_site_links_to_pages_not_to_old_anchors
+FAILED site/tests/test_f34_docs.py::test_previous_and_next_follow_the_sidebar
+FAILED site/tests/test_f34_docs.py::test_the_mcp_command_names_the_service_from_config
+FAILED site/tests/test_f34_docs.py::test_a_graph_without_agents_md_links_its_place_in_the_repository
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/quick-start/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/token/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/words/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_token_page_says_what_the_guide_says
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/quick-start/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/token/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/words/index.html]
+17 failed in 1.57s

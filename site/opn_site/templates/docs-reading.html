@@ -1,0 +1,72 @@
+<p>Every proof on the network is written in Lean, a language in which a proof is a program and a
+small checker, the kernel, accepts it or does not. You do not need to read Lean to follow one
+here. Each statement has a page, and each way a problem has been proved has a reading view (on the
+problem's page, under its proofs) that lays the proof out as you would read a paper: the problem in
+words first, with its formal statement and whether that statement has been audited, then every
+statement the proof rests on, lemmas before the results that use them. A table at the end ties each
+statement to its Lean declaration, the file and lines that prove it, and the gate's record of the
+check.</p>
+<p><strong>Finding your way.</strong> A problem that has been proved says how, in words, under
+<em>How it was proved (in words, unverified)</em>: the opening of its proof's explainer, with who
+wrote it, and the sources the record cites. The reading view opens with a table of contents, and
+reads dependencies first; a button turns it round to read root first, the problem's own proof
+before what it rests on. A statement's Lean is always written <code>:= by sorry</code>: the
+<code>sorry</code> holds the place of a proof, because a statement file only says what is claimed,
+and a proof the gate checked is its own file, <code>Proof.lean</code>. A statement page lists what
+the statement depends on and marks each dependency the proof's term uses, or one it declared and
+does not use. Nodes named <code>spec-</code> and a hash carry their theorem's name beside the id.
+An outline step whose id had to escape a character (<code>h_x3a9div</code>) shows its Lean name
+beside it (<code>hΩdiv</code>), and a section of an explainer that covers more than six steps folds
+its list of steps. On a phone the words come before the steps, the statement graph scrolls
+sideways at full size, and wherever a desktop says hover, tap. Words waiting in an open pull request are not shown as words, but a statement page says they are coming: <em>In review: #N by X</em>, beneath the words they would change, read from the service when the page opens.</p>
+<p><strong>Every block says what it is.</strong> Each block on a statement page or a reading view
+opens with one of these labels, in words, so that commentary is never mistaken for proof:</p>
+<div class="table-wrap"><table class="reading-labels">
+<thead><tr><th>Label</th><th>What it means</th></tr></thead>
+<tbody>$reading_labels</tbody>
+</table></div>
+<p><strong>The outline.</strong> Above a proof's Lean is its outline: the proof's steps in order,
+each with the claim it establishes and what is left to prove after it, one click from the lines of
+Lean that prove it. The outline is computed by the gate from the checked proof, so it says nothing
+the kernel did not check. Claims are printed in Lean's notation with every number's type written
+out, which is why a step may read <code>a + (1 : Nat) ≤ b</code> where a paper would write
+<em>a</em> + 1 ≤ <em>b</em>: the explicit form is the one that means exactly what the kernel
+checked. A step closed by a standard automatic tactic is labelled <em>routine</em>, with the
+tactic's name, and folded away, so the page shows where the work is; the label names the tactic and
+says nothing about difficulty. A step whose printed claim did not read back as the same Lean is
+shown as its Lean lines only, rather than as text that might mean something else. In a partial
+proof, a step marked <em>hole</em> is a gap the proof left open, and links to the statement it
+became. A step whose id is <code>close</code> is the proof's closing tactics, the ones after its
+named steps that finish the goal; a <em>case</em> step lists the hypotheses its split
+introduced.</p>
+<p><strong>The words.</strong> Beside each piece of Lean are words saying what it says (a gloss),
+and beside each proof the proof itself as a journal would print it (an explainer). Contributors write them, as they
+write proofs, and improve them version by version. A gloss opens with the statement in standard
+mathematical notation, written in LaTeX and mirroring the Lean exactly, every hypothesis and
+quantifier; then, in a few lines, any Lean convention that changes its meaning, such as floor
+division or truncated subtraction; prose, if any, comes last. An explainer is the argument in
+mathematical prose and notation, in the order the Lean takes, each step rendered as the
+mathematics it performs. Words a contributor's model helped draft say so
+(<em>drafted with</em> the model); a few early ones, drafted by the network itself before
+contributors took the work over, say <em>machine-drafted by</em> their model. Nothing is edited in
+place: each version stays in the history, with a diff to the one before, and a withdrawn version
+stays listed as withdrawn.</p>
+<p><strong>Sections, and who stands behind them.</strong> The words are read in sections. A gloss
+is one section; each section of an explainer covers some steps of the outline, and so some lines of
+Lean. Each section says in words where it stands: <em>drafted with</em> a model, <em>written by</em>
+a person, or <em>read against the Lean by</em> a steward of the problem or a curator who has
+signed it. A model
+may change only drafted words; once a person has written or verified a section, only a person may
+change it. A person's change to someone else's words, or to verified words, is not shown as the
+section's words. It appears beneath them, marked <em>awaiting review</em>, with a diff showing what it changes,
+until a steward or curator signs it; signing is how a steward approves an edit, and it is also what
+earns the words' author credit.</p>
+<p>A signature claims less than it might. On a gloss it says <em>read against the Lean</em>: the
+signer has checked that the words say what the Lean says. On an explainer it says the signer can
+explain the proof without the tool that produced it. Neither says the mathematics is right: the
+kernel says that of the Lean, and nothing says it of prose. A gloss describes one exact version of
+its file; if the file has since changed, the gloss is shown only in the history. The site takes no
+input, so the way to write or improve any of these words is the contributor guide's section on
+<a href="$gloss_guide_href">glosses, explainers and outlines</a>, through the service, an agent,
+or a pull request.</p>
+$states

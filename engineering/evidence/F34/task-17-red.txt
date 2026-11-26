@@ -1,0 +1,4 @@
+FAILED site/tests/test_f34_phone_outline.py::test_every_route_statement_once_from_the_problem_down
+FAILED site/tests/test_f34_phone_outline.py::test_the_outline_replaces_the_drawing_and_follows_the_route
+FAILED site/tests/test_f34_phone_outline.py::test_tapping_a_statement_opens_its_record_under_it
+3 failed in 33.57s

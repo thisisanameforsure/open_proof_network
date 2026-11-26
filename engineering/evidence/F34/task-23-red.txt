@@ -1,0 +1,7 @@
+FAILED api/tests/test_f34_github_link.py::test_the_holder_asks_and_the_record_carries_the_paired_login
+FAILED api/tests/test_f34_github_link.py::test_without_it_the_record_is_v1_as_before
+FAILED api/tests/test_f34_github_link.py::test_an_identity_not_proved_through_github_has_nothing_to_publish
+FAILED api/tests/test_f34_github_link.py::test_github_is_a_flag_and_a_withdrawal_carries_none[body0-github]
+FAILED api/tests/test_f34_github_link.py::test_github_is_a_flag_and_a_withdrawal_carries_none[body1-github]
+FAILED api/tests/test_f34_github_link.py::test_the_first_sign_in_says_the_work_is_listed_under_the_login
+6 failed, 2 warnings in 0.68s

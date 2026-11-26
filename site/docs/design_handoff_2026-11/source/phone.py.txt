@@ -1,0 +1,94 @@
+from common import *
+import importlib.util as _u
+_spec=_u.spec_from_file_location('selmod','/home/claude/gen/select.py'); S=_u.module_from_spec(_spec); _spec.loader.exec_module(S)
+from proof_section import nav_tree
+from staticize import resolve
+from panel import mono
+import re
+W=390
+def item(label,kind,depth,sel=False,extra='',last=False):
+    bg,fg=(INK,'#FFFFFF') if sel else (SURF,INK)
+    g=glyph(kind,10)
+    if sel: g=g.replace(f'border: 1.5px solid {INK}','border: 1.5px solid #FFFFFF')
+    return f'''<div style="position: relative; margin-left: {depth*18}px; padding-left: 16px">
+<span aria-hidden="true" style="position: absolute; left: 0; top: -8px; height: {"26px" if last else "calc(100% + 8px)"}; border-left: 1.25px solid {"#1B1B1A" if sel else "#B9B5AC"}"></span>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 18px; width: 12px; border-top: 1.25px solid {"#1B1B1A" if sel else "#B9B5AC"}"></span>
+<a href="#" style="display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; margin: 4px 0; border: 1px solid {INK if sel else "#CFCBC2"}; border-radius: 4px; background: {bg}; color: {fg}; text-decoration: none; font-family: {SANS}; font-size: 14px; line-height: 1.35; min-height: 44px; box-sizing: border-box">{g}<span>{label}</span></a>{extra}</div>'''
+fold_chip=lambda: f'''<div style="position: relative; margin-left: 18px; padding-left: 16px"><span aria-hidden="true" style="position: absolute; left: 0; top: -8px; height: calc(100% + 8px); border-left: 1.25px solid #B9B5AC"></span><span aria-hidden="true" style="position: absolute; left: 0; top: 18px; width: 12px; border-top: 1.25px solid #B9B5AC"></span>
+<button type="button" style="display: block; width: 100%; text-align: left; margin: 4px 0; padding: 10px; min-height: 44px; border: 1px dashed {PROVED}; border-radius: 4px; background: {PROVED_SOFT}; color: {PROVED}; font-family: {SANS}; font-size: 14px">14 proved special cases · show</button></div>'''
+
+def card(tab):
+    inner=S.tabbed(tab,'· opened in place')
+    return f'''<div style="position: relative; margin: 6px 0 10px">
+<span aria-hidden="true" style="position: absolute; left: 60px; top: -10px; width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 10px solid {INK}"></span>
+{inner}</div>'''
+
+def screen(tab, title):
+    outline=f'''<div style="display: flex; flex-direction: column">
+<a href="#" style="display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid {INK}; border-radius: 4px; background: {SURF}; color: {INK}; text-decoration: none; font-family: {SANS}; font-size: 14px; min-height: 44px; box-sizing: border-box">{glyph("open",10)}Erdős problem 257 <span style="margin-left: auto; font-size: 12px; color: {MUTED}">+ 2 speculative</span></a>
+<p style="margin: 6px 0 0 18px; font-family: {SANS}; font-size: 12px; color: {MUTED}">case split: 15 special cases + the rest</p>
+{fold_chip()}
+<div style="margin-left: 18px">{item('A = primes (Tao–Teräväinen)','open',0,sel=True)}</div>
+<div style="margin-left: 18px">{card(tab)}</div>
+<div style="margin-left: 36px">{item('Tao–Teräväinen Thm 5.1 (technical reduction)','open',0)}</div>
+<div style="margin-left: 54px">{item('§§5.6–5.14: κ₂–κ₅ for each Lemma 5.2 cube','open',0,last=True)}</div>
+<div style="margin-left: 18px">{item('every other infinite set (what is left)','open',0,last=True,extra=f'<a href="#" style="display: inline-block; margin: 0 0 4px; font-family: {SANS}; font-size: 12.5px; color: {MUTED}">+ 4 speculative ↓</a>')}</div>
+</div>'''
+    routes=f'''<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: {SANS}; font-size: 15px; font-weight: 600">Routes</span>
+<span style="display: inline-flex; font-family: {SANS}; font-size: 13px"><span style="padding: 6px 12px; border: 1px solid {INK}; background: {INK}; color: #FFFFFF">Tree</span><span style="padding: 6px 12px; border: 1px solid {INK}; margin-left: -1px">List</span></span></div>
+<div style="overflow-x: auto">{S.holes_html(nav_tree()).replace("[[","{{").replace("]]","}}")}</div>
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">Tap a numbered end to draw that route below.</p></div>'''
+    body=f'''<div style="width: {W}px; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<header style="display: flex; justify-content: space-between; align-items: center; font-family: {SANS}; border-bottom: 1px solid {LINE}; padding-bottom: 10px"><span style="font-family: {SERIF}; font-size: 19px">Open Proof Network</span><button type="button" aria-label="Menu" style="width: 44px; height: 44px; border: 1px solid {LINE}; border-radius: 4px; background: {SURF}; font-size: 18px">≡</button></header>
+<div style="display: flex; flex-direction: column; gap: 8px">{smallcaps('Erdős problem 257 · number theory')}
+<h1 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 26px; line-height: 1.35"><span style="font-style: italic">A</span> ⊆ ℕ infinite: is ∑<sub style="font-size: 0.55em">n∈A</sub> 1/(2<sup>n</sup> − 1) irrational?</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center">{status('open')}{stages(0, compact=True)}</div></div>
+<h2 style="margin: 8px 0 0; font-family: {SERIF}; font-weight: 400; font-size: 24px"><span style="font-family: {SANS}; font-size: 13px; color: {MUTED}; margin-right: 8px">§1</span>Proof</h2>
+{routes}
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: {SANS}; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: {MUTED}">Figure 1 · the selected route</span><span style="font-family: {SANS}; font-size: 15px; font-weight: 600">Route 2 · 16 statements, 2 open</span>
+<span style="display: flex; gap: 8px; flex-wrap: wrap"><button type="button" style="font-family: {SANS}; font-size: 13px; padding: 8px 10px; min-height: 40px; border: 1px solid {LINE}; border-radius: 4px; background: {SURF}">Proved folded · unfold</button><a href="#" style="font-family: {SANS}; font-size: 13px; padding: 9px 10px; border: 1px solid {FAIL}; border-radius: 4px; color: {FAIL}; text-decoration: none">Retire…</a></span></div>
+<p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">On a phone the route is an outline, read top to bottom. Tap a statement: its record opens under it.</p>
+{outline}
+</div>'''
+    return body
+
+def artboard(fname, title, inner, w, h):
+    html=f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{title}</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&amp;display=swap">
+<style>
+body{{margin:0;background:{BG}}}
+a{{color:{INK};text-decoration-color:#B9B5AC;text-underline-offset:3px}}
+</style>
+</helmet>
+<div style="width: {w}px; min-height: {h}px; background: {BG}; color: {INK}; font-family: {SERIF}; font-size: 17px; line-height: 1.55">{inner}</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{{"$preview":{{"width":{w},"height":{h}}}}}'>
+class Component extends DCLogic {{
+renderVals() {{
+return {{}};
+}}
+}}
+</script>
+</body>
+</html>
+""".replace('font: inherit;',f"font-family: {SANS};")
+    # resolve any route-selector holes for Route 2
+    html=resolve(html, route=2, tab='proof' if 'Proof' in title else 'claim')
+    assert '{{' not in html.split('<x-dc>')[1].split('</x-dc>')[0]
+    open('/home/claude/canvas/project/'+fname,'w').write(html)
+
+artboard('New-Phone-Select.dc.html','Phone — selecting a statement (Proof tab)', screen('proof','Proof'), W, 2000)
+# five tabs at phone width, side by side
+cols=''.join(f'<div style="flex: none; width: {W}px; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 10px; border-right: 1px dashed {LINE}"><p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">Tab: <strong style="color: {INK}">{lab}</strong></p>{card(k)}</div>' for k,lab in [('claim','Claim'),('proof','Proof'),('known','Known'),('work','Work'),('record','Record')])
+artboard('New-Phone-Every-Tab.dc.html','Phone — the selected statement, every tab', f'<div style="display: flex; align-items: flex-start">{cols}</div>', W*5, 1100)
+print('ok')

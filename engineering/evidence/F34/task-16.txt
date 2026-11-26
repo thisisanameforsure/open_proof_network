@@ -1,0 +1,26 @@
+F34-T16 — selection and the five tabs (R16; handoff §3.4.3).
+
+Red (task-16-red.txt):
+FAILED site/tests/test_f34_select_browser.py::test_each_panel_has_its_tabs_hidden_naming_its_parts
+FAILED site/tests/test_f34_select_browser.py::test_each_panel_names_its_path_and_keeps_its_ways_out
+FAILED site/tests/test_f34_select_browser.py::test_the_problem_opens_on_its_claim_and_a_tab_shows_its_part_alone
+FAILED site/tests/test_f34_select_browser.py::test_selecting_another_draws_its_path_and_esc_comes_back
+4 failed, 1 passed in 3.75s
+
+Green (static and in a browser):
+9 passed in 11.20s
+
+Found on the way: T12's Tree/List code declared 'var showTab' later in graph.js, which replaced this task's
+showTab function before the first select ran, so the tabs never showed; no console error said so. Renamed
+showRouteTab. A JavaScript 'var' or function name is one namespace across the whole file: grep before adding.
+
+Restated: test_finding_panel_summary reads the action in the always-visible row instead of Work. The whole site
+suite with Playwright: every failure but the three red on main before F34 fixed (14 restated or fixed: the
+path line printed a label's raw Markdown, and was one word over the panel's budget, so 'Selected:' went).
+
+On the live graph at 257feba2 (shoot_select.py), erdos-257:
+{"width": 1440, "selected": "erdos-257--h1", "on_path": 3, "visible_parts": ["how"], "scrollWidth": 1440}
+{"width": 390, "selected": "erdos-257--h1", "on_path": 3, "visible_parts": ["how"], "scrollWidth": 390}
+{"graph_commit": "257feba2344969bcaf93fbd4a08c24448146f0ad"}
+Captures: task-16-erdos-257-{claim,selected}-{1440,390}.png.
+Not built: counts in the tab labels; the line from the selected box to the panel.

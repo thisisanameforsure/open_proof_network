@@ -11,6 +11,8 @@ from typing import Any, ClassVar
 
 import fixture
 import pytest
+from docs_pages import docs_all
+from problem_rows import problem_row
 
 from opn_gate import schemas
 from opn_site import cli, config, links, model, render
@@ -191,12 +193,12 @@ T2_PAGES = ("about/index.html", "contributors/index.html", "docs/index.html")
 
 
 def test_problems_page(rendered: dict[str, str]) -> None:
-    """AC9 as F04-T12 reshaped it: one card per target with one row per statement, the whole
-    list on the page, a same-origin script that only filters, and the old paths redirecting."""
+    """AC9 as F04-T12 reshaped it and F34-T5 (R7) rebuilt it: one row per target linking its
+    page, the whole list on the page, a same-origin script that only filters, sorts and pages,
+    and the old paths redirecting."""
     page = rendered["problems/index.html"]
-    assert page.count('<article class="card problem"') == 1
-    assert page.count('<div class="stmt"') == 3  # the target's three nodes
-    assert 'href="/nodes/propositional/and-swap-reassoc/"' in page
+    assert page.count('data-id="propositional"') == 1
+    assert 'href="/problems/propositional/"' in page
     assert '<script src="/problems.js"></script>' in page
     assert "https://" not in page.split("<main>")[1].split("</main>")[0].replace(REPO, "")
     assert "problems.js" in rendered and "querySelector" in rendered["problems.js"]
@@ -206,30 +208,21 @@ def test_problems_page(rendered: dict[str, str]) -> None:
     assert 'url=/problems/propositional/"' in rendered["targets/propositional/index.html"]
 
 
-def statement_row(page: str, node_id: str) -> str:
-    """One statement row of the Problems page, by its node link."""
-    [row] = [r for r in page.split('<div class="stmt"')[1:] if f">{node_id}</a>" in r]
-    return row.split("</div>", 1)[0]
-
-
 def test_the_problems_page_says_where_each_statement_stands(tmp_path: Path) -> None:
-    """T11's fact on the merged page (R7, Q11, Q14): a row's word and action follow the node's
-    status from the target's graph — an open statement invites work, a blocked one says so and
-    the card's open count drops with it; nothing on the page says every row can be worked on."""
+    """T11's fact as F34-T5 carries it (R7, F34-Q20): the Problems page counts a problem's open
+    statements from the target's graph — an open statement counts, a blocked one does not and the
+    row's count drops with it; nothing on the page says every statement can be worked on. A
+    statement's own word and action are on its problem's page."""
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     page = render.render_site(site, repo_url=REPO)["problems/index.html"]
-    row = statement_row(page, "and-swap-reassoc")
-    assert 'data-state="open"' in row and "Work on this →" in row
-    assert 'data-open="1"' in page
+    assert 'data-open="1"' in page and "1 open" in page
     assert "can be worked on now" not in page
 
     node = site.targets["propositional"].nodes["and-swap-reassoc"]
     node.graph_entry["status"] = "blocked"
     page = render.Renderer(site, repo_url=REPO).problems()
-    row = statement_row(page, "and-swap-reassoc")
-    assert 'data-state="blocked"' in row and ">Blocked</a>" in row
-    assert 'data-open="0"' in page and "Work on this" not in page
+    assert 'data-open="0"' in page and "0 open" in page
 
 
 def test_contributors_empty_state(rendered: dict[str, str]) -> None:
@@ -239,11 +232,12 @@ def test_contributors_empty_state(rendered: dict[str, str]) -> None:
 
 def test_docs_bundle(rendered: dict[str, str]) -> None:
     """R9, R10: the decisions doc is copied with no external link, inline style or script."""
-    docs = rendered["docs/index.html"]
+    docs = docs_all(rendered)
     assert 'href="/docs/architecture-decisions.html"' in docs
     # F25-T12: the licences are named by rule (D-23 v3.37); the fixture has no LICENSE file and
     # the page says what the build found rather than contradicting the rule.
-    assert "no AGENTS.md yet" in docs and "No sign-off" in docs
+    # F34-T6: with no AGENTS.md in the graph, Docs links its place in the repository
+    assert f'href="{REPO}/blob/{fixture.COMMIT}/AGENTS.md"' in docs and "No sign-off" in docs
     assert "The code is Apache-2.0" in docs and "found no <code>LICENSE</code> file" in docs
     assert "No human-funnel documentation yet" not in docs  # F10-T5 delivered it
     copied = rendered["docs/architecture-decisions.html"]
@@ -276,7 +270,7 @@ def test_human_funnel_docs(rendered: dict[str, str]) -> None:
     """F10-AC9: the four human-funnel documents are rendered, linked from the Docs page, and
     each names the decisions it implements; the checklist covers every class of the taxonomy
     (F08-Q4) with a worked example, and nothing in a page is unescaped markup from the source."""
-    docs = rendered["docs/index.html"]
+    docs = docs_all(rendered)
     for rel, (title, decisions) in FUNNEL_DOCS.items():
         assert f'href="/{rel}"' in docs and title in docs, rel
         page = rendered[rel]
@@ -355,7 +349,7 @@ def test_contributors_lists_ledger_entries(tmp_path_factory: pytest.TempPathFact
     pages = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
     page = pages["contributors/index.html"]
     assert "No ledger files exist yet" not in page
-    assert ">alice</h2>" in page
+    assert 'data-operator="alice"' in page and 'data-identity="alice"' in page  # F34-T9
     assert "proof" in page and "attempts" in page
     assert "claude-opus-5" in page
     assert "revoked" in page  # D-18: kept and labelled, never removed
@@ -376,11 +370,7 @@ def test_listed_target_reasons(listed_pages: dict[str, str]) -> None:
     QA summary — and does not reproduce the informal statement of a source that states no
     licence. Since F14-R1 a listed, unsigned target is claimable, so it names no reasons."""
     page = listed_pages["problems/index.html"]
-    [card] = [
-        c
-        for c in page.split('<article class="card problem"')[1:]
-        if f">{fixture.LISTED_TARGET}<" in c
-    ]
+    card = problem_row(page, fixture.LISTED_TARGET)  # F34-T5: a row of the Problems page
     assert "Not claimable" not in card and 'data-status="open"' in card
     assert escape(fixture.PARAPHRASE) in card
     page = listed_pages[f"problems/{fixture.LISTED_TARGET}/index.html"]  # the record's facts
@@ -554,7 +544,7 @@ def test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist
     assert {p for p in problems if "api.example.test" in p} == (
         {f"{rel}: external link {API}/claims.json" for rel in own}
         | {f"{rel}: external link {API}/submissions.json" for rel in statements}
-        | {f"docs/index.html: external link {API}/dco.json"}
+        | {f"docs/licence/index.html: external link {API}/dco.json"}  # F34-T6
     )  # a set: the Problems page links claims.json twice, in the bar and in its footer note
     assert render.live_urls(API) == frozenset(
         {f"{API}/claims.json", f"{API}/submissions.json", f"{API}/dco.json"}

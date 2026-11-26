@@ -149,11 +149,14 @@ def test_the_graph_and_the_lean_scroll_in_their_own_boxes_at_390(tmp_path: Path)
         f"/problems/{TARGET}/#node={WIDE[0]}",
         "(() => { const s = document.querySelector('.dag-scroll');"
         f" const e = document.querySelector('.panel[data-node=\"{WIDE[0]}\"] pre.lean.statement');"
-        " return [document.documentElement.scrollWidth, [s.scrollWidth, s.clientWidth],"
+        " const o = document.querySelector('.route-outline');"
+        " return [document.documentElement.scrollWidth, [s.checkVisibility(), o.checkVisibility()],"
         " [e.scrollWidth, e.clientWidth, getComputedStyle(e).whiteSpace]]; })()",
     )
     assert page == 390, f"the page scrolls sideways: {page}"
-    assert graph[0] > graph[1], f"the graph is not wider than its box here: {graph}"
+    # F34-T17 (R17): at 390 the drawing gives way to the route's outline, which never needs to
+    # scroll sideways; the long Lean still scrolls in its own block.
+    assert graph == [False, True], f"the drawing, not the outline, is shown at 390: {graph}"
     assert lean[2] == "pre", lean
     assert lean[0] > lean[1], f"the long Lean line does not scroll in its block: {lean}"
 

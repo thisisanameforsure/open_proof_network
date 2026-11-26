@@ -1,0 +1,33 @@
+E       AssertionError: assert ['*abc* conje...* conjecture'] == []
+E         
+E         Left contains 4 more items, first extra item: '*abc* conjecture: for every $\\varepsilon > 0$, only finitely many triples. Imported from'
+E         Use -v to get more diff
+E       assert ('<span class="math">' in 'class="provenance-line">*abc* conjecture: for every $\\varepsilon &gt; 0$, only finitely many triples. Imported from <a href="https://www.erdosproblems.com/42">erdos</a> (none-stated)')
+E       AssertionError: ['inline-text · Open Proof Network', 'inline-text-root (*abc* conjecture): ready', '*abc* conjecture']
+E       assert False
+E        +  where False = any(<generator object test_a_drawing_label_drops_the_markers.<locals>.<genexpr> at 0x10c2f1970>)
+E       AssertionError: assert {'problems/in... conjecture']} == {}
+E         
+E         Left contains 2 more items:
+E         {'nodes/inline-text/inline-text-root/index.html': ['*abc* conjecture'],
+E          'problems/inline-text/index.html': ['*abc* conjecture: for every '
+E                                              '$\\varepsilon > 0$, only finitely many '
+E                                              'triples. Imported from',
+E                                              'inline-text-root (*abc* conjecture): '...
+E         
+E         ...Full output truncated (4 lines hidden), use '-vv' to show
+E       assert '$$' not in '<p><span cl...$</span></p>'
+E         
+E         '$$' is contained here:
+E           <p><span class="math">$$\{(n,k) : 1 \le k &lt; n\}$ is finite for every $t$$</span></p>
+E         ?                       ++
+E       AttributeError: module 'opn_site.render' has no attribute 'record_words'
+E       AttributeError: module 'opn_site.render' has no attribute 'record_words'
+FAILED site/tests/test_f34_inline_text.py::test_the_problem_page_shows_no_raw_tex_or_markers
+FAILED site/tests/test_f34_inline_text.py::test_the_provenance_sentence_carries_its_tex_to_the_renderer
+FAILED site/tests/test_f34_inline_text.py::test_a_drawing_label_drops_the_markers
+FAILED site/tests/test_f34_inline_text.py::test_every_page_of_the_target_is_clean
+FAILED site/tests/test_f34_inline_text.py::test_a_display_block_that_holds_inline_math_is_read_as_a_line
+E       assert ('<span class="math">' in 'Is $\\sum_n p_n/2^n$ irrational?')
+E       assert ('<span class="math">' in 'Numerical check: no exception with $n\\ge k^3$')
+2 failed, 6 deselected in 0.29s

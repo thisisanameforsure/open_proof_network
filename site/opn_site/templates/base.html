@@ -9,21 +9,29 @@
 $head
 </head>
 <body>
+<div class="masthead-wrap">
 <header class="masthead">
-  <a class="site-name" href="/"><span class="brand-mark"></span>$site</a>
+  <a class="site-name" href="/">$site</a>
   <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
   <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
   <nav class="site-nav">$nav<span class="session-slot" data-session hidden></span><a class="btn btn-primary nav-action" href="$action_href">$action_label</a></nav>
 </header>
+</div>
 <main>
 $body
 </main>
+<div class="provenance-wrap">
 <footer class="provenance">
-  <span>graph commit <a href="$commit_url"><code>$commit_short</code></a>$products</span>
-  <span>read-only · rebuilt on every merge</span>
-  <span class="sources">a view of $sources</span>
-  <span class="links"><a href="/rules/">rules</a> · <a href="/about/#contact">contact</a> · <a href="$commit_url">repository ↗</a> · $frontier_link$live</span>
+  <span class="motto">Every result checked by Lean. Every attempt kept. Done when a person has explained it.</span>
+  <span class="links"><a href="/rules/">Rules</a> <a href="/about/#contact">Contact</a> <a href="$repo_url">Repository</a></span>
+  <details class="page-source">
+    <summary>Source of this page</summary>
+    <p>graph commit <a href="$commit_url"><code>$commit_short</code></a>$products · read-only · rebuilt on every merge</p>
+    <p class="sources">a view of $sources</p>
+    <p>$frontier_link$live</p>
+  </details>
 </footer>
+</div>
 $script
 </body>
 </html>

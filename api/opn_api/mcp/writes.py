@@ -321,7 +321,7 @@ async def confirm_literature(call: Call, args: dict[str, Any]) -> dict[str, Any]
 async def set_display_name(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F25-T4 (D-3, D-19 v3.37): ``POST /me/name``, body for body; the route writes the record
     for the bearer's own pseudonym, so there is no pseudonym to send."""
-    body = present("set_display_name", args, "name", "link")
+    body = present("set_display_name", args, "name", "link", "github")
     return await forward(call, "POST", "/me/name", body)
 
 
@@ -1183,12 +1183,10 @@ TOOLS: tuple[Tool, ...] = (
     # steward's registration record.
     Tool(
         "set_display_name",
-        "Record the display name your pseudonym is shown by where the network names its "
-        "contributors outside itself — a Palomar registration's authors (D-19 v3.37) — or "
-        "withdraw it with `name: null`. Written as display-name/v1 at names/<your pseudonym>.yaml "
-        "for your own pseudonym and no other, signed with the network's approval key, by pull "
-        "request. A one-way publication: the name reaches the registry's public record once a "
-        "registration names you; nothing on the site shows it yet. Refused 400 "
+        "Record the display name your pseudonym is shown by — on Contributors and in a Palomar "
+        "registration's authors (D-19 v3.37, v3.51) — or withdraw it with `name: null`. Written "
+        "at names/<your pseudonym>.yaml for your own pseudonym and no other, signed with the "
+        "network's approval key, by pull request. A one-way publication. Refused 400 "
         "arguments-invalid naming the field; 409 display-name-in-review while a pull request of "
         "yours still writes the file (one writer at a time); 503 approval-key-missing; nothing "
         "opens on a refusal.",
@@ -1205,6 +1203,10 @@ TOOLS: tuple[Tool, ...] = (
                     "maxLength": 500,
                     "description": "An https:// link for the name (an ORCID record, an "
                     "institutional page), or null; not with a withdrawal.",
+                },
+                "github": {
+                    "type": "boolean",
+                    "description": "True: publish the GitHub login you signed in with (v2).",
                 },
             },
             ("name",),

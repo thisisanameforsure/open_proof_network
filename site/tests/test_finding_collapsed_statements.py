@@ -1,21 +1,21 @@
-"""F04-T34 (Q35, the owner's request 2026-10-06): a problem card shows only its own statement.
+"""F04-T34 (Q35, the owner's request 2026-10-06), as F34-T5 carries it: a problem takes one row.
 
-The Problems page listed every statement under every problem, so a problem with fifteen nodes
-took five times the height of one with three. Each card now shows the problem's own statement
-(the root) and folds the rest into a native ``<details>`` whose summary says how many more there
-are and how many of them are open. A problem with one statement draws no toggle. The owner's
-calls: cards need not be exactly equal in height, and the "Open" filter leaves cards collapsed,
-the summary's open count saying what is inside. Search opens a card whose match is folded away.
+F04-T34 folded every statement but the problem's own into a ``<details>`` on each card, because a
+problem with fifteen nodes took five times the height of one with three. F34-T5 (the 2026-11-25
+handoff, §3.2) goes the rest of the way: the Problems page lists problems only, each in one row of
+the same shape whatever its size, and its statements are on its own page. What F04-T34 protected
+still holds and is asserted here: no problem's height grows with its statements, and nothing a
+row used to fold away is lost — each row links the page that lists them, and says how many are
+open.
 """
 
 from __future__ import annotations
 
 import json
-import re
-from pathlib import Path
 
 import pytest
-from fixture import COMMIT, LISTED_ROOT, LISTED_TARGET, build_with_listed_target
+from fixture import COMMIT, build_with_listed_target
+from problem_rows import problem_row, row_ids
 
 from opn_site import model, render
 
@@ -25,80 +25,46 @@ MANY = "propositional"
 
 
 @pytest.fixture(scope="module")
-def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[dict[str, str], dict[str, str]]:
-    """The rendered pages, and each target's root as ``targets/index.json`` declares it."""
+def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[dict[str, str], dict[str, int]]:
+    """The rendered pages, and each target's node count as ``targets/index.json`` declares it."""
     root = build_with_listed_target(tmp_path_factory.mktemp("collapsed"))
     index = json.loads((root / "targets" / "index.json").read_text(encoding="utf-8"))
-    roots = {str(t["target_id"]): str(t["root"]) for t in index["targets"]}
-    return render.render_site(model.load_site(root, COMMIT), repo_url=REPO), roots
+    sizes = {
+        str(t["target_id"]): len(
+            json.loads(
+                (root / "targets" / str(t["target_id"]) / "graph.json").read_text(encoding="utf-8")
+            )["nodes"]
+        )
+        for t in index["targets"]
+    }
+    return render.render_site(model.load_site(root, COMMIT), repo_url=REPO), sizes
 
 
-@pytest.fixture(scope="module")
-def pages(built: tuple[dict[str, str], dict[str, str]]) -> dict[str, str]:
-    return built[0]
-
-
-def card(page: str, tid: str) -> str:
-    (found,) = [a for a in page.split("<article")[1:] if f'id="p-{tid}"' in a.split(">", 1)[0]]
-    return found.split("</article>", 1)[0]
-
-
-def rows(html: str) -> list[str]:
-    return re.findall(r'<div class="stmt"[^>]*>.*?<span class="node">(.*?)</span>', html)
-
-
-def test_a_card_shows_its_own_statement_and_folds_the_rest(
-    built: tuple[dict[str, str], dict[str, str]],
+def test_the_page_lists_problems_not_statements(
+    built: tuple[dict[str, str], dict[str, int]],
 ) -> None:
-    pages, roots = built
-    many_root = roots[MANY]
-    html = card(pages[PROBLEMS], MANY)
-    assert html.count("<details") == 1, "one fold per card"
-    before, folded = html.split("<details", 1)
-    shown = rows(before)
-    assert len(shown) == 1 and f">{many_root}<" in shown[0], "the root alone sits outside the fold"
-    inside = rows(folded.split("</details>", 1)[0])
-    assert len(inside) == 2, "every other statement sits inside the fold"
-    assert not any(f">{many_root}<" in r for r in inside)
+    pages, sizes = built
+    page = pages[PROBLEMS]
+    assert sizes[MANY] > 1, "guard: one problem has several statements"
+    assert sorted(row_ids(page)) == sorted(sizes)
+    assert 'class="stmt"' not in page and '<details class="more">' not in page
 
 
-def test_the_fold_is_closed_and_says_what_it_holds(pages: dict[str, str]) -> None:
-    html = card(pages[PROBLEMS], MANY)
-    tag = re.search(r"<details[^>]*>", html)
-    assert tag and " open" not in tag.group(0), "collapsed by default"
-    summary = re.search(r"<summary[^>]*>(.*?)</summary>", html, re.S)
-    assert summary
-    words = re.sub(r"<[^>]+>", "", summary.group(1))
-    assert "2 more statements" in words
-    # The fold's open count is the workable rows inside it, the set the Open filter keeps.
-    folded = html.split("<details", 1)[1].split("</details>", 1)[0]
-    n_open = folded.count('data-workable="1"')
-    if n_open:
-        assert f"{n_open} open" in words
-    else:
-        assert "open" not in words
-
-
-def test_a_one_statement_problem_draws_no_toggle(
-    built: tuple[dict[str, str], dict[str, str]],
+def test_a_row_is_the_same_shape_whatever_its_size(
+    built: tuple[dict[str, str], dict[str, int]],
 ) -> None:
-    pages, roots = built
-    assert roots[LISTED_TARGET] == LISTED_ROOT
-    html = card(pages[PROBLEMS], LISTED_TARGET)
-    assert "<details" not in html and "<summary" not in html
-    shown = rows(html)
-    assert len(shown) == 1 and LISTED_ROOT in shown[0]
+    pages, sizes = built
+    for tid in sizes:
+        row = problem_row(pages[PROBLEMS], tid)
+        assert row.count("<a ") <= 3, (tid, "a row links its page and its steward, not its nodes")
+        assert f'href="/problems/{tid}/"' in row
 
 
-def test_one_more_statement_is_singular() -> None:
-    assert render.more_statements_words(1, 0) == "1 more statement"
-    assert render.more_statements_words(1, 1) == "1 more statement, 1 open"
-    assert render.more_statements_words(14, 3) == "14 more statements, 3 open"
-
-
-def test_search_opens_a_fold_that_holds_a_match_and_filters_hide_an_empty_one() -> None:
-    script = (Path(render.STATIC) / "problems.js").read_text(encoding="utf-8")
-    assert "details.more" in script, "the script finds each card's fold"
-    assert re.search(r"\.open\s*=\s*true", script), "a search match inside the fold opens it"
-    assert re.search(r"\.hidden\s*=\s*!\s*\w+", script)
-    assert "data-auto-open" in script, "only a fold the search opened is closed again by it"
+def test_a_row_says_how_many_statements_are_open_and_its_page_lists_them(
+    built: tuple[dict[str, str], dict[str, int]],
+) -> None:
+    pages, sizes = built
+    row = problem_row(pages[PROBLEMS], MANY)
+    assert 'data-open="' in row
+    page = pages[f"problems/{MANY}/index.html"]
+    assert page.count('<div class="card panel" data-node=') == sizes[MANY]

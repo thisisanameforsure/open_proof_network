@@ -11,11 +11,12 @@ all of them rendered (R13).
 from __future__ import annotations
 
 import difflib
+import fnmatch
 import hashlib
 import json
 import re
 from dataclasses import replace
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 from string import Template
 from typing import TYPE_CHECKING, Any
@@ -36,7 +37,9 @@ from opn_gate import (
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
+from opn_gate import names as namesmod
 from opn_site import activity, dag, links, one_view, prose
+from opn_site.config import DEFAULT_TEST_IDENTITIES
 from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
@@ -182,9 +185,78 @@ ERRORS_PATH = "/errors.json"
 MCP_PATH = "/mcp"
 #: The contributor guide's place on the Docs page, and the licences annex prose may carry
 #: (``annex/v1`` takes any SPDX id; these are the three the service accepts, D-23).
-GUIDE_HREF = "/docs/#agents"
+GUIDE_HREF = "/docs/quick-start/"  # F34-T6: Docs is one page per topic
+#: F34-T6 (R8): Docs, one page per topic, by reader (handoff §3.3). Each entry is (slug, title,
+#: template or None for a page built in code, the decisions it rests on). ``""`` is /docs/.
+#: An entry whose slug starts with ``/`` is a page elsewhere, listed in the sidebar only.
+DOCS_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str | None, str], ...]], ...] = (
+    (
+        "Start here",
+        (
+            ("", "Overview", "docs-overview.html", ""),
+            (
+                "how-it-works",
+                "How a problem is worked",
+                "docs-worked.html",
+                "D-4, D-12, D-32, D-35",
+            ),
+        ),
+    ),
+    (
+        "Mathematicians",
+        (
+            ("stewards", "Steward a problem", "docs-stewards.html", "D-32"),
+            ("propose", "Propose a problem", "docs-propose.html", "D-6"),
+            ("review", "How a statement is reviewed", "docs-review.html", "D-9"),
+            ("sign-explainer", "Sign an explainer", "docs-sign-explainer.html", "D-3, D-33"),
+        ),
+    ),
+    (
+        "Readers of Lean",
+        (
+            ("words", "Write the words for a statement", "docs-words.html", "D-3, D-19"),
+            ("faithful", "Check a statement is faithful", "docs-faithful.html", "D-9"),
+            ("reading", "Read a proof page", "docs-reading.html", "D-3, D-25"),
+        ),
+    ),
+    (
+        "Agent operators",
+        (
+            ("quick-start", "Quick start", "docs-quick-start.html", "D-27, D-28, D-35"),
+            ("token", "Getting a token", "docs-token.html", "D-19, D-23"),
+            ("claim", "Claim a statement", "docs-claim.html", "D-13, D-25"),
+            ("submit", "Precheck and submit", "docs-submit.html", "D-4, D-12, D-23, D-28"),
+            ("connect", "Connect your harness (MCP)", None, "D-28"),
+            ("/AGENTS.md", "AGENTS.md, the full text", None, ""),
+        ),
+    ),
+    (
+        "Reference",
+        (
+            ("routes", "API routes", None, "D-28, D-35"),
+            ("errors", "Error codes", None, ""),
+            ("glossary", "Glossary", "docs-glossary.html", ""),
+        ),
+    ),
+    (
+        "Protocol",
+        (
+            ("/docs/architecture-decisions.html", "Architecture decisions", None, ""),
+            ("leiden", "The Leiden Declaration", "docs-leiden.html", ""),
+            ("registries", "Registries", "docs-registries.html", "D-10"),
+            ("licence", "Licence and sign-off", None, "D-23"),
+            ("/rules/", "Rules (policy.json)", None, ""),
+        ),
+    ),
+)
+#: F34-T4 (handoff §6): beside every "Sign in with GitHub", that contributing needs no account.
+ANON_NOTE = (
+    '<p class="anon-note">Only stewards and curators sign in, with GitHub. Contributing needs no '
+    "account: prove the tutorial statement and choose a pseudonym "
+    f'(<a href="{GUIDE_HREF}">how</a>).</p>'
+)
 #: F22-T18 (Q): the Docs section a reader of a proof page needs, linked from every reader page.
-READING_HREF = "/docs/#reading"
+READING_HREF = "/docs/reading/"
 #: F22-T18 (P): the one line beside a statement's Lean that says what its ``sorry`` is.
 SORRY_NOTE = (
     '<p class="sorry-note">A statement is written <code>:= by sorry</code>: the '
@@ -211,6 +283,8 @@ ANNEX_LICENCES = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
 SCRIPTS: tuple[str, ...] = (
     "/problems.js",
     "/graph.js",
+    "/docs.js",  # F34-T10: Docs search
+    "/docs/search-index.js",  # F34-T10: its index, as a script (connect-src names only the service)
     "/vendor/katex/katex.min.js",
     "/vendor/katex/auto-render.min.js",
     "/math.js",
@@ -224,6 +298,7 @@ SCRIPTS: tuple[str, ...] = (
     "/node.js",
     "/literature.js",
     "/shelve.js",
+    "/contributors.js",  # F34-T9: show test runs, search the ledger
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 #: F04-T62 (Q60): an element math.js renders: ``math`` among its classes, beside any others
@@ -326,7 +401,21 @@ GUIDE_ANCHOR_PREFIX = "guide-"
 #: explainers and outlines (gate/agents/AGENTS.md, rendered on the Docs page). A test holds the
 #: fragment to a heading the guide has.
 GLOSS_GUIDE_SECTION = "Glosses, explainers and outlines"
-GLOSS_GUIDE_HREF = f"/docs/#{GUIDE_ANCHOR_PREFIX}{prose.heading_slug(GLOSS_GUIDE_SECTION)}"
+GLOSS_GUIDE_HREF = "/docs/words/"  # F34-T6: the short page; AGENTS.md has the full section
+#: F34-T6 (R8): every anchor of the old single /docs/ page, and the page that now holds it. The
+#: landing keeps each as the id of the link to that page, so an old link still lands on it.
+DOCS_OLD_ANCHORS: dict[str, str] = {
+    "stewards": "stewards",
+    "propose": "propose",
+    "review": "review",
+    "registries": "registries",
+    "leiden": "leiden",
+    "reading": "reading",
+    "glossary": "glossary",
+    "connectors": "connect",
+    "agents": "quick-start",
+    f"{GUIDE_ANCHOR_PREFIX}{prose.heading_slug(GLOSS_GUIDE_SECTION)}": "words",
+}
 #: A gloss subject's kind in the page's words.
 GLOSS_KIND_WORDS = {
     "statement": "statement",
@@ -935,15 +1024,16 @@ LEIDEN_ROWS: tuple[tuple[str, str, str], ...] = (
         "explainer may be signed by a real-identity contributor affirming they can explain the "
         "proof without the tool that produced it, and only signed explainers count (D-3 v3.17); "
         "a resolved target carries a digestion state, undigested until every node of the closing "
-        "proof is explained and written-up once the paper exists (D-33 v3.17); explanation "
-        "coverage is the first count on the home page (D-36 v3.17).",
+        "proof is explained and written-up once the paper exists (D-33 v3.17); each problem "
+        "shows proved, explained and written up as its mark (D-36 v3.48).",
         "Nothing renders the graph as a blueprint yet, and an explainer still waits for a person "
         "to press merge.",
     ),
     (
         "Benchmark racing corrupts incentives",
-        "No leaderboard (D-34); the home page's counts are the progress series, not vanity "
-        "numbers (D-36); the network announces no result beyond the registry report-back, which "
+        "No leaderboard (D-34); the home page shows what happened lately on the record, and no "
+        "counts (D-36 v3.48); the network announces no result beyond the registry report-back, "
+        "which "
         "carries the digestion state, and the paper (D-33 v3.17); the raw resolution count is "
         "too rare to steer by (Stages).",
         "The record is public, so anyone else may still count.",
@@ -1031,9 +1121,11 @@ def document_head(text: str) -> tuple[str, str]:
 
 
 _STRIP_RE = re.compile(r"<link\b[^>]*>|<script\b.*?</script>", re.S | re.I)
+#: F34-T10: a tag, for the search index's plain text
+_TAG_RE = re.compile(r"<[^>]+>")
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
+#: F34-T1 (R3): the wordmark is the way home, so the nav names the four sections only.
 NAV = (
-    ("/", "Home"),
     ("/problems/", "Problems"),
     ("/contributors/", "Contributors"),
     ("/docs/", "Docs"),
@@ -1093,7 +1185,35 @@ def topic_of(record: dict[str, Any] | None) -> str:
     return str(domains[0]) if domains else "other"
 
 
+#: F34-T24 (R15): the outline's fold rule, one with the drawing's home module
+outline_folds = one_view.outline_folds
+
+
+def question_groups(kinds: list[str]) -> list[tuple[int, int, str]]:
+    """F34-T19: runs of one kind in a list of questions, as (first, last, kind), 1-based."""
+    out: list[tuple[int, int, str]] = []
+    for i, kind in enumerate(kinds, start=1):
+        if out and out[-1][2] == kind:
+            out[-1] = (out[-1][0], i, kind)
+        else:
+            out.append((i, i, kind))
+    return out
+
+
+def question_group_head(first: int, last: int, kind: str) -> str:
+    """The heading of a run of several questions of one kind; ``""`` for a single question."""
+    return "" if first == last else f"Questions {first}\N{EN DASH}{last}: {kind} changes"
+
+
 STEWARD_PATH = "/steward/"
+#: F34-T12 (R14): the routes' two views, switched by graph.js.
+ROUTE_TABS = (
+    '<div class="route-tabs" role="tablist" aria-label="Routes" hidden>'
+    '<button type="button" role="tab" aria-controls="sets-tree" aria-selected="true">Tree'
+    "</button>"
+    '<button type="button" role="tab" aria-controls="sets-list" aria-selected="false">List'
+    "</button></div>"
+)
 REDIRECTS = (("targets/index.html", PROBLEMS_PATH), ("frontier/index.html", PROBLEMS_PATH))
 #: F24-R9 (D-32 v3.34): the rules page, every panel setting with its value, day and reason.
 RULES_PATH = "/rules/"
@@ -1184,6 +1304,64 @@ def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
     return f'<span class="math">{prose.inline_statement(text, allowed_urls=allowed_urls)}</span>'
 
 
+def canonical_model(name: str) -> str:
+    """F34-T9 (R11): one name per model however an entry spelled it. An id in parentheses wins
+    (``Claude Opus 5.5 (claude-opus-5-5)``); otherwise the words before them, lower-cased
+    (``Aristotle (Harmonic, …)`` is ``aristotle``)."""
+    m = re.match(r"^\s*(.*?)\s*\(([^)]*)\)\s*$", name)
+    if m and re.fullmatch(r"[a-z0-9][a-z0-9.:/-]*", m.group(2).strip()):
+        return m.group(2).strip()
+    head = m.group(1) if m else name
+    return " ".join(head.split()).lower()
+
+
+def canonical_framework(name: str) -> str:
+    """F34-T9 (R11): one name per harness, its version and notes aside: the words before any
+    parenthesis, comma or plus, with a trailing version and the word "subagent" dropped."""
+    head = re.split(r"[(,+]", name, maxsplit=1)[0]
+    head = re.sub(r"\s+(?:v?\d[\w.]*|subagent)\s*$", "", head.strip(), flags=re.I)
+    return " ".join(head.split()) or name.strip()
+
+
+def move_codes(html: str) -> tuple[str, list[str]]:
+    """F34-T7 (R6): a Docs body with each parenthesis of decision codes taken out of its sentence,
+    and the decisions it held, in order and once each, for the page's foot. Only a parenthesis
+    that holds nothing but codes moves (``(D-6 v3.17)``, ``(D-32; D-33 v3.17)``); words, tags,
+    ``<pre>`` and ``<code>`` are left as they are. A build note (``F16-Q9``) leaves the sentence
+    and is not a decision, so it goes nowhere."""
+    found: list[str] = []
+
+    def drop(m: re.Match[str]) -> str:
+        for d in re.findall(r"D-\d+", m.group(0)):
+            if d not in found:
+                found.append(d)
+        return ""
+
+    parts = _PROTECTED_RE.split(html)
+    out = [
+        part if _PROTECTED_RE.fullmatch(part) else _CODE_PAREN_RE.sub(drop, part) for part in parts
+    ]
+    return "".join(out), found
+
+
+#: F34-T7: one code (a decision with its version, step or number, or a build note), and a
+#: parenthesis of nothing but codes, with the space before it.
+_CODE_ITEM = r"(?:D-\d+|F\d\d-[TRQ]\d+)(?:\s+v\d+\.\d+)?(?:\s+steps?\s+\d+)?(?:\s*#\d+)?"
+_CODE_PAREN_RE = re.compile(rf"\s*\(\s*{_CODE_ITEM}(?:\s*(?:[,;]|and)\s*{_CODE_ITEM})*\s*\)")
+_PROTECTED_RE = re.compile(
+    r'(<pre\b.*?</pre>|<code\b.*?</code>|<span class="proto">.*?</span>|<[^>]+>)', re.S
+)  # a hover card's protocol line keeps its codes: a hover is where R6 lets them stay
+
+
+def record_words(text: str) -> str:
+    """F34-T2 (R4): one line of a record's words (a title, a label, a review's question, an annex's
+    title): escaped, its inline Markdown rendered, and marked for the math renderer only when it
+    carries a ``$``, so a plain line stays plain and its page loads no KaTeX for it."""
+    if "$" in text:
+        return math(text)
+    return prose.inline_statement(text, allowed_urls=frozenset())
+
+
 def static_files() -> tuple[dict[str, str], dict[str, bytes]]:
     """The static tree, text files (stylesheets, scripts, the vendor manifest and licence) apart
     from binary ones (the fonts), each keyed by its path under the site root."""
@@ -1269,7 +1447,7 @@ def _template(name: str) -> Template:
 
 
 class Renderer:
-    def __init__(
+    def __init__(  # noqa: PLR0913 — one keyword per configured part of the site (C6)
         self,
         site: Site,
         *,
@@ -1277,8 +1455,11 @@ class Renderer:
         decisions_doc: Path | None = DECISIONS_DOC,
         api_url: str | None = None,
         featured_target: str | None = None,
+        test_identities: tuple[str, ...] = DEFAULT_TEST_IDENTITIES,
     ) -> None:
         self.site = site
+        #: F34-R12: the ledger identities that are test runs (config, C6)
+        self.test_identities = test_identities
         self.repo_url = repo_url.rstrip("/")
         self.decisions_doc = decisions_doc
         self.api_url = api_url.rstrip("/") if api_url else None
@@ -1289,6 +1470,8 @@ class Renderer:
         self.cited = cited_urls(site)
         #: F04-T27: the steward rule's sentences, as the record enforces it or announces it.
         self.words = wording(site.steward_rule_enforced)
+        #: F34-T5: each target's ledger entries and newest date, read once (``activity``).
+        self._activity: dict[str, tuple[int, str | None]] | None = None
 
     # -- links -------------------------------------------------------------------------------
 
@@ -1302,6 +1485,14 @@ class Renderer:
         at = commit or self.site.commit
         url = f"{self.repo_url}/blob/{at}/{rel}"
         return f'<a class="file" href="{esc(url)}">{esc(label or rel)}</a>'
+
+    @property
+    def agents_href(self) -> str:
+        """F34-T6: AGENTS.md served whole beside the site, or, for a graph with none, its place in
+        the graph repository (the link is never to a page that does not exist, R13)."""
+        if (self.site.root / "AGENTS.md").is_file():
+            return "/AGENTS.md"
+        return f"{self.repo_url}/blob/{self.site.commit}/AGENTS.md"
 
     @staticmethod
     def target_path(target_id: str) -> str:
@@ -1393,6 +1584,9 @@ class Renderer:
             commit=esc(commit),
             commit_short=esc(commit[:12]),
             commit_url=esc(f"{self.repo_url}/tree/{commit}"),
+            # F34-T1: the repository itself; under links.check's rule a link into the repository
+            # ends past its slash, so the root is written with one.
+            repo_url=esc(self.repo_url.rstrip("/") + "/"),
             products=products,
             sources=sources,
             frontier_link=self.file_link("frontier.json", label="frontier.json ↗"),
@@ -1709,7 +1903,7 @@ class Renderer:
         full = esc(f"{self.node_path(tv.target_id, nv.node_id)}#{annex_anchor(a)}")
         return (
             f'<li class="{cls}" data-annex="{esc(digest)}">{label}<span class="untrusted-title">'
-            f'{esc(title)}</span>{by} — {state} · <a href="{full}">full text →</a></li>'
+            f'{record_words(title)}</span>{by} — {state} · <a href="{full}">full text →</a></li>'
         )
 
     def outline_checklist(self, tv: TargetView, nv: NodeView) -> str:
@@ -1727,7 +1921,8 @@ class Renderer:
                 )
                 steps.append(
                     f"<li><code>{esc(s['step'])}</code> "
-                    f'<span class="untrusted-title">{esc(s["summary"])}</span> — {where}</li>'
+                    f'<span class="untrusted-title">{record_words(s["summary"])}</span>'
+                    f" — {where}</li>"
                 )
             out += (
                 '<p class="cue">The stepped outline this statement&rsquo;s skeleton followed, '
@@ -1980,7 +2175,7 @@ class Renderer:
             steward_term=self.term("steward", label="steward"),
             proposal_url=esc(self.proposal_url),
             worked_button=(
-                '<a class="btn btn-secondary" href="#worked">See how a problem is worked</a>'
+                '<a class="btn btn-primary" href="#worked">See a problem being worked</a>'
                 if worked
                 else ""
             ),
@@ -2104,56 +2299,68 @@ class Renderer:
         if tv is None:
             return ""
         href = esc(self.target_path(tv.target_id))
+        # F34-T20 (handoff §3.0): the drawing as Figure 1, captioned, beside the statement
         return (
             '<section class="home-band home-worked" id="worked">'
-            '<div class="worked-copy"><span class="kicker">One problem, worked</span>'
-            f'<h2><a class="mono" href="{href}">{esc(tv.target_id)}</a></h2>'
+            '<figure class="home-figure">'
+            f'<div class="worked-drawing">{self.problem_drawing(tv).svg}</div>'
+            f"<figcaption><strong>Figure 1.</strong> {esc(tv.target_id)}, taken apart. Each box "
+            "is one Lean statement, filled when proved; a problem is proved when every statement "
+            "under one of its routes is.</figcaption></figure>"
+            '<div class="worked-copy"><h2><span class="sec">§1</span> One problem, worked</h2>'
             f'<p class="informal">{self.informal_words(tv)}</p>'
-            "<p>Each pill is one Lean statement. A problem is taken apart into pieces that "
-            "people and agents can work on one at a time; a filled pill is proved.</p>"
-            f'<a class="btn btn-ghost" href="{href}">Open the problem →</a></div>'
-            f'<div class="worked-drawing">{self.problem_drawing(tv).svg}</div></section>'
+            '<p class="muted">People and agents prove the pieces one at a time. Failed attempts '
+            "stay on the record beside the pieces they tried.</p>"
+            f'<p><a href="{href}">Open {esc(tv.target_id)} →</a></p></div></section>'
         )
 
     # -- the Problems page: Targets and Frontier merged (F04-T12, Q14) -------------------------
 
     def problems(self) -> str:
+        """F34-T5 (R7): the problems with work on the record, then the ones waiting for a first
+        steward. No stat row (handoff §6: "Open 602" counted statements beside problems); every
+        row in the HTML, filtered, sorted and paged by ``problems.js`` from its ``data-``
+        attributes, each filter a URL parameter."""
         targets = [tv for _tid, tv in sorted(self.site.targets.items())]
-        # F04-T63 (Q61): grouped by topic — each problem once, under its first domain tag — with
-        # the topics in the order of their words; a filter that empties a topic hides its heading.
-        groups: dict[str, list[TargetView]] = {}
+        worked = [tv for tv in targets if self.has_work(tv)]
+        waiting = [tv for tv in targets if not self.has_work(tv)]
+        worked.sort(key=lambda tv: self.activity(tv)[1] or "", reverse=True)
+        areas: dict[str, int] = {}
         for tv in targets:
-            groups.setdefault(topic_of(tv.record), []).append(tv)
-        cards = "".join(
-            f'<section class="topic" data-topic="{esc(tag)}" id="topic-{esc(tag)}">'
-            f'<h2 class="topic-head">{esc(topic_words(tag))} <span class="n">{len(tvs)}</span></h2>'
-            + "".join(self.problem_card(tv) for tv in tvs)
-            + "</section>"
-            for tag, tvs in sorted(groups.items(), key=lambda kv: topic_words(kv[0]))
+            areas[topic_of(tv.record)] = areas.get(topic_of(tv.record), 0) + 1
+        chips = (
+            '<button type="button" class="chip" data-area="" aria-pressed="true">'
+            f'All <span class="n">{len(targets)}</span></button>'
+            + "".join(
+                f'<button type="button" class="chip" data-area="{esc(tag)}" aria-pressed="false">'
+                f'{esc(topic_words(tag))} <span class="n">{n}</span></button>'
+                for tag, n in sorted(areas.items(), key=lambda kv: (-kv[1], topic_words(kv[0])))
+            )
         )
-        if not cards:
-            cards = '<p class="cue">No problems are listed yet.</p>'
-        legend = "".join(self.term(k, dot=k in DOTTED_KEYS) for k in LEGEND_KEYS)
-        legend_list = "".join(
-            f"<dt>{esc(self.words['by_key'][k][0])}</dt><dd>{esc(self.words['by_key'][k][1])}</dd>"
-            for k in LEGEND_KEYS
-        )
-        open_statements = sum(self.open_count(tv) for tv in targets)
-        # F04-T31: the "Proved" segment filters ``data-status="proved"``; count the same set.
-        proved = sum(1 for tv in targets if self.problem_status(tv) == "proved")
-        # F21-T7 (R9): the "Needs words" segment filters ``data-words > 0``; count the same set.
         needs_words = sum(1 for tv in targets if tv.words_needed)
+        if needs_words:  # F21-R9: the problems with a Lean file or proof that has no words yet
+            chips += (
+                '<button type="button" class="chip chip-flag" data-flag="words" '
+                f'aria-pressed="false">Needs words <span class="n">{needs_words}</span></button>'
+            )
         body = _template("problems.html").substitute(
-            cards=cards,
-            legend=legend,
-            legend_list=legend_list,
-            total=len(targets),
-            open_statements=open_statements,
-            proved=proved,
-            needs_words=needs_words,
+            chips=chips,
+            worked="".join(self.problem_row(tv) for tv in worked)
+            or (
+                '<p class="cue">No problems are listed yet.</p>'
+                if not targets
+                else '<p class="cue">No problem has work on the record yet.</p>'
+            ),
+            worked_n=len(worked),
+            worked_noun="problem" if len(worked) == 1 else "problems",
+            waiting_noun="problem" if len(waiting) == 1 else "problems",
+            waiting="".join(self.waiting_row(tv) for tv in waiting),
+            waiting_n=len(waiting),
+            proposal_url=esc(self.proposal_url),
             claims_note=self.claims_note(),
-            needs_steward=self.needs_steward_link(),
-            needs_steward_n=len(self.needs_steward()),
+            # the steward rule, in force or announced (F04-T27), defined where the filter is
+            steward_term=self.term("steward", label="Steward"),
+            needs_steward=self.needs_steward_link(),  # F23-R5: the link and its count
         )
         return self.page(
             "Problems",
@@ -2162,6 +2369,130 @@ class Renderer:
             path=PROBLEMS_PATH,
             head=MATH_HEAD,
             script=MATH_SCRIPTS + '<script src="/problems.js"></script>',
+        )
+
+    def activity(self, tv: TargetView) -> tuple[int, str | None]:
+        """F34-T5 (Q19): the ledger entries on a problem and the date of the newest, the
+        contributions a row counts and the activity it is sorted by."""
+        if self._activity is None:
+            seen: dict[str, tuple[int, str | None]] = {}
+            for entries in ledgermod.contributions(self.site.root).values():
+                for e in entries:
+                    tid = str(e.get("target", ""))
+                    n, last = seen.get(tid, (0, None))
+                    date = str(e.get("date", ""))[:10] or None
+                    seen[tid] = (n + 1, max(filter(None, (last, date)), default=None))
+            self._activity = seen
+        return self._activity.get(tv.target_id, (0, None))
+
+    def has_work(self, tv: TargetView) -> bool:
+        """F34-Q19: "Waiting for a first steward" holds exactly the problems that need one and
+        have nothing on the ledger; every other problem — with work, with a steward, settled, or
+        one that takes no steward (a calibration target, the tutorial) — is listed above it."""
+        settled = str(tv.index_entry["status"]) in ("resolved", "known-result")
+        return settled or not (self.row_steward(tv) == "needs" and not self.activity(tv)[0])
+
+    @staticmethod
+    def proved_count(tv: TargetView) -> int:
+        return sum(1 for n in tv.nodes.values() if n.status == "proved")
+
+    def row_status(self, tv: TargetView) -> str:
+        """``proved`` for a settled problem, ``worked`` for one with ledger entries, else
+        ``notstarted`` — the Status filter's three values."""
+        if str(tv.index_entry["status"]) == "resolved":
+            return "proved"
+        return "worked" if self.activity(tv)[0] else "notstarted"
+
+    def row_steward(self, tv: TargetView) -> str:
+        if tv.stewards:
+            return "has"
+        return "needs" if self.takes_steward(tv) else "none"
+
+    def statement_line(self, tv: TargetView) -> str:
+        """The problem's words: its informal statement (or the paraphrase standing in for it),
+        rendered with its math (R4); the row holds it to three lines."""
+        record = tv.record or {}
+        text = str(record.get("informal") or record.get("paraphrase") or record.get("title") or "")
+        # display math set inline, so the stylesheet can hold the line to its rows (F34-T5)
+        return record_words(" ".join(text.replace("$$", "$").split())) if text else ""
+
+    def row_attrs(self, tv: TargetView) -> str:
+        last = self.activity(tv)[1] or ""
+        attrs = {
+            "id": tv.target_id,
+            "name": tv.target_id,
+            "status": self.problem_status(tv),
+            "stage": self.row_status(tv),
+            "steward": self.row_steward(tv),
+            "area": topic_of(tv.record),
+            "open": str(self.open_count(tv)),
+            "words": "" if tv.words_needed is None else str(len(tv.words_needed)),
+            "last": last,
+        }
+        return " ".join(f'data-{k}="{esc(v)}"' for k, v in attrs.items())
+
+    def stage_mark(self, tv: TargetView) -> str:
+        """F34-T5 (handoff §2.3): proved → explained → written up as three dots on a line, each
+        filled once reached, with the words for a reader who cannot see it."""
+        digestion = tv.digestion or {}
+        state = str(digestion.get("state") or "")
+        resolved = str(tv.index_entry["status"]) == "resolved"
+        reached = (
+            (self.resolution(tv) if resolved else "proved", resolved),
+            ("explained", state in ("explained", "written-up")),
+            ("written up", state == "written-up"),
+        )
+        words = " · ".join(f"{w}: {'yes' if on else 'not yet'}" for w, on in reached)
+        dots = '<span class="stage-line"></span>'.join(
+            f'<span class="stage-dot{" on" if on else ""}"></span>' for _w, on in reached
+        )
+        return f'<span class="stage-mark" role="img" aria-label="{esc(words)}">{dots}</span>'
+
+    def problem_row(self, tv: TargetView) -> str:
+        """One row of "With work on the record": the id, status (its tag, with the reasons a
+        problem refuses work) and area; one line of the statement; the proved and open statements
+        as a bar that says its numbers; the steward or what the problem needs; contributions and
+        the newest one's date; the stage mark."""
+        tid = tv.target_id
+        proved, open_ = self.proved_count(tv), self.open_count(tv)
+        total = proved + open_
+        n, last = self.activity(tv)
+        noun = "contribution" if n == 1 else "contributions"
+        when = f" · last {esc(last)}" if last else ""
+        collection = collection_label(tv.record)
+        coll = f'<span class="collection">{esc(collection)}</span>' if collection else ""
+        return (
+            f'<article class="prow" {self.row_attrs(tv)}>'
+            '<div class="prow-main"><div class="prow-head">'
+            f'<a class="id" href="{esc(self.target_path(tid))}">{esc(tid)}</a>'
+            f"{self.status_tag(tv)}"
+            f'<span class="area">{esc(topic_words(topic_of(tv.record)))}</span>{coll}'
+            f'</div><p class="prow-stmt">{self.statement_line(tv)}</p></div>'
+            '<div class="prow-bar">'
+            f'<progress max="{max(total, 1)}" value="{proved}" '
+            f'aria-label="{proved} of {total} statements proved"></progress>'
+            f'<span class="bar-label">{proved} proved · {open_} open</span></div>'
+            f'<div class="prow-side">{self.steward_words(tv)}{self.words_line(tv)}'
+            f'<span class="muted">{n} {noun}{when}</span>{self.stage_mark(tv)}</div>'
+            "</article>"
+        )
+
+    def waiting_row(self, tv: TargetView) -> str:
+        tid = tv.target_id
+        collection = collection_label(tv.record)
+        coll = f'<span class="collection">{esc(collection)}</span>' if collection else ""
+        action = (
+            f'<a href="{esc(self.steward_path(tid))}">Steward this</a>'
+            if self.takes_steward(tv)
+            else ""
+        )
+        return (
+            f"<tr {self.row_attrs(tv)}>"
+            f'<td class="wid"><a href="{esc(self.target_path(tid))}">{esc(tid)}</a>'
+            f"{self.status_tag(tv)}</td>"
+            f'<td class="wstmt"><span class="clamp">{self.statement_line(tv)}</span></td>'
+            f'<td class="warea">{esc(topic_words(topic_of(tv.record)))}{coll}</td>'
+            f'<td class="wact">{action}{self.words_line(tv)}</td></tr>'
         )
 
     def problem_card(self, tv: TargetView) -> str:
@@ -2319,6 +2650,33 @@ class Renderer:
             **self.math_frame(body),
         )
 
+    def steward_next(self, tv: TargetView) -> str:
+        """F34-T19 (handoff §3.5): what happens after the form, as five steps in order, each with
+        its way in — the onboarding, so a new steward knows their first jobs. ``""`` for a
+        problem that takes no steward."""
+        if not self.takes_steward(tv):
+            return ""
+        tid = tv.target_id
+        page = esc(self.target_path(tid))
+        review = (
+            f'<a href="{page}review/">its review</a>'
+            if tv.review_records is not None
+            else '<a href="/docs/review/">how a statement is reviewed</a>'
+        )
+        steps = (
+            f'Your name goes on <a href="{page}">the problem&rsquo;s page</a> once the pull '
+            "request the form opens merges.",
+            f"Answer the review&rsquo;s questions: does the Lean say the conjecture? See {review}.",
+            "Confirm the literature statuses proposed for its statements, from "
+            '<a href="/me/">My problems</a> (a dispute is filed from the statement&rsquo;s page).',
+            "Approve the words written for its statements, a statement at a time, from "
+            '<a href="/me/">My problems</a>.',
+            "When a proof closes it, sign the explainer and start the write-up "
+            '(<a href="/docs/sign-explainer/">how</a>).',
+        )
+        items = "".join(f"<li>{s}</li>" for s in steps)
+        return f'<section class="steward-next"><h2>What happens next</h2><ol>{items}</ol></section>'
+
     def steward_page(self, tv: TargetView) -> str:
         """R7: one screen — the problem in prose, what the role asks in three lines, Read more,
         and an empty slot steward.js draws the form into once the service answers (R15). The
@@ -2363,7 +2721,7 @@ class Renderer:
                 f'<div class="card steward-form-card"><div class="steward-form" '
                 f'data-target="{esc(tid)}" data-return="{esc(self.steward_path(tid))}" '
                 f'data-commitment="{esc(steward.COMMITMENT)}" data-stewards="{esc(held)}"{flag}>'
-                "</div></div>"
+                f"</div>{ANON_NOTE}</div>"
             )
             script = (
                 f'<script src="/steward.js" data-api="{esc(self.api_url)}"></script>'
@@ -2393,8 +2751,8 @@ class Renderer:
             '<li class="asks">Write it up, and sign the explainer of the proof that closes it.'
             "</li>"
             '<li class="asks">Best efforts, no deadline: step down at any time.</li></ul>'
-            '<a href="/docs/#stewards">Read more about stewards →</a></div>'
-            f"{form}</section>"
+            '<a href="/docs/stewards/">Read more about stewards →</a></div>'
+            f"{form}</section>{self.steward_next(tv)}"
         )
         frame = self.math_frame(body)
         return self.page(
@@ -2408,33 +2766,84 @@ class Renderer:
 
     # -- F23-T9: /me/ (R13) ---------------------------------------------------------------------
 
-    def waiting(self, tv: TargetView) -> list[tuple[str, str, str, str]]:
-        """R13: the sections of a problem's words that wait for a steward's or curator's
-        approval — each shown section not yet final and each edit awaiting review, under
-        ``glosses/v2``; under v1, each shown version no one has signed — as (page, what,
-        section, state), from the products the problem pages are rendered from."""
-        found: list[tuple[str, str, str, str]] = []
+    def waiting_groups(self, tv: TargetView) -> list[dict[str, Any]]:
+        """F34-T19 (R20), replacing R13's flat list: what waits for a steward on one problem, by
+        statement — each group its
+        page, its label, the rows ``waiting`` lists for it, and the approvals that clear it as
+        ``POST /approvals`` takes them, one per (kind, version) with its sections (``None``: a
+        whole version, under ``glosses/v1``). Most waiting first."""
+        by: dict[str, dict[str, Any]] = {}
         for subject in tv.subjects:
-            href = (
-                self.node_path(tv.target_id, subject.node)
-                if subject.node
-                else self.target_path(tv.target_id)
+            node = subject.node or ""
+            href = self.node_path(tv.target_id, node) if node else self.target_path(tv.target_id)
+            label = node or subject.module or tv.target_id
+            group = by.setdefault(
+                f"{node}|{subject.module or ''}",
+                {"node": node, "href": href, "label": label, "rows": [], "approvals": {}},
             )
-            what = (
-                f"{subject.node or subject.module or tv.target_id} · "
-                f"{subject.record} of the {subject.kind}"
-            )
+            what = f"{subject.record} of the {subject.kind}"
             for chain in subject.chains:
-                if chain.sectioned:
-                    found.extend(
-                        (href, what, p.key, p.state) for p in chain.shown if p.state != "verified"
-                    )
-                    found.extend((href, what, p.key, "pending") for p in chain.pending)
-                    continue
+                # Exactly what the statement's pages offer to approve (approve_slot): never words
+                # that describe since-changed Lean; for a gloss, its first shown section, as the
+                # gloss block carries; every section of an explainer; every edit awaiting review.
+                items: list[tuple[str, str, str]] = [
+                    (p.version, p.key, "pending") for p in chain.pending
+                ]
                 v = chain.words() if subject.record == "gloss" else chain.current_version
-                if v is not None and v.describes_current is not False and not v.signers:
-                    found.append((href, what, "", "written"))
-        return found
+                if v is None or v.describes_current is False:
+                    pass
+                elif chain.sectioned:
+                    shown = chain.shown[:1] if subject.record == "gloss" else chain.shown
+                    items[:0] = [
+                        (p.version, p.key, p.state) for p in shown if p.state != "verified"
+                    ]
+                elif not v.signers:
+                    items.insert(0, (v.hash, "", "written"))
+                for version, key, state in items:
+                    group["rows"].append((what, key, state))
+                    sections = group["approvals"].setdefault((subject.record, version), [])
+                    if key:
+                        sections.append(key)
+        out = []
+        for group in by.values():
+            if not group["rows"]:
+                continue
+            group["approvals"] = [
+                {"kind": kind, "version": version, "sections": sorted(set(keys)) or None}
+                for (kind, version), keys in group["approvals"].items()
+            ]
+            out.append(group)
+        out.sort(key=lambda g: (-len(g["rows"]), g["label"]))
+        return out
+
+    def waiting_block(self, tv: TargetView) -> str:
+        """F34-T19 (R20): the problem's waiting words on My problems, one section per statement
+        with how many wait and, as data, the approvals "Approve all" sends; hidden until me.js
+        shows it to a steward of the problem or a curator. ``""`` when nothing waits."""
+        groups = self.waiting_groups(tv)
+        if not groups:
+            return ""
+        parts = []
+        for g in groups:
+            n = len(g["rows"])
+            rows = "".join(
+                f"<li>{esc(what)}"
+                + (f" · <code>{esc(key)}</code>" if key else "")
+                + f" · {esc(WORDS_STATE_WORD.get(state, 'Pending'))}</li>"
+                for what, key, state in g["rows"]
+            )
+            approvals = json.dumps(g["approvals"], separators=(",", ":"))
+            parts.append(
+                f'<section class="waiting-statement" data-node="{esc(g["node"])}" '
+                f'data-approvals="{esc(approvals)}">'
+                f'<h4><a href="{esc(g["href"])}">{esc(g["label"])}</a> '
+                f'<span class="waiting-count">{n} section{"" if n == 1 else "s"} waiting</span>'
+                f"</h4><details><summary>Which</summary><ul>{rows}</ul></details></section>"
+            )
+        return (
+            f'<div class="waiting" data-target="{esc(tv.target_id)}" hidden>{"".join(parts)}'
+            "</div><!-- /waiting -->"
+        )
 
     def literature_waiting(self, tv: TargetView) -> str:
         """F04-T38 (D-25, D-32 v3.35): the target's unconfirmed literature records, one row per
@@ -2570,21 +2979,14 @@ class Renderer:
         open pull requests and Step down, once the service answers (R15). F04-T38: each
         problem's unconfirmed literature records are in it too, hidden the same way."""
         lists = []
-        for tid, tv in sorted(self.site.targets.items()):
-            rows = "".join(
-                f'<li><a href="{esc(href)}">{esc(what)}</a>'
-                + (f" · <code>{esc(key)}</code>" if key else "")
-                + f" · {esc(WORDS_STATE_WORD.get(state, 'Pending'))}</li>"
-                for href, what, key, state in self.waiting(tv)
-            )
-            if rows:
-                lists.append(f'<ul class="waiting" data-target="{esc(tid)}" hidden>{rows}</ul>')
+        for _tid, tv in sorted(self.site.targets.items()):
+            lists.append(self.waiting_block(tv))  # F34-T19 (R20): by statement
             lists.append(self.literature_waiting(tv))
         body = (
             '<section class="page-head"><div><h1>My problems</h1>'
             '<p class="lead me-intro">Signed in with GitHub, this page lists your roles, the '
             "words waiting for your approval on the problems you steward, and your open pull "
-            "requests.</p></div></section>"
+            f"requests.</p>{ANON_NOTE}</div></section>"
             f'<div class="me" data-me data-repo="{esc(self.repo_url)}">{"".join(lists)}</div>'
         )
         script = (
@@ -2774,6 +3176,7 @@ class Renderer:
         picture = self.problem_drawing(tv)
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
+        off_route = self.not_on_route(tv, picture.on_route)  # F34-T18
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
         # keeps its place beneath the drawing.
         selector_block = (
@@ -2784,8 +3187,8 @@ class Renderer:
             '<p class="sel-cue">Each set proves the problem or refutes it. Select a node or an '
             "edge to filter the drawing to that part of the proof; select it again to come "
             "back.</p>"
-            # F27-R13: the owner's toggle lives in the box that holds the sufficient-set tree
-            f"{picture.follow_toggle}</div>"
+            # F34-Q7: the follow-the-proof toggle is off the page (the owner, 2026-11-25)
+            "</div>"
             f"{picture.selector}{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
@@ -2796,6 +3199,12 @@ class Renderer:
         sets_block = (
             f'<div class="sets-grid">{picture.table}</div>' if picture.table else ""
         ) + picture.layouts_json
+        # F34-T12 (R14): Tree and List, two tabs over the selector and the table, each pane in a
+        # wrapper of its own; the tabs are hidden until the script can switch them, so without it
+        # both stay on the page.
+        if picture.selector and picture.table:
+            selector_block = f'{ROUTE_TABS}<div id="sets-tree">{selector_block}</div>'
+            sets_block = f'<div id="sets-list">{sets_block}</div>'
         n = len(tv.nodes)
         if tv.approaches:
             approaches = (
@@ -2821,6 +3230,7 @@ class Renderer:
         title = str(tv.record.get("title") or "") if tv.record else ""
         resolved = str(tv.index_entry["status"]) == "resolved"
         body = _template("target.html").substitute(
+            agents_href=esc(self.agents_href),  # F34-T6: the fast check is in AGENTS.md
             # F04-T31: the section names the first stage as the problem reached it.
             digestion_heading=esc(self.resolution(tv).capitalize() if resolved else "Proved"),
             target_id=esc(tid),
@@ -2828,8 +3238,19 @@ class Renderer:
             fidelity_tag=self.fidelity_tag(tv),
             review_state=self.review_state_tag(tv),
             informal=self.informal_words(tv),
-            provenance=(f"{esc(sentence(title))} " if title else "") + self.source_line(tv),
+            provenance=(f"{record_words(sentence(title))} " if title else "")
+            + self.source_line(tv),
             stages=self.stage_marks(tv),
+            # F34-T11 (handoff §3.4.1): the head's kicker, mark and one sentence; the needs card
+            kicker=self.problem_kicker(tv),
+            stage_mark=self.stage_mark(tv),
+            head_sentence=self.head_sentence(tv),
+            needs=self.needs_card(tv),
+            not_on_route=off_route,
+            outline=self.route_outline(tv, picture.outline),  # F34-T17
+            not_on_route_link=(
+                ' · <a href="#not-on-route">Not on a route</a>' if off_route else ""
+            ),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
             registrations=self.registration_lines(tv),
@@ -3070,6 +3491,7 @@ class Renderer:
         if not rv.questions:
             return "<p>No question has been raised.</p>"
         items = []
+        kinds = [self.question_kind(rv, q) for q in rv.questions]
         for q in rv.questions:
             qid = str(q["id"])
             raised = q.get("raised_by") or {}
@@ -3106,7 +3528,34 @@ class Renderer:
                     f"<p>{test}</p></div>"
                 )
             items.append(f'<li class="question" data-question="{esc(qid)}">{head}{body}</li>')
-        return '<ol class="review-questions">' + "".join(items) + "</ol>"
+        # F34-T19 (handoff §3.5): questions of one kind in a row are one group, headed by its range
+        out = []
+        for first, last, kind in question_groups(kinds):
+            words = question_group_head(first, last, kind)
+            listed = (
+                f'<ol class="review-questions" start="{first}">'
+                + "".join(items[first - 1 : last])
+                + "</ol>"
+            )
+            # F34-T21 (the mockup): a run of one kind folds behind its heading
+            out.append(
+                f'<details class="question-run"><summary class="question-group">{esc(words)}'
+                f"</summary>{listed}</details>"
+                if words
+                else listed
+            )
+        return "".join(out)
+
+    def question_kind(self, rv: ReviewView, q: dict[str, Any]) -> str:
+        """A question's kind for grouping: a mutant's class of change (``constant``,
+        ``connective``, ...), read from its exhibit's label, else who raised it."""
+        raised = q.get("raised_by") or {}
+        if raised.get("kind") == "mutant":
+            ex = rv.exhibit(str(raised.get("ref")))
+            parsed = review_mutants.label_of(str(ex.get("detail") or "")) if ex else None
+            if parsed is not None:
+                return str(parsed[1])
+        return str(raised.get("kind") or "other")
 
     def review_mutant_variant(self, rv: ReviewView, ref: str) -> str:
         """F26-T22 (Q24): the change a mutant question is about, with the statement and the
@@ -3344,10 +3793,13 @@ class Renderer:
                 + ", ".join(f"<code>{esc(c)}</code>" for c in concepts)
                 + ".</p>"
             )
+        title = str((tv.record or {}).get("title") or "")
+        named = title.split(":", 1)[0].strip() if title else tid  # F34-T19: the problem's name
         body = _template("review.html").substitute(
+            named=math(named),
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
-            words=esc(str(head.get("words") or "")),
+            words=math(str(head.get("words") or "")),  # F34-T19: the TeX renders
             opened=opened,
             state_words=state_words,
             stats=stats,
@@ -3362,7 +3814,15 @@ class Renderer:
             sign_ctl=self.review_sign_ctl(tv, rv),
         )
         renders = [f"targets/{tid}/review/review.yaml", f"targets/{tid}/graph.json"]
-        return self.page(f"{tid} · review", body, renders=renders, path=PROBLEMS_PATH)
+        frame = self.math_frame(body)
+        return self.page(
+            f"{tid} · review",
+            body,
+            renders=renders,
+            path=PROBLEMS_PATH,
+            head=frame.get("head", ""),
+            script=frame.get("script", ""),
+        )
 
     def proved_in_words(self, tv: TargetView) -> str:
         """F22-T18 (M): for a proved problem, the opening section of the explainer of its first
@@ -3444,29 +3904,167 @@ class Renderer:
         return next(((sec, v) for sec, v in found if sec is not None and not sec.steps), found[0])
 
     def definitions_section(self, tv: TargetView) -> str:
-        """F20-T8 (R13): each definition module of the problem, its Lean and its gloss beside it.
-        Nothing for a problem with none, so such a page is unchanged."""
+        """F34-T11 (R19): each definition module of the problem linked, never printed, with its
+        words beside it (F20-R13's gloss), folded. The bulk load gave many problems every module
+        of their source, printed in full: 19,500px of Lean on abc, none of it abc's."""
         if not tv.definitions:
             return ""
         prefix = f"targets/{tv.target_id}/defs/"
-        blocks = []
+        items = []
         for f in tv.definitions:
             module = f.path.removeprefix(prefix)
-            blocks.append(
-                self.lean_artifact(
-                    f,
-                    what=module,
-                    provenance="a definition module the problem&rsquo;s statements import, "
-                    "content-hashed and changed only by a curator&rsquo;s revision (D-3, D-8).",
-                    label=self.provenance(
-                        "definition", "shared by every statement of this problem (D-3 defs/)."
-                    ),
-                    block="definition",
-                    pre_class="definition",
-                )
-                + self.gloss_slot(tv, "definition", f"defs/{module}", module=module)
+            items.append(
+                f"<li>{self.file_link(f.path, label=module)}"
+                f"{self.gloss_slot(tv, 'definition', f'defs/{module}', module=module)}</li>"
             )
-        return "<h2>Definitions</h2>\n" + "".join(blocks)
+        return (
+            f'<details class="defs"><summary>Shared definitions ({len(items)})</summary>'
+            '<p class="cue">Modules the problem\'s statements import, each a file in the graph; '
+            f'they change only by a curator\'s revision.</p><ul class="defs-list">{"".join(items)}'
+            "</ul></details>"
+        )
+
+    def not_on_route(self, tv: TargetView, on_route: frozenset[str]) -> str:  # noqa: PLR0912
+        """F34-T18 (R18; handoff §3.4.4): every statement no route uses, so the page places each
+        statement of the problem exactly once — drawn on a route, or listed here. Proposed
+        statements grouped by the statement they were proposed for, then those proposed for
+        none, related results, special cases no split uses, superseded statements with what
+        replaced them, and anything else no route reaches. ``""`` when every statement is on a
+        route."""
+        groups: dict[str, list[str]] = {}
+        order = ("proposed", "unattached", "related", "special", "superseded", "other")
+        heads = {
+            "unattached": "Proposed for no statement",
+            "related": "Related results",
+            "special": "Special cases no split uses",
+            "superseded": "Superseded",
+            "other": "On no route",
+        }
+        by_target: dict[str, list[str]] = {}
+        off = [nid for nid in tv.nodes if nid not in on_route]
+        where = {nid: self.off_route_group(tv.nodes[nid]) for nid in off}
+        # A statement no route reaches that an off-route statement rests on (a proposed
+        # statement's holes, say) joins that statement's group: the handoff's small trees.
+        changed = True
+        while changed:
+            changed = False
+            for nid in off:
+                if where[nid] != "other":
+                    continue
+                for m in off:
+                    if where[m] != "other" and nid in tv.nodes[m].deps:
+                        where[nid] = where[m]
+                        changed = True
+                        break
+        for nid in off:
+            key, item = where[nid], self.off_route_item(tv, tv.nodes[nid])
+            if key.startswith("for:"):
+                by_target.setdefault(key.removeprefix("for:"), []).append(item)
+            else:
+                groups.setdefault(key, []).append(item)
+        if not groups and not by_target:
+            return ""
+        parts = [
+            '<section class="off-route">'
+            '<h2 id="not-on-route"><span class="sec">§2</span> Not on a route</h2>'
+            '<p class="cue">Statements no way of settling the problem uses yet: proposed ones, '
+            "related results, special cases, and statements a revision replaced.</p>"
+        ]
+        for key in order:
+            if key == "proposed":
+                for target in sorted(by_target):
+                    named = (
+                        self.node_link(tv.target_id, target) if target in tv.nodes else esc(target)
+                    )
+                    parts.append(
+                        f"<h3>Proposed for {named}</h3>\n<ul>{''.join(by_target[target])}</ul>"
+                    )
+            elif groups.get(key):
+                parts.append(f"<h3>{heads[key]}</h3>\n<ul>{''.join(groups[key])}</ul>")
+        parts.append("</section>")
+        return "".join(parts)
+
+    @staticmethod
+    def off_route_group(nv: NodeView) -> str:
+        """Which group of "Not on a route" a statement belongs to by its own record:
+        ``for:<id>`` for one proposed for a statement, else a group's key."""
+        e = nv.graph_entry
+        if nv.status == "superseded":
+            return "superseded"
+        if e.get("relation") == "related":
+            return "related"
+        if e.get("relation") == "partial":
+            return "special"
+        if e.get("proposed_for"):
+            return f"for:{e['proposed_for']}"
+        if e.get("origin") == "authored" or nv.status == "speculative":
+            return "unattached"
+        return "other"
+
+    def off_route_item(self, tv: TargetView, nv: NodeView) -> str:
+        """One statement in "Not on a route": its label (or id) linked, its status, and for a
+        superseded one what replaced it."""
+        label = self.node_label(nv)
+        href = esc(self.node_path(tv.target_id, nv.node_id))
+        name = (
+            f'<a href="{href}">{record_words(label)}</a> '
+            f'<span class="mono">{esc(nv.node_id)}</span>'
+            if label
+            else f'<a href="{href}" class="mono">{esc(nv.node_id)}</a>'
+        )
+        words = status_words(nv.status, nv.graph_entry.get("cause"))
+        after = ""
+        if nv.status == "superseded" and nv.superseded_by:
+            after = f" · replaced by {self.node_link(tv.target_id, nv.superseded_by)}"
+        return (
+            f'<li data-node="{esc(nv.node_id)}">{name} '
+            f'<span class="status-word">{esc(words)}</span>{after}</li>'
+        )
+
+    def problem_kicker(self, tv: TargetView) -> str:
+        """F34-T11: the small caps above the headline — the area, and the collection if any."""
+        parts = [topic_words(topic_of(tv.record))]
+        collection = collection_label(tv.record)
+        if collection:
+            parts.append(collection)
+        return esc(" · ".join(parts))
+
+    def head_sentence(self, tv: TargetView) -> str:
+        """F34-T11 (handoff §3.4.1): one sentence under the headline — who stewards the problem,
+        or what it lacks, and how many of its statements are open."""
+        open_ = self.open_count(tv)
+        count = f"{open_} statement{'' if open_ == 1 else 's'} open"
+        if tv.stewards:
+            names = ", ".join(self.steward_named(tv, s) for s in tv.stewards)
+            return f"Stewarded by {names}. {count}."
+        if tv.calibration:
+            return f"A calibration target: it takes no steward. {count}."
+        if self.takes_steward(tv):
+            href = esc(self.steward_path(tv.target_id))
+            return f'No steward yet (<a href="{href}">steward it</a>). {count}.'
+        return f"{count[0].upper()}{count[1:]}."
+
+    def needs_card(self, tv: TargetView) -> str:
+        """F34-T11 (R19; handoff §3.4.5): what a problem with no work on the record needs, each
+        with its way in; nothing for a problem with work."""
+        if self.has_work(tv):
+            return ""
+        tid = tv.target_id
+        review = (
+            f'<a href="{esc(self.target_path(tid))}review/">Its review →</a>'
+            if tv.review_records is not None
+            else '<a href="/docs/review/">How a statement is reviewed →</a>'
+        )
+        return (
+            '<div class="needs-card"><h3>What this problem needs</h3><ol>'
+            "<li><strong>A steward.</strong> A mathematician who will understand what comes of it "
+            f'and write it up. <a href="{esc(self.steward_path(tid))}">Steward this problem →</a>'
+            "</li><li><strong>A check that the Lean says the conjecture.</strong> Read the "
+            f"statement below against the problem's words. {review}</li>"
+            "<li><strong>A first attempt.</strong> Prove a statement, or write up where an "
+            'attempt stopped: both count. <a href="/docs/quick-start/">Start here →</a></li>'
+            "</ol></div>"
+        )
 
     @staticmethod
     def is_tutorial(tv: TargetView) -> bool:
@@ -3747,6 +4345,7 @@ class Renderer:
             files.append(self.file_link(nv.proof_path, label="Proof.lean ↗"))
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
         title, id_line = self.panel_heading(tv, nv)
+        known, work = self.known_section(tv, nv), self.work_section(tv, nv)
         return _template("statement-panel.html").substitute(
             node_id=esc(nid),
             title=title,
@@ -3760,8 +4359,15 @@ class Renderer:
             role=self.panel_role(tv, nv),
             claim=self.claim_block(tv, nv),
             how=self.how_block(tv, nv),
-            known=self.known_section(tv, nv),
-            work=self.work_section(tv, nv),
+            known=known,
+            work=work,
+            tabs=self.panel_tabs(known, work),
+            path=self.panel_path(tv, nv),
+            always=(
+                f'<p class="panel-always">{self.panel_action(tv, nv)}'
+                f'<a class="panel-open" href="{esc(self.node_path(tv.target_id, nid))}">'
+                "Open its page →</a></p>"
+            ),
             glosses=self.gloss_slot(
                 tv, "statement", f"nodes/{nid}/Statement.lean", node=nid, ids=f"p-{nid}-"
             ),
@@ -3804,7 +4410,7 @@ class Renderer:
         if label is None:
             return f'<span class="panel-title mono">{ident}</span>', ""
         return (
-            f'<span class="panel-title">{esc(label)}</span>',
+            f'<span class="panel-title">{record_words(label)}</span>',
             f'<span class="panel-id">{ident}</span>',
         )
 
@@ -3815,7 +4421,7 @@ class Renderer:
         label = self.node_label(nv)
         if label is None:
             return f'<h1 class="mono">{ident}</h1>'
-        return f'<h1>{esc(label)}</h1>\n<p class="panel-id">{ident}</p>'
+        return f'<h1>{record_words(label)}</h1>\n<p class="panel-id">{ident}</p>'
 
     def statement_words_href(self, tv: TargetView, nv: NodeView) -> str:
         """Where a statement's words live in full: its page, at the words (``#statement-words``),
@@ -3998,11 +4604,96 @@ class Renderer:
         """Work on it: the plans (stepped annexes, T45) by their first sentence, each saying which
         merged decomposition followed it; on the root, the target's approach records (D-14),
         which name no node (Q47); then the action."""
-        parts = [*self.work_parts(tv, nv), self.panel_action(tv, nv)]
+        # F34-T16 (handoff §3.4.3): the action is under the tabs, always visible, not in Work
+        parts = self.work_parts(tv, nv)
+        if not parts:
+            return ""
         return (
-            '<section class="panel-sec" data-section="work"><h3 class="kicker">Work on it</h3>'
-            f"{''.join(parts)}</section>\n"
+            '<section class="panel-sec" data-section="work">'
+            f'<h3 class="kicker">Work on it</h3>{"".join(parts)}</section>\n'
         )
+
+    def route_outline(self, tv: TargetView, rows: tuple[tuple[str, int], ...]) -> str:
+        """F34-T17 (R17; handoff §3.4.6): the routes as an outline, which a phone shows in place
+        of the drawing — each statement a 44px link to its page, indented by its depth (a class,
+        the site's policy allowing no inline style); graph.js keeps it to the selected route and
+        opens a statement's record under it. ``""`` when there is no route to outline."""
+        if len(rows) < 2:
+            return ""
+        rows = tuple((n, d) for n, d in rows if n in tv.nodes)
+        proved = {n for n, _d in rows if self.node_state(tv.nodes[n]) == "proved"}
+        folds = outline_folds(list(rows), proved)  # F34-T24 (R15)
+        fold_of = {i: k for k, (a, b) in enumerate(folds) for i in range(a, b)}
+        starts = {a: (k, b - a, rows[a][1]) for k, (a, b) in enumerate(folds)}
+        items = []
+        for i, (nid, depth) in enumerate(rows):
+            nv = tv.nodes[nid]
+            if i in starts:
+                k, n, d = starts[i]
+                items.append(
+                    f'<li class="fold depth-{min(d, 8)}" data-fold="{k}">'
+                    '<button type="button" class="fold-box" aria-expanded="false" hidden>'
+                    f"{n} proved statements &#9656;</button></li>"
+                )
+            in_fold = f' data-in-fold="{fold_of[i]}"' if i in fold_of else ""
+            label = record_words(self.node_label(nv) or nid)
+            items.append(
+                f'<li class="depth-{min(depth, 8)}" data-node="{esc(nid)}"{in_fold}>'
+                f'<a href="{esc(self.node_path(tv.target_id, nid))}" data-node="{esc(nid)}">'
+                f"{self.dot(self.dot_state(self.node_state(nv)))}"
+                f'<span class="outline-label">{label}</span></a></li>'
+            )
+        return (
+            '<ol class="route-outline" aria-label="The selected route, as an outline">'
+            f"{''.join(items)}</ol>"
+        )
+
+    def panel_tabs(self, known: str, work: str) -> str:
+        """F34-T16 (R16): the panel's tab row — Claim, Proof, Known, Work, Record, only the parts
+        the panel has — hidden until graph.js can switch it, so without it every part shows."""
+        tabs = [("claim", "Claim"), ("how", "Proof")]
+        if known:
+            tabs.append(("known", "Known"))
+        if work:
+            tabs.append(("work", "Work"))
+        tabs.append(("record", "Record"))
+        buttons = "".join(
+            f'<button type="button" role="tab" data-tab="{part}" aria-selected="false">{name}'
+            "</button>"
+            for part, name in tabs
+        )
+        return (
+            f'<div class="panel-tabs" role="tablist" aria-label="Its record" hidden>{buttons}</div>'
+        )
+
+    def panel_path(self, tv: TargetView, nv: NodeView) -> str:
+        """F34-T16 (R16): the statement and its path from the problem's own statement, as words
+        and as data (the ids along it, which graph.js draws heavier)."""
+        path = self.path_from_root(tv, nv.node_id)
+        words = " &rsaquo; ".join(
+            record_words(self.node_label(tv.nodes[n]) or n) if n in tv.nodes else esc(n)
+            for n in path
+        )
+        return f'<p class="panel-path cue" data-path="{esc(" ".join(path))}">{words}</p>'
+
+    @staticmethod
+    def path_from_root(tv: TargetView, nid: str) -> list[str]:
+        """The shortest path of dependencies from the root to ``nid``; just ``nid`` when none
+        reaches it (a variant, a proposed statement)."""
+        if nid == tv.root:
+            return [nid]
+        seen = {tv.root: [tv.root]}
+        queue = [tv.root]
+        while queue:
+            cur = queue.pop(0)
+            for dep in tv.nodes[cur].deps if cur in tv.nodes else []:
+                if dep in seen:
+                    continue
+                seen[dep] = [*seen[cur], dep]
+                if dep == nid:
+                    return seen[dep]
+                queue.append(dep)
+        return [nid]
 
     def work_parts(self, tv: TargetView, nv: NodeView) -> list[str]:
         """The plans and approach records of "Work on it", shared by the panel and the page."""
@@ -4305,6 +4996,14 @@ class Renderer:
             key, words = "self", "self-admitted"
         elif how == ADMITTED_BY_CURATOR:
             key, words = "curator", "admitted by curator"
+        elif how.startswith("motion:"):
+            # F34-T5 (R6): the panel's invitation (F24), in words; the motion's number stays on
+            # the element for anyone who follows the record, never in the sentence
+            n = how.removeprefix("motion:")
+            return (
+                f' <span class="admitted" data-admitted="panel" data-motion="{esc(n)}">'
+                "invited by the panel</span>"
+            )
         else:
             key, words = "reviewed", f"admitted by {how}"
         return f' <span class="admitted" data-admitted="{key}">{esc(words)}</span>'
@@ -4393,6 +5092,14 @@ class Renderer:
         )
         if state == "open":
             line = head + f"closes {esc(m['closes'])} · {tally} so far"
+        elif state == "passed" and not m["yes"] and not m["no"]:
+            # F34-T4: a vote passes a motion only with more yes than no, so a passed motion with no
+            # counted vote passed at once: its opener was the panel's only member, or a curator
+            # opened an invitation. "passed, 0 yes · 0 no" read as a vote nobody cast.
+            line = (
+                head + f"closed {esc(m['closes'])}</span> · "
+                '<span class="outcome passed">passed at once, without a vote</span>'
+            )
         else:
             line = (
                 head + f"closed {esc(m['closes'])}</span> · "
@@ -4643,7 +5350,7 @@ class Renderer:
             '<section class="page-head"><div><h1>Rules</h1><p class="lead">Every number a '
             "problem&rsquo;s steward panel runs on, as the graph&rsquo;s "
             f"{self.file_link('policy.json')} sets it. A change is one curator pull request "
-            "naming its reason, and applies from the next motion opened (D-32 v3.34).</p>"
+            "naming its reason, and applies from the next motion opened.</p>"
             f"</div></section>{note}"
             '<div class="table-wrap"><table class="rules"><thead><tr><th>Setting</th>'
             "<th>Value</th><th>What it does</th><th>Set</th></tr></thead><tbody>"
@@ -5487,35 +6194,223 @@ class Renderer:
         )
 
     def contributors(self) -> str:
-        """R8, F07-R12: the ledger read as entries, not as a list of files.
-
-        One row per contribution, each linked to the artifact that earned it, because D-19's
-        ledger is a record of artifacts and a reader should be able to click through to the
-        thing itself. No totals and no ranking: significance is retrospective (D-19, D-32), and
-        a column of counts here would be the score the protocol refuses.
-        """
+        """F34-T9 (R10-R12): stewards, then the people who bring agents, then the full ledger,
+        folded. Nobody is ranked: people are in order of their newest entry, never of a count
+        (D-19, D-25), and every number on the page is read from the record."""
         contributions = ledgermod.contributions(self.site.root)
-        renders: list[str] = []
-        if not contributions:
-            ledger = (
-                "<p>No ledger files exist yet: nothing has been credited. The first merged proof "
-                "and the first postmortem will start the ledger (D-19, F07).</p>"
-            )
-        else:
-            blocks: list[str] = []
-            for identity, entries in sorted(contributions.items()):
-                renders.append(f"ledger/{identity}.json")
-                rows = "".join(self._ledger_row(e) for e in entries)
-                blocks.append(
-                    f"<h2>{esc(identity)}</h2>"
-                    f'<table class="ledger"><tr><th>Line</th><th>Node</th><th>Artifact</th>'
-                    f"<th>Merged</th><th>Tooling</th></tr>{rows}</table>"
-                )
-            ledger = "".join(blocks)
-        body = _template("contributors.html").substitute(ledger=ledger)
-        return self.page("Contributors", body, renders=renders, path="/contributors/")
+        renders = [f"ledger/{identity}.json" for identity in sorted(contributions)]
+        body = _template("contributors.html").substitute(
+            stewards=self.contributors_stewards(),
+            people=self.people_section(contributions),
+            ledger=self.ledger_section(contributions),
+        )
+        script = '<script src="/contributors.js"></script>' if contributions else ""
+        return self.page(
+            "Contributors", body, renders=renders, path="/contributors/", script=script
+        )
 
-    def _ledger_row(self, entry: dict[str, Any]) -> str:
+    def is_test_identity(self, identity: str) -> bool:
+        return any(fnmatch.fnmatchcase(identity, p) for p in self.test_identities)
+
+    def contributors_stewards(self) -> str:
+        """R10: each steward once, from the records the problem pages read, with every problem they
+        hold and its stage mark, and how and when they were admitted to each."""
+        held: dict[str, list[tuple[TargetView, dict[str, Any]]]] = {}
+        for _tid, tv in sorted(self.site.targets.items()):
+            for s in tv.stewards:
+                held.setdefault(str(s["login"]), []).append((tv, s))
+        cards = []
+        for login, rows in sorted(held.items(), key=lambda kv: kv[0].casefold()):
+            first = rows[0][1]
+            problems = "".join(
+                f'<li><a class="mono" href="{esc(self.target_path(tv.target_id))}">'
+                f"{esc(tv.target_id)}</a>{self.stage_mark(tv)}"
+                f'<span class="muted">{self.admitted(tv, s).strip()}'
+                + (f" · since {esc(str(s['since']))}" if s.get("since") else "")
+                + "</span></li>"
+                for tv, s in rows
+            )
+            cards.append(
+                f'<article class="steward-card" data-steward="{esc(login)}">'
+                f"<h3>{self.steward_link(first)}</h3>"
+                f'<p class="muted">GitHub · <code>{esc(login)}</code></p>'
+                f'<ul class="held">{problems}</ul></article>'
+            )
+        n = len(self.needs_steward())
+        need = (
+            '<article class="steward-card need">'
+            f"<h3>{n} problem{'' if n == 1 else 's'} need a steward</h3>"
+            "<p>No Lean needed. Sign in with GitHub, tick one box, and your name goes on the "
+            'problem.</p><p><a href="/steward/">Steward a problem →</a></p></article>'
+            if n
+            else ""
+        )
+        if not cards:
+            cards.append('<p class="cue">No problem has a steward yet.</p>')
+        return f'<div class="steward-cards">{"".join(cards)}{need}</div>'
+
+    def people_section(self, contributions: dict[str, list[dict[str, Any]]]) -> str:
+        """R10, R11, R23 (D-19 v3.51 (iii)): one card per operator, newest activity first. An
+        identity an operator record names, or whose display name carries a GitHub login another
+        identity's also carries, is listed under that person; any other identity stands alone. A
+        test run is never folded into a person: it keeps its own card, held back (R12)."""
+        named = ledgermod.operators(self.site.root)
+        records = namesmod.latest(self.site.root)
+        by_github: dict[str, list[str]] = {}
+        for pseudonym, rec in sorted(records.items()):
+            if rec.github:
+                by_github.setdefault(rec.github, []).append(pseudonym)
+        groups: dict[str, list[str]] = {}
+        for identity in contributions:
+            if self.is_test_identity(identity):
+                key = identity
+            elif identity in named:
+                key = named[identity]
+            elif records.get(identity) and records[identity].github:
+                login = str(records[identity].github)
+                key = by_github[login][0] if len(by_github[login]) > 1 else identity
+            else:
+                key = identity
+            groups.setdefault(key, []).append(identity)
+        cards = []
+        for key, members in groups.items():
+            entries = [e for m in members for e in contributions[m]]
+            dates = [str(e.get("date", ""))[:10] for e in entries]
+            cards.append((max(dates, default=""), key, members, entries))
+        cards.sort(key=lambda c: (c[0], c[1]), reverse=True)
+        shown = [
+            self.person_card(key, entries, last, members=members, record=records.get(key))
+            for last, key, members, entries in cards
+        ]
+        if not shown:
+            return (
+                "<p>No ledger files exist yet: nothing has been credited. The first merged proof "
+                "and the first postmortem will start the ledger.</p>"
+            )
+        tests = sum(1 for _l, key, _m, _e in cards if self.is_test_identity(key))
+        toggle = (
+            '<p class="people-tools" data-tools hidden><label><input type="checkbox" '
+            f"data-show-tests> Show test runs ({tests})</label></p>"
+            if tests
+            else ""
+        )
+        return f'{toggle}<div class="people">{"".join(shown)}</div>'
+
+    def person_card(
+        self,
+        identity: str,
+        entries: list[dict[str, Any]],
+        last: str,
+        *,
+        members: list[str] | None = None,
+        record: namesmod.Record | None = None,
+    ) -> str:
+        """R11, R23: a sentence of counts by ledger line, the tools, the problems, and the
+        identities the card holds; the display name and GitHub login the operator published."""
+        test = self.is_test_identity(identity)
+        live = [e for e in entries if e.get("status") != "revoked"]
+        tally = {"proof": 0, "partial": 0, "statement": 0, "attempts": 0, "other": 0}
+        for e in live:
+            line = str(e.get("line", ""))
+            if line == "proof" and str(e.get("artifact", "")).endswith(PARTIAL_SUFFIX):
+                tally["partial"] += 1
+            elif line in tally:
+                tally[line] += 1
+            else:
+                tally["other"] += 1
+        words = []
+        for key, one, many in (
+            ("proof", "proof", "proofs"),
+            ("partial", "partial proof", "partial proofs"),
+            ("statement", "statement", "statements"),
+            ("attempts", "failed attempt kept", "failed attempts kept"),
+            ("other", "other contribution", "other contributions"),
+        ):
+            if tally[key]:
+                words.append(f"{tally[key]} {one if tally[key] == 1 else many}")
+        targets = sorted({str(e.get("target", "")) for e in live if e.get("target")})
+        sentence = (
+            (", ".join(words[:-1]) + " and " + words[-1] if len(words) > 1 else words[0])
+            if words
+            else "Nothing credited now"
+        ) + f", on {len(targets)} problem{'' if len(targets) == 1 else 's'}."
+        models: dict[str, int] = {}
+        frameworks: dict[str, int] = {}
+        for e in live:
+            a = e.get("automation") or {}
+            for m in a.get("models") or []:
+                key = canonical_model(str(m))
+                models[key] = models.get(key, 0) + 1
+            if a.get("framework"):
+                key = canonical_framework(str(a["framework"]))
+                frameworks[key] = frameworks.get(key, 0) + 1
+        chips = "".join(
+            f'<span class="chip-tool">{esc(name)} · {n}</span>'
+            for name, n in sorted({**frameworks, **models}.items(), key=lambda kv: kv[0].casefold())
+        )
+        tools = (
+            f'<p class="kicker">Tools used — agents are tools, the person is credited</p>'
+            f'<p class="tools">{chips}</p>'
+            if chips
+            else ""
+        )
+        worked = " ".join(
+            f'<a class="mono" href="{esc(self.target_path(tid))}">{esc(tid)}</a>'
+            for tid in targets
+            if tid in self.site.targets
+        )
+        hidden = ' data-test="1" hidden' if test else ""
+        others = sorted(m for m in (members or [identity]) if m != identity)
+        github = record.github if record is not None else None
+        if github is None and others:
+            logins = {r.github for m in others if (r := namesmod.latest(self.site.root).get(m))}
+            github = next(iter(sorted(x for x in logins if x)), None)
+        title = record.name if record is not None and record.name else identity
+        who = [f"GitHub · <code>{esc(github)}</code>"] if github else []
+        if title != identity:
+            who.append(f"<code>{esc(identity)}</code>")
+        held = (
+            '<details class="identities"><summary>Identities '
+            f"({len(others) + 1})</summary><p>"
+            + ", ".join(f"<code>{esc(m)}</code>" for m in [identity, *others])
+            + "</p></details>"
+            if others
+            else ""
+        )
+        return (
+            f'<article class="person" data-operator="{esc(identity)}" data-last="{esc(last)}"'
+            f"{hidden}><h3>{esc(title)}</h3>"
+            + (f'<p class="muted">{" · ".join(who)}</p>' if who else "")
+            + f'<p class="muted">active to {esc(last)}'
+            + (" · a test run" if test else "")
+            + "</p>"
+            f'<p class="tally">{esc(sentence)}</p>{tools}'
+            + (f'<p class="kicker">Worked on</p><p class="worked">{worked}</p>' if worked else "")
+            + held
+            + "</article>"
+        )
+
+    def ledger_section(self, contributions: dict[str, list[dict[str, Any]]]) -> str:
+        """R10: every entry, in a closed fold: date, identity, line, statement, artifact, models;
+        a revoked entry stays listed and says so (D-18). The script searches and pages it."""
+        rows = []
+        for identity, entries in sorted(contributions.items()):
+            for e in entries:
+                rows.append((str(e.get("date", "")), identity, e))
+        rows.sort(key=lambda r: (r[0], r[1]), reverse=True)
+        body = "".join(self._ledger_row(identity, e) for _d, identity, e in rows)
+        return (
+            '<details class="ledger-fold"><summary><span class="ledger-title">The full ledger'
+            f'</span> <span class="muted">{len(rows)} entries · one per contribution, each linked '
+            "to what earned it · revoked entries stay listed</span></summary>"
+            '<p class="ledger-tools"><label>Search the ledger <input class="input" type="search" '
+            'name="ledger-q" placeholder="identity, statement, model"></label></p>'
+            '<div class="table-wrap"><table class="ledger"><thead><tr><th>Date</th>'
+            "<th>Identity</th><th>Line</th><th>Statement</th><th>Artifact</th><th>Models</th>"
+            f"</tr></thead><tbody>{body}</tbody></table></div></details>"
+        )
+
+    def _ledger_row(self, identity: str, entry: dict[str, Any]) -> str:
         """One ledger entry. A revoked entry stays listed and says so (D-18)."""
         target, node = str(entry.get("target", "")), str(entry.get("node", ""))
         artifact = str(entry.get("artifact", ""))
@@ -5528,17 +6423,23 @@ class Renderer:
             line = "partial proof"
         if revoked:
             line += ' <span class="status status-revoked">revoked</span>'
+        models = ", ".join(
+            canonical_model(str(m)) for m in ((entry.get("automation") or {}).get("models") or [])
+        ) or str(entry.get("tooling", "undeclared"))  # escaped once, in the cell below
         return (
-            f"<tr><td>{line}</td>"
+            f'<tr data-identity="{esc(identity)}"><td>{esc(str(entry.get("date", ""))[:10])}</td>'
+            f"<td>{esc(identity)}</td><td>{line}</td>"
             f"<td>{self.node_link(target, node)}</td>"
             f"<td>{self.file_link(path)}</td>"
-            f"<td>{esc(str(entry.get('date', '')))}</td>"
-            f"<td>{esc(str(entry.get('tooling', 'undeclared')))}</td></tr>"
+            f"<td>{esc(models)}</td></tr>"
         )
 
     def docs(self) -> tuple[str, dict[str, str]]:
-        """R9, Q4: the docs page and the copied decisions document with its styles moved to a
-        same-origin stylesheet and every external or inline script removed (R10)."""
+        """F34-T6 (R8): Docs as one page per topic, each with the sidebar; ``/docs/`` the landing.
+
+        AGENTS.md is no longer copied into any page (F04-Q6 gives way, F34-Q6): it is served whole
+        at ``/AGENTS.md`` and linked. The decisions document and the human-funnel documents keep
+        their own pages (R9, Q4; F10-R9)."""
         extra: dict[str, str] = {}
         if self.decisions_doc is not None and self.decisions_doc.is_file():
             raw = self.decisions_doc.read_text(encoding="utf-8")
@@ -5549,50 +6450,279 @@ class Renderer:
             )
             extra["docs/architecture-decisions.html"] = page
             extra["docs/decisions.css"] = styles
-            decisions = (
-                '<a href="/docs/architecture-decisions.html">Architecture decisions</a>, '
-                "the protocol this network runs: decisions D-1 to D-36 with rationale and "
-                "overturning conditions. Copied at the site build (Q4)."
-            )
-        else:
-            decisions = "The architecture decisions document is not available in this build."
         agents_md = self.site.root / "AGENTS.md"
-        agents = (
-            self.untrusted_block(
-                "untrusted",
-                Prose(path="AGENTS.md", text=agents_md.read_text(encoding="utf-8")),
-                what="AGENTS.md",
-                document=True,  # F04-T10: headings, tables and labelled fences
-                anchors=GUIDE_ANCHOR_PREFIX,  # F20-T12: each section linkable (Q16(a))
-            )
-            if agents_md.is_file()
-            else "<p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>"
-        )
-        # F10-R9: the human-funnel documents are this repository's (site/docs/), rendered as
-        # pages of their own; a graph may add files under its docs/, linked as files.
-        funnel_items = []
+        if agents_md.is_file():
+            extra["AGENTS.md"] = agents_md.read_text(encoding="utf-8")
+        funnel: list[tuple[str, str, str]] = []
         for path in sorted(FUNNEL_DOCS.glob("*.md")):
             title, summary = document_head(path.read_text(encoding="utf-8"))
             rel = f"docs/{path.stem}.html"
             doc = prose.render_document(path.read_text(encoding="utf-8"))
             extra[rel] = self.page(title, doc, renders=[], **self.math_frame(doc))
-            funnel_items.append(
-                f'<li><a href="/{esc(rel)}">{esc(title)}</a> — {prose.inline(summary)}</li>'
+            funnel.append((f"/{rel}", title, summary))
+        bodies = self.docs_bodies(funnel)
+        pages = [
+            (slug, title, why) for _g, entries in DOCS_GROUPS for slug, title, _f, why in entries
+        ]
+        internal = [e for e in pages if not e[0].startswith("/")]
+        landing = ""
+        for i, (slug, title, why) in enumerate(internal):
+            prev_ = internal[i - 1] if i > 0 else None
+            next_ = internal[i + 1] if i + 1 < len(internal) else None
+            html = self.docs_page(slug, title, bodies[slug], why, (prev_, next_))
+            if slug:
+                extra[f"docs/{slug}/index.html"] = html
+            else:
+                landing = html
+        # F34-T10 (Q13): the search index, written at build — as JSON, and as a same-origin
+        # script docs.js loads, since the site's policy lets a page connect only to the service
+        index = json.dumps(
+            {"pages": [self.docs_index_entry(s, t, bodies[s]) for s, t, _w in internal]},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        extra["docs/search.json"] = index
+        extra["docs/search-index.js"] = f"window.OPN_DOCS_INDEX = {index.replace('</', '<\\/')};\n"
+        return landing, extra
+
+    def docs_index_entry(self, slug: str, title: str, body: str) -> dict[str, Any]:
+        """One Docs page in the search index: its address, title and group, each heading that
+        has an anchor, and its text as a reader sees it."""
+        group = next(g for g, entries in DOCS_GROUPS if any(e[0] == slug for e in entries))
+        headings = [
+            {"id": m.group(2), "text": " ".join(unescape(_TAG_RE.sub("", m.group(3))).split())}
+            for m in re.finditer(r'<h([23]) id="([^"]+)"[^>]*>(.*?)</h\1>', body, re.S)
+        ]
+        text = " ".join(unescape(_TAG_RE.sub(" ", body)).split())
+        return {
+            "href": self.docs_href(slug),
+            "title": title,
+            "group": group,
+            "headings": headings,
+            "text": text,
+        }
+
+    def docs_listed(self, slug: str) -> bool:
+        """A page elsewhere is listed only when this build has it: the decisions document is
+        copied only when the build was given it (R9, Q4)."""
+        if slug == "/docs/architecture-decisions.html":
+            return self.decisions_doc is not None and self.decisions_doc.is_file()
+        return True
+
+    def docs_href(self, slug: str) -> str:
+        if slug == "/AGENTS.md":
+            return self.agents_href
+        return slug if slug.startswith("/") else (f"/docs/{slug}/" if slug else "/docs/")
+
+    def docs_side(self, current: str) -> str:
+        """The sidebar: every group and page, the current one marked."""
+        out = []
+        for group, entries in DOCS_GROUPS:
+            items = "".join(
+                f'<li><a href="{esc(self.docs_href(slug))}"'
+                + (' aria-current="page"' if slug == current else "")
+                + f">{esc(title)}{' ↗' if slug.startswith('/') else ''}</a></li>"
+                for slug, title, _f, _w in entries
+                if self.docs_listed(slug)
             )
-        funnel_dir = self.site.root / "docs"
-        funnel_files = (
-            sorted(p for p in funnel_dir.iterdir() if p.is_file()) if funnel_dir.is_dir() else []
+            out.append(f'<p class="docs-group">{esc(group)}</p><ul>{items}</ul>')
+        return "".join(out)
+
+    def docs_page(
+        self,
+        slug: str,
+        title: str,
+        body: str,
+        why: str,
+        around: tuple[tuple[str, str, str] | None, tuple[str, str, str] | None],
+    ) -> str:
+        """One docs page in the frame: sidebar, breadcrumb, heading, body, previous and next, and
+        the decisions it rests on at its foot, once (handoff §3.3)."""
+        prev_, next_ = around
+        # F34-T7 (R6): the decisions a page rests on are named once, at its foot
+        # (the error-code reference shows the catalog verbatim, as /errors.json does: F34-Q23)
+        body, moved = move_codes(body) if slug != "errors" else (body, [])
+        named = [d.strip() for d in why.split(",") if d.strip()]
+        named += [d for d in moved if d not in named]
+        why = ", ".join(sorted(named, key=lambda d: int(d.split("-")[1])))
+        group = next(g for g, entries in DOCS_GROUPS if any(e[0] == slug for e in entries))
+        crumb = "" if not slug else f" / {esc(group)} / {esc(title)}"
+        links = []
+        if prev_ is not None:
+            links.append(
+                f'<a class="prev" href="{esc(self.docs_href(prev_[0]))}"><span>Previous</span>'
+                f"{esc(prev_[1])}</a>"
+            )
+        if next_ is not None:
+            links.append(
+                f'<a class="next" href="{esc(self.docs_href(next_[0]))}"><span>Next</span>'
+                f"{esc(next_[1])}</a>"
+            )
+        prevnext = f'<nav class="prevnext" aria-label="Pages">{"".join(links)}</nav>'
+        foot = (
+            f'<p class="docs-foot">Protocol: decision{"s" if "," in why else ""} {esc(why)}, in '
+            '<a href="/docs/architecture-decisions.html">the architecture decisions</a>.</p>'
+            if why
+            else ""
         )
-        funnel_items.extend(f"<li>{self.file_link(f'docs/{p.name}')}</li>" for p in funnel_files)
-        funnel = (
-            "<ul>" + "".join(funnel_items) + "</ul>"
-            if funnel_items
-            else "<p>No human-funnel documentation yet (D-27, F10).</p>"
+        frame = _template("docs-page.html").substitute(
+            side=self.docs_side(slug),
+            crumb=crumb,
+            title=esc(title),
+            body=body,
+            prevnext=prevnext,
+            foot=foot,
         )
-        # F25-R17 (D-23 v3.37): the two licences by name, before whatever text the graph carries.
+        # the graph files the page shows: the licence page its LICENSE and DCO (R9), every page
+        # the AGENTS.md it links
+        names = ("LICENSE", "DCO") if slug == "licence" else ("AGENTS.md",)
+        renders = [n for n in names if (self.site.root / n).is_file()]
+        frame_parts = self.math_frame(frame)
+        # F34-T10: Docs search, drawn by docs.js; the sidebar is the way round without it
+        frame_parts["script"] = frame_parts.get("script", "") + '<script src="/docs.js"></script>'
+        return self.page(
+            "Docs" if not slug else title,
+            frame,
+            renders=renders,
+            path="/docs/",
+            **frame_parts,
+        )
+
+    def docs_bodies(self, funnel: list[tuple[str, str, str]]) -> dict[str, str]:
+        """Each page's body, from its template or built here."""
+        mcp = f"{self.api_url}/mcp" if self.api_url else "$OPN_API/mcp"
+        api_sentence = (
+            f"for the live network it is <code>{esc(self.api_url)}</code>."
+            if self.api_url
+            else "this build names no service, so set it to the one you use."
+        )
+        leiden_rows = "".join(
+            f"<tr><td>{esc(objection)}</td><td>{esc(does)}</td><td>{esc(gap)}</td></tr>"
+            for objection, does, gap in LEIDEN_ROWS
+        )
+        glossary_rows = "".join(
+            f"<tr><td>{esc(label)}</td><td>{esc(meaning)}</td><td><code>{esc(proto)}</code></td></tr>"
+            for _key, label, meaning, proto in self.words["glossary"]
+        )
+        values = {
+            "steward_lead": esc(self.words["docs_steward"]),
+            "step_down_consequence": esc(self.words["docs_step_down"]),
+            "commitment": esc(steward.COMMITMENT),
+            "proposal_url": esc(self.proposal_url),
+            "leiden_rows": leiden_rows,
+            "glossary_rows": glossary_rows,
+            "states": self.states(),
+            "reading_labels": "".join(
+                f"<tr><td>{esc(PROVENANCE[key])}</td><td>{esc(meaning)}</td></tr>"
+                for key, meaning in READING_LABELS
+            ),
+            "gloss_guide_href": esc(GLOSS_GUIDE_HREF),
+            "mcp_command": esc(f"claude mcp add --transport http open-proof-network {mcp}"),
+            "api_sentence": api_sentence,
+            "index": self.docs_index(funnel),
+            "agents_href": esc(self.agents_href),
+            "explainer_affirmation": esc(explainers.AFFIRMATION),
+        }
+        bodies: dict[str, str] = {}
+        for _g, entries in DOCS_GROUPS:
+            for slug, _title, template, _why in entries:
+                if template is not None:
+                    bodies[slug] = _template(template).safe_substitute(values)
+        bodies["connect"] = self.connectors()
+        bodies["routes"] = self.routes_reference()
+        bodies["errors"] = self.errors_reference()
+        bodies["licence"] = self.licence_words()
+        return bodies
+
+    def routes_reference(self) -> str:
+        """F34-T8 (R9): every route the service is built from (``opn_api.routes.ROUTES``, a table
+        with no dependencies of its own), so the page cannot drift from the service."""
+        from opn_api import routes as api_routes  # noqa: PLC0415 — the build's one api import
+
+        rows = "".join(
+            f'<tr data-route="{esc(r.method)} {esc(r.path)}" '
+            f'data-token="{"yes" if r.authenticated else "no"}">'
+            f"<td><code>{esc(r.method)}</code></td><td><code>{esc(r.path)}</code></td>"
+            f"<td>{'a token' if r.authenticated else 'none'}</td></tr>"
+            for r in sorted(api_routes.ROUTES, key=lambda r: (r.path, r.method))
+        )
+        return (
+            '<p class="lead">Every route the service answers, generated from the table the '
+            "service itself is built from.</p>"
+            "<p><code>GET $OPN_API/</code> answers the same list with what each route is for, and "
+            "<code>GET $OPN_API/llms.txt</code> is the short form for an agent that knows only the "
+            "address. Through MCP the same operations are three tools: <code>search</code> finds "
+            "an operation by what it does, <code>read</code> runs a read and <code>write</code> a "
+            "write, each one route. Each identity's writes are rate-limited; a refusal is "
+            "<code>429</code> with a <code>Retry-After</code>, and the limits are in the "
+            f'contributor guide, <a href="{esc(self.agents_href)}">AGENTS.md</a>.</p>'
+            '<div class="table-wrap"><table class="compare routes-ref"><thead><tr>'
+            "<th>Method</th><th>Path</th><th>Needs</th></tr></thead>"
+            f"<tbody>{rows}</tbody></table></div>"
+        )
+
+    @staticmethod
+    def errors_reference() -> str:
+        """F34-T8 (R9): every error code the gate and the service answer, from the catalog
+        ``GET /errors.json`` serves (``opn_gate.codes``), each with what to do and an id."""
+        from opn_gate import codes  # noqa: PLC0415
+
+        by_source = {"gate": "The gate", "api": "The service", "both": "Both"}
+        parts = [
+            '<p class="lead">Every code a refusal can carry, what it means and what to do, '
+            "generated from the catalog the gate and the service read. "
+            "<code>GET $OPN_API/errors.json</code> serves the same table.</p>"
+        ]
+        for source, heading in by_source.items():
+            rows = "".join(
+                f'<tr id="code-{esc(code)}"><td><code>{esc(code)}</code></td>'
+                f"<td>{esc(row.meaning)}</td><td>{esc(row.remedy)}</td></tr>"
+                for code, row in sorted(codes.CATALOG.items())
+                if row.source == source
+            )
+            parts.append(
+                f"<h2>{esc(heading)}</h2>"
+                '<div class="table-wrap"><table class="compare errors-ref"><thead><tr>'
+                "<th>Code</th><th>What it means</th><th>What to do</th></tr></thead>"
+                f"<tbody>{rows}</tbody></table></div>"
+            )
+        return "".join(parts)
+
+    def docs_index(self, funnel: list[tuple[str, str, str]]) -> str:
+        """The landing's list of every page by group. Each old anchor of the single page is the id
+        of the link to the page that holds it now (R8, ``DOCS_OLD_ANCHORS``)."""
+        ids: dict[str, list[str]] = {}
+        for old, slug in DOCS_OLD_ANCHORS.items():
+            ids.setdefault(slug, []).append(old)
+        groups = []
+        if not self.docs_listed("/docs/architecture-decisions.html"):
+            groups.append(
+                "<p>The architecture decisions document is not available in this build.</p>"
+            )
+        for group, entries in DOCS_GROUPS:
+            items = []
+            for slug, title, _f, _w in entries:
+                if not slug or not self.docs_listed(slug):
+                    continue
+                anchors = ids.get(slug, [])
+                lead = f' id="{esc(anchors[0])}"' if anchors else ""
+                more = "".join(f'<span id="{esc(a)}"></span>' for a in anchors[1:])
+                items.append(
+                    f'<li{lead}>{more}<a href="{esc(self.docs_href(slug))}">{esc(title)}</a></li>'
+                )
+            if group == "Reference":
+                items.extend(
+                    f'<li><a href="{esc(href)}">{esc(title)}</a></li>' for href, title, _s in funnel
+                )
+            if items:  # the landing does not list itself
+                groups.append(f'<h3>{esc(group)}</h3><ul class="docs-index">{"".join(items)}</ul>')
+        return "".join(groups)
+
+    def licence_words(self) -> str:
+        """F25-R17 (D-23 v3.37): the two licences by name, then whatever text the graph carries."""
         parts = [
             "<p>The code is Apache-2.0 and the non-code record — statements, proofs, prose, "
-            "attestations and every other record — is CDLA-Permissive-2.0 (D-23 v3.37): "
+            "attestations and every other record — is CDLA-Permissive-2.0: "
             "<code>LICENSE</code> at the graph root names the first, <code>NOTICE</code> beside "
             "it the second, and the sign-off text names both. Annex prose carries the licence "
             f"its author chose: {', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
@@ -5622,39 +6752,7 @@ class Renderer:
                     f"<p>No {what} text is committed to the graph; the service serves the text a "
                     "token is issued against (D-23).</p>"
                 )
-        # F15-R11: the steward section, the proposal form on the graph repository (from the
-        # site's configured repository, never a hostname in a template) and the Leiden table.
-        leiden_rows = "".join(
-            f"<tr><td>{esc(objection)}</td><td>{esc(does)}</td><td>{esc(gap)}</td></tr>"
-            for objection, does, gap in LEIDEN_ROWS
-        )
-        glossary_rows = "".join(
-            f"<tr><td>{esc(label)}</td><td>{esc(meaning)}</td><td><code>{esc(proto)}</code></td></tr>"
-            for _key, label, meaning, proto in self.words["glossary"]
-        )
-        body = _template("docs.html").substitute(
-            decisions=decisions,
-            steward_lead=esc(self.words["docs_steward"]),
-            step_down_consequence=esc(self.words["docs_step_down"]),
-            states=self.states(),
-            connectors=self.connectors(),
-            agents=agents,
-            funnel=funnel,
-            license="".join(parts),
-            commitment=esc(steward.COMMITMENT),  # one sentence, one home (opn_gate.steward)
-            proposal_url=esc(self.proposal_url),
-            leiden_rows=leiden_rows,
-            glossary_rows=glossary_rows,
-            reading_labels="".join(
-                f"<tr><td>{esc(PROVENANCE[key])}</td><td>{esc(meaning)}</td></tr>"
-                for key, meaning in READING_LABELS
-            ),
-            gloss_guide_href=esc(GLOSS_GUIDE_HREF),
-        )
-        renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
-        return self.page(
-            "Docs", body, renders=renders, path="/docs/", **self.math_frame(body)
-        ), extra
+        return "".join(parts)
 
     def connectors(self) -> str:
         """F16-R3, AC6: one card per harness in the connector registry, alphabetical (D-1: no
@@ -7446,13 +8544,14 @@ def llms_txt(r: Renderer) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_site(
+def render_site(  # noqa: PLR0913 — one keyword per configured part of the site (C6)
     site: Site,
     *,
     repo_url: str,
     decisions_doc: Path | None = DECISIONS_DOC,
     api_url: str | None = None,
     featured_target: str | None = None,
+    test_identities: tuple[str, ...] = DEFAULT_TEST_IDENTITIES,
 ) -> dict[str, str]:
     """Every output file (path relative to the site root -> content)."""
     r = Renderer(
@@ -7461,6 +8560,7 @@ def render_site(
         decisions_doc=decisions_doc,
         api_url=api_url,
         featured_target=featured_target,
+        test_identities=test_identities,
     )
     docs_page, extra = r.docs()
     files: dict[str, str] = {

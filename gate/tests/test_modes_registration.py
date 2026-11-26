@@ -173,7 +173,10 @@ def test_the_two_paths_have_roles_of_their_own() -> None:
     assert paths.locate(f"names/sub/{BOB}.yaml") is None
     assert paths.locate(f"targets/{TARGET}/registrations/sub/x.yaml") is None
     assert paths.SCHEMAS_FOR_ROLE["registration"] == ("registration/v1",)
-    assert paths.SCHEMAS_FOR_ROLE["display-name"] == ("display-name/v1",)
+    assert paths.SCHEMAS_FOR_ROLE["display-name"] == (
+        "display-name/v1",
+        "display-name/v2",
+    )  # v2: the GitHub login (F34-T13)
 
 
 def test_each_record_alone_is_its_own_mode(graph: Graph) -> None:

@@ -66,8 +66,18 @@ def labels_of(nodes: Iterable[Mapping[str, Any]]) -> dict[str, str]:
     for n in nodes:
         label = n.get("label")
         if label and n.get("label_source") not in (None, "id"):
-            out[str(n["node_id"])] = str(label)
+            out[str(n["node_id"])] = plain(str(label))
     return out
+
+
+#: F34-T2 (R4): ``*emphasis*``, ``**strong**`` and ``_emphasis_`` markers.
+_MARKERS_RE = re.compile(r"(?<![\w*_])(\*\*|\*|_)(?=\S)(.+?)(?<=\S)\1(?![\w*_])")
+
+
+def plain(label: str) -> str:
+    """A label as SVG text, which carries no markup: the words without Markdown's emphasis
+    markers or TeX's dollar signs (``*abc* conjecture`` reads ``abc conjecture``)."""
+    return _MARKERS_RE.sub(r"\2", label).replace("$", "")
 
 
 def label_of(node_id: str, prefix: Prefix = None, labels: Labels = None) -> str:

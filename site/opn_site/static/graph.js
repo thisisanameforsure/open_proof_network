@@ -60,6 +60,9 @@
   var bandPills = bandSvg ? slice(bandSvg.querySelectorAll("g.node")) : [];
   var links = slice(document.querySelectorAll("path.band-link"));
   var wrap = svg.closest ? svg.closest(".dag-wrap") : null;
+  // F34-T12 (R14): the view the page opens on, and comes back to — one route, the proving set
+  // with the fewest open statements (data-home); a problem with no route opens on routes.
+  var HOME = svg.getAttribute("data-home") || ROUTES;
   var state = {
     node: null,
     view: svg.getAttribute("data-view") || ROUTES,
@@ -75,7 +78,11 @@
   function has(view) { return !!(view && layouts && layouts[view]); }
   // F27-R13: a set view (a selector node, leaf or edge) has a follow/ twin; the selector and the
   // table carry the plain keys, and the reading in force picks which of the two is shown.
-  function base(view) { return view && view.indexOf(FOLLOW) === 0 ? view.slice(FOLLOW.length) : view; }
+  function base(view) {
+    if (!view) { return view; }
+    var b = view.indexOf(FOLLOW) === 0 ? view.slice(FOLLOW.length) : view;
+    return b.replace(/~fold\d+$/, "");  // F34-T24: an open fold is still its route
+  }
   function isSetView(view) {
     var b = base(view);
     return !!b && (b === "sel" || b.indexOf("sel/") === 0 || b.indexOf("edge/") === 0);
@@ -95,23 +102,65 @@
 
   // -- the panel (R3, as problem.js) ----------------------------------------------------------
 
+  // F34-T16 (R16): a panel shows one part at a time under its tabs; Record opens its fold.
+  function showTab(panel, part) {
+    var tabs = panel.querySelector(".panel-tabs");
+    if (!tabs) { return; }
+    tabs.hidden = false;
+    slice(tabs.querySelectorAll("[data-tab]")).forEach(function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-tab") === part ? "true" : "false");
+    });
+    // a part is a section of the panel (data-section) or its record fold
+    slice(panel.querySelectorAll(".panel-sec[data-section], details.record")).forEach(function (sec) {
+      var on = (sec.getAttribute("data-section") || "record") === part;
+      sec.hidden = !on;
+      if (on && sec.tagName.toLowerCase() === "details") { sec.open = true; }
+    });
+  }
+  panels.forEach(function (p) {
+    p.addEventListener("click", function (ev) {
+      var b = ev.target.closest ? ev.target.closest(".panel-tabs [data-tab]") : null;
+      if (b) { showTab(p, b.getAttribute("data-tab")); }
+    });
+  });
+  var homeNode = null;
+  panels.forEach(function (p) { if (!p.hidden && homeNode === null) { homeNode = p.getAttribute("data-node"); } });
+
+  // F34-T16 (R16): the selected statement's path from the problem, drawn heavier. A line is on
+  // it when both its ends are, a route's junction standing for the statement it splits.
+  function stem(id) { return id ? id.replace(/@\d+$/, "") : id; }
+  function drawPath(panel) {
+    var el = panel ? panel.querySelector(".panel-path") : null;
+    var ids = el && panel.getAttribute("data-node") !== homeNode
+      ? (el.getAttribute("data-path") || "").split(" ").filter(Boolean) : [];
+    var on = {};
+    ids.forEach(function (i) { on[i] = true; });
+    edges.forEach(function (e) {
+      var k = (keyOf(e) || "").split(">");
+      var a = stem(k[0]), b = stem(k[1]);
+      e.classList.toggle("on-path", ids.length > 1 && k.length === 2 && !!on[a] && !!on[b]);
+    });
+  }
+
   function select(id) {
-    var found = false;
+    var found = false, shown = null;
     panels.forEach(function (p) {
       var on = p.getAttribute("data-node") === id;
       p.hidden = !on;
-      if (on) { found = true; }
+      if (on) { found = true; shown = p; }
     });
     if (!found) { return false; }
     pills.forEach(function (g) { g.classList.toggle("selected", idOf(g) === id); });
     state.node = id;
+    showTab(shown, "claim");
+    drawPath(shown);
     return true;
   }
 
   function writeHash() {
     var parts = [];
     if (state.node) { parts.push("node=" + encodeURIComponent(state.node)); }
-    if (state.view !== ROUTES) { parts.push("view=" + encodeURIComponent(state.view)); }
+    if (state.view !== HOME) { parts.push("view=" + encodeURIComponent(state.view)); }
     if (state.band) { parts.push("band=" + encodeURIComponent(state.band)); }
     history.replaceState(null, "", parts.length ? "#" + parts.join("&") : location.pathname);
   }
@@ -460,6 +509,7 @@
   function settle(to, keepHash) {
     state.view = to;
     svg.setAttribute("data-view", to);
+    outlineFollows(to);  // F34-T17
     var sets = setsOf(to), shown = 0, plain = base(to);
     choices.forEach(function (c) {
       var on = c.getAttribute("data-view") === plain;
@@ -495,7 +545,7 @@
   function choose(view) {
     view = withMode(view);
     if (!has(view)) { return; }
-    transition(view === state.view ? ROUTES : view);
+    transition(view === state.view && view !== HOME ? HOME : view);
   }
 
   // -- previews (R8) and the pill hover (R3) ---------------------------------------------------
@@ -571,6 +621,13 @@
   pills.forEach(function (g) {
     var link = g.parentNode;
     g.addEventListener("click", function (ev) {
+      // F34-T24 (R15): a fold opens in place — the drawing moves to the view with it open
+      if (g.classList.contains("fold")) {
+        ev.preventDefault();
+        var open = g.getAttribute("data-open");
+        if (has(open)) { transition(open); }
+        return;
+      }
       if (select(idOf(g))) {
         ev.preventDefault();
         writeHash();
@@ -713,7 +770,10 @@
   });
 
   document.addEventListener("keydown", function (ev) {
-    if (ev.key === "Escape" && state.view !== ROUTES) { transition(ROUTES); }
+    if (ev.key !== "Escape") { return; }
+    // F34-T16 (R16): Esc comes back to the problem's own statement first, then to the home route
+    if (homeNode && state.node !== homeNode) { select(homeNode); writeHash(); return; }
+    if (state.view !== HOME) { transition(HOME); }
   });
 
   // -- the view-toggle (R4): all <-> routes --------------------------------------------------------
@@ -783,7 +843,7 @@
         sortBy(0, false);  // the record's order
         state.fewestView = null;
         fewest.setAttribute("aria-pressed", "false");
-        transition(ROUTES);
+        transition(HOME);
       }
     });
   }
@@ -807,6 +867,87 @@
 
   // -- the start, and the hash ---------------------------------------------------------------------
 
+  // -- F34-T17 (R17): on a phone, the selected route as an outline ----------------------------------
+
+  var outline = document.querySelector("ol.route-outline");
+  var phone = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
+  var panelHome = panels.length ? panels[0].parentNode : null;
+  // F34-T24 (R15): proved siblings folded into one box naming how many it holds; it opens in place.
+  var foldOpen = {};
+  function outlineFollows(view) {
+    if (!outline || !layouts || !layouts[view]) { return; }
+    // the route's statements, folded in the drawing or not: its own layout and its open folds'
+    var route = base(view), lays = [layouts[view]], inView = {};
+    for (var i = 0; layouts[route + "~fold" + i]; i++) { lays.push(layouts[route + "~fold" + i]); }
+    slice(outline.children).forEach(function (li) {
+      var id = li.getAttribute("data-node");
+      if (!id) { return; }
+      var fold = li.getAttribute("data-in-fold");
+      var on = lays.some(function (lay) { return nodeIn(lay, id); });
+      if (on && fold !== null) { inView[fold] = true; }
+      li.hidden = !on || (fold !== null && !foldOpen[fold]);
+    });
+    slice(outline.querySelectorAll("li.fold")).forEach(function (li) {
+      li.hidden = !inView[li.getAttribute("data-fold")];
+    });
+  }
+  if (outline) {
+    slice(outline.querySelectorAll("li.fold > .fold-box")).forEach(function (b) {
+      b.hidden = false;
+      b.addEventListener("click", function () {
+        var k = b.parentNode.getAttribute("data-fold");
+        foldOpen[k] = !foldOpen[k];
+        b.setAttribute("aria-expanded", foldOpen[k] ? "true" : "false");
+        outlineFollows(state.view);
+      });
+    });
+  }
+  function putBack() {
+    panels.forEach(function (p) { if (p.parentNode !== panelHome && panelHome) { panelHome.appendChild(p); } });
+    if (outline) { slice(outline.children).forEach(function (li) { li.classList.remove("selected"); }); }
+  }
+  if (outline) {
+    outline.addEventListener("click", function (ev) {
+      var a = ev.target.closest ? ev.target.closest("a[data-node]") : null;
+      if (!a || !(phone && phone.matches)) { return; }
+      ev.preventDefault();
+      var id = a.getAttribute("data-node"), li = a.parentNode;
+      var open = li.classList.contains("selected");
+      putBack();
+      if (open) { select(homeNode); writeHash(); return; }  // closes: the problem's own record, in its place
+      select(id);
+      writeHash();
+      var panel = panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0];
+      if (panel) { li.appendChild(panel); li.classList.add("selected"); }
+    });
+  }
+
+  // -- F34-T12 (R14): Tree and List -----------------------------------------------------------------
+
+  var tabs = document.querySelector(".route-tabs");
+  if (tabs) {
+    var tabButtons = slice(tabs.querySelectorAll("button[role=tab]"));
+    var panesOf = {};
+    tabButtons.forEach(function (b) {
+      panesOf[b.getAttribute("aria-controls")] = document.getElementById(b.getAttribute("aria-controls"));
+    });
+    // The table moves up beside the tabs, so List shows where Tree was.
+    var list = panesOf["sets-list"], tree = panesOf["sets-tree"];
+    if (list && tree && tree.parentNode) { tree.parentNode.insertBefore(list, tree.nextSibling); }
+    var showRouteTab = function (id) {
+      tabButtons.forEach(function (b) {
+        var on = b.getAttribute("aria-controls") === id;
+        b.setAttribute("aria-selected", on ? "true" : "false");
+        if (panesOf[b.getAttribute("aria-controls")]) { panesOf[b.getAttribute("aria-controls")].hidden = !on; }
+      });
+    };
+    tabButtons.forEach(function (b) {
+      b.addEventListener("click", function () { showRouteTab(b.getAttribute("aria-controls")); });
+    });
+    showRouteTab("sets-tree");
+    tabs.hidden = false;
+  }
+
   var initial = fromHash();
   if (initial.view && initial.view.indexOf(FOLLOW) === 0 && has(initial.view)) {
     state.follow = true;
@@ -817,8 +958,9 @@
     select(panels[0].getAttribute("data-node"));
   }
   if (initial.band && pillOf(bandSvg, initial.band)) { state.band = initial.band; }
-  if (has(initial.view) && initial.view !== state.view) {
-    transition(initial.view, true);
+  var opening = has(initial.view) ? initial.view : (has(HOME) ? HOME : null);
+  if (opening && opening !== state.view) {
+    transition(opening, true);
   } else if (has(state.view)) {
     settle(state.view, true);
   }
@@ -827,7 +969,7 @@
   window.addEventListener("hashchange", function () {
     var h = fromHash();
     if (h.node) { select(h.node); }
-    var view = h.view || ROUTES;
+    var view = h.view || HOME;
     if (has(view) && view !== state.view) {
       if (isSetView(view) && (view.indexOf(FOLLOW) === 0) !== state.follow) { setFollow(view.indexOf(FOLLOW) === 0); }
       transition(view);

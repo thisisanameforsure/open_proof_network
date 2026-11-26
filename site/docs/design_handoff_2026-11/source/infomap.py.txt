@@ -1,0 +1,59 @@
+from common import *
+mono=lambda t: f'<code style="font-family: {MONO}; font-size: 0.85em">{t}</code>'
+th=lambda t: f'<th scope="col" style="text-align: left; font-family: {SANS}; font-weight: 500; font-size: 13px; color: {MUTED}; padding: 8px 12px 8px 0; border-bottom: 1px solid {INK}; vertical-align: bottom">{t}</th>'
+td=lambda t,w='': f'<td style="padding: 10px 12px 10px 0; border-bottom: 1px solid {LINE}; font-family: {SANS}; font-size: 14px; vertical-align: top; {w}">{t}</td>'
+grp=lambda t: f'<tr><td colspan="4" style="padding: 18px 0 6px; font-family: {SERIF}; font-size: 20px; border-bottom: 1px solid {LINE}">{t}</td></tr>'
+rows=[
+('The problem',None),
+('Statement in words (informal)','Big text under the id','Headline, typeset','Everyone'),
+('Status, fidelity tag, review state','Badges beside the id (“statement unchecked”, “review: needs an intent signer · 1 candidate…”)','Status glyph + stage mark; one plain sentence on the review with a link','Everyone; signers'),
+('Proved · explained · written up','Three hollow labels + §“Proved, explained, written up”','Stage mark under the headline; detail in §6 Record','Everyone'),
+('Open for work / calibration target / registrations','Lines under the statement','One sentence under the headline; registrations in a sidenote','Contributors'),
+('Stewards and commitment','Steward card, top right','One sentence under the headline; full card in §4','Everyone'),
+('Sources, licences, provenance line','“Imported from …” line + §“Where the statement comes from”','Sidenote at the top; full list in §6','Auditors'),
+('Statements',None),
+('Route navigator (“Ways to settle the problem” tree)','Small box inside the graph card','§1 Routes, Tree view; drives which route is drawn','Everyone'),
+('Statement graph, legend (14 symbols), caption','Graph card, all 71 statements; legend always open','Figure 1: only the selected route, as a tree; proved statements folded; the full graph is never drawn','Everyone'),
+('Speculative statements, variants, related results','Right-hand band and faded pills in the graph','§2 Not on a route, grouped: related, special cases not on a route, superseded, speculative','Provers'),
+('Sets table (10 ways to settle), Retire','Below the graph, far down','§1 Routes, List view: one row per route with Draw · Statements · Retire…','Provers, stewards'),
+('Selected statement',None),
+('Title, id, status, attempts, role','Panel header','Panel header (unchanged)','Everyone'),
+('What is claimed (formal → maths, Lean nuance, words status, Lean source, “why sorry”)','Panel, first section','Tab: Claim','Everyone'),
+('How it is being proved (split into holes, partial proof, merge, attestation, each hole’s claim, closing through holes)','Panel, long nested list','Tab: Proof — routes first, then holes as a list with status; attestation in a margin line','Provers'),
+('What is known (literature status, proposer, references, notes)','Panel section + folds','Tab: Known','Mathematicians'),
+('Work on it (plans, approaches tried, Work on this, how to contribute, pull requests in flight)','Panel section + page links','Tab: Work; “Work on this statement” always visible under the tabs','Provers'),
+('Record details (hash, origin, Mathlib pin, files, glosses, outlines, how to read)','Closed “Record details (words, files)”','Tab: Record','Auditors'),
+('Depends on, used by, witness, acknowledged findings, explainers','Only on the statement’s own page','Tab: Record (summary) + “Open its page” for everything','Provers, auditors'),
+('Review, people, history',None),
+('Formalization review summary','Paragraph + “Does the Lean say the conjecture?” table of dashes','§3 summary card (5 lines) → review page; per-subject table folded','Signers'),
+('Shared definitions','Full Lean of every module printed inline','§3 folded list of links','Provers'),
+('Panel: members, last acts, motions, invite','§“Panel”','§4 Panel card; controls only for those who may use them','Stewards'),
+('Write-up ladder','§“Write-up”','§4 Write-up card with the eight-step ladder','Stewards, authors'),
+('Approach records, plans, notes, state of the problem','§“Approach records”, §“State of the problem”, panel','§5 What is known and tried, each folded with a count','Provers'),
+('Fast check, catalog score, drift, rendered-from commit','Paragraphs in “Where the statement comes from”','Sidenotes in §3; detail in §6 Record','Auditors'),
+]
+body=''
+for r in rows:
+    if r[1] is None: body+=grp(r[0])
+    else: body+='<tr>'+td(f'<strong style="font-weight: 600">{r[0]}</strong>','width: 26%')+td(r[1],'width: 27%; color: '+MUTED)+td(r[2],'width: 33%')+td(r[3],'width: 14%; color: '+MUTED)+'</tr>'
+tbl=f'<table style="width: 100%; border-collapse: collapse; min-width: 900px"><thead><tr>{th("Information")}{th("Today")}{th("Proposed")}{th("Mostly for")}</tr></thead><tbody>{body}</tbody></table>'
+
+def tabcol(name, items, note=''):
+    li=''.join(f'<li style="padding: 6px 0; border-top: 1px solid {LINE}">{i}</li>' for i in items)
+    return f'''<div style="flex: 1 1 200px; min-width: 0; background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<p style="margin: 0; font-family: {SANS}; font-size: 15px; font-weight: 600">{name}</p>
+<ul style="list-style: none; margin: 0; padding: 0; font-family: {SANS}; font-size: 13.5px">{li}</ul>{f'<p style="margin: 0; font-family: {SANS}; font-size: 12.5px; color: {MUTED}">{note}</p>' if note else ''}</div>'''
+tabs=''.join([
+ tabcol('Claim',['The claim in mathematics (KaTeX)','What the Lean means, where it differs (tsum, n = 0 …)','Words: unverified / approved, history, Rename or correct','The Lean (folded)','Why it ends in sorry (folded)']),
+ tabcol('Proof',['Direct proof, or the routes that close it','Each split: the partial proof, merged in, attestation','Its holes, each with status and claim','Read the partial proof (folded)','Closing it through its holes','Outlines'], 'Today the longest part of the panel; on erdos-257 it lists 2 splits and 18 holes.'),
+ tabcol('Known',['Literature status: open / known / elementary, who proposed it, confirmed or awaiting','References and summary','Notes, with full text links','Confirm or dispute (steward)']),
+ tabcol('Work',['Plans','Approaches recorded as tried','Attempts, failed ones included, with where they stopped','Pull requests in flight','How to contribute']),
+ tabcol('Record',['Hash, origin, Mathlib pin','Files: Statement.lean, attestation, Proof.lean','Depends on, used by','Witness, acknowledged findings','Glosses and explainers, and their approval state','How to read this panel']),
+])
+pagebody=f'''<main>{wrap(f"""<div style="display: flex; flex-direction: column; gap: 14px">{smallcaps('Working document for the build')}{h1('Problem page: where every piece of information goes')}
+<p style="margin: 0; font-size: 19px; color: {MUTED}; max-width: 820px">Nothing on today’s page is dropped. The page keeps one order — the problem, its statements, how to settle it, its review, its people, what is known, the record — and everything about one statement lives in the selected-statement panel, under five tabs.</p></div>""","56px 24px 0")}
+{wrap(f'<div style="display: flex; flex-direction: column; gap: 14px">{h2("The selected-statement panel, tab by tab", num="A")}<p style="margin: 0; max-width: 820px">Today the panel is one long column with folds inside folds, and some of a statement’s record (depends on, witness, findings) is only on its own page. Tabs make each kind of information one click away for any statement you select, and “Open its page” stays for the full record.</p><div style="display: flex; flex-wrap: wrap; gap: 12px">{tabs}</div></div>',"48px 24px 0")}
+{wrap(f'<div style="display: flex; flex-direction: column; gap: 14px">{h2("Every item on the page", num="B")}<div style="overflow-x: auto">{tbl}</div></div>',"56px 24px 0")}
+</main>'''
+open('/home/claude/canvas/project/New-Problem-InfoMap.dc.html','w').write(page('Problem page — information map',pagebody,1440,2600).replace('font: inherit;',f"font-family: {SANS};"))
+print('ok')

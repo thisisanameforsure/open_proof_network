@@ -1,0 +1,12 @@
+E       AssertionError: assert ['D-32'] == []
+E         
+E         Left contains one more item: 'D-32'
+E         Use -v to get more diff
+_________________ test_a_motion_passed_without_a_vote_says_so __________________
+    def test_a_motion_passed_without_a_vote_says_so(tmp_path_factory: pytest.TempPathFactory) -> None:
+            "state": "passed",
+E       AssertionError: assert ('0 yes' not in '<li data-mo... · 0 no</li>'
+E         '0 yes' is contained here:
+E           d</span>, 0 yes · 0 no</li>
+E         ?           +++++)
+E           AssertionError: steward/resolved-target/index.html

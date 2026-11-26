@@ -176,12 +176,9 @@ def test_the_follow_toggle_sits_in_the_selector_panel_with_both_counts(tmp_path:
     page = render_tree(two_routes(tmp_path))[PAGE]
     head = page.index('<div class="selector-wrap">')
     wrap = page[head : page.index('<svg class="selector"', head)]
-    assert re.search(
-        r'<label class="sel-follow" title="[^"]+" hidden>'
-        r'<input type="checkbox" class="follow-proved" checked> Stop at proved statements</label>',
-        wrap,
-    )
-    assert page.count('class="sel-follow"') == 1
+    # F34-T11 (Q7): the owner dropped the toggle from the page ("we are redesigning that page");
+    # the drawing still builds it and its follow/ layouts, so the redesign can put it back.
+    assert 'class="sel-follow"' not in wrap and 'class="sel-follow"' not in page
     lays = layouts_in(page)
     set_keys = [k for k in lays if k == "sel" or k.startswith(("sel/", "edge/"))]
     assert set_keys and all(one_view.FOLLOW + k in lays for k in set_keys)
