@@ -12,18 +12,21 @@ are proved. The general toggle appears only when something is on no route.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import Any
 
+import fixture
+from harness import TARGET
 from test_decompositions import HOLE_IDS
 from test_one_view import browser, classes, element, layouts_in
 from test_products import attest as gate_attest
 from test_products import nodes_dir
-from test_routes_view import THIRD, node, two_routes
+from test_routes_view import REPO, THIRD, node, render_tree, two_routes
 
 from opn_gate import routes
-from opn_site import one_view, render
+from opn_site import model, one_view, render
 
 
 def harder_doc(*, stray: bool = False) -> dict[str, Any]:
@@ -140,3 +143,36 @@ def test_the_harder_toggle_draws_the_strictly_harder_route_and_back(tmp_path: Pa
         pg.wait_for_function("() => document.querySelector('svg.dag').dataset.view === 'routes'")
         assert not drawn(HOLE_IDS[0]) and drawn(THIRD)
         assert toggle.get_attribute("aria-pressed") == "false"
+
+
+# -- F27-T15 (R14): the site invites work only on what the frontier offers ------------------------
+# Found on the live erdos-1094 page after the re-pin, 2026-11-27: the frontier dropped 51 entries
+# (69 → 18) while the header still said "69 statements open" and every strictly harder statement's
+# panel and page said "Work on this statement →", a claim the service answers 409 node-dominated.
+
+
+def test_the_sites_workable_statements_are_still_the_frontiers(tmp_path: Path) -> None:
+    """F04-T17's one set, two readers, on a tree with a strictly harder route: ``h1`` and ``h2``
+    are off the frontier, so the site neither counts them as open nor offers them."""
+    root = harder_tree(tmp_path / "g")
+    pages = render_tree(root)
+    site = model.load_site(root, fixture.COMMIT)
+    frontier = json.loads((root / "frontier.json").read_text(encoding="utf-8"))
+    # This fixture's target is not claimable itself (no intake record), so every entry reads
+    # ``claimable: false`` for the target's reason; what the frontier offers is what it lists.
+    offered = {e["node_id"] for e in frontier["entries"]}
+    assert not {HOLE_IDS[0], HOLE_IDS[1]} & offered, "guard: the route is strictly harder"
+    r = render.Renderer(site, repo_url=REPO)
+    tv = site.targets[TARGET]
+    workable = {nid for nid, nv in tv.nodes.items() if r.node_state(nv) in render.WORKABLE_STATES}
+    assert workable == offered
+    assert r.open_count(tv) == len(offered)
+    for hole in HOLE_IDS[:2]:
+        nv = tv.nodes[hole]
+        assert nv.status in render.CLAIMABLE_STATUSES, "guard: still open on the record"
+        assert r.node_state(nv) == "harder"
+        assert "Work on this statement" not in r.panel_action(tv, nv)
+        node_page = pages[f"nodes/{TARGET}/{hole}/index.html"]
+        assert "Work on this statement" not in node_page
+        assert "Not offered: every route through this statement is" in node_page
+        assert r.state_label(r.node_state(nv)) == "strictly harder"

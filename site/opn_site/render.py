@@ -167,10 +167,12 @@ NEEDS_WITNESS = "needs-witness"
 #: status (F31-Q7): the row's ``status`` stands underneath; the word says the site offers no
 #: work on it, as the frontier offers none (R4).
 SHELVED = "shelved"
+#: F27-T15 (R14, D-25 v3.52): open on the record, but only strictly harder routes reach it.
+HARDER = "harder"
 #: The states the site invites work on; the set a test holds to the frontier's claimable entries.
 WORKABLE_STATES = ("open", NEEDS_WITNESS)
 #: A state's word where it differs from its key.
-STATE_LABELS = {NEEDS_WITNESS: "needs a witness"}
+STATE_LABELS = {NEEDS_WITNESS: "needs a witness", HARDER: "strictly harder"}
 #: The frontier row's words for a not-claimable target whose index row names no reason (D-6).
 NO_RECORD_WORDS = "this target has no curated intake record (D-6)"
 #: T9: the api route for the live claims (F05); its origin is config (C6), never a literal here.
@@ -1709,16 +1711,20 @@ class Renderer:
     def node_state(nv: NodeView) -> str:
         """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself.
         F31-T10: a shelved statement that is not proved reads ``shelved`` — it is off the
-        frontier (R4), so the site must not call it work; a shelved proved one stays proved."""
+        frontier (R4), so the site must not call it work; a shelved proved one stays proved.
+        F27-T15: so does one only strictly harder routes reach, which reads ``harder``."""
         if nv.status == "proved":
             return "proved"
         if nv.shelved is not None:
             return SHELVED
         if nv.status in CLAIMABLE_STATUSES:
-            return "open"
-        if nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
-            return NEEDS_WITNESS  # T17: the witness is the work (D-29), so this is not "blocked"
-        return nv.status
+            state = "open"
+        elif nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
+            state = NEEDS_WITNESS  # T17: the witness is the work (D-29), so this is not "blocked"
+        else:
+            return nv.status
+        # F27-T15: the frontier leaves it off (R14), so the site must not call it work either
+        return HARDER if nv.harder else state
 
     @staticmethod
     def state_label(state: str) -> str:
@@ -1727,7 +1733,7 @@ class Renderer:
     @staticmethod
     def dot_state(state: str) -> str:
         """The dot a state wears: its own when the key has one (T14), the neutral ring else."""
-        return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA, SHELVED) else "blocked"
+        return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA, SHELVED, HARDER) else "blocked"
 
     def graph_legend(
         self, tv: TargetView, drawn: one_view.Drawing | None = None, *, toggle: bool = True
@@ -2196,7 +2202,7 @@ class Renderer:
     def state_hover(self, nv: NodeView) -> str:
         """The row's status dot with the state's definition, and a blocked node's cause."""
         state = self.node_state(nv)
-        if state in ("proved", *WORKABLE_STATES, SHELVED) or state in LEGEND_EXTRA:
+        if state in ("proved", *WORKABLE_STATES, SHELVED, HARDER) or state in LEGEND_EXTRA:
             _word, meaning, proto = self.words["by_key"][state]
             body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         else:
@@ -2221,6 +2227,8 @@ class Renderer:
             return f'<a class="act act-proved" href="{href}">View proof →</a>'
         if state == SHELVED:  # F31-T10: off the frontier by a person's judgment, not a wait
             return f'<a class="act act-blocked" href="{href}">Shelved</a>'
+        if state == HARDER:  # F27-T15: not offered, though a proof of it is still accepted
+            return f'<a class="act act-blocked" href="{href}">Strictly harder</a>'
         return f'<a class="act act-blocked" href="{href}">Blocked</a>'
 
     def home(self) -> str:
@@ -6074,6 +6082,12 @@ class Renderer:
             parts.append(
                 f'<p><a class="btn btn-primary" href="{GUIDE_HREF}">'
                 "Work on this statement →</a></p>"
+            )
+        elif state == HARDER:  # F27-T15 (D-25 v3.52): say why there is no claim to make
+            parts.append(
+                f'<p class="cue">Not offered: every route through this statement is '
+                f"{self.term(HARDER)} than another, so a claim on it is refused. A proof of it "
+                "is still accepted.</p>"
             )
         elif state == NEEDS_WITNESS:
             parts.append(
