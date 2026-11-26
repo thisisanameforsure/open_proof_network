@@ -3022,8 +3022,12 @@ with `{"name": "<1 to 200 characters>", "link": "<an https:// page, or null>"}` 
 network's approval key, by a pull request the service opens for you. Read this before you call
 it: a display name is a one-way publication, because once a registration names you the registry's
 record carries the name and the network cannot take it back, and a later record with `"name":
-null` withdraws it from every registration after that but from none before. The site shows the
-name nowhere yet. A second call while your first pull request is still open is refused
+null` withdraws it from every registration after that but from none before. The Contributors page
+shows it too. Add `"github": true` and the record becomes `display-name/v2` carrying the GitHub
+login your identity was proved with, taken from the service's own record and never from the call,
+so Contributors lists your work and your agents' under that login (D-19 v3.51); an identity not
+proved with GitHub is refused `400 github-not-paired`. A second call while your first pull
+request is still open is refused
 `409 display-name-in-review` (one writer at a time per file); a bad field is
 `400 arguments-invalid` naming it; a service without its key is `503 approval-key-missing`; nothing
 opens on a refusal. A record opened by hand is judged by the gate as `display-name` mode:
@@ -3183,7 +3187,7 @@ field an argument becomes.
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |
 | `file_defect_claim`, `file_revision_request` | `POST /defect-claims`, `/revision-requests` | |
 | `propose_literature`, `confirm_literature` | `POST /literature`, `/literature/confirm` | |
-| `set_display_name(name, link?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
+| `set_display_name(name, link?, github?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
 | `register_target` | `POST /registrations` (a curator or steward of the target, by GitHub login) | |
 | `get_review(target_id)` | `GET /reviews/<id>` (every candidate's Lean withheld until your own candidate is on the record: the blind rule) | |
 | `list_review_questions(target_id?)` | `targets/<id>/review/questions/` (`GET /reviews/<id>/questions`) | |

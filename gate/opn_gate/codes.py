@@ -1003,6 +1003,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Wait for it to merge, or withdraw it (DELETE /submissions/<id>, MCP withdraw_submission), "
         "then send the name again.",
     ),
+    "github-not-paired": (
+        "api",
+        None,
+        "You asked POST /me/name to publish your GitHub login (github: true), but your identity "
+        "was not proved with GitHub, so the service has no login of yours to publish "
+        "(D-19 v3.51).",
+        "Send the name without github, or sign in with GitHub and send it from that identity.",
+    ),
     "display-name-not-owner": (
         "gate",
         None,

@@ -1530,3 +1530,8 @@ details.defs > summary, details.qa-fold > summary, details.known-fold > summary 
 .off-route ul { list-style: none; padding: 0; margin: 0; }
 .off-route li { padding: var(--s2) 0; border-bottom: 1px solid var(--rule); overflow-wrap: anywhere; }
 .off-route .status-word { font-family: var(--sans); font-size: 13px; color: var(--muted); }
+
+/* F34-T23: how you are named, on /me/ */
+.me-name { display: flex; flex-direction: column; gap: var(--s4); align-items: flex-start; max-width: var(--measure); font-family: var(--sans); }
+.me-name input[type=text] { font: inherit; padding: var(--s2) var(--s3); border: 1px solid var(--rule-strong); border-radius: var(--radius); min-width: 16em; max-width: 100%; }
+.me-name label { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; min-height: 44px; }

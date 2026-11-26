@@ -50,6 +50,51 @@
     li.appendChild(out);
   }
 
+  // F34-T23 (R22; D-19 v3.51 (ii)): how you are named. A web session is always a GitHub one, so
+  // the login is the service's own record of the pairing; the box asks it to publish that login
+  // beside the name (display-name/v2), and is unticked: an identity paired before v3.51 publishes
+  // its link only when its holder asks. The call carries a flag, never a login.
+  function nameForm(s) {
+    var sec = section("How you are named");
+    var form = el("form", { "class": "me-name" });
+    form.appendChild(el("p", { "class": "cue" },
+      "The name the site shows for your pseudonym. With the box ticked, your GitHub login (" +
+      s.login + ") is published beside it, and Contributors lists your work and your agents' " +
+      "under it. A one-way publication, by pull request."));
+    var name = el("input", { type: "text", name: "name", maxlength: "200", required: "required" });
+    name.value = s.login;
+    var label = el("label", {}, "Name ");
+    label.appendChild(name);
+    form.appendChild(label);
+    var box = el("input", { type: "checkbox", name: "github" });
+    var tick = el("label", { "class": "me-name-github" });
+    tick.appendChild(box);
+    tick.appendChild(document.createTextNode(" Publish my GitHub login, " + s.login + ", with it"));
+    form.appendChild(tick);
+    var send = el("button", { type: "submit", "class": "btn btn-primary" }, "Publish");
+    var out = el("span", { "class": "form-error", role: "alert" });
+    form.appendChild(send);
+    form.appendChild(out);
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      send.disabled = true;
+      out.textContent = "";
+      O.call("POST", "/me/name", { name: name.value.trim(), github: box.checked }).then(function (r) {
+        if (r.status === 201) {
+          var p = el("p", { "class": "receipt" }, "Filed: ");
+          if (r.data && typeof r.data.pr_url === "string" && r.data.pr_url.indexOf(pulls) === 0) {
+            p.appendChild(el("a", { href: r.data.pr_url }, "#" + String(r.data.pr_number)));
+          }
+          form.appendChild(p);
+          return;
+        }
+        out.textContent = O.errorText(r);
+        send.disabled = false;
+      }, function () { out.textContent = O.errorText(null); send.disabled = false; });
+    });
+    sec.appendChild(form);
+  }
+
   // F04-T54: Confirm is literature.js's (one function for /me/ and the node's page).
   var confirmButton = O.literature && O.literature.confirmButton;
 
@@ -171,6 +216,8 @@
     var list = el("ul", { "class": "me-prs" });
     prs.appendChild(list);
     // The public listing, read as in-review.js reads it: no credentials, filtered here.
+    nameForm(s);
+
     fetch(O.api + "/submissions.json", { credentials: "omit" }).then(function (resp) {
       return resp.json().then(function (d) { return { ok: resp.ok, status: resp.status, data: d }; },
         function () { return { ok: false, status: resp.status, data: null }; });

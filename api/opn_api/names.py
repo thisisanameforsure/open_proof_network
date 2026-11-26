@@ -38,7 +38,10 @@ SCHEMA = names.SCHEMA
 KIND = "display-name"
 #: F05-T8: what ``POST /me/name`` reads; any other top-level key — a pseudonym above all — is
 #: refused.
-FIELDS: tuple[str, ...] = ("name", "link")
+FIELDS: tuple[str, ...] = ("name", "link", "github")
+#: F34-T23 (D-19 v3.51 (ii)): the record that carries the GitHub login.
+SCHEMA_GITHUB = "display-name/v2"
+ERROR_NOT_PAIRED = "github-not-paired"
 NAME_MAX = 200  # display-name/v1's cap
 LINK_MAX = 500  # display-name/v1's cap
 ERROR_IN_REVIEW = "display-name-in-review"
@@ -48,9 +51,11 @@ def bad(message: str, field: str) -> ApiError:
     return ApiError(400, "arguments-invalid", message, details={"field": field})
 
 
-def checked(fields: dict[str, Any]) -> tuple[str | None, str | None]:
-    """(name, link): the name a string of 1 to 200 characters or null (a withdrawal, which takes
-    no link); the link null or an https:// URL of at most 500 characters."""
+def checked(fields: dict[str, Any]) -> tuple[str | None, str | None, bool]:
+    """(name, link, github): the name a string of 1 to 200 characters or null (a withdrawal,
+    which takes no link); the link null or an https:// URL of at most 500 characters; github a
+    boolean, false by default and never with a withdrawal (F34-T23: the login itself is the
+    service's to write, from its own record of the pairing, so it is never a field)."""
     if "name" not in fields:
         raise bad("name is required: the display name, or null to withdraw it", "name")
     name = fields["name"]
@@ -63,7 +68,15 @@ def checked(fields: dict[str, Any]) -> tuple[str | None, str | None]:
         raise bad(f"link is null or an https:// URL of at most {LINK_MAX} characters", "link")
     if name is None and link is not None:
         raise bad("a withdrawal (name null) carries no link", "link")
-    return name, link
+    github = fields.get("github", False)
+    if not isinstance(github, bool):
+        raise bad(
+            "github is true or false: whether to publish the GitHub login you signed in with",
+            "github",
+        )
+    if name is None and github:
+        raise bad("a withdrawal (name null) carries no GitHub login", "github")
+    return name, link, github
 
 
 def in_review(ctx: Context, pseudonym: str) -> None:
@@ -95,7 +108,17 @@ async def post_me_name(ctx: Context, request: Request) -> Response:
     its own pull request."""
     held: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, FIELDS)
-    name, link = checked(fields)
+    name, link, github = checked(fields)
+    # F34-T23 (D-19 v3.51 (ii)): the login comes from the identity's own GitHub proof, never
+    # from the caller; an identity proved otherwise has no pairing to publish.
+    if github and held.proof_kind != identitymod.PROOF_GITHUB:
+        raise ApiError(
+            400,
+            ERROR_NOT_PAIRED,
+            f"{held.pseudonym} was not proved with GitHub, so there is no GitHub login to publish",
+            details={"field": "github"},
+        )
+    schema = SCHEMA_GITHUB if github else SCHEMA
     private, public = stewards.approval_key(ctx)
     ratelimit.enforce(
         ctx,
@@ -107,17 +130,18 @@ async def post_me_name(ctx: Context, request: Request) -> Response:
     in_review(ctx, held.pseudonym)
     doc = stewards.sign_record(
         {
-            "schema": SCHEMA,
+            "schema": schema,
             "pseudonym": held.pseudonym,
             "name": name,
             "link": link,
+            **({"github": held.proof_reference} if github else {}),
             "date": ctx.clock.now().strftime("%Y-%m-%d"),
             "via": stewards.VIA,
         },
         private,
         public,
     )
-    appends.validated(doc, SCHEMA)
+    appends.validated(doc, schema)
     path = f"{names.DIR}/{held.pseudonym}.yaml"
     body = appends.append_pr(
         ctx,
@@ -129,7 +153,8 @@ async def post_me_name(ctx: Context, request: Request) -> Response:
         kind=KIND,
         target_id=gatepaths.GRAPH_SCOPE,  # a graph-root file, scoped as the gate scopes it
         node_id=None,
-        written=f"{held.pseudonym} {name} {link}",
+        # F34-T23: the same name with and without the GitHub login are two records
+        written=f"{held.pseudonym} {name} {link}" + (" github" if github else ""),
         hold_name=False,  # one fixed path per pseudonym: ``in_review`` is the one-writer rule
     )
     return JSONResponse(stewards.receipt(body, submissions.APPEND_BRANCH_PREFIX), status_code=201)

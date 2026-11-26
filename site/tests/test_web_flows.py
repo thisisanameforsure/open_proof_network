@@ -163,6 +163,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, refusal = self.fake.refuse.pop(url.path)
             self.answer(status, refusal)
             return
+        if url.path == "/me/name":  # F34-T23: a display name, with the GitHub login or not
+            self.answer(201, self.receipt("names"))
+            return
         if url.path in ("/motions", "/votes", "/writeups"):  # F24-T6: the panel's routes
             self.answer(201, self.receipt(url.path.strip("/")))
             return
@@ -570,6 +573,32 @@ def test_me_shows_roles_waiting_sections_prs_and_step_down(bench: Bench, browser
     page.wait_for_selector(".me .receipt")
     body = bench.fake.posted("/stewards")[-1][1]
     assert body["action"] == "step-down" and body["target"] == TARGET
+    page.context.close()
+
+
+def test_me_publishes_the_github_link_when_asked(bench: Bench, browser: Any) -> None:
+    """F34-T23 (R22; D-19 v3.51 (ii)): an identity paired before v3.51 publishes its GitHub
+    link only when its holder asks. /me/ offers a name (the login by default) and a box, unticked,
+    to show the login with it; the call sends ``github`` as the box says, never a login."""
+    page = new_page(browser)
+    _set_home(bench, bench.words_site)
+    bench.fake.next_login = "grace-h"
+    page.goto(bench.words_site + "/me/")
+    page.click(".me a.btn")
+    page.wait_for_url(bench.words_site + "/me/")
+    form = page.locator(".me-name")
+    form.wait_for()
+    assert form.locator("input[name=name]").input_value() == "grace-h"
+    box = form.locator("input[name=github]")
+    assert not box.is_checked()
+    assert "grace-h" in form.inner_text() and "Contributors" in form.inner_text()
+    box.check()
+    form.locator("button", has_text="Publish").click()
+    page.wait_for_selector(".me-name .receipt")
+    page.locator(".me-name").scroll_into_view_if_needed()
+    shoot(page, bench, "task-23-me-name")
+    body = bench.fake.posted("/me/name")[-1][1]
+    assert body == {"name": "grace-h", "github": True}
     page.context.close()
 
 
