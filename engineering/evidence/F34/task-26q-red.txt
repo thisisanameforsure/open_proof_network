@@ -1,0 +1,2 @@
+FAILED site/tests/test_f34_not_on_route.py::test_a_proposed_group_is_drawn_as_a_small_tree
+1 failed, 3 deselected in 0.67s

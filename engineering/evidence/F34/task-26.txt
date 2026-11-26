@@ -1,0 +1,16 @@
+F34-Q26 closed (the owner, 2026-11-26): the speculative column becomes §2's small trees.
+
+Red (task-26q-red.txt): test_f34_not_on_route::test_a_proposed_group_is_drawn_as_a_small_tree.
+Each "Proposed for" group in §2 is a card: its heading, a small tree drawn by dag.layout from that group's
+statements and the lines among them (one_view.mini_tree, the drawing's own pills, each linked to its page),
+then its list. §1 draws no column: the selected route has the card's whole width (task-26-erdos-257-proof).
+
+Restated (not deleted), each to the new placement: test_crux_band's three page tests (the lit line, hover and
+pin, never moving), test_crux_column's two (beside the selector, pinning), and
+test_proposed_for_site::test_the_pointer_is_published_and_the_crux_is_drawn_in_the_band — the crux is drawn in
+its §2 group's tree, linked to its page, and not in §1; no lit-only line runs from §2 into the tree. The column's
+unit tests (which statements it holds, its order and widths) stay as they were: the drawing still computes it.
+Whole site suite with Playwright: only the three tests red on main before F34 fail.
+
+Captures on the live graph at 257feba2: task-26-erdos-257-off-route-light-1440.png (§2's groups drawn),
+task-26-erdos-257-proof-light-1440.png (§1 without the column).

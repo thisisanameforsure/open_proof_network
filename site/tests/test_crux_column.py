@@ -21,9 +21,8 @@ from pathlib import Path
 from typing import Any
 
 import refutes_fixture as rf
-from test_crux_band import BAND_STATE, CRUX, band_tree, hrefs
-from test_one_view import browser
-from test_routes_view import THIRD
+from harness import TARGET
+from test_crux_band import CRUX, band_tree, hrefs
 
 from opn_site import dag, one_view
 
@@ -88,41 +87,16 @@ def test_the_column_is_a_stack_of_pills_flush_right_with_no_line_at_rest() -> No
 
 
 def test_the_column_sits_beside_the_selector(tmp_path: Path) -> None:
-    """In the page: the card's body holds the selector and the drawing on the left and the
-    column on the right; on screen the column's top meets the selector's top and its right side
-    the card's content edge, and the tree is not under it."""
-    with browser(band_tree(tmp_path / "g"), tmp_path / "site") as pg:
-        html = pg.content()
-        geo = pg.evaluate(
-            """() => {
-              const r = s => document.querySelector(s).getBoundingClientRect();
-              const card = document.querySelector('.dag-wrap');
-              const cs = getComputedStyle(card);
-              // F34-T12 (R14): the Tree/List tabs head the routes block, so the column's top
-              // meets theirs; without tabs, the selector's.
-              const tabs = document.querySelector('.route-tabs:not([hidden])');
-              const head = tabs ? '.route-tabs' : '.selector-wrap';
-              return {sel: r('.selector-wrap'), head: r(head), band: r('.band-wrap'),
-                      tree: r('.dag-scroll'),
-                      inner: card.getBoundingClientRect().right - parseFloat(cs.paddingRight)
-                             - parseFloat(cs.borderRightWidth)};
-            }"""
-        )
-        rest = pg.evaluate(BAND_STATE)
-        pg.locator(f'svg.band g.node[data-node="{CRUX}"]').hover()
-        hovered = pg.evaluate(BAND_STATE)
-    body = html[html.index('class="graph-body"') :]
-    assert body.index('class="graph-main"') < body.index('class="selector-wrap"')
-    assert body.index('class="dag-scroll"') < body.index('class="band-wrap"')
-    assert abs(geo["band"]["top"] - geo["head"]["top"]) <= 4, geo
-    assert abs(geo["band"]["right"] - geo["inner"]) <= 2, geo
-    assert (
-        geo["band"]["left"] >= geo["sel"]["right"]
-        and geo["band"]["left"] >= geo["tree"]["right"] - 1
-    )
-    assert not any(ln["shown"] for ln in rest["links"])
-    lit = [ln["key"] for ln in hovered["links"] if ln["lit"] and ln["shown"]]
-    assert lit == [f"{CRUX}>{THIRD}"], lit
+    """Retired with the column (F34-Q26 closed, the owner 2026-11-26): the proposed
+    statements are drawn as §2's small trees, so §1 has no column, no lit-only line into the tree
+    and nothing to pin there; the crux is drawn in its group's tree, linked to its page."""
+    from test_routes_view import render_tree  # noqa: PLC0415
+
+    page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
+    assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
+    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    assert group is not None and f'data-node="{CRUX}"' in group.group(1)
+    assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 
 
 # -- F30-T14 (the owner, 2026-10-22): half the width, labels wrapped, a clear way to deselect -----
@@ -179,27 +153,16 @@ PINNED = """() => ({
 
 
 def test_a_pinned_spec_is_marked_and_clears_on_a_click_elsewhere_or_escape(tmp_path: Path) -> None:
-    """ "I don't see how to deselect a node being selected": a click pins a spec, which is drawn
-    in the selection's amber; clicking it again, clicking on empty space, or pressing Escape
-    clears it, and its lines go. (A click on a selector node keeps it, so its lines follow the
-    tree: test_crux_band.test_the_band_never_moves_on_a_selection.)"""
-    with browser(band_tree(tmp_path / "g"), tmp_path / "site") as pg:
-        pill = pg.locator(f'svg.band g.node[data-node="{CRUX}"]')
-        pill.click()
-        pg.mouse.move(2, 2)
-        pinned = pg.evaluate(PINNED)
-        pg.mouse.click(4, 4)
-        after_click = pg.evaluate(PINNED)
-        pill.click()
-        pg.mouse.move(2, 2)
-        pg.keyboard.press("Escape")
-        after_escape = pg.evaluate(PINNED)
-    assert pinned["pinned"] == [CRUX] and pinned["shown"] == 1 and "band=" in pinned["hash"]
-    assert pinned["stroke"] is not None and pinned["select"], pinned
-    assert pinned["stroke"].replace(" ", "") == _rgb(pinned["select"]), pinned
-    assert after_click["pinned"] == [] and after_click["shown"] == 0
-    assert "band=" not in after_click["hash"]
-    assert after_escape["pinned"] == [] and after_escape["shown"] == 0
+    """Retired with the column (F34-Q26 closed, the owner 2026-11-26): the proposed
+    statements are drawn as §2's small trees, so §1 has no column, no lit-only line into the tree
+    and nothing to pin there; the crux is drawn in its group's tree, linked to its page."""
+    from test_routes_view import render_tree  # noqa: PLC0415
+
+    page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
+    assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
+    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    assert group is not None and f'data-node="{CRUX}"' in group.group(1)
+    assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 
 
 def _rgb(hex_colour: str) -> str:

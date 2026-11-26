@@ -28,9 +28,10 @@ plain keys alone; the page's toggle swaps a view for its twin.
 
 from __future__ import annotations
 
+import functools
 import json
 import textwrap
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from html import escape
 from typing import Any
@@ -607,6 +608,8 @@ class Drawing:
     #: F34-T17 (R17): the routes drawing as an outline for a phone — each statement on a route
     #: once, top to bottom from the problem, with its depth (a route's junction adds none).
     outline: tuple[tuple[str, int], ...] = ()
+    #: F34-T26 (Q26 closed): draws some statements as a small tree in the drawing's style.
+    mini: Callable[[Sequence[str]], str] | None = None
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -715,6 +718,66 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
         + dag.literature_mark(literature, p.w)
         + f"{diamond}</g></a>"
     )
+
+
+def mini_tree(  # noqa: PLR0913 — one group's drawing, every input it is drawn from
+    rows: Mapping[str, Mapping[str, Any]],
+    ids: Sequence[str],
+    *,
+    href: Mapping[str, str],
+    names: dag.Prefix,
+    labels: dag.Labels,
+    titles: Mapping[str, str],
+) -> str:
+    """F34-T26 (Q26 closed; handoff §3.4.4): a small tree of some statements — laid out by the
+    drawing's own ``dag.layout`` from those statements alone and the lines among them, each a
+    pill as in the drawing, linked to its page. ``""`` for no statement."""
+    keep = [i for i in ids if i in rows]
+    if not keep:
+        return ""
+    inside = set(keep)
+    sub: list[dict[str, Any]] = []
+    for nid in keep:
+        row = dict(rows[nid])
+        row["deps"] = [x for x in row.get("deps") or [] if x in inside]
+        row["uses"] = [x for x in row.get("uses") or [] if x in inside]
+        row["lemmas"] = [
+            lm
+            for lm in row.get("lemmas") or []
+            if (lm.get("node") if isinstance(lm, Mapping) else lm) in inside
+        ]
+        row.pop("proposed_for", None)  # inside the group a pointer is no line
+        sub.append(row)
+    prefix = names if isinstance(names, str) else (names[0] if names else None)
+    lay = dag.layout(sub, root=None, prefix=prefix, labels=labels, apart=False)
+    parts = [
+        f'<svg class="dag mini-tree" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
+        f'height="{lay.height}" role="img" aria-label="these statements and their lines">'
+    ]
+    parts.extend(
+        f'<path class="{escape(e.kind)}" data-from="{escape(e.src)}" data-to="{escape(e.dst)}" '
+        f'd="{dag.path_d(e)}"/>'
+        for e in lay.edges
+    )
+    for p in lay.placed:
+        status = _status_of(rows, p.node_id)
+        parts.append(
+            _pill_markup(
+                p.node_id,
+                p,
+                status=status,
+                label=dag.label_of(p.node_id, names, labels),
+                title=titles.get(p.node_id, f"{p.node_id}: {status}"),
+                href=href.get(p.node_id, "#"),
+                hidden=False,
+                proved=status == routes.PROVED,
+                closable=False,
+                or_mark=False,
+                outline=0,
+            )
+        )
+    parts.append("</svg>")
+    return "\n".join(parts)
 
 
 def _fold_markup(nid: str, p: dag.Placed, *, opened: str, words: str, hidden: bool) -> str:
@@ -1478,4 +1541,7 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         home=home,
         on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions),
         outline=outline_rows(lays[ROUTES], root, d.junctions) if ROUTES in lays else (),
+        mini=functools.partial(
+            mini_tree, rows, href=href, names=names, labels=labels, titles=full_titles
+        ),
     )

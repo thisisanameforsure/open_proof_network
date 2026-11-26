@@ -70,7 +70,8 @@ def test_a_crux_is_grouped_under_the_statement_it_was_proposed_for(tmp_path: Pat
     page = render_tree(root)[PAGE]
     body = section(page)
     assert body is not None
-    group = re.search(r"<h3>Proposed for (.*?)</h3>\s*<ul>(.*?)</ul>", body, re.S)
+    # F34-T26: the group's small tree sits between its heading and its list
+    group = re.search(r"<h3>Proposed for (.*?)</h3>.*?<ul>(.*?)</ul>", body, re.S)
     assert group is not None
     assert f'href="/nodes/{TARGET}/{ROOT_NODE}/"' in group.group(1)
     assert f'data-node="{CRUX}"' in group.group(2)
@@ -82,3 +83,21 @@ def test_every_statement_on_a_route_means_no_section(tmp_path: Path) -> None:
     page = render_tree(root)[PAGE]
     assert section(page) is None and 'href="#not-on-route"' not in page
     assert on_route(page) == every_statement(root)
+
+
+# -- F34-Q26 closed (the owner, 2026-11-26): the speculative column becomes §2's small trees ------
+
+
+def test_a_proposed_group_is_drawn_as_a_small_tree(tmp_path: Path) -> None:
+    """Each "Proposed for" group in §2 is drawn — its statements as pills, the lines among them —
+    before its list; the speculative column is no longer in §1."""
+    root = band_tree(tmp_path / "g")
+    page = render_tree(root)[PAGE]
+    body = section(page)
+    assert body is not None
+    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', body, re.S)
+    assert group is not None
+    tree = re.search(r'<svg class="dag mini-tree"[^>]*>(.*?)</svg>', group.group(1), re.S)
+    assert tree is not None
+    assert f'data-node="{CRUX}"' in tree.group(1)
+    assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page

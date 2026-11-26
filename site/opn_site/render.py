@@ -59,7 +59,7 @@ from opn_site.model import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable, Sequence
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -3212,7 +3212,7 @@ class Renderer:
         picture = self.problem_drawing(tv)
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
-        off_route = self.not_on_route(tv, picture.on_route)  # F34-T18
+        off_route = self.not_on_route(tv, picture.on_route, picture.mini)  # F34-T18, T26
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
         # keeps its place beneath the drawing.
         selector_block = (
@@ -4005,7 +4005,12 @@ class Renderer:
             "</ul></details>"
         )
 
-    def not_on_route(self, tv: TargetView, on_route: frozenset[str]) -> str:  # noqa: PLR0912
+    def not_on_route(  # noqa: PLR0912
+        self,
+        tv: TargetView,
+        on_route: frozenset[str],
+        mini: Callable[[Sequence[str]], str] | None = None,
+    ) -> str:
         """F34-T18 (R18; handoff §3.4.4): every statement no route uses, so the page places each
         statement of the problem exactly once — drawn on a route, or listed here. Proposed
         statements grouped by the statement they were proposed for, then those proposed for
@@ -4022,6 +4027,7 @@ class Renderer:
             "other": "On no route",
         }
         by_target: dict[str, list[str]] = {}
+        members: dict[str, list[str]] = {}  # F34-T26: each group's statements, for its tree
         off = [nid for nid in tv.nodes if nid not in on_route]
         where = {nid: self.off_route_group(tv.nodes[nid]) for nid in off}
         # A statement no route reaches that an off-route statement rests on (a proposed
@@ -4041,6 +4047,7 @@ class Renderer:
             key, item = where[nid], self.off_route_item(tv, tv.nodes[nid])
             if key.startswith("for:"):
                 by_target.setdefault(key.removeprefix("for:"), []).append(item)
+                members.setdefault(key.removeprefix("for:"), []).append(nid)
             else:
                 groups.setdefault(key, []).append(item)
         if not groups and not by_target:
@@ -4057,8 +4064,11 @@ class Renderer:
                     named = (
                         self.node_link(tv.target_id, target) if target in tv.nodes else esc(target)
                     )
+                    # F34-T26 (Q26 closed): the group drawn as a small tree, then listed
+                    drawn = mini(members[target]) if mini is not None else ""
                     parts.append(
-                        f"<h3>Proposed for {named}</h3>\n<ul>{''.join(by_target[target])}</ul>"
+                        f'<div class="off-group"><h3>Proposed for {named}</h3>'
+                        f"{drawn}<ul>{''.join(by_target[target])}</ul></div><!-- /off-group -->"
                     )
             elif groups.get(key):
                 parts.append(f"<h3>{heads[key]}</h3>\n<ul>{''.join(groups[key])}</ul>")
