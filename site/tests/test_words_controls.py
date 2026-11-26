@@ -106,11 +106,19 @@ def test_the_me_page_is_a_shell_with_the_waiting_sections(pages: dict[str, str])
     page = pages["me/index.html"]
     assert f'<div class="me" data-me data-repo="{REPO}">' in page
     assert '<script src="/me.js"></script>' in page
-    waiting = re.search(rf'<ul class="waiting" data-target="{TARGET}" hidden>(.*?)</ul>', page)
+    # F34-T19 (R20): grouped by statement, each group linked to its page, its rows folded.
+    waiting = re.search(
+        rf'<div class="waiting" data-target="{TARGET}" hidden>(.*?)</div><!-- /waiting -->', page
+    )
     assert waiting is not None
-    rows = re.findall(r"<li>(.*?)</li>", waiting.group(1))
     node = f'href="/nodes/{TARGET}/{gf.TUTORIAL}/"'
-    keys = [re.search(r"<code>([^<]+)</code>", r) for r in rows if node in r]
+    group = re.search(
+        rf'<section class="waiting-statement"[^>]*><h4><a {re.escape(node)}>.*?</section>',
+        waiting.group(1),
+    )
+    assert group is not None
+    rows = re.findall(r"<li>(.*?)</li>", group.group(0))
+    keys = [re.search(r"<code>([^<]+)</code>", r) for r in rows]
     found = sorted(k.group(1) for k in keys if k)
     # The drafted and written sections and the two edits awaiting review; never the final one.
     assert found == sorted([gf.KEY_OVERVIEW, gf.KEY_Q, gf.KEY_P, "whole"]), found

@@ -19,6 +19,7 @@ import fixture
 import gloss_fixture as gf
 import pytest
 import reading_fixture as rf
+from docs_pages import docs_all, docs_page
 from harness import TARGET
 
 from opn_gate import explainers
@@ -29,7 +30,7 @@ OVERVIEW = "The root follows from the middle lemma, which reassociates; nothing 
 EXPLAINER = (
     f"## Overview\n{OVERVIEW}\n\n## The one step {{steps: h2}}\nThe step names the middle lemma.\n"
 )
-DOCS_READING = "/docs/#reading"
+DOCS_READING = "/docs/reading/"
 
 
 def tree(tmp_path: Path) -> Path:
@@ -154,7 +155,7 @@ def test_every_statement_block_explains_its_sorry(pages: dict[str, str], rel: st
 
 
 def test_the_docs_reading_section_is_there_to_link(pages: dict[str, str]) -> None:
-    assert 'id="reading"' in pages["docs/index.html"]
+    assert 'id="reading"' in docs_all(pages)
 
 
 # --- R: phones ------------------------------------------------------------------------------------
@@ -258,7 +259,6 @@ def test_each_explainer_version_carries_its_date(tmp_path: Path) -> None:
 
 
 def test_the_docs_reading_section_explains_the_new_things(pages: dict[str, str]) -> None:
-    docs = pages["docs/index.html"]
-    section = docs[docs.index('id="reading"') : docs.index('id="glossary"')]
+    section = docs_page(pages, "reading")  # F34-T6: the section is its own page
     for words in ("contents", "root first", "by sorry", "does not use", "tap"):
         assert words in section, words

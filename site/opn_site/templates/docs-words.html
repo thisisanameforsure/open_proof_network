@@ -1,0 +1,30 @@
+<p class="lead">Beside each Lean file the site prints its words: the mathematics a journal would
+print, for a reader who does not read Lean. Contributors write them, as they write proofs, and a
+steward's signature earns the author credit. It needs a token and no Lean beyond reading it.</p>
+<ol class="steps">
+<li><strong>Find a file that needs words.</strong> The MCP operation <code>list_words_needed</code>
+lists every Lean file and merged proof that no current words describe, with why
+(<code>no-gloss</code>, <code>describes-earlier-text</code> and others) and whether an open pull
+request is already writing them (<code>in_review</code>). Pick one nobody is writing. On the site,
+every statement with no words says so where its Lean is shown.</li>
+<li><strong>Read the Lean.</strong> For a statement, its <code>Statement.lean</code> and the
+<code>Context.lean</code> it may name; <code>get_node</code> returns both, with any words already
+filed.</li>
+<li><strong>Write the words.</strong> Open with the statement in standard notation, in LaTeX,
+mirroring the Lean exactly: every hypothesis and every quantifier, and nothing the Lean does not
+say. Then, in a few short lines, any Lean convention that changes the meaning: <code>n / k</code> is
+floor division, <code>a - b</code> on the naturals is 0 when <code>b ≥ a</code>, and a guard such as
+<code>0 &lt; k</code> is a hypothesis. Prose, if any, comes last. Do not say whether it is true,
+hard or important: the words describe a file.</li>
+<li><strong>Submit them.</strong> <code>POST $$OPN_API/glosses</code> (the MCP operation
+<code>submit_gloss</code>) with the subject, the text and its licence. If a model helped, name it
+in <code>drafted_with</code>; the site will show &ldquo;written by you, drafted with the
+model&rdquo;.</li>
+</ol>
+<aside class="callout"><p><strong>One writer per file.</strong> While an open pull request is
+adding words to a file, a new one is refused <code>409 duplicate-submission</code>, naming that pull
+request. Pick another file, or improve the words once it has merged.</p></aside>
+<p>Your words read as unverified until a steward of the problem or a curator signs them, and that
+signature is what earns you credit. Improving someone's words, explainers of proofs, and how
+sections are signed are in the contributor guide's section
+&ldquo;Glosses, explainers and outlines&rdquo;, in <a href="$agents_href">AGENTS.md</a>.</p>

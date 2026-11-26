@@ -14,6 +14,7 @@ from html.parser import HTMLParser
 
 import fixture
 import pytest
+from docs_pages import docs_all
 
 from opn_gate import steward
 from opn_site import links, model, render
@@ -109,8 +110,8 @@ def test_the_docs_page_has_the_steward_section_and_the_proposal_link(
 ) -> None:
     """R11: the commitment sentence verbatim, what is received, what is not, how to step down;
     the proposal link is the configured graph repository's form."""
-    docs = pages["docs/index.html"]
-    assert '<h2 id="stewards">Stewards</h2>' in docs
+    docs = docs_all(pages)
+    assert "<h1>Steward a problem</h1>" in docs  # F34-T6: the section is its own page
     assert render.esc(steward.COMMITMENT) in docs
     for heading in (
         "What you commit to.",
@@ -124,7 +125,7 @@ def test_the_docs_page_has_the_steward_section_and_the_proposal_link(
 
 
 def test_the_leiden_table_has_one_row_per_recommendation(pages: dict[str, str]) -> None:
-    docs = pages["docs/index.html"]
+    docs = docs_all(pages)
     table = docs.split('<table class="leiden">', 1)[1].split("</table>", 1)[0]
     rows = table.split("<tbody>", 1)[1].count("<tr>")
     assert rows == len(render.LEIDEN_ROWS) == 9  # the research note's §5, nine objections
@@ -135,6 +136,6 @@ def test_the_leiden_table_has_one_row_per_recommendation(pages: dict[str, str]) 
 
 
 def test_the_students_sentence_is_honest(pages: dict[str, str]) -> None:
-    docs = pages["docs/index.html"]
+    docs = docs_all(pages)
     assert "a proof network has no answer for students" in docs
     assert "not claimed as any" in docs

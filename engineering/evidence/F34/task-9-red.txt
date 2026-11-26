@@ -1,0 +1,23 @@
+E       assert 'Agents are tools; the person who runs them is credited. Nobody is ranked.' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta na
+E       ValueError: substring not found
+E       ValueError: substring not found
+E       assert None is not None
+E       AssertionError: assert 'claude-opus-5-5' == 'Claude Opus ...ude-opus-5-5)'
+E         
+E        
+E         + claude-opus-5-5
+E       ValueError: substring not found
+E       ValueError: substring not found
+E       AssertionError: assert ['D-19', 'D-18'] == []
+E         
+E         Left contains 2 more items, first extra item: 'D-19'
+E         Use -v to get more diff
+FAILED site/tests/test_f34_contributors.py::test_the_page_says_who_is_credited_and_that_nobody_is_ranked
+FAILED site/tests/test_f34_contributors.py::test_stewards_come_first_each_once_with_their_problems
+FAILED site/tests/test_f34_contributors.py::test_one_card_per_person_by_last_activity
+FAILED site/tests/test_f34_contributors.py::test_a_card_counts_in_words_and_lists_tools_and_problems
+FAILED site/tests/test_f34_contributors.py::test_model_names
+FAILED site/tests/test_f34_contributors.py::test_test_runs_hidden
+FAILED site/tests/test_f34_contributors.py::test_the_full_ledger_is_folded_and_marks_revoked_entries
+FAILED site/tests/test_f34_contributors.py::test_no_internal_codes
+8 failed in 8.77s

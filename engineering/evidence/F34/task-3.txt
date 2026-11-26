@@ -1,0 +1,38 @@
+F34-T3 verification: uv run --frozen --with 'playwright==1.58.0' python -m pytest site/tests/test_f34_phone_browser.py
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/] PASSED [  5%]
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/problems/] PASSED [ 11%]
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/contributors/] PASSED [ 16%]
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/docs/] PASSED [ 22%]
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/about/] PASSED [ 27%]
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/rules/] PASSED [ 33%]
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/problems/wide-display/] PASSED [ 38%]
+site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/problems/propositional/] PASSED [ 44%]
+site/tests/test_f34_phone_browser.py::test_the_wide_formula_scrolls_inside_its_own_box PASSED [ 50%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/] PASSED [ 55%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/problems/] PASSED [ 61%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/contributors/] PASSED [ 66%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/docs/] PASSED [ 72%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/about/] PASSED [ 77%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/rules/] PASSED [ 83%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/problems/wide-display/] PASSED [ 88%]
+site/tests/test_f34_phone_browser.py::test_every_table_fits_or_scrolls_in_its_own_box[/problems/propositional/] PASSED [ 94%]
+site/tests/test_f34_phone_browser.py::test_the_rules_table_is_one_table_at_1440 PASSED [100%]
+============================== 18 passed in 9.09s ==============================
+
+Every page of the live graph (257feba2) rendered by this tree, at 390px (allwidths.py):
+-- before T3 (beb37eac): 17 of 453 wider than 390
+   /steward/ 442; beaver-math-olympiad-problem-1 697, -2-antihydra 453, -5 521, -8 621; collatz-like 988; erdos-388 533, -389 506, -588 593, -704 540, -78 448, -813 439; error-term-improvement 472; goodman-conjecture 532; has-unique-extension-of-forall 758; same-parity-betrothed 496; tan-arctan-sum-not-integer 471
+   and earlier, before the Problems-row fix: /problems/ 759, /contributors/ 548, erdos-883 444
+-- after T3
+{
+ "pages": 453,
+ "wider_than_390": {}
+}
+
+Causes, each measured with topover.py before the fix: a phone grid column of 1fr (min = content) under a
+display formula (Problems rows, the problem head); a statement paragraph sized to its widest inline formula;
+ledger tables in no scroll box; long ids and QA lines with no break. Rules at 1440: the About page's .rules
+grid class matched table.rules, so the head sat left of the rows; cells used overflow-wrap:anywhere, so
+"14 days" broke inside a word.
+
+Site suite: 919 passed, 42 skipped.

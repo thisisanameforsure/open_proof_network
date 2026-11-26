@@ -1,0 +1,26 @@
+F34-T2 verification: uv run --frozen pytest site/tests/test_f34_inline_text.py
+site/tests/test_f34_inline_text.py::test_the_problem_page_shows_no_raw_tex_or_markers PASSED [ 11%]
+site/tests/test_f34_inline_text.py::test_the_provenance_sentence_carries_its_tex_to_the_renderer PASSED [ 22%]
+site/tests/test_f34_inline_text.py::test_a_drawing_label_drops_the_markers PASSED [ 33%]
+site/tests/test_f34_inline_text.py::test_every_page_of_the_target_is_clean PASSED [ 44%]
+site/tests/test_f34_inline_text.py::test_a_display_block_that_holds_inline_math_is_read_as_a_line PASSED [ 55%]
+site/tests/test_f34_inline_text.py::test_two_display_blocks_with_inline_math_between_are_unchanged PASSED [ 66%]
+site/tests/test_f34_inline_text.py::test_a_well_formed_display_block_is_unchanged PASSED [ 77%]
+site/tests/test_f34_inline_text.py::test_review_words_and_annex_titles_render_their_math[Is $\\sum_n p_n/2^n$ irrational?-<span class="math">] PASSED [ 88%]
+site/tests/test_f34_inline_text.py::test_review_words_and_annex_titles_render_their_math[Numerical check: no exception with $n\\ge k^3$-<span class="math">] PASSED [100%]
+============================== 9 passed in 0.90s ===============================
+
+Live graph 257feba2 rendered by this tree, scanned for raw TeX or *markers* in visible text (scan_raw.py; count, (page kind, element class), first example):
+-- before T2 (fdfed910)
+128 ('problems', 'provenance-line') ('problems/erdos-883/index.html', 'Erdős problem 883, part i: For $A\\subseteq \\{1,\\ldots,n\\}$ let $G(A)$ be the graph with vertex set $A$, where ')
+16 ('problems', 'lead review-words') ('problems/erdos-251/review/index.html', '“Is $\\sum_{n=1}^\\infty \\frac{p_n}{2^n}$ irrational? Here $p_n$ is the $n$-th prime ($p_1=2, p_2=3, \\dots$).”')
+7 ('nodes', '') ('nodes/erdos-257/erdos-257/index.html', ', never a plain subset of the Mersenne reciprocals. No subset identity $\\sum_{a\\in A} t_a = $ rational with')
+3 ('problems', 'untrusted-title') ('problems/erdos-1094/index.html', 'Numerical check (2026-10-12, finite range, not a proof): no exception with $n\\ge k^3$ found in range, so every')
+2 ('problems', '') ('problems/abc/index.html', '*abc* conjecture')
+1 ('problems', 'panel-title') ('problems/abc/index.html', '*abc* conjecture')
+-- after T2
+6 ('nodes', '') ('nodes/erdos-257/erdos-257/index.html', ', never a plain subset of the Mersenne reciprocals. No subset identity $\\sum_{a\\in A} t_a = $ rational with')
+1 ('problems', '') ('problems/erdos-1050/proofs/7fce90cd718e/index.html', "is the product rule evaluated at a point: $$\\Big(\\prod_{i\\in S}(X-x_i)\\Big)'(z)=\\sum_")
+The two left are authored text, not rendering (F34-Q17): a closing $ after a space, and an explainer record that ends mid-formula.
+
+Site suite: 919 passed, 41 skipped (Playwright tests skip without --with playwright); goldens unchanged.

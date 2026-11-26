@@ -18,6 +18,7 @@ import fixture
 import pytest
 import yaml
 from harness import TARGET, take_in
+from problem_rows import problem_row
 
 from opn_gate import glosses, products, schemas
 from opn_site import model, render
@@ -96,10 +97,7 @@ def render_products(root: Path) -> None:
 
 
 def card(page: str, target_id: str) -> str:
-    [found] = re.findall(
-        rf'<article class="card problem"[^>]*id="p-{target_id}">.*?</article>', page, flags=re.S
-    )
-    return str(found)
+    return problem_row(page, target_id)  # F34-T5: a row of the Problems page
 
 
 def test_each_problem_shows_its_count(built: tuple[Path, dict[str, str]]) -> None:
@@ -120,22 +118,24 @@ def test_each_problem_shows_its_count(built: tuple[Path, dict[str, str]]) -> Non
 def test_the_filter_keeps_exactly_the_problems_with_some(
     built: tuple[Path, dict[str, str]],
 ) -> None:
-    """AC8: the segment is offered with the number of problems it keeps, and the script's
-    filter keeps a card exactly when its count is above zero."""
+    """AC8, as F34-T5 rebuilt the page: the filter is a chip with the number of problems it
+    keeps; the old ``?filter=words`` link still turns it on; the script keeps a row exactly when
+    its count is above zero."""
     _root, pages = built
     page = pages[PROBLEMS]
-    segments = re.findall(r'<a class="seg-opt"[^>]*data-filter="words"[^>]*>.*?</a>', page)
-    assert len(segments) == 1, "one 'needs words' segment"
-    segment = segments[0]
-    assert 'href="/problems/?filter=words"' in segment
-    assert "Needs words" in segment and '<span class="n">1</span>' in segment
+    chips = re.findall(r'<button[^>]*data-flag="words"[^>]*>.*?</button>', page)
+    assert len(chips) == 1, "one 'needs words' chip"
+    assert "Needs words" in chips[0] and '<span class="n">1</span>' in chips[0]
     counts = {
-        tid: int(n) for n, tid in re.findall(r'data-words="(\d+)"[^>]*id="p-([a-z0-9-]+)"', page)
+        tid: int(n)
+        for tid, n in re.findall(r'data-id="([a-z0-9-]+)"[^>]*?data-words="(\d*)"', page)
+        if n
     }
     assert set(counts) == {TARGET, WORDED}
     kept = {tid for tid, n in counts.items() if n > 0}
     assert kept == {TARGET}
     script = pages["problems.js"]
-    assert re.search(
-        r'filter === "words"\)\s*\{\s*return parseInt\(card\.getAttribute\("data-words"\)', script
-    ), "matchesFilter keeps a card by its data-words count"
+    assert 'legacy === "words"' in script, "the old ?filter=words link still applies"
+    assert re.search(r'state\.words && !\(parseInt\(a\("words"\)', script), (
+        "matches keeps a row by its data-words count"
+    )

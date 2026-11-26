@@ -371,7 +371,7 @@ def test_empty_graph_renders_every_fixed_page(tmp_path: Path) -> None:
     assert "No problems are listed yet." in files["problems/index.html"]
     assert "Nothing is on the record yet." in files["index.html"]
     assert 'id="worked"' not in files["index.html"]  # no problem to draw
-    assert '<article class="card problem"' not in files["problems/index.html"]
+    assert 'data-id="' not in files["problems/index.html"]  # F34-T5: no row
 
 
 def test_proved_node_without_proof_commit_renders_without_a_proof_link(tmp_path: Path) -> None:

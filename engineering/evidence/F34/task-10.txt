@@ -1,0 +1,23 @@
+F34-T10 — Docs search (Q13; handoff §3.3).
+
+Red (task-10-red.txt):
+FAILED site/tests/test_f34_docs_search.py::test_the_index_has_one_entry_per_docs_page
+FAILED site/tests/test_f34_docs_search.py::test_every_docs_page_carries_the_hidden_box_and_the_script
+FAILED site/tests/test_f34_docs_search.py::test_typing_finds_the_pages_that_hold_every_word
+3 failed, 1 passed in 34.40s
+
+Green (static and in a browser):
+4 passed in 2.22s
+
+The index is written at build twice from one document: /docs/search.json, and /docs/search-index.js, which
+docs.js loads on first focus. A fetch of the JSON would be refused live: the CloudFront policy's connect-src
+names only the service (site.cfn.yaml), and script-src 'self' allows the script. No infrastructure change.
+The box is a <div role=search>, not a <form>: test_steward_links holds that no static page carries a form.
+
+On the live graph at 257feba2 (shoot_docs_search.py):
+{"width": 1440, "query": "witness", "results": ["/docs/reading/", "/docs/claim/", "/docs/routes/", "/docs/errors/", "/docs/glossary/"], "scrollWidth": 1440}
+{"width": 390, "query": "token", "results": ["/docs/token/#keeping", "/docs/", "/docs/words/", "/docs/reading/", "/docs/quick-start/", "/docs/claim/", "/docs/submit/", "/docs/connect/"], "scrollWidth": 390}
+{"graph_commit": "257feba2344969bcaf93fbd4a08c24448146f0ad", "index_bytes": 192306}
+
+Restated: test_branches_round4 allows the two index files beside the docs build's .html pages. Golden: docs/index.html.
+Captures: task-10-docs-search-{1440,390}.png.

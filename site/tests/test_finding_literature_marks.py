@@ -289,20 +289,19 @@ def test_the_stylesheet_colours_every_status_apart_from_the_proof_colours() -> N
 
 
 def test_the_listing_row_and_the_node_head_carry_the_same_badge(pages: dict[str, str]) -> None:
-    listing = pages["problems/index.html"]
-    rows = dict(
-        re.findall(
-            r'<div class="stmt"[^>]*>(.*?)<a href="/nodes/propositional/([^/]+)/"', listing, re.S
-        )
+    # F34-T5 (F34-Q20): the Problems page lists problems, not statements, so the listing row is
+    # gone; the confirmed badge is on its statement's own page head, as the proposed one is below.
+    assert "lit-badge" not in pages["problems/index.html"]
+    root_head = re.search(
+        r'<header class="node-head">(.*?)</header>',
+        pages[f"nodes/{TARGET}/{ROOT}/index.html"],
+        re.S,
     )
-    # The row: badge after the state word, title with the words; none for a node with no record.
-    row_of = {nid: body for body, nid in rows.items()}
-    assert re.search(
+    assert root_head is not None and re.search(
         r'<span class="lit-badge lit-known confirmed" '
         r'title="Literature: known \(confirmed by mike\)"',
-        listing,
+        root_head.group(1),
     )
-    assert "lit-badge" not in row_of.get(NONE, "lit-badge")  # the tutorial row has none
     head = re.search(
         r'<header class="node-head">(.*?)</header>', pages[f"nodes/{TARGET}/{DEP}/index.html"], re.S
     )

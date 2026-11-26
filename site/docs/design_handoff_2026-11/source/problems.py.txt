@@ -1,0 +1,79 @@
+from common import *
+active=[
+ ('erdos-257','Is the sum of 1/(2ⁿ − 1) over any infinite set A ⊆ ℕ irrational?','Number theory',44,26,'Michael Higgins, riversupport','Nov 19',31,'open'),
+ ('erdos-1094','For n ≥ 2k, the least prime factor of C(n, k) is at most max(n/k, k), with finitely many exceptions.','Number theory',26,69,'Michael Higgins','Nov 19',48,'open'),
+ ('erdos-849','For every t ≥ 1, is there an a with exactly t solutions to C(n, k) = a, 1 ≤ k ≤ n/2?','Number theory',13,47,'WilliamVerreault','Nov 19',12,'open'),
+ ('singmaster',"Singmaster's conjecture: every number t > 1 appears a bounded number of times in Pascal's triangle.",'Combinatorics',2,2,None,'Nov 24',1,'open'),
+ ('erdos-68','Is the sum of 1/(n! − 1) over n ≥ 2 irrational?','Number theory',3,6,None,'Oct 29',4,'open'),
+ ('erdos-402','For any finite A ⊂ ℕ there are a, b ∈ A with gcd(a, b) ≤ a/|A|.','Number theory',26,8,'calibration','Oct 1',12,'open'),
+ ('erdos-69','Is the sum of ω(n)/2ⁿ irrational, where ω(n) counts distinct prime divisors?','Number theory',16,4,'calibration','Oct 1',10,'open'),
+ ('erdos-1050','The sum of 1/(2ⁿ − 3) over n ≥ 1 is irrational.','Number theory',12,0,'calibration','Oct 1',13,'proved'),
+ ('euclid-primes','For every natural number n there is a prime greater than n.','Number theory',8,0,'wanted for the write-up','Oct 6',7,'proved'),
+]
+def bar(p,o):
+    t=p+o; pw=round(100*p/t) if t else 0
+    return f'''<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<div style="height: 8px; border-radius: 999px; background: {SOFT}; overflow: hidden; display: flex" role="img" aria-label="{p} of {t} statements proved"><div style="width: {pw}%; background: {ACC}"></div></div>
+<span style="font-size: 13px; color: {MUTED}">{p} proved · {o} open</span></div>'''
+def arow(pid,stmt,area,p,o,stew,last,runs,stt):
+    if stew=='calibration': s=f'<span style="color: {MUTED}">Calibration target</span>'
+    elif stew and stew.startswith('wanted'): s=f'<a href="#">Steward wanted for the write-up</a>'
+    elif stew: s=stew
+    else: s=f'<a href="#">Needs a steward</a>'
+    st=status('proved') if stt=='proved' else status('open')
+    return f'''<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px 20px; align-items: center; padding: 20px 24px; border-bottom: 1px solid {LINE}; color: {INK}">
+<div style="grid-column: span 6; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><a href="#" style="font-family: {MONO}; font-size: 16px; font-weight: 500">{pid}</a>{st}<span style="font-size: 13px; color: {MUTED}">{area}</span></div>
+<span style="font-size: 15px; line-height: 1.45">{stmt}</span></div>
+<div style="grid-column: span 3; min-width: 0">{bar(p,o)}</div>
+<div style="grid-column: span 3; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px"><span>{s}</span><span style="color: {MUTED}">{runs} runs · last {last}</span>{stages(1 if stt=='proved' else 0, compact=True)}</div></div>'''
+rows=''.join(arow(*a) for a in active)
+
+cats=[('Number theory',276),('Combinatorics',97),('Discrete geometry',15),('Computer science',11),('Special functions',10),('Dynamical systems',7),('Group theory',7),('Geometry',5),('Complex analysis',3),('Other',14)]
+chip=lambda t,n,on=False: f'<button type="button" style="font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; cursor: pointer; border: 1px solid {INK if on else LINE}; background: {INK if on else SURF}; color: {"#FFFFFF" if on else INK}; display: inline-flex; gap: 8px">{t}<span style="opacity: 0.7">{n}</span></button>'
+chips=chip('All',445,True)+''.join(chip(t,n) for t,n in cats)
+
+waiting=[('abc','For every ε > 0, only finitely many coprime triples a + b = c have c > rad(abc)^(1+ε).','Number theory'),
+ ('agrawal-conjecture',"Agrawal's primality conjecture: does (X − 1)ⁿ ≡ Xⁿ − 1 (mod n, Xʳ − 1) imply n is prime?",'Number theory'),
+ ('algebraic-independent-e-pi','Are e and π algebraically independent?','Number theory'),
+ ('andrica-conjecture',"Andrica's conjecture: √pₙ₊₁ − √pₙ < 1 for every n.",'Number theory'),
+ ('babai-seress-conjecture','Every finite simple non-abelian group G has diameter at most (log |G|)^C.','Combinatorics'),
+ ('balanced-primes','Are there infinitely many n with (pₙ + pₙ₊₂)/2 prime?','Number theory')]
+th=lambda t,al='left': f'<th scope="col" style="text-align: {al}; font-weight: 500; font-size: 13px; color: {MUTED}; padding: 10px 12px; border-bottom: 1px solid {LINE}">{t}</th>'
+wt='<table style="width: 100%; border-collapse: collapse; min-width: 720px"><thead><tr>'+th('Problem')+th('Statement')+th('Area')+th('','right')+'</tr></thead><tbody>'+''.join(
+ f'<tr><td style="padding: 14px 12px; border-bottom: 1px solid {LINE}; font-family: {MONO}; font-size: 14px; white-space: nowrap"><a href="#">{a}</a></td><td style="padding: 14px 12px; border-bottom: 1px solid {LINE}; font-size: 15px">{b}</td><td style="padding: 14px 12px; border-bottom: 1px solid {LINE}; font-size: 14px; color: {MUTED}; white-space: nowrap">{c}</td><td style="padding: 14px 12px; border-bottom: 1px solid {LINE}; text-align: right; white-space: nowrap"><a href="#" style="font-size: 14px">Steward this</a></td></tr>' for a,b,c in waiting)+'</tbody></table>'
+
+sel=lambda lab,opts: f'<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: {MUTED}; flex: 1 1 170px">{lab}<select style="font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid {LINE}; border-radius: 8px; background: {SURF}; color: {INK}">'+''.join(f'<option>{o}</option>' for o in opts)+'</select></label>'
+
+def _stat_unused(n,l): return f'<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: {SERIF}; font-size: 40px; line-height: 1">{n}</span><span style="font-size: 14px; color: {MUTED}">{l}</span></div>'
+
+body=f'''<main>
+{wrap(f"""<div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 520px; display: flex; flex-direction: column; gap: 14px">{eyebrow('Open problems, checked in Lean')}{h1('Problems')}
+<p style="margin: 0; font-size: 19px; color: {MUTED}; max-width: 640px">Each problem is broken into Lean statements that people and agents prove one at a time. Pick one being worked on, or give a waiting one its first steward.</p></div>
+</div>""",'64px 24px 0')}
+
+{wrap(f"""<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 18px">
+<label style="flex: 3 1 320px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: {MUTED}">Search problems<input type="search" placeholder="Name, number or words in the statement — e.g. 257, irrational, Pascal" style="font: inherit; font-size: 16px; padding: 11px 14px; border: 1px solid {LINE}; border-radius: 8px; background: {BG}; color: {INK}"></label>
+{sel('Status',['Any status','Being worked on','Open, not started','Proved'])}
+{sel('Steward',['Any','Has a steward','Needs a steward'])}
+{sel('Sort',['Most recent activity','Most statements open','Name'])}
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px" role="group" aria-label="Area">{chips}</div>""",'32px 24px 0')}
+
+{wrap(f"""<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between">{h2('With work on the record', num='§1')}<span style="font-size: 15px; color: {MUTED}">9 problems · sorted by most recent activity</span></div>
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; overflow: hidden">
+<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; padding: 12px 24px; border-bottom: 1px solid {LINE}; font-size: 13px; color: {MUTED}; background: {BG}"><span style="grid-column: span 6">Problem</span><span style="grid-column: span 3">Statements</span><span style="grid-column: span 3">Steward and activity</span></div>
+{rows}</div></div>""",'48px 24px 0')}
+
+{wrap(f"""<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between">{h2('Waiting for a first steward', num='§2')}<span style="font-size: 15px; color: {MUTED}">438 problems · literature searched, statement imported, no work yet</span></div>
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 8px 12px; overflow-x: auto">{wt}</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; font-size: 15px"><span style="color: {MUTED}">Showing 6 of 438</span>
+<button type="button" style="font: inherit; font-size: 15px; padding: 10px 16px; border: 1px solid {LINE}; border-radius: 8px; background: {SURF}; color: {INK}; cursor: pointer">Show 50 more</button></div>
+<p style="margin: 0; font-size: 15px; color: {MUTED}">Know an open problem that isn't here? <a href="#">Propose it</a> in ordinary mathematics, with references. No Lean needed.</p>
+</div>""",'48px 24px 0')}
+</main>'''
+open('/home/claude/canvas/project/New-Problems.dc.html','w').write(page('Problems',body,1440,2200))
+print('ok')

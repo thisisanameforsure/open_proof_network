@@ -1,0 +1,26 @@
+<p class="lead">An explainer is a merged proof written as a journal would print it. A steward's
+signature on one says that a person understands the proof, which is what makes a problem
+<em>explained</em>.</p>
+<h2 id="what"><span class="sec">1</span> What a signature says</h2>
+<p>One sentence, always the same:</p>
+<blockquote class="commitment"><p>$explainer_affirmation</p></blockquote>
+<p>It is a claim about understanding, not about the mathematics: the kernel has already checked
+the proof, and nothing checks prose. It earns the signer nothing; it earns the explainer's author
+their credit for the words. Only signed explainers count toward a problem's mark, and only while
+every section of the explainer is verified.</p>
+<h2 id="who"><span class="sec">2</span> Who signs</h2>
+<p>An active steward of the problem, or a listed curator. A steward may also prove on the problem;
+signing bars nothing.</p>
+<h2 id="how"><span class="sec">3</span> How to sign</h2>
+<ol class="steps">
+<li><strong>Read the proof's explainer</strong> on its reading view, from the problem's page, under
+its proofs. Each section says which steps of the proof it covers, one click from their Lean.</li>
+<li><strong>Check each section</strong> against the steps it names. A section you can vouch for is
+signed as read against the Lean; one you cannot, leave for its author to improve.</li>
+<li><strong>Sign</strong>, signed in with GitHub, from the explainer's own controls: the network
+signs the record for you with its approval key. Or sign with the SSH key you committed with as a
+steward, using the gate's <code>explainer sign</code> command; the steps are in
+<a href="$agents_href">AGENTS.md</a>.</li>
+</ol>
+<aside class="callout"><p>The site then shows the explainer as explained and vouched for by you,
+above the label that says the words are unverified.</p></aside>

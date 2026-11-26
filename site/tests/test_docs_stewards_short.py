@@ -24,10 +24,10 @@ MAX_WORDS = 220  # was 358; the browser measure is in task-10.txt
 def section(tmp_path_factory: pytest.TempPathFactory) -> str:
     root = fixture.build(tmp_path_factory.mktemp("docs-stewards"))
     docs = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)[
-        "docs/index.html"
+        "docs/stewards/index.html"  # F34-T6: the section is its own page
     ]
-    start = docs.index('<h2 id="stewards">')
-    return docs[start : docs.index("<h2", start + 1)]
+    start = docs.index("<h1>")
+    return docs[start : docs.index('<nav class="prevnext"')]
 
 
 def test_the_section_points_at_the_form(section: str) -> None:

@@ -15,7 +15,12 @@ from opn_site import model, render
 REPO = "https://github.com/example/graph"
 PIN = "0df444a360eaa60ab8c11dca51a86af692955474"  # gate/mathlib-pins.txt, v4.33.1
 PAGE = "problems/propositional/index.html"
-LEAD = 'Fast check (<a href="/docs/#agents">POST /check</a>, non-authoritative): '
+#: F34-T6: the fast check is in AGENTS.md, which the fixture graph does not carry, so the link is
+#: its place in the graph repository (``Renderer.agents_href``).
+LEAD = (
+    f'Fast check (<a href="https://github.com/example/graph/blob/{fixture.COMMIT}/AGENTS.md">'
+    "POST /check</a>, non-authoritative): "
+)
 
 
 def page_for(root: Path, sha: str | None) -> str:

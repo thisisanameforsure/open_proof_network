@@ -1,0 +1,42 @@
+import re
+TITLES={1:'Route 1 · greedy walk · 2 statements, 1 open',2:'Route 2 · fifteen special cases plus the rest · 16 statements, 2 open',3:'Route 3 · would disprove it: one half is the sum of an infinite set · 1 open'}
+def resolve(html, route=2, fold=True, nav='tree', tab='claim'):
+    flags={'is_tree':nav=='tree','is_list':nav=='list','figx':route>3}
+    for n in (1,2,3): flags[f'fig{n}f']=route==n and fold; flags[f'fig{n}u']=route==n and not fold
+    for k in ['claim','proof','known','work','record']: flags['is_'+k]=k==tab
+    pat=re.compile(r'<sc-if value="\{\{ (\w+) \}\}" hint-placeholder-val="\{\{ (?:true|false) \}\}">((?:(?!<sc-if)[\s\S])*?)</sc-if>')
+    while True:
+        new=pat.sub(lambda m: m.group(2) if flags.get(m.group(1)) else '', html)
+        if new==html: break
+        html=new
+    def hole(m):
+        k=m.group(1)
+        if k=='route_title': return TITLES.get(route,f'Route {route}')
+        if k=='route': return str(route)
+        if k=='fold_label': return 'Proved statements folded · unfold' if fold else 'Fold proved statements'
+        if k=='fold_on': return 'true' if fold else 'false'
+        mm=re.match(r'rb_bg_(\d+)',k)
+        if mm: return '#1B1B1A' if int(mm[1])==route else '#FFFFFF'
+        mm=re.match(r'rb_fg_(\d+)',k)
+        if mm: n=int(mm[1]); return '#FFFFFF' if n==route else ('#A0461E' if n>=3 else '#1B1B1A')
+        mm=re.match(r'rl_bg_(\d+)',k)
+        if mm: return '#E8EDF6' if int(mm[1])==route else 'transparent'
+        mm=re.match(r'rp_(\d+)',k)
+        if mm: return 'true' if int(mm[1])==route else 'false'
+        mm=re.match(r'(on|bg|fg)_nav(tree|list)',k)
+        if mm:
+            on=mm[2]==nav
+            return {'on':'true' if on else 'false','bg':'#1B1B1A' if on else '#FFFFFF','fg':'#FFFFFF' if on else '#1B1B1A'}[mm[1]]
+        mm=re.match(r'(sh|col|fw|sel)_(\w+)',k)
+        if mm:
+            on=mm[2]==tab
+            return {'sh':'inset 0 -2px 0 #1B1B1A' if on else 'none','col':'#1B1B1A' if on else '#5C5A55','fw':'600' if on else '400','sel':'true' if on else 'false'}[mm[1]]
+        return ''
+    body_start=html.index('<x-dc>'); body_end=html.index('</x-dc>')
+    mid=html[body_start:body_end]
+    mid=re.sub(r' onClick="\{\{ \w+ \}\}"','',mid)
+    mid=re.sub(r'\{\{ (\w+) \}\}',hole,mid)
+    html=html[:body_start]+mid+html[body_end:]
+    # logic -> static
+    html=re.sub(r'renderVals\(\) \{[\s\S]*?\n\}\n\}\n</script>','renderVals() {\nreturn {};\n}\n}\n</script>',html)
+    return html

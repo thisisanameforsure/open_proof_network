@@ -108,7 +108,9 @@ def test_home_and_problems_link_needs_a_steward_with_its_count(
         assert m is not None, rel
         assert int(m.group(1)) == len(listed), rel
     problems = pages["problems/index.html"]
-    assert 'data-filter="unstewarded"' in problems  # the filter stays
+    # the filter stays (F34-T5: the Steward select's "needs", and the old ?filter=unstewarded link)
+    assert '<option value="needs">Needs a steward</option>' in problems
+    assert 'legacy === "unstewarded"' in pages["problems.js"]
 
 
 def test_the_steward_index_lists_the_problems_without_one(pages: dict[str, str]) -> None:
@@ -143,7 +145,7 @@ def test_the_steward_page_carries_what_the_form_needs_and_no_control(
     assert 'class="informal' in page
     asks = re.findall(r'<li class="asks">', page)
     assert len(asks) == 3
-    assert '<a href="/docs/#stewards">Read more' in page
+    assert '<a href="/docs/stewards/">Read more' in page
     slot = re.search(r'<div class="steward-form"([^>]*)></div>', page)
     assert slot is not None
     attrs = slot.group(1)

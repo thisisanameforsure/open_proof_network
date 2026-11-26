@@ -98,7 +98,12 @@ def test_the_column_sits_beside_the_selector(tmp_path: Path) -> None:
               const r = s => document.querySelector(s).getBoundingClientRect();
               const card = document.querySelector('.dag-wrap');
               const cs = getComputedStyle(card);
-              return {sel: r('.selector-wrap'), band: r('.band-wrap'), tree: r('.dag-scroll'),
+              // F34-T12 (R14): the Tree/List tabs head the routes block, so the column's top
+              // meets theirs; without tabs, the selector's.
+              const tabs = document.querySelector('.route-tabs:not([hidden])');
+              const head = tabs ? '.route-tabs' : '.selector-wrap';
+              return {sel: r('.selector-wrap'), head: r(head), band: r('.band-wrap'),
+                      tree: r('.dag-scroll'),
                       inner: card.getBoundingClientRect().right - parseFloat(cs.paddingRight)
                              - parseFloat(cs.borderRightWidth)};
             }"""
@@ -109,7 +114,7 @@ def test_the_column_sits_beside_the_selector(tmp_path: Path) -> None:
     body = html[html.index('class="graph-body"') :]
     assert body.index('class="graph-main"') < body.index('class="selector-wrap"')
     assert body.index('class="dag-scroll"') < body.index('class="band-wrap"')
-    assert abs(geo["band"]["top"] - geo["sel"]["top"]) <= 4, geo
+    assert abs(geo["band"]["top"] - geo["head"]["top"]) <= 4, geo
     assert abs(geo["band"]["right"] - geo["inner"]) <= 2, geo
     assert (
         geo["band"]["left"] >= geo["sel"]["right"]

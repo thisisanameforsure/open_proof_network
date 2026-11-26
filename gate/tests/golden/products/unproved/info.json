@@ -1,7 +1,7 @@
 {
   "errors_url": null,
   "guide_url": null,
-  "protocol_version": "3.50",
+  "protocol_version": "3.51",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v2",
@@ -58,7 +58,8 @@
       3
     ],
     "display-name": [
-      1
+      1,
+      2
     ],
     "drift": [
       1
@@ -156,6 +157,9 @@
       1
     ],
     "node-status": [
+      1
+    ],
+    "operator": [
       1
     ],
     "outline": [

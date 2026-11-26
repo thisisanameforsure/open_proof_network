@@ -1,0 +1,4 @@
+F34-T20 verification: uv run --frozen pytest site/tests/test_finding_home_page.py (and test_f34_home.py)
+============================== 20 passed in 1.82s ==============================
+
+Red (task-20-red.txt): four of five against 68b8a216. Captures task-20-home-*; Home joins the codes guard.

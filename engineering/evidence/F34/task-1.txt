@@ -1,0 +1,122 @@
+F34-T1 verification: uv run --frozen pytest site/tests/test_f34_frame.py (plus every site test the frame touched)
+site/tests/test_f34_frame.py::test_token_contrast[light] PASSED          [  1%]
+site/tests/test_f34_frame.py::test_token_contrast[dark] PASSED           [  2%]
+site/tests/test_f34_frame.py::test_dark_scheme_redefines_every_colour PASSED [  3%]
+site/tests/test_f34_frame.py::test_fonts_vendored PASSED                 [  4%]
+site/tests/test_f34_frame.py::test_reading_text_is_serif_and_controls_sans PASSED [  5%]
+site/tests/test_f34_frame.py::test_header_names_four_sections_and_the_action PASSED [  6%]
+site/tests/test_f34_frame.py::test_header_marks_the_current_section[about/index.html-/about/] PASSED [  7%]
+site/tests/test_f34_frame.py::test_header_marks_the_current_section[contributors/index.html-/contributors/] PASSED [  8%]
+site/tests/test_f34_frame.py::test_header_marks_the_current_section[docs/index.html-/docs/] PASSED [ 10%]
+site/tests/test_f34_frame.py::test_header_marks_the_current_section[problems/index.html-/problems/] PASSED [ 11%]
+site/tests/test_f34_frame.py::test_header_footer PASSED                  [ 12%]
+site/tests/test_render.py::test_golden_pages PASSED                      [ 13%]
+site/tests/test_render.py::test_commit_and_file_links PASSED             [ 14%]
+site/tests/test_render.py::test_node_page_states PASSED                  [ 15%]
+site/tests/test_render.py::test_compiler_trust_flag PASSED               [ 16%]
+site/tests/test_render.py::test_no_explainer_cue PASSED                  [ 17%]
+site/tests/test_render.py::test_target_page_has_dag_and_nodes PASSED     [ 19%]
+site/tests/test_render.py::test_home_counts PASSED                       [ 20%]
+site/tests/test_render.py::test_pages_are_well_formed PASSED             [ 21%]
+site/tests/test_render.py::test_invalid_product_writes_nothing PASSED    [ 22%]
+site/tests/test_render.py::test_render_command_writes_everything PASSED  [ 23%]
+site/tests/test_render.py::test_problems_page PASSED                     [ 24%]
+site/tests/test_render.py::test_the_problems_page_says_where_each_statement_stands PASSED [ 25%]
+site/tests/test_render.py::test_contributors_empty_state PASSED          [ 26%]
+site/tests/test_render.py::test_docs_bundle PASSED                       [ 28%]
+site/tests/test_render.py::test_human_funnel_docs PASSED                 [ 29%]
+site/tests/test_render.py::test_render_document_shapes PASSED            [ 30%]
+site/tests/test_render.py::test_t2_golden_pages PASSED                   [ 31%]
+site/tests/test_render.py::test_contributors_lists_ledger_entries PASSED [ 32%]
+site/tests/test_render.py::test_listed_target_reasons PASSED             [ 33%]
+site/tests/test_render.py::test_a_claimable_target_states_no_reasons PASSED [ 34%]
+site/tests/test_render.py::test_qa_summary PASSED                        [ 35%]
+site/tests/test_render.py::test_related_variant_pertinence_on_the_target_page PASSED [ 37%]
+site/tests/test_render.py::test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones PASSED [ 38%]
+site/tests/test_render.py::test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn PASSED [ 39%]
+site/tests/test_render.py::test_an_api_url_with_a_trailing_slash_does_not_double_up PASSED [ 40%]
+site/tests/test_render.py::test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist PASSED [ 41%]
+site/tests/test_render.py::test_the_claims_label_names_the_commit_the_products_were_rendered_from PASSED [ 42%]
+site/tests/test_render.py::test_render_command_reads_the_api_url_from_the_environment PASSED [ 43%]
+site/tests/test_refutes_site.py::test_the_refuting_colour_is_its_own_token PASSED [ 44%]
+site/tests/test_refutes_site.py::test_the_refuting_trunk_is_drawn_from_the_variant_into_the_root PASSED [ 46%]
+site/tests/test_refutes_site.py::test_the_resolving_trunk_is_drawn_and_keyed_too PASSED [ 47%]
+site/tests/test_refutes_site.py::test_the_key_names_the_sides_and_the_band_only_when_drawn PASSED [ 48%]
+site/tests/test_refutes_site.py::test_the_selector_forks_by_side_and_colours_the_refuting_branch PASSED [ 49%]
+site/tests/test_refutes_site.py::test_the_table_says_which_way_each_set_settles PASSED [ 50%]
+site/tests/test_refutes_site.py::test_the_page_says_ways_to_settle_and_that_a_set_proves_or_refutes PASSED [ 51%]
+site/tests/test_refutes_site.py::test_a_root_refuted_through_a_variant_says_disproved_by_a_refuting_variant PASSED [ 52%]
+site/tests/test_refutes_site.py::test_the_page_itself_says_disproved_by_a_refuting_variant PASSED [ 53%]
+site/tests/test_refutes_site.py::test_a_root_refuted_by_its_own_counterexample_still_says_so PASSED [ 55%]
+site/tests/test_refutes_site.py::test_the_relation_roles_and_the_reading_page_name_refutes PASSED [ 56%]
+site/tests/test_refutes_site.py::test_the_states_page_names_a_refuting_variant PASSED [ 57%]
+site/tests/test_finding_literature_marks.py::test_a_pill_carries_a_mark_for_its_status_and_phase_and_none_without_a_record PASSED [ 58%]
+site/tests/test_finding_literature_marks.py::test_the_marks_title_says_the_status_who_and_whether_it_awaits PASSED [ 59%]
+site/tests/test_finding_literature_marks.py::test_the_mark_is_inside_the_pill_and_clear_of_the_label_halo_and_outline_tab PASSED [ 60%]
+site/tests/test_finding_literature_marks.py::test_the_mark_escapes_what_it_is_given PASSED [ 61%]
+site/tests/test_finding_literature_marks.py::test_a_known_statement_keeps_its_own_status_and_is_not_drawn_as_done PASSED [ 62%]
+site/tests/test_finding_literature_marks.py::test_the_layout_is_identical_with_and_without_the_marks PASSED [ 64%]
+site/tests/test_finding_literature_marks.py::test_the_views_selector_table_and_layouts_are_byte_identical_without_the_fields PASSED [ 65%]
+site/tests/test_finding_literature_marks.py::test_the_key_names_each_state_the_drawing_shows_with_the_literature_words PASSED [ 66%]
+site/tests/test_finding_literature_marks.py::test_a_drawing_with_no_record_has_no_literature_items_in_its_key PASSED [ 67%]
+site/tests/test_finding_literature_marks.py::test_every_mark_the_renderer_can_emit_is_named_in_the_key PASSED [ 68%]
+site/tests/test_finding_literature_marks.py::test_the_stylesheet_colours_every_status_apart_from_the_proof_colours PASSED [ 69%]
+site/tests/test_finding_literature_marks.py::test_the_listing_row_and_the_node_head_carry_the_same_badge PASSED [ 70%]
+site/tests/test_finding_literature_marks.py::test_the_badge_escapes_the_contributors_name PASSED [ 71%]
+site/tests/test_finding_literature_marks.py::test_marks_are_read_from_the_views_the_confirmed_status_first PASSED [ 73%]
+site/tests/test_finding_contact.py::test_every_framed_page_footer_links_the_contact_section PASSED [ 74%]
+site/tests/test_finding_contact.py::test_about_page_names_the_person_and_both_ways_to_reach_them PASSED [ 75%]
+site/tests/test_finding_contact.py::test_about_page_on_page_nav_reaches_the_contact_section PASSED [ 76%]
+site/tests/test_finding_contact.py::test_contact_links_are_admitted_as_exact_urls_only PASSED [ 77%]
+site/tests/test_steward_links.py::test_every_page_has_the_session_slot_and_script PASSED [ 78%]
+site/tests/test_steward_links.py::test_without_a_service_the_slot_stays_and_no_script_loads PASSED [ 79%]
+site/tests/test_steward_links.py::test_home_and_problems_link_needs_a_steward_with_its_count PASSED [ 80%]
+site/tests/test_steward_links.py::test_the_steward_index_lists_the_problems_without_one PASSED [ 82%]
+site/tests/test_steward_links.py::test_every_target_has_a_steward_page PASSED [ 83%]
+site/tests/test_steward_links.py::test_the_steward_page_carries_what_the_form_needs_and_no_control PASSED [ 84%]
+site/tests/test_steward_links.py::test_the_steward_page_carries_each_stewards_name_for_the_form PASSED [ 85%]
+site/tests/test_steward_links.py::test_a_problem_that_takes_no_steward_says_so_and_draws_no_form PASSED [ 86%]
+site/tests/test_steward_links.py::test_steward_calls_to_action_go_to_the_form_never_the_docs PASSED [ 87%]
+site/tests/test_steward_links.py::test_no_static_page_has_a_session_control PASSED [ 88%]
+site/tests/test_finding_csp_fonts.py::test_the_policy_allows_the_fonts_the_static_tree_ships PASSED [ 89%]
+site/tests/test_finding_csp_fonts.py::test_every_directive_names_only_the_sites_own_origin PASSED [ 91%]
+site/tests/test_finding_csp_fonts.py::test_the_deploy_check_expects_the_policy_the_template_serves PASSED [ 92%]
+site/tests/test_finding_csp_fonts.py::test_the_site_ships_an_icon_and_every_page_names_it PASSED [ 93%]
+site/tests/test_finding_csp_fonts.py::test_the_deploy_check_reads_the_commit_the_footer_names PASSED [ 94%]
+site/tests/test_vendor.py::test_every_vendored_file_is_in_the_manifest_and_matches_it PASSED [ 95%]
+site/tests/test_vendor.py::test_the_stylesheet_names_only_local_woff2_fonts PASSED [ 96%]
+site/tests/test_vendor.py::test_the_pages_with_record_prose_load_katex_same_origin PASSED [ 97%]
+site/tests/test_vendor.py::test_only_the_informal_text_is_marked_for_math PASSED [ 98%]
+site/tests/test_vendor.py::test_the_fonts_are_written_beside_the_pages PASSED [100%]
+======================== 89 passed in 98.44s (0:01:38) =========================
+
+Captures of the live graph rendered by this tree (task-1-*.png; shoot.py, task-1-shots.jsonl):
+  home          light 1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  home          light  390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  home          dark  1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  home          dark   390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  problems      light 1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  problems      light  390  scrollWidth  759  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans  <- scrolls sideways (pre-existing; T3 Problems, T9 Contributors)
+  problems      dark  1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  problems      dark   390  scrollWidth  759  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans  <- scrolls sideways (pre-existing; T3 Problems, T9 Contributors)
+  erdos-257     light 1440  scrollWidth 1440  body IBM Plex Sans · heading IBM Plex Mono · nav IBM Plex Sans
+  erdos-257     light  390  scrollWidth  390  body IBM Plex Sans · heading IBM Plex Mono · nav IBM Plex Sans
+  erdos-257     dark  1440  scrollWidth 1440  body IBM Plex Sans · heading IBM Plex Mono · nav IBM Plex Sans
+  erdos-257     dark   390  scrollWidth  390  body IBM Plex Sans · heading IBM Plex Mono · nav IBM Plex Sans
+  contributors  light 1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  contributors  light  390  scrollWidth  548  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans  <- scrolls sideways (pre-existing; T3 Problems, T9 Contributors)
+  contributors  dark  1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  contributors  dark   390  scrollWidth  548  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans  <- scrolls sideways (pre-existing; T3 Problems, T9 Contributors)
+  docs          light 1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  docs          light  390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  docs          dark  1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  docs          dark   390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  rules         light 1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  rules         light  390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  rules         dark  1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  rules         dark   390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  about         light 1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  about         light  390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  about         dark  1440  scrollWidth 1440  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  about         dark   390  scrollWidth  390  body Source Serif 4 · heading Source Serif 4 · nav IBM Plex Sans
+  {'graph_commit': '257feba2344969bcaf93fbd4a08c24448146f0ad', 'font_responses_not_200': []}

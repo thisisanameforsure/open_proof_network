@@ -28,18 +28,18 @@ def docs(tmp_path_factory: pytest.TempPathFactory) -> str:
     root = fixture.build(tmp_path_factory.mktemp("graph"))
     shutil.copyfile(GUIDE, root / "AGENTS.md")
     return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)[
-        "docs/index.html"
+        "docs/reading/index.html"  # F34-T6: the reading guide and the state map have a page
     ]
 
 
 def reading(docs: str) -> str:
-    start = docs.index('<h2 id="reading">')
+    start = docs.index('<article class="docs-main">')
     return docs[start : docs.index('<h2 id="states">')]
 
 
 def test_the_reading_section_sits_before_the_state_map_and_is_linked(docs: str) -> None:
-    assert '<a href="#reading">' in docs
-    assert docs.index('<h2 id="reading">') < docs.index('<h2 id="states">')
+    assert "<h1>Read a proof page</h1>" in docs  # F34-T6: its own page, the state map after it
+    assert docs.index("<h1>Read a proof page</h1>") < docs.index('<h2 id="states">')
     section = reading(docs)
     for words in ("routine", "hole", "read back", "machine-drafted by", "read against"):
         assert words in section, words
@@ -65,21 +65,15 @@ def test_every_provenance_label_has_a_row(docs: str) -> None:
 
 
 def test_the_gloss_guide_link_lands_on_the_guides_section(docs: str) -> None:
-    """F20-Q16(a): the constant names a heading the tested guide has, and the rendered guide on
-    the Docs page carries that heading's id."""
+    """F20-Q16(a), as F34-T6 carries it: the guide's section on the words is a heading the
+    tested guide has, and the site's link for writing words lands on the short page that sends a
+    reader to it in AGENTS.md, which is served whole and no longer copied into Docs."""
     headings = re.findall(r"^## (.+)$", GUIDE.read_text(encoding="utf-8"), re.M)
     assert any(h.split(" (", 1)[0] == render.GLOSS_GUIDE_SECTION for h in headings), headings
-    path, _, fragment = render.GLOSS_GUIDE_HREF.partition("#")
-    assert path == "/docs/"
-    assert fragment == "guide-glosses-explainers-and-outlines"
-    assert re.search(rf'<h2 id="{fragment}">Glosses, explainers and outlines', docs)
+    assert render.GLOSS_GUIDE_HREF == "/docs/words/"
     assert f'<a href="{render.GLOSS_GUIDE_HREF}">' in reading(docs)
-    # Every section of the guide is linkable, under a prefix that keeps its ids apart from the
-    # page's own (#agents, #states, #glossary, ...); an id appears once on the page.
-    guide = docs[docs.index('<h2 id="agents">') + 1 : docs.index("<h2>For people</h2>")]
-    sections = re.findall(r"<h2([^>]*)>", guide)
-    assert len(sections) >= 10
-    assert all(s.startswith(f' id="{render.GUIDE_ANCHOR_PREFIX}') for s in sections), sections
+    assert render.GLOSS_GUIDE_SECTION in render._template("docs-words.html").template
+    assert "## Glosses" not in docs and 'id="guide-' not in docs  # nothing of the guide copied
     ids = re.findall(r'id="([^"]+)"', docs)
     assert len(ids) == len(set(ids)), sorted(i for i in ids if ids.count(i) > 1)
 

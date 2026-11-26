@@ -1,0 +1,51 @@
+F34-T7 verification: uv run --frozen pytest site/tests/test_f34_docs.py
+site/tests/test_f34_docs.py::test_each_topic_has_its_own_page PASSED     [  3%]
+site/tests/test_f34_docs.py::test_every_page_has_the_sidebar_with_itself_marked PASSED [  7%]
+site/tests/test_f34_docs.py::test_no_docs_page_copies_agents_md_and_it_is_served_whole PASSED [ 11%]
+site/tests/test_f34_docs.py::test_every_old_anchor_lands_on_a_link_to_its_page PASSED [ 14%]
+site/tests/test_f34_docs.py::test_the_site_links_to_pages_not_to_old_anchors PASSED [ 18%]
+site/tests/test_f34_docs.py::test_previous_and_next_follow_the_sidebar PASSED [ 22%]
+site/tests/test_f34_docs.py::test_the_mcp_command_names_the_service_from_config PASSED [ 25%]
+site/tests/test_f34_docs.py::test_a_graph_without_agents_md_links_its_place_in_the_repository PASSED [ 29%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/index.html] PASSED [ 33%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/quick-start/index.html] PASSED [ 37%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/token/index.html] PASSED [ 40%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/words/index.html] PASSED [ 44%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/how-it-works/index.html] PASSED [ 48%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/claim/index.html] PASSED [ 51%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/submit/index.html] PASSED [ 55%]
+site/tests/test_f34_docs.py::test_the_token_page_says_what_the_guide_says PASSED [ 59%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/index.html] PASSED [ 62%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/quick-start/index.html] PASSED [ 66%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/token/index.html] PASSED [ 70%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/words/index.html] PASSED [ 74%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/how-it-works/index.html] PASSED [ 77%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/claim/index.html] PASSED [ 81%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/submit/index.html] PASSED [ 85%]
+site/tests/test_f34_docs.py::test_every_docs_page_names_its_decisions_only_at_its_foot PASSED [ 88%]
+site/tests/test_f34_docs.py::test_moving_a_code_keeps_it_on_the_page PASSED [ 92%]
+site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[claim-facts0] PASSED [ 96%]
+site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[submit-facts1] PASSED [100%]
+============================== 27 passed in 1.02s ==============================
+
+Red (task-7-red.txt): move_codes at today's behaviour, then the T7 tests against e31b076c in a detached worktree.
+
+Codes in each Docs page's prose, before T7 (fixture render): stewards 1, propose 1, review 1, reading 39,
+connect 3, leiden 29, registries 3, licence 2; after: none. A parenthesis of nothing but codes moves to the
+page's foot (move_codes); a hover card's protocol line keeps its codes; one code inside a sentence was
+reworded by hand ("unless the record's evidence of dormancy holds").
+
+New pages, each fact checked against AGENTS.md: How a problem is worked, Claim a statement, Precheck and submit.
+Corrected on the Leiden page: two claims that the home page carries counts, untrue since decisions v3.48.
+Not done (F34-Q22): "Sign an explainer" and "Check a statement is faithful" are not written; the reading
+page keeps its length. Site suite: 958 passed.
+
+Part two (the owner's word, 2026-11-25): Sign an explainer, Check a statement is faithful.
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/sign-explainer/index.html] PASSED [ 16%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/faithful/index.html] PASSED [ 33%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/sign-explainer/index.html] PASSED [ 50%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/faithful/index.html] PASSED [ 66%]
+site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[sign-explainer-facts1] PASSED [ 83%]
+site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[faithful-facts2] PASSED [100%]
+====================== 6 passed, 27 deselected in 40.95s =======================
+Red against 0e4ac9e6: task-7b-red.txt

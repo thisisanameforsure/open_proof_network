@@ -1,0 +1,27 @@
+F34-T4 verification: uv run --frozen pytest site/tests/test_f34_codes.py
+site/tests/test_f34_codes.py::test_clean_pages_show_no_internal_codes[rules/index.html] PASSED [ 25%]
+site/tests/test_f34_codes.py::test_clean_pages_show_no_internal_codes[about/index.html] PASSED [ 50%]
+site/tests/test_f34_codes.py::test_a_motion_passed_without_a_vote_says_so PASSED [ 75%]
+site/tests/test_f34_codes.py::test_the_sign_in_pages_say_contributing_needs_no_account PASSED [100%]
+============================== 4 passed in 9.96s ===============================
+
+Codes in visible text on the live render (scan_codes.py over graph 257feba2, before T4):
+total hits 16763 pages 1255
+3404 407 ('problems', 'figcaption.artifact-cap') | AlgebraWeylAlgebra.lean — a definition module the problem’s statements import, content-has
+2725 449 ('problems', 'p.block-label') | — the problem’s words of record, against which its fidelity was graded (D-6, D-9): fidelit
+1807 424 ('problems', 'p.cue') | No gloss yet: no one has written in words what this definition module says (D-3 v3.30); th
+1644 768 ('nodes', 'p.block-label') | — the problem’s words of record, against which its fidelity was graded (D-6, D-9): fidelit
+1386 693 ('nodes', 'p.cue') | No gloss yet: no one has written in words what this witness says (D-3 v3.30); the Lean abo
+1332 445 ('problems', 'section.detail') | Not resolved, so no digestion state yet (D-33 v3.17).
+449 444 ('problems', 'p.qa') | No statement-QA pass is recorded yet (D-9 v3.12).
+445 445 ('problems', 'p.review') | A proof of this statement merges on the gate without a human reviewer: its recorded catalo
+445 445 ('problems', 'p.attempts') | Documented external attempts counting toward D-9's M:
+445 445 ('problems', 'p.drift') | No upstream drift on record (D-10 v3.12).
+440 440 ('problems', 'p.sources') | Sources and licences (D-10):
+... (F34-Q18: held page by page; Rules and About are clean now, later rebuilds add theirs)
+
+Captures: task-4-me-light-*.png show the note under the lead. On a steward page the note sits inside
+the sign-in card, which hides itself (site.css :has(.steward-form:empty)) until steward.js draws the
+form from the service; a capture with no service shows neither, which is the intended pairing.
+
+Site suite: 923 passed, 42 skipped.

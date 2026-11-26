@@ -1,0 +1,5 @@
+FAILED site/tests/test_f34_select_browser.py::test_each_panel_has_its_tabs_hidden_naming_its_parts
+FAILED site/tests/test_f34_select_browser.py::test_each_panel_names_its_path_and_keeps_its_ways_out
+FAILED site/tests/test_f34_select_browser.py::test_the_problem_opens_on_its_claim_and_a_tab_shows_its_part_alone
+FAILED site/tests/test_f34_select_browser.py::test_selecting_another_draws_its_path_and_esc_comes_back
+4 failed, 1 passed in 3.75s

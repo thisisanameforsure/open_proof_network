@@ -1,0 +1,42 @@
+F34-T5 verification: uv run --frozen pytest site/tests/test_f34_problems.py && PW site/tests/test_f34_problems_browser.py
+site/tests/test_f34_problems.py::test_no_stat_row PASSED                 [ 12%]
+site/tests/test_f34_problems.py::test_every_problem_appears_once_in_one_section PASSED [ 25%]
+site/tests/test_f34_problems.py::test_worked_problems_come_first_newest_activity_first PASSED [ 37%]
+site/tests/test_f34_problems.py::test_waiting_problems_are_table_rows_with_a_steward_link PASSED [ 50%]
+site/tests/test_f34_problems.py::test_each_row_carries_the_filter_attributes PASSED [ 62%]
+site/tests/test_f34_problems.py::test_the_bar_says_in_words_what_it_draws PASSED [ 75%]
+site/tests/test_f34_problems.py::test_the_filters_are_controls_named_for_their_url_parameters PASSED [ 87%]
+site/tests/test_f34_problems.py::test_the_page_shows_no_internal_codes PASSED [100%]
+============================== 8 passed in 1.60s ===============================
+site/tests/test_f34_problems_browser.py::test_the_controls_appear_with_the_script PASSED [ 11%]
+site/tests/test_f34_problems_browser.py::test_search_filters_and_writes_the_url PASSED [ 22%]
+site/tests/test_f34_problems_browser.py::test_status_steward_and_area_filter PASSED [ 33%]
+site/tests/test_f34_problems_browser.py::test_sort_by_name_reorders_the_rows PASSED [ 44%]
+site/tests/test_f34_problems_browser.py::test_old_filter_links_still_apply[filter=unstewarded-<lambda>] PASSED [ 55%]
+site/tests/test_f34_problems_browser.py::test_old_filter_links_still_apply[filter=proved-None] PASSED [ 66%]
+site/tests/test_f34_problems_browser.py::test_old_filter_links_still_apply[filter=open-None] PASSED [ 77%]
+site/tests/test_f34_problems_browser.py::test_the_waiting_table_pages_fifty_at_a_time PASSED [ 88%]
+site/tests/test_f34_problems_browser.py::test_without_the_script_every_row_shows PASSED [100%]
+============================== 9 passed in 6.84s ===============================
+
+The browser tests bite: with problems.js reduced to a no-op, 8 of 9 fail (the ninth is the no-script check):
+FAILED site/tests/test_f34_problems_browser.py::test_the_controls_appear_with_the_script
+FAILED site/tests/test_f34_problems_browser.py::test_search_filters_and_writes_the_url
+FAILED site/tests/test_f34_problems_browser.py::test_status_steward_and_area_filter
+FAILED site/tests/test_f34_problems_browser.py::test_sort_by_name_reorders_the_rows
+FAILED site/tests/test_f34_problems_browser.py::test_old_filter_links_still_apply[filter=unstewarded-<lambda>]
+FAILED site/tests/test_f34_problems_browser.py::test_old_filter_links_still_apply[filter=proved-None]
+FAILED site/tests/test_f34_problems_browser.py::test_old_filter_links_still_apply[filter=open-None]
+FAILED site/tests/test_f34_problems_browser.py::test_the_waiting_table_pages_fifty_at_a_time
+8 failed, 1 passed in 77.16s (0:01:17)
+
+The live graph (257feba2), Problems rendered before and after (pageheight.py):
+  before: 1440 → 118,897px tall, 6.1 MB of HTML; 390 → 165,401px tall and 759px wide
+  after:  1440 → 6,997px tall, 2.2 MB; 390 → 14,296px tall, 390px wide; 13 problems with work, 50 of 432 waiting shown
+  internal codes in its visible text: none (scan_codes.py; "admitted by motion:1" became "invited by the panel")
+
+Restated, not deleted (F34-Q19, Q20): test_finding_collapsed_statements, test_finding_needs_witness,
+test_finding_not_claimable_reasons, test_finding_resolution_words, test_render_stewards, test_render_evidence,
+test_needs_words_filter, test_finding_problems_by_topic, test_finding_literature_marks, test_finding_literature_status,
+test_finding_copy_wayfinding, test_glosses, test_one_view, test_rejection, test_render, test_steward_labels,
+test_steward_links, test_untrusted, test_vendor. Site suite: 931 passed.

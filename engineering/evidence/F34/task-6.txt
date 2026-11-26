@@ -1,0 +1,56 @@
+F34-T6 verification: uv run --frozen pytest site/tests/test_f34_docs.py
+site/tests/test_f34_docs.py::test_each_topic_has_its_own_page PASSED     [  5%]
+site/tests/test_f34_docs.py::test_every_page_has_the_sidebar_with_itself_marked PASSED [ 11%]
+site/tests/test_f34_docs.py::test_no_docs_page_copies_agents_md_and_it_is_served_whole PASSED [ 17%]
+site/tests/test_f34_docs.py::test_every_old_anchor_lands_on_a_link_to_its_page PASSED [ 23%]
+site/tests/test_f34_docs.py::test_the_site_links_to_pages_not_to_old_anchors PASSED [ 29%]
+site/tests/test_f34_docs.py::test_previous_and_next_follow_the_sidebar PASSED [ 35%]
+site/tests/test_f34_docs.py::test_the_mcp_command_names_the_service_from_config PASSED [ 41%]
+site/tests/test_f34_docs.py::test_a_graph_without_agents_md_links_its_place_in_the_repository PASSED [ 47%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/index.html] PASSED [ 52%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/quick-start/index.html] PASSED [ 58%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/token/index.html] PASSED [ 64%]
+site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/words/index.html] PASSED [ 70%]
+site/tests/test_f34_docs.py::test_the_token_page_says_what_the_guide_says PASSED [ 76%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/index.html] PASSED [ 82%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/quick-start/index.html] PASSED [ 88%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/token/index.html] PASSED [ 94%]
+site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/words/index.html] PASSED [100%]
+============================== 17 passed in 1.39s ==============================
+
+Red: the same test file run against the previous commit (59da1061) in a detached worktree:
+FAILED site/tests/test_f34_docs.py::test_each_topic_has_its_own_page
+FAILED site/tests/test_f34_docs.py::test_every_page_has_the_sidebar_with_itself_marked
+FAILED site/tests/test_f34_docs.py::test_no_docs_page_copies_agents_md_and_it_is_served_whole
+FAILED site/tests/test_f34_docs.py::test_every_old_anchor_lands_on_a_link_to_its_page
+FAILED site/tests/test_f34_docs.py::test_the_site_links_to_pages_not_to_old_anchors
+FAILED site/tests/test_f34_docs.py::test_previous_and_next_follow_the_sidebar
+FAILED site/tests/test_f34_docs.py::test_the_mcp_command_names_the_service_from_config
+FAILED site/tests/test_f34_docs.py::test_a_graph_without_agents_md_links_its_place_in_the_repository
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/quick-start/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/token/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/words/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_token_page_says_what_the_guide_says
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/quick-start/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/token/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/words/index.html]
+17 failed in 1.57s
+
+The live graph (257feba2), /docs/ rendered before and after (docheight.py):
+  before: one page, 97,758px tall at 1440 and 223,804px at 390, AGENTS.md copied in
+  after:  a landing of 2,005px at 1440 and 3,318px at 390; fifteen topic pages, each with the sidebar;
+          AGENTS.md served whole at /AGENTS.md (206,495 bytes), linked, copied into no page
+
+Old anchors: each of #stewards #propose #review #registries #leiden #reading #glossary #connectors
+#agents #guide-glosses-explainers-and-outlines is the id of the landing's link to its page.
+Moved, not yet rewritten (T7): stewards, propose, review, registries, leiden, reading, glossary;
+they still carry decision codes in their prose. Written new and code-free: overview, quick-start, token, words.
+
+Restated to the pages (not deleted): test_copy, test_docs_connectors, test_docs_reading, test_docs_states,
+test_docs_stewards_short, test_f22_reader, test_fast_check, test_finding_copy_wayfinding, test_finding_docs_agents_md,
+test_finding_needs_witness, test_finding_panel_summary, test_finding_steward_rule_wording, test_graph_legend,
+test_panel_pages, test_prove_delivery, test_registration_copy, test_render, test_review_page, test_steward_links,
+test_untrusted, test_branches_round4 (and the node-page and panel link baselines, old hrefs mapped to new).
+Site suite: 948 passed.

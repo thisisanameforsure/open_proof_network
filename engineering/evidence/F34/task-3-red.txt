@@ -1,0 +1,13 @@
+E       AssertionError: /problems/ is 589px wide at 390
+E       assert 589 <= 390
+E       AssertionError: /problems/wide-display/ is 621px wide at 390
+E       assert 621 <= 390
+E       AssertionError: {'display': 'grid', 'headLeft': 140, 'rowLeft': 731.1875, 'headWidth': 242.546875, ...}
+E       assert 'grid' == 'table'
+E         
+E         - table
+E         + grid
+FAILED site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/problems/]
+FAILED site/tests/test_f34_phone_browser.py::test_no_page_scrolls_sideways_at_390[/problems/wide-display/]
+FAILED site/tests/test_f34_phone_browser.py::test_the_rules_table_is_one_table_at_1440
+3 failed, 15 passed in 7.59s

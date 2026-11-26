@@ -281,11 +281,10 @@ def test_nothing_ranks_or_colours_by_the_status(built: tuple[model.Site, dict[st
         b = block(pages[f"nodes/{TARGET}/{nid}/index.html"])
         assert not re.search(r'class="[^"]*\b(open|known|elementary)\b', b), b
         assert "dot-" not in b
+    # F34-T5 (F34-Q20): no statement rows on the Problems page; its rows keep their own order
+    # (activity, then id), which no literature status touches.
     listing = pages["problems/index.html"]
-    ids = re.findall(
-        r'<div class="stmt"[^>]*>.*?<a href="/nodes/propositional/([^/]+)/"', listing, re.S
-    )
-    assert ids == [ROOT, DEP, NONE], "the root first, then by id, as before"
+    assert 'class="stmt"' not in listing and "lit-" not in listing
 
 
 def test_reference_urls_are_on_the_allowlist_from_the_validated_record(

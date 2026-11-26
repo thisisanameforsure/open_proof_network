@@ -12,6 +12,11 @@
 ``OPN_SITE_FEATURED_TARGET``
     The problem the home page draws under "One problem, worked" (F04-T57). Default:
     ``erdos-1094``. Blank, or a target the graph does not list: the section is left out (C7).
+
+``OPN_SITE_TEST_IDENTITIES``
+    Comma-separated ``fnmatch`` patterns of ledger identities that are test runs, left out of the
+    Contributors page's cards and counts until a reader asks for them (F34-R12, Q4). Default:
+    ``tester-*``. The record is unchanged: every entry stays in the full ledger.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from dataclasses import dataclass
 
 DEFAULT_GRAPH_REPO_URL = "https://github.com/thisisanameforsure/open_proof_network_graph"
 DEFAULT_FEATURED_TARGET = "erdos-1094"
+DEFAULT_TEST_IDENTITIES: tuple[str, ...] = ("tester-*",)
 
 
 @dataclass(frozen=True)
@@ -28,6 +34,7 @@ class Settings:
     graph_repo_url: str = DEFAULT_GRAPH_REPO_URL
     api_url: str | None = None
     featured_target: str | None = DEFAULT_FEATURED_TARGET
+    test_identities: tuple[str, ...] = DEFAULT_TEST_IDENTITIES
 
 
 def load(environ: dict[str, str] | None = None) -> Settings:
@@ -38,4 +45,11 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         graph_repo_url=env.get("OPN_SITE_GRAPH_REPO_URL", DEFAULT_GRAPH_REPO_URL),
         api_url=api_url,
         featured_target=featured,
+        test_identities=tuple(
+            p.strip()
+            for p in env.get("OPN_SITE_TEST_IDENTITIES", ",".join(DEFAULT_TEST_IDENTITIES)).split(
+                ","
+            )
+            if p.strip()
+        ),
     )

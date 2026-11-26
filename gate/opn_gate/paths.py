@@ -303,6 +303,7 @@ Role = Literal[
     "shelving",  # nodes/<id>/shelving/<ts>-<login>.yaml: a shelving (D-14 v3.47, F31-R1)
     "registration",  # targets/<id>/registrations/<date>-<n>.yaml: a registry record (D-10 v3.37)
     "display-name",  # names/<pseudonym>.yaml at the graph root: an opt-in display name (D-3 v3.37)
+    "operator-record",  # operators/<pseudonym>/<ts>-<curator>.yaml: whose identities (D-19 v3.51)
     # F26-R1 (D-9 v3.39): the formalization review's records under targets/<id>/review/.
     "review",  # review/review.yaml: the opening, the words, the cases, the concepts
     "candidate",  # review/candidates/<id>.yaml beside <id>.lean: one formalization
@@ -353,6 +354,7 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "policy",  # F15-R3: the steward rule is switched by a curator, in the open
     "withdrawal",  # F08-T31 (D-18 v3.27): a status record or defect claim withdrawn, by a curator
     "credit-correction",  # F07-T66 (D-19 v3.27): a ledger line corrected, by a curator
+    "operator-record",  # F34-T13 (D-19 v3.51): identities named as one operator's, by a curator
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -429,7 +431,8 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "review-exhibit": ("exhibit/v1",),
     "pair-proof": ("pair-proof/v1",),  # F26-T16 (R8): a contributor's settled direction
     "review-signature": ("review-signature/v1",),
-    "display-name": ("display-name/v1",),  # F25-R6 (D-3 v3.37)
+    "display-name": ("display-name/v1", "display-name/v2"),  # v2: the GitHub login (v3.51)
+    "operator-record": ("operator/v1",),  # F34-T13 (D-19 v3.51)  # F25-R6 (D-3 v3.37)
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers and glosses).
@@ -506,6 +509,10 @@ POLICY_FILE = "policy.json"
 #: touch, scoped like ``policy.json`` so it never rides with a target's files. The stem is the
 #: pseudonym, in the service's own grammar for one (``opn_api.identity.PSEUDONYM_RE``).
 NAMES_DIR = "names"
+#: F34-T13 (D-19 v3.51): ``operators/<operator>/<timestamp>-<curator>.yaml``, a curator's record
+#: that ledger identities are one operator's, graph-scoped like ``names/``; the directory is named
+#: for the operator, in the pseudonym grammar.
+OPERATORS_DIR = "operators"
 PSEUDONYM_RE = re.compile(r"^[A-Za-z0-9-]{1,39}$")
 #: F25-R5 (D-10 v3.37): a target's registry records, target-scoped like its approach records.
 REGISTRATIONS_DIR = "registrations"
@@ -526,7 +533,7 @@ REVIEW_ROLES_BY_DIR: dict[str, Role] = {
 REVIEW_LEAN_ROLES: tuple[Role, ...] = ("candidate", "intent-test", "review-exhibit")
 
 
-def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branch per D-3 entry
+def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912, PLR0915 — one per D-3 entry
     """The role of ``path``, or ``None`` when no mode may touch it (F07-R3's rejection)."""
     if path == POLICY_FILE:
         return Located("policy", path, GRAPH_SCOPE, None)
@@ -535,6 +542,12 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F25-R6: one file per pseudonym, named for it; anything else under names/ is nobody's.
         if PSEUDONYM_RE.match(PurePosixPath(leaf).stem):
             return Located("display-name", path, GRAPH_SCOPE, None)
+        return None
+    if head == OPERATORS_DIR:
+        # F34-T13: one directory per operator, its records flat inside it; nothing else is anyone's
+        operator, _, name = leaf.partition("/")
+        if PSEUDONYM_RE.match(operator) and _is_flat(name, YAML_SUFFIXES):
+            return Located("operator-record", path, GRAPH_SCOPE, None)
         return None
     node_match = _NODE_PATH_RE.match(path)
     if node_match is not None:

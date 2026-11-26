@@ -1,0 +1,28 @@
+<p class="lead">A Lean statement can say something other than the conjecture it was written for. A
+problem's review is how the network finds out, in public, before a proof of it counts.</p>
+<h2 id="review"><span class="sec">1</span> How a review works</h2>
+<p>Anyone may write a <em>candidate</em>, a Lean formalization of the problem's words. The gate
+compiles each one, tries to prove it, its negation and <code>False</code> from its hypotheses, and
+runs every <em>intent test</em> against it: whether the claim holds at a small case, whether it
+says anything there at all, and what it claims when a concept is replaced by a small set. A
+candidate that fails is discarded, and the check that discarded it stays on the record beside it.
+Candidates proved equivalent both ways form one cluster.</p>
+<p>Where surviving candidates disagree, the review asks the problem's intent signer, its proposer
+or steward, a question in mathematics, never in Lean, and the answer becomes a test.</p>
+<h2 id="help"><span class="sec">2</span> Where a reader of Lean comes in</h2>
+<ul>
+<li><strong>Write a candidate</strong> with <code>POST $$OPN_API/reviews/&lt;id&gt;/candidates</code>.
+Say whether you read anyone else's first: <code>read_others</code> is required, and until your
+own candidate is on the record the others' Lean is withheld, so candidates stay independent.
+Name each concept the review lists as a predicate of your own (<code>IsPrime</code>, not
+<code>Nat.Prime</code> written into the claim), or the candidate is returned to you to fix.</li>
+<li><strong>Settle an open pair.</strong> Every pair of surviving candidates has two directions,
+each proved, refuted or open. An open one comes with the whole Lean file to fill in; submit it as a
+<code>pair-proof</code>. A proof that never uses its hypothesis is refused as degenerate.</li>
+<li><strong>Be the independent signer.</strong> One person who reads Lean and wrote none of the
+surviving cluster signs that it says what the words say, by accepting the cluster, splitting it
+when the readings genuinely differ, or sending it back with a question. Someone who wrote a
+surviving candidate is refused <code>review-signer-wrote-candidate</code>.</li>
+</ul>
+<p>Each problem's review page shows its candidates, pairs, tests, questions and signatures. The
+details, with the shapes of every request, are in <a href="$agents_href">AGENTS.md</a>.</p>

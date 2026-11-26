@@ -149,10 +149,18 @@ def test_the_display_name_fields_are_named_and_described() -> None:
     tool = server.BY_NAME["set_display_name"]
     params = properties(tool.input_schema)
     assert tool.input_schema.get("additionalProperties") is False
-    assert set(params) == {"name", "link"}
+    # F34-T23 (D-19 v3.51 (ii)): ``github`` asks the service to publish the paired login.
+    assert set(params) == {"name", "link", "github"}
     assert all(described(p) for p in params.values())
     assert "null" in str(params["name"].get("type")), "null withdraws a name (F25-R6)"
-    for word in ("`names/<pseudonym>.yaml`", "`display-name/v1`", "one-way publication"):
+    assert params["github"].get("type") == "boolean"
+    for word in (
+        "`names/<pseudonym>.yaml`",
+        "`display-name/v1`",
+        "`display-name/v2`",
+        '`"github": true`',
+        "one-way publication",
+    ):
         assert word in GUIDE, word
 
 

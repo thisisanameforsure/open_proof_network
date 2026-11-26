@@ -1,0 +1,31 @@
+F34-T18 — §2 Not on a route (R18; handoff §3.4.4). Small trees and the column's removal left (Q26).
+
+Red (task-18-red.txt):
+FAILED site/tests/test_f34_not_on_route.py::test_a_statement_proposed_for_none_is_listed_once
+FAILED site/tests/test_f34_not_on_route.py::test_a_crux_is_grouped_under_the_statement_it_was_proposed_for
+2 failed, 1 passed in 1.34s
+
+Green:
+14 passed in 3.01s
+
+Every problem of the live graph at 257feba2 (once18.py): each statement drawn on a route or listed in §2, exactly once.
+{
+ "targets": 445,
+ "with_section": 8,
+ "bad": []
+}
+Problems with a §2 and their groups:
+erdos-1050 {'Proposed for ': 3, 'Superseded': 1}
+erdos-257 {'Proposed for ': 4, 'Related results': 1, 'Superseded': 1}
+erdos-402 {'Proposed for ': 1, 'Superseded': 1}
+erdos-412 {'Superseded': 1}
+erdos-69 {'Proposed for ': 3, 'Related results': 1, 'Superseded': 1}
+erdos-849 {'Proposed for ': 1, 'Related results': 1}
+euclid-primes {'Related results': 1}
+tutorial {'Related results': 1}
+
+The first version left erdos-257's spec-5e2e0890--h1 and --h2 in an 'On no route' group: they are the holes of a
+proposed statement. A statement no route reaches now joins the group of the off-route statement that rests on it;
+after that no live problem has an 'On no route' group.
+
+Captures: task-18-erdos-257-off-route-{light,dark}-{1440,390}.png (opened at #not-on-route), no sideways scroll.

@@ -1,9 +1,9 @@
 {
  "and-reassoc": {
   "hrefs": [
-   "/docs/#agents",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/quick-start/",
+   "/docs/words/",
+   "/docs/reading/",
    "/problems/",
    "/problems/propositional/",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean",
@@ -17,9 +17,9 @@
  },
  "and-swap-reassoc": {
   "hrefs": [
-   "/docs/#agents",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/quick-start/",
+   "/docs/words/",
+   "/docs/reading/",
    "/nodes/propositional/and-reassoc/",
    "/nodes/propositional/and-swap-reassoc--h1/",
    "/nodes/propositional/and-swap-reassoc--h2/",
@@ -46,9 +46,9 @@
  },
  "and-swap-reassoc--h1": {
   "hrefs": [
-   "/docs/#agents",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/quick-start/",
+   "/docs/words/",
+   "/docs/reading/",
    "/problems/",
    "/problems/propositional/",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h1/Statement.lean",
@@ -65,9 +65,9 @@
  },
  "and-swap-reassoc--h2": {
   "hrefs": [
-   "/docs/#agents",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/quick-start/",
+   "/docs/words/",
+   "/docs/reading/",
    "/problems/",
    "/problems/propositional/",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h2/Statement.lean",
@@ -81,9 +81,9 @@
  },
  "tutorial-and-swap": {
   "hrefs": [
-   "/docs/#agents",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/quick-start/",
+   "/docs/words/",
+   "/docs/reading/",
    "/problems/",
    "/problems/propositional/",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Statement.lean",

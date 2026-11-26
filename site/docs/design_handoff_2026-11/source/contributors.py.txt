@@ -1,0 +1,87 @@
+from common import *
+weeks=[('Sep 14',25),('Sep 21',44),('Sep 28',66),('Oct 5',9),('Oct 12',61),('Oct 19',71),('Oct 26',105),('Nov 2',0),('Nov 9',32),('Nov 16',45),('Nov 23',3)]
+mx=105
+bars=''.join(f'''<div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px">
+<span style="font-family: {MONO}; font-size: 12px; color: {MUTED}">{n}</span>
+<div style="width: 100%; max-width: 44px; height: {max(2,round(n/mx*140))}px; background: {'#3F3D39' if n else LINE}; border-radius: 4px 4px 0 0"></div>
+<span style="font-size: 12px; color: {MUTED}; white-space: nowrap">{w}</span></div>''' for w,n in weeks)
+
+def steward(ini, name, handle, probs, how):
+    pr=''.join(f'<div style="display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid {LINE}"><a href="#" style="font-family: {MONO}; font-size: 15px">{p}</a>{stages(0, compact=True)}</div>' for p in probs)
+    return f'''<div style="flex: 1 1 300px; background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 14px; align-items: center">{avatar(ini)}
+<div style="min-width: 0"><p style="margin: 0; font-weight: 600; font-size: 18px">{name}</p>
+<p style="margin: 0; font-size: 14px; color: {MUTED}">{handle}</p></div></div>
+<div style="display: flex; flex-direction: column">{pr}</div>
+<p style="margin: 0; font-size: 14px; color: {MUTED}">{how}</p></div>'''
+
+stewards=''.join([
+ steward('MH','Michael Higgins','GitHub · thisisanameforsure',['erdos-1094','erdos-257'],'Self-admitted · on erdos-257 since 2026-10-19'),
+ steward('RS','riversupport','GitHub · riversupport',['erdos-257'],'Co-steward since 2026-10-29 · invited by the panel'),
+ steward('WV','WilliamVerreault','GitHub · WilliamVerreault',['erdos-849'],'Steward · self-admitted'),
+])+f'''<a href="#" style="flex: 1 1 300px; border: 1.5px dashed #9A968D; border-radius: 4px; padding: 24px; display: flex; flex-direction: column; gap: 10px; justify-content: center; text-decoration: none; color: {INK}; background: {SURF}">
+<span style="font-family: {SERIF}; font-size: 26px; line-height: 1.15">438 problems need a steward</span>
+<span style="font-size: 15px; color: {MUTED}">No Lean needed. Sign in with GitHub, tick one box, and your name goes on the problem.</span>
+<span style="font-family: {SANS}; font-weight: 500; text-decoration: underline; text-underline-offset: 3px">Steward a problem →</span></a>'''
+
+def stat(n,l): return f'<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: {SERIF}; font-size: 40px; line-height: 1">{n}</span><span style="font-size: 14px; color: {MUTED}">{l}</span></div>'
+
+def count(n,l): return f'<div style="display: flex; flex-direction: column; gap: 0; padding: 12px 14px; background: {BG}; border-radius: 10px; flex: 1 1 120px"><span style="font-family: {SERIF}; font-size: 28px; line-height: 1.1">{n}</span><span style="font-size: 13px; color: {MUTED}">{l}</span></div>'
+
+tools=''.join(f'<span style="font-family: {MONO}; font-size: 13px; padding: 5px 9px; border-radius: 6px; background: {SOFT}; color: {INK}">{t}</span>' for t in ['Claude Code','claude-opus-5-5 · 132','claude-fable-5-1 · 48','claude-fable-5-2 · 14','Aristotle (Harmonic) · 8'])
+probs=''.join(f'<a href="#" style="font-family: {MONO}; font-size: 13px">{p}</a>' for p in ['erdos-257','erdos-1094','erdos-849','erdos-402','erdos-69','erdos-1050','erdos-68','euclid-primes','singmaster','+3'])
+
+person=f'''<div style="flex: 2 1 560px; min-width: 0; background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center">{avatar('MH',INK,'#FFFFFF',52)}
+<div style="flex: 1 1 200px; min-width: 0"><p style="margin: 0; font-weight: 600; font-size: 20px">thisisanameforsure</p>
+<p style="margin: 0; font-size: 14px; color: {MUTED}">Michael Higgins · 139 agent runs · active 2026-09-14 to 2026-11-24</p></div>
+<span style="font-family: {SANS}; font-size: 13px; padding: 4px 10px; border: 1px solid {LINE}; border-radius: 4px; color: {MUTED}">GitHub linked</span></div>
+<p style="margin: 0; font-size: 17px">151 proofs, 128 partial proofs, 88 statements and 89 failed attempts kept, on 12 problems.</p>
+<div style="display: flex; flex-direction: column; gap: 8px"><p style="margin: 0; font-size: 13px; color: {MUTED}">Tools used — agents are tools, the person is credited</p><div style="display: flex; flex-wrap: wrap; gap: 8px">{tools}</div></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><p style="margin: 0; font-family: {SANS}; font-size: 13px; color: {MUTED}">Worked on</p><div style="display: flex; flex-wrap: wrap; gap: 6px 14px">{probs}</div></div>
+<details style="border-top: 1px solid {LINE}; padding-top: 14px"><summary style="cursor: pointer; font-size: 14px; color: {INK}">Agent runs (139) — agent-a-a256a2, t1015c-a07, fable-1020-e257-a, opus-1124-sing…</summary>
+<p style="margin: 10px 0 0; font-size: 14px; color: {MUTED}">Each run keeps its own label on the ledger; the credit goes to the person who ran it.</p></details>
+</div>'''
+
+yours=f'''<a href="#" style="flex: 1 1 300px; border: 1.5px dashed {LINE}; border-radius: 4px; padding: 24px; display: flex; flex-direction: column; gap: 12px; text-decoration: none; color: {INK}; background: {SURF}">
+<span style="width: 52px; height: 52px; border-radius: 50%; border: 1.5px dashed {MUTED}"></span>
+<span style="font-weight: 600; font-size: 18px">Your name here</span>
+<span style="font-size: 15px; color: {MUTED}">Prove the tutorial statement <span style="font-family: {MONO}">p ∧ q → q ∧ p</span> and choose a pseudonym. No account needed; link GitHub later if you want to recover a lost token.</span>
+<span style="font-family: {SANS}; font-weight: 500; text-decoration: underline; text-underline-offset: 3px">Get started →</span></a>'''
+
+filt=lambda t,on=False: f'<button type="button" style="font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; cursor: pointer; border: 1px solid {INK if on else LINE}; background: {INK if on else SURF}; color: {"#FFFFFF" if on else INK}">{t}</button>'
+
+rows=[('erdos-257','31','44','23','Nov 19'),('erdos-1094','48','26','58','Nov 19'),('erdos-849','12','13','24','Nov 19'),('erdos-402','12','26','7','Oct 1'),('erdos-69','10','16','3','Oct 1'),('erdos-1050','13','12','5','Oct 1'),('erdos-68','4','3','5','Oct 29'),('euclid-primes','7','8','1','Oct 6'),('singmaster','1','2','1','Nov 24')]
+th=lambda t,al='left': f'<th scope="col" style="text-align: {al}; font-weight: 500; font-size: 13px; color: {MUTED}; padding: 10px 12px; border-bottom: 1px solid {LINE}">{t}</th>'
+td=lambda t,al='left',mono=False: f'<td style="text-align: {al}; padding: 12px; border-bottom: 1px solid {LINE}; font-size: 15px{"; font-family: "+MONO if mono else ""}">{t}</td>'
+table='<table style="width: 100%; border-collapse: collapse; min-width: 560px"><thead><tr>'+th('Problem')+th('Runs','right')+th('Proofs','right')+th('Partial proofs','right')+th('Last activity','right')+'</tr></thead><tbody>'+''.join('<tr>'+td(f'<a href="#">{a}</a>',mono=True)+td(b,'right')+td(c,'right')+td(d,'right')+td(e,'right')+'</tr>' for a,b,c,d,e in rows)+'</tbody></table>'
+
+led=[('2026-11-24','opus-1124-sing','proof','singmaster--h2','claude-opus-5-5'),('2026-11-24','opus-1124-sing','partial proof','singmaster','claude-opus-5-5'),('2026-11-19','claude-agent2-e849','partial proof','erdos-1094--h3--h2--h3--h1','claude-opus-5-5'),('2026-11-19','opn-agent-3-claude','proof','erdos-1094--h3--h3--h1…--h2','claude-opus-5-5'),('2026-11-19','agent4-33d9','partial proof','erdos-1094--h2--h2--h1','claude-opus-5-5')]
+ltable='<table style="width: 100%; border-collapse: collapse; min-width: 720px"><thead><tr>'+th('Date')+th('Run')+th('What')+th('Statement')+th('Model')+'</tr></thead><tbody>'+''.join('<tr>'+td(a,mono=True)+td(b,mono=True)+td(c)+td(f'<a href="#">{d}</a>',mono=True)+td(e,mono=True)+'</tr>' for a,b,c,d,e in led)+'</tbody></table>'
+
+body=f'''<main>
+{wrap(f"""<div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 520px; display: flex; flex-direction: column; gap: 14px">{eyebrow('People on the record')}{h1('Contributors')}
+<p style="margin: 0; font-size: 19px; color: {MUTED}; max-width: 620px">Everyone here did something the record can point to. Agents are tools; the person who runs them is credited. Nobody is ranked.</p></div>
+</div>""",'64px 24px 0')}
+
+{wrap(f"""<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between">{h2('Stewards', num='§1')}<a href="#" style="font-size: 15px">What a steward does →</a></div>
+<p style="margin: 0; color: {MUTED}; max-width: 680px">Mathematicians who have agreed to understand what the network produces on a problem and to sign the explainer of the proof that closes it.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">{stewards}</div></div>""")}
+
+{wrap(f"""<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between">{h2('People who bring agents', num='§2')}
+<div style="display: flex; flex-wrap: wrap; gap: 8px" role="group" aria-label="Filter people">{filt('Everyone',True)}{filt('GitHub')}{filt('Anonymous')}{filt('Show test runs')}</div></div>
+<p style="margin: 0; color: {MUTED}; max-width: 720px">Anyone can contribute under a pseudonym with no account. Sorted by most recent activity.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch">{person}{yours}</div></div>""")}
+
+{wrap(f"""<details style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 20px 24px">
+<summary style="cursor: pointer; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline"><span style="font-family: {SERIF}; font-size: 26px">§3 The full ledger</span><span style="color: {MUTED}; font-size: 15px">461 entries · one per contribution, each linked to what earned it · revoked entries stay listed</span></summary>
+<div style="display: flex; flex-direction: column; gap: 14px; padding-top: 18px">
+<div style="display: flex; flex-wrap: wrap; gap: 10px"><label style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: {MUTED}">Search the ledger<input type="search" placeholder="Run, statement or problem" style="font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid {LINE}; border-radius: 8px; background: {BG}; color: {INK}"></label>
+<a href="#" style="align-self: flex-end; font-size: 15px; padding: 10px 0">Download ledger/ (JSON) ↗</a></div>
+<div style="overflow-x: auto">{ltable}</div></div></details>""")}
+</main>'''
+open('/home/claude/canvas/project/New-Contributors.dc.html','w').write(page('Contributors',body,1440,2700))
+print('ok')

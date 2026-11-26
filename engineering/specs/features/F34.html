@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F34 — The Journal site</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F34</nav>
+<h1>F34 — The Journal site</h1>
+<p class="subtitle">The public site moves to the "Journal" look and becomes findable and legible: a
+problem list that can be searched and paged, docs split into short pages by reader, a contributors
+page that credits people rather than agent runs, a problem page built around the route picker with
+one route drawn at a time, and the site-wide defects the 2026-11-24 review found. From the design
+handoff of 2026-11-25 (<code>site/docs/design_handoff_2026-11/</code>) and the owner's rulings the
+same day.</p>
+
+<h2>1. Summary</h2>
+<p>The site (D-36) is rendered by <code>site/opn_site/</code> from the graph and published on every
+merge. The design review of 2026-11-24 (<code>site/docs/design_handoff_2026-11/review/REVIEW.md</code>)
+found the pages long and hard to use: the problem list 113,000px tall, Docs 73,700px with
+AGENTS.md copied in whole, Contributors 38,500px of ledger tables keyed by agent pseudonym with no
+stewards, erdos-257 drawing all 71 statements at about 9px, and raw TeX, markdown asterisks and
+internal codes in reader-facing text. The handoff gives a design direction the owner agreed
+(&ldquo;Journal&rdquo;: serif for reading, colour only where it means something, provenance in
+the margin, the graphs as the only pictures), mockups of every page at 1440 and 390 wide, and an
+information map of today's problem page that is this feature's acceptance checklist.</p>
+<p>F34 restyles every page; rebuilds Problems, Docs, Contributors, the problem page and the
+steward pages; and fixes the review's defects. It changes no verdict, no product and no schema
+except one: crediting people rather than agent runs needs a record on the graph saying which
+identities belong to one operator, which D-19 does not yet provide (R21&ndash;R23, Q9): <b>decisions v3.51</b>, approved by the owner on 2026-11-25. Implements D-36 (the site), D-19 (credit: identity is the human operator),
+D-25 (no ranking), D-14 v3.47 (shelving controls), D-32 (stewards and the write-up ladder).</p>
+<p>It does not change what the problem page <em>knows</em>: every item on today's page keeps a home
+(R13), and the route facts come from F27/F29/F30's existing products. The handoff is design input
+and this repository's rules win wherever they differ (handoff §0).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a mathematician arriving from a link, I want to read a problem's statement and see what is
+    open on it without decoding a 71-statement graph, so that I can decide whether to steward or
+    prove.</li>
+  <li>As a prover, I want to search and filter 445 problems, see which have work on them, and open
+    one route with its open statements standing out, so that I can pick work in minutes.</li>
+  <li>As an agent operator, I want short docs pages for getting a token, claiming and submitting,
+    with AGENTS.md one link away, so that a person can follow the steps that an agent reads in full.</li>
+  <li>As a contributor, I want the people behind agents credited (agents are tools, D-19), with the
+    tools and models listed under the person, so that the page reads as who did the work.</li>
+  <li>As a steward, I want my page to tell me what is waiting, most urgent first, and to approve all
+    the words for one statement at once.</li>
+  <li>As anyone on a phone, I want every page to fit 390px with no sideways page scroll.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> design tokens, self-hosted fonts and the frame (header, footer); the
+review's site-wide defects (handoff §6); Problems; Docs split into one page per topic; Contributors
+(stewards, people with their tools, the folded ledger); the problem page (order, routes in Tree and
+List views, one route drawn with proved statements folded, the selected-statement tabs, &ldquo;Not
+on a route&rdquo;, the empty-problem state, the phone outline); the steward sign-up, My problems and
+review pages; the home page. On the record: one new curator record kind linking identities to their
+operator (v3.51) and its one-time backfill.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>A steward pinning which route a problem page opens on. The page opens on the proof route with
+    the fewest open statements (Q3); pinning is a later record kind and feature.</li>
+  <li>A general identity-merge route (<code>POST /identities/merge</code>) or proof of ownership of
+    another person's pseudonym. Only the curator record exists; the route waits until a second
+    operator needs it (Q9).</li>
+  <li>A run label on ledger entries (<code>automation.run</code>, a <code>ledger/v3</code>). The
+    owner ruled the agent names unimportant (Q10).</li>
+  <li>Any change to verdicts, products other than those R17 names, or the api beyond what a page
+    already calls.</li>
+  <li>Docs search (R9's index and script) ships last, as its own task, and may be dropped (Q13).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs.</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F34-R1</td><td>The site shall style every page from one set of design tokens (paper, surface,
+    tint, ink, muted, rule, rule-strong, proved, refuted and their tints) defined once in
+    <code>site.css</code>, with a dark scheme derived from the same roles under
+    <code>prefers-color-scheme</code>, every text/ground pair at 4.5:1 or more in both schemes.</td></tr>
+  <tr><td>F34-R2</td><td>The site shall set prose in Source Serif 4, controls and labels in IBM Plex
+    Sans, and Lean and ids in IBM Plex Mono, each served same-origin from <code>static/fonts/</code>
+    with a sha256 <code>MANIFEST.txt</code> and its OFL licence, and shall load no font from any
+    other origin (F04-R10).</td></tr>
+  <tr><td>F34-R3</td><td>Every page shall carry the same header (wordmark, Problems, Contributors,
+    Docs, About, Sign in, Work on a statement; the current section marked) and a footer whose
+    commit and source-file list sit inside one closed &ldquo;Source of this page&rdquo;
+    disclosure.</td></tr>
+  <tr><td>F34-R4</td><td>Wherever the site shows a record's informal text (a title, a subtitle, a hole's
+    claim, a statement row), the system shall render its TeX and inline markdown, and shall never
+    show a literal <code>$</code>-delimited formula or <code>*emphasis*</code> marker as text.</td></tr>
+  <tr><td>F34-R5</td><td>At 390px wide, no page shall scroll sideways; a wide table or drawing scrolls
+    inside its own box, and a sidebar or margin column stacks under or above the main column.</td></tr>
+  <tr><td>F34-R6</td><td>Reader-facing prose shall not carry internal codes (decision numbers,
+    attestation numbers, motion ids); where the record needs one, it shall appear in a margin note,
+    the Record tab, or the foot of a docs page.</td></tr>
+  <tr><td>F34-R7</td><td>The Problems page shall list problems with work on the record first (one row
+    each: id, status, area, one-line statement, proved/open bar with a text label, steward or its
+    absence, runs, last activity; sorted by last activity), then every waiting problem as a compact
+    table, all in the HTML; a same-origin script shall filter by search text, status, steward and
+    area, sort, and page the waiting table fifty at a time, every filter held in a URL query
+    parameter (existing <code>?filter=</code> links keep working); without the script every row
+    shows.</td></tr>
+  <tr><td>F34-R8</td><td>Docs shall be one page per topic under <code>/docs/</code>, each with the
+    sidebar of handoff §3.3 and previous/next links; <code>/docs/</code> shall be the landing page and
+    every anchor of today's page shall still reach its content; AGENTS.md shall be served as a raw
+    file and linked, never copied into a docs page; the MCP command shall name the api base from
+    config.</td></tr>
+  <tr><td>F34-R9</td><td>Where a docs reference page lists routes, MCP operations, error codes or rate
+    limits, the system shall generate it from the sources the service itself reads, so it cannot
+    drift from them.</td></tr>
+  <tr><td>F34-R10</td><td>The Contributors page shall show, in order: the stewards (from the steward
+    records the problem pages use: name, handle, problems with their stage mark, how and when
+    admitted) and a card for the problems that need one; the people who bring agents, one card per
+    operator, never ranked, sorted by last activity; the full ledger folded, searchable, paged, with
+    revoked entries listed and marked.</td></tr>
+  <tr><td>F34-R11</td><td>An operator's card shall show its pseudonym, one sentence of counts by ledger
+    line, the frameworks and models from its entries' <code>automation</code> blocks with counts
+    (names normalised to one canonical id each), the problems worked on, and the identities and runs
+    credited to it folded.</td></tr>
+  <tr><td>F34-R12</td><td>While a ledger identity matches a test pattern from the site's config
+    (default <code>tester-*</code>), the Contributors page shall leave its entries out of every card
+    and count until the reader turns on &ldquo;Show test runs&rdquo;; the full ledger lists them
+    always.</td></tr>
+  <tr><td>F34-R13</td><td>The problem page shall keep every item of today's page, each in the place
+    <code>New-Problem-InfoMap</code> assigns it (part B), the follow-the-proof toggle excepted (Q7), and the selected-statement panel shall hold
+    each item of part A under its tab: Claim, Proof, Known, Work, Record.</td></tr>
+  <tr><td>F34-R14</td><td>The problem page shall show the routes in a Tree view (F29's selector,
+    restyled; proof ends ink, refutation ends rust) and a List view (one row per route: kind, name,
+    statements, proved, open, what it goes through, Draw, Statements, and Retire for a steward or
+    curator, D-14 v3.47), and shall draw only the selected route, as a tree, opening on the route that
+    proves the problem with the fewest open statements.</td></tr>
+  <tr><td>F34-R15</td><td>While proved statements are folded (the default for every reader), each fold
+    shall be drawn as a visible box naming how many proved statements it holds, and activating it shall
+    unfold them in place; a split with many holes unfolds as a grid, deeper levels shown as
+    &ldquo;&#9656; n open below&rdquo;.</td></tr>
+  <tr><td>F34-R16</td><td>When a reader selects a statement in the route tree or in &ldquo;Not on a
+    route&rdquo;, the system shall fill it, draw its path from the problem heavier, and show its record
+    in the five tabs under a header naming it and its path; on a wide screen beside the tree with a
+    line to the box, at phone width directly under the statement; Esc or selecting it again returns to
+    the problem's own statement. Without the script, every statement's record stays reachable.</td></tr>
+  <tr><td>F34-R17</td><td>At phone width the selected route shall be an outline (statements top to
+    bottom, indented by depth, folds as on desktop), every touch target at least 44px tall.</td></tr>
+  <tr><td>F34-R18</td><td>The problem page shall place in &ldquo;Not on a route&rdquo; every statement
+    no route uses: speculative statements as small trees grouped by the statement they were proposed
+    for, then statements proposed with no group, related results, special cases no split uses, and
+    superseded statements with what replaced them, so that the page places every statement of the
+    target exactly once.</td></tr>
+  <tr><td>F34-R19</td><td>A problem with no work shall show a &ldquo;What this problem needs&rdquo;
+    card in place of the routes and tree, and shall link its shared definition modules, never print
+    their source.</td></tr>
+  <tr><td>F34-R20</td><td>My problems shall group what waits for a steward by problem and statement,
+    most urgent first, and shall approve every unapproved section of one statement's words with one
+    act (one <code>POST /approvals</code> per version carrying its sections).</td></tr>
+  <tr><td>F34-R21 <em>(v3.51)</em></td><td>A listed curator may append an operator record naming
+    one operator pseudonym, the ledger identities that are theirs, and a reason; the newest record for
+    an operator is the one read, and one with no identities releases them; no ledger file is changed;
+    an identity belongs to at most one operator.</td></tr>
+  <tr><td>F34-R22 <em>(v3.51)</em></td><td>A display-name record may carry the GitHub login its
+    pseudonym is paired with, written only by the service from its own record of the pairing: when an
+    identity is first made through GitHub (the sign-in having said the link will be public), and for an
+    identity paired before, only when its holder asks.</td></tr>
+  <tr><td>F34-R23 <em>(v3.51)</em></td><td>The Contributors page shall list identities, with their
+    agents' work, under their operator: the identities an operator record names, and those whose
+    display-name records carry the same GitHub login; an identity neither groups stands alone. It may
+    show the display name an identity recorded.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<p class="status-note">Given/When/Then. Fast-tier tests render the fixture graph; browser tests
+(<code>*_browser.py</code>) run under Playwright 1.58.0 and are not part of <code>make verify</code>
+(see the log, 2026-10-28), so their tasks name the command.</p>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F34-AC1</td><td>Given the stylesheet, when its token pairs are measured in both schemes, then each
+    text/ground pair is at least 4.5:1.</td><td><code>site/tests/test_f34_frame.py::test_token_contrast</code></td></tr>
+  <tr><td>F34-AC2</td><td>Given the rendered site, when every <code>@font-face</code> and link is read,
+    then each font file is under <code>/fonts/</code>, listed in its manifest with a matching sha256,
+    and no page names another origin.</td><td><code>site/tests/test_f34_frame.py::test_fonts_vendored</code></td></tr>
+  <tr><td>F34-AC3</td><td>Given any page, when rendered, then the header has the six links with the
+    current one marked, and the footer's commit and file list sit inside a closed
+    <code>&lt;details&gt;</code>.</td><td><code>site/tests/test_f34_frame.py::test_header_footer</code></td></tr>
+  <tr><td>F34-AC4</td><td>Given records whose title, subtitle or hole claim carries <code>$&hellip;$</code>
+    or <code>*&hellip;*</code> (the abc, erdos-257 and singmaster shapes), when rendered, then each sits in
+    a <code>.math</code> element or is converted, and no visible text node carries the raw markers.</td>
+    <td><code>site/tests/test_f34_inline_text.py</code></td></tr>
+  <tr><td>F34-AC5</td><td>Given each page type at 390px, when measured, then
+    <code>scrollWidth &le; 390</code>; and the Rules table's Value column wraps at word boundaries.</td>
+    <td><code>site/tests/test_f34_phone_browser.py</code></td></tr>
+  <tr><td>F34-AC6</td><td>Given every page, when its visible prose is scanned, then no <code>D-\d+</code>,
+    attestation number or <code>motion:</code> id appears outside margin notes, the Record tab and a
+    docs page's foot.</td><td><code>site/tests/test_f34_codes.py</code></td></tr>
+  <tr><td>F34-AC7</td><td>Given the fixture graph, when Problems renders, then worked problems precede
+    waiting ones, each row carries the <code>data-</code> attributes the script filters on, and the
+    proved/open label equals the products' counts.</td><td><code>site/tests/test_f34_problems.py</code></td></tr>
+  <tr><td>F34-AC8</td><td>Given Problems in a browser, when a reader searches, filters, sorts and pages,
+    then the visible rows match, the URL carries the parameters, a reload restores the view, and an old
+    <code>?filter=</code> link still applies.</td><td><code>site/tests/test_f34_problems_browser.py</code></td></tr>
+  <tr><td>F34-AC9</td><td>Given the docs tree, when rendered, then each topic has its own page with the
+    sidebar, no page contains AGENTS.md's text, AGENTS.md is served raw, and every anchor of the old
+    <code>/docs/</code> resolves to a page holding that content.</td><td><code>site/tests/test_f34_docs.py</code></td></tr>
+  <tr><td>F34-AC10</td><td>Given the service's route table, MCP registry, error catalog and rate-limit
+    config, when the reference pages render, then each lists exactly those entries.</td>
+    <td><code>site/tests/test_f34_docs_reference.py</code></td></tr>
+  <tr><td>F34-AC11</td><td>Given steward records on two targets and a ledger with revoked entries, when
+    Contributors renders, then the stewards section lists each steward once with every problem they
+    hold, people are never ordered by a count, and revoked entries are listed and marked.</td>
+    <td><code>site/tests/test_f34_contributors.py</code></td></tr>
+  <tr><td>F34-AC12</td><td>Given entries whose models read <code>claude-opus-5-5</code>, <code>Claude Opus
+    5.5 (claude-opus-5-5)</code>, <code>aristotle (Harmonic)</code> and <code>Aristotle (Harmonic,
+    leanprover/lean4:v4.28.0)</code>, when normalised, then they count as two canonical models.</td>
+    <td><code>site/tests/test_f34_contributors.py::test_model_names</code></td></tr>
+  <tr><td>F34-AC13</td><td>Given a <code>tester-x</code> identity, when Contributors renders, then its
+    entries are in no card or count by default, appear when the toggle is on, and stay in the full
+    ledger.</td><td><code>site/tests/test_f34_contributors.py::test_test_runs_hidden</code></td></tr>
+  <tr><td>F34-AC14</td><td>Given today's erdos-257 page captured from <code>origin/main</code> (links,
+    anchors, visible items of the info map), when the new page renders, then each info-map row's item
+    is present in its assigned place (one parametrised case per row).</td>
+    <td><code>site/tests/test_f34_infomap.py</code></td></tr>
+  <tr><td>F34-AC15</td><td>Given a target with several routes, when its page renders, then the List view
+    has one row per route, the drawn route is the proof route with the fewest open statements, Retire
+    appears only in a steward's or curator's signed-in view, and the full graph is not drawn.</td>
+    <td><code>site/tests/test_f34_routes.py</code></td></tr>
+  <tr><td>F34-AC16</td><td>Given a drawn route with proved siblings, when rendered, then they sit in one
+    fold box naming their count; in a browser, clicking or pressing Enter on it unfolds them and the
+    box says how to fold again.</td><td><code>site/tests/test_f34_routes.py::test_fold</code>,
+    <code>site/tests/test_f34_select_browser.py::test_fold_toggle</code></td></tr>
+  <tr><td>F34-AC17</td><td>Given the problem page in a browser at 1440, when a statement is selected, then
+    it fills, the panel header names it and its path, the tabs carry its counts, the tree does not move,
+    and Esc returns to the problem; at 390 the record opens under the statement.</td>
+    <td><code>site/tests/test_f34_select_browser.py</code></td></tr>
+  <tr><td>F34-AC18</td><td>Given erdos-257's live-shaped fixture, when rendered, then the routes and
+    &ldquo;Not on a route&rdquo; together place every statement exactly once.</td>
+    <td><code>site/tests/test_f34_not_on_route.py</code></td></tr>
+  <tr><td>F34-AC19</td><td>Given a target with no work and shared definitions, when rendered, then the
+    page links each module and prints none of their source, and shows the &ldquo;What this problem
+    needs&rdquo; card.</td><td><code>site/tests/test_f34_empty_problem.py</code></td></tr>
+  <tr><td>F34-AC20</td><td>Given a steward with unapproved sections on one statement, when they approve
+    the statement, then the script sends one request per version, carrying every section.</td>
+    <td><code>site/tests/test_f34_me_browser.py</code></td></tr>
+  <tr><td>F34-AC21 <em>(v3.51)</em></td><td>Given an operator record from a curator, when classified,
+    then it passes; from anyone else, or naming an identity another record already holds, or modifying
+    an existing record, it is refused with a named code.</td>
+    <td><code>gate/tests/test_f34_operator_record.py</code></td></tr>
+  <tr><td>F34-AC22 <em>(v3.51)</em></td><td>Given an operator record linking two identities, when
+    Contributors renders, then one card holds both identities' entries, and reverting the record's file
+    restores two cards.</td><td><code>site/tests/test_f34_contributors.py::test_operator_grouping</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Problems at 390px: no sideways scroll; without the script the page may be long (every waiting
+    row, about 50px each).</li>
+  <li>Fonts: woff2 subsets of three families, regular/italic/semibold for the serif, regular/medium
+    for sans and mono; total under 1 MiB, measured in T1's evidence.</li>
+  <li>Problem page: labels at least 12.5px in the route drawing; touch targets at least 44px at
+    phone width.</li>
+  <li>One script per page behaviour, each listed in <code>render.SCRIPTS</code>.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>No new secret; no new external origin (F04-R10 and the site's CSP stay as they are).</li>
+  <li>Everything from the graph stays escaped (F04-R3); TeX renders only inside <code>.math</code> with
+    trust off (F04-Q15).</li>
+  <li>The operator record (v3.51) publishes that identities belong to one operator. For the backfill
+    every identity is the owner's, on his word (Q9). A curator linking someone else's identities is a
+    D-17 matter if wrong; the record names the curator and the reason, and a withdrawal undoes it.</li>
+  <li>No real name is shown unless the identity recorded one itself (R23, D-3 v3.37).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F04</strong> (required): the generator, its frame, CSP, link checker and goldens.</li>
+  <li><strong>F23, F24</strong> (required): steward records, panel and the <code>/me/</code> page.</li>
+  <li><strong>F26</strong> (required): the review page.</li>
+  <li><strong>F27, F29, F30, F31</strong> (required): routes, sufficient sets, the selector tree, the
+    one statement graph and shelving, which the problem page re-presents.</li>
+  <li><strong>F07, F25</strong> (required for R10&ndash;R12): the ledger and its <code>automation</code>
+    blocks.</li>
+  <li><strong>Packages:</strong> none. Three font families are vendored as static assets (SIL OFL
+    1.1), pinned by sha256 like KaTeX (C5: assets, not code; the alternative is the system font
+    stack, which loses the design's one typographic choice).</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F34-Q1</td><td><strong>Selection layout (owner, 2026-11-25).</strong> The panel beside the
+    tree on a wide screen (handoff option A), the record opened under the statement at phone width
+    (option B).</td></tr>
+  <tr><td>F34-Q2</td><td><strong>Folding (owner, 2026-11-25).</strong> Proved statements start folded
+    for every reader, with no remembered preference; each fold stays visible as a box naming what it
+    holds and opens on a click (R15).</td></tr>
+  <tr><td>F34-Q3</td><td><strong>Opening route (owner, 2026-11-25).</strong> The proof route with the
+    fewest open statements; ties broken by fewest statements, then route number. When a steward can pin
+    a route (a later feature), the pin wins.</td></tr>
+  <tr><td>F34-Q4</td><td><strong>Test identities (owner, 2026-11-25).</strong> Only <code>tester-*</code>
+    is hidden by default; three identities on 2026-11-25. The pattern is site config (C6), because
+    hiding is presentation: the record still says who did what.</td></tr>
+  <tr><td>F34-Q5</td><td><strong>Feature number.</strong> F33 is reserved by
+    <code>engineering/session-notes/2026-10-29-f33-statement-review-grill.md</code>; this is F34. Decisions
+    v3.50 was taken by the MCP surface on 2026-11-24 (the F33 note named v3.50 too and must take a later
+    number when it is applied); v3.51 is reserved here for the operator record.</td></tr>
+  <tr><td>F34-Q6</td><td><strong>F04-Q6 and F30 give way.</strong> F04-Q6 copied AGENTS.md into Docs;
+    the owner's handoff reverses it (R8). F30 drew one statement graph with every statement; the
+    problem page now draws only the selected route (R14), the owner's choice in the handoff. F30's tests
+    that pin the whole drawing are restated to the route drawing, not deleted, and say which decision
+    gave way.</td></tr>
+  <tr><td>F34-Q7</td><td><strong>The follow-the-proof toggle (F27-R13) is dropped from the problem
+    page (owner, 2026-11-25: &ldquo;we are redesigning that page&rdquo;).</strong> It is the one item of
+    today's page R13 does not keep; the products' <code>follow/</code> views (F27-T9) are left as they are
+    and simply not drawn.</td></tr>
+  <tr><td>F34-Q8</td><td><strong>Approving a statement's words at once.</strong> <code>POST /approvals</code>
+    already takes a <code>sections</code> list per version, so R20 needs no api change: <code>words.js</code>
+    sends one request per version instead of one per section. Checked in <code>api/opn_api/approvals.py</code>
+    on 2026-11-25.</td></tr>
+  <tr><td>F34-Q9</td><td><strong>Crediting the operator: the amendment, v3.51, as the owner ruled
+    on 2026-11-25.</strong> Approved first as drafted (a curator's operator record, undone by a
+    withdrawal), then revised the same day on three rulings: &ldquo;list agents under that user's
+    name&rdquo;; &ldquo;newest record wins&rdquo; rather than a withdrawal (the owner chose it over
+    extending <code>withdrawal/v2</code> to records outside a target); and option (a) for GitHub, the
+    link published from now on with a notice at sign-in and an existing GitHub identity asked first.
+    Words for D-19: <em>&ldquo;v3.51 &mdash; operators. (i) A listed curator may append
+    <code>operators/&lt;pseudonym&gt;/&lt;timestamp&gt;-&lt;curator&gt;.yaml</code> naming an operator
+    pseudonym, ledger identities that are theirs and a reason; the newest such record for an operator is
+    the one read, a record with no identities releases them, no ledger entry is changed, and an identity
+    belongs to at most one operator. (ii) A pseudonym's display-name record (D-3 v3.37) may carry the
+    GitHub login the pseudonym is paired with, filled by the service from its own record of the pairing
+    and never from the request: the service files it when an identity is first made through GitHub,
+    having said so at sign-in, and for an identity paired before this only when its holder asks.
+    (iii) The site credits identities under their operator, those an operator record names and those
+    whose display-name records carry the same GitHub login, and may show a display name an identity
+    recorded.&rdquo;</em> The doc text lands with T13's code, because
+    <code>test_finding_protocol_version</code> holds the doc's version to <code>PROTOCOL_VERSION</code>.
+    Considered and not proposed: v3.27's credit corrections (they would revoke and rewrite all 461
+    entries); a merge route with token proof (unneeded while one operator has several pseudonyms).</td></tr>
+  <tr><td>F34-Q10</td><td><strong>No run label.</strong> The owner ruled run names unimportant; the
+    tools and models are already in each entry's <code>automation</code> (ledger/v2), so no ledger/v3.</td></tr>
+  <tr><td>F34-Q11</td><td><strong>The backfill links every identity, testers included.</strong> All
+    141 other identities on graph <code>origin/main</code> (2026-11-25) are the owner's, so the record
+    names all of them under <code>thisisanameforsure</code>; R12 hides the three <code>tester-*</code>
+    by default. Recording the truth and hiding by presentation keeps the two apart.</td></tr>
+  <tr><td>F34-Q12</td><td><strong>Future agent runs.</strong> New pseudonyms made by later agent runs
+    need either the operator's own token in the brief (the 2026-10-15 precedent) or another curator
+    record. The guide's sentence (Q9) asks for the first.</td></tr>
+  <tr><td>F34-Q13</td><td><strong>Docs search last.</strong> The sidebar is the no-JS fallback and the
+    first pass ships without search (handoff §3.3 allows it); T10 adds it and may be dropped.</td></tr>
+  <tr><td>F34-Q14</td><td><strong>Steward pages were designed signed out</strong> (handoff §3.5). Each
+    signed-in state is checked against the live site before its task closes.</td></tr>
+  <tr><td>F34-Q15</td><td><strong>The handoff folder is committed whole</strong> (owner, 2026-11-25),
+    23 MB of which 18 MB are screenshots, so every worktree sees what this spec cites.</td></tr>
+  <tr><td>F34-Q16</td><td><strong>One alarm colour (T1).</strong> F04-T55 gave the refuting side a teal
+    of its own, apart from the warning and failure reds. The handoff's scheme uses rust for refuted,
+    failed and warnings alike, and blue for proved only, so <code>--refute</code>, <code>--bad</code> and
+    <code>--warn</code> all resolve to <code>--refuted</code>. <code>test_the_refuting_colour_is_its_own_token</code>
+    is restated to that rule (rust apart from proved, ink and the literature marks), not deleted. The
+    Nocturne names stay as aliases until each page is rebuilt, so the September rules keep working.</td></tr>
+  <tr><td>F34-Q17</td><td><strong>What the T2 scan of the live graph found (2026-11-25, graph
+    257feba2).</strong> Raw TeX or Markdown markers reached readers in six places, all fixed: the
+    provenance sentence under a problem's statement (128 pages), the review page's lead (16), annex
+    titles, a statement's label as heading and panel title, the label in a drawing's SVG (markers
+    dropped, since SVG carries no markup), and a hole claim on singmaster. That last one is a
+    <strong>gate defect the site only works around</strong>: the post-merge job writes a hole's gloss
+    as <code>$$&lt;claim&gt;$$</code> after dropping the claim's outer dollars, which breaks a claim
+    of words and inline maths (<code>$\{...\}$ is finite for every $t$</code>). The site reads a
+    paragraph that is wholly such a block as the author's line; the writer's fix is a gate task with
+    a re-pin, left for the owner to schedule. Two hits are authored text, not rendering: an erdos-257
+    sentence whose closing <code>$</code> follows a space (not maths under the prose rule, F19-T6),
+    and an erdos-1050 explainer record that ends mid-formula. Both are left as written.</td></tr>
+  <tr><td>F34-Q18</td><td><strong>R6 is held page by page (T4).</strong> The live render showed 16,763
+    internal codes in visible text on 1,255 pages, almost all in the site's own sentences on the problem
+    and statement pages (&ldquo;No gloss yet &hellip; (D-3 v3.30)&rdquo; alone some 3,000 times), from
+    140 string literals in <code>render.py</code> and about 40 template lines. Those pages are rebuilt by
+    T11 and after, so rewriting each sentence twice was not worth it: T4 built the guard
+    (<code>test_f34_codes.py</code>, whose <code>CLEAN</code> list holds Rules and About today) and
+    every rebuild task adds its page to that list as it takes the codes out. Contributors' own words
+    are never rewritten, codes included.</td></tr>
+  <tr><td>F34-Q19</td><td><strong>What a Problems row counts (T5).</strong> &ldquo;With work on the
+    record&rdquo; is every problem except those that need a first steward and have nothing on the
+    ledger, which are &ldquo;Waiting for a first steward&rdquo;: so a calibration target or the
+    tutorial (no steward needed), a resolved problem and a stewarded one are all in the first
+    section. The mockup's &ldquo;runs&rdquo; is &ldquo;contributions&rdquo;, the ledger entries on
+    the problem (a pseudonym is not a run, Q10), and last activity is the newest entry's date. The
+    bar counts proved statements against open ones (<code>open_count</code>, the frontier's workable
+    set, witness work included). A row keeps the old card's status tag with its reasons, its
+    steward words, its words count and its collection; the fidelity tag is on the problem page.
+    <code>data-status</code> keeps its old meaning; the Status filter reads <code>data-stage</code>.
+    The old <code>?filter=</code> links map onto the new parameters, and the &ldquo;Needs a
+    steward&rdquo; link with its count (F23-R5) stays in the lead.</td></tr>
+  <tr><td>F34-Q20</td><td><strong>The site no longer lists open statements across problems (T5);
+    confirmed by the owner 2026-11-25: &ldquo;just open whole problems, not holes in problems&rdquo;.</strong> The Problems page was also the frontier page (F04-T12 merged
+    them): every problem's statements in rows, each with its state, its gloss's first sentence
+    (F20-R13's &ldquo;frontier page&rdquo; clause) and &ldquo;Work on this&rdquo;. The handoff's
+    Problems page lists problems only, and a problem's statements are on its own page. What a
+    statement row said is there, in its panel; the open count per problem is on each row; the
+    masthead's &ldquo;Work on a statement&rdquo; (<code>?filter=open</code>) keeps the problems with
+    open statements. Agents keep the whole list in <code>frontier.json</code> and through the MCP.
+    Nine existing test files that pinned the rows were restated to the problem and statement pages,
+    and F20-R13's frontier-row clause lapses with the list. If a cross-problem list of open
+    statements is wanted for people, it is a page of its own, not this one.</td></tr>
+  <tr><td>F34-Q21</td><td><strong>How Docs was split (T6).</strong> The single page's sections became
+    pages as they were (stewards, propose, review, registries, leiden, reading with its state map,
+    glossary, connect, licence); four pages were written new from AGENTS.md (overview, quick start,
+    getting a token, write the words), each fact checked against the guide's own sections, and one
+    of the mockup's sentences was wrong and not copied (the tutorial is &ldquo;always
+    precheckable&rdquo;, not &ldquo;always open&rdquo;). The token page names <code>idle_days</code>
+    rather than the service's 180, which is configuration and not on the record. AGENTS.md is served
+    whole at <code>/AGENTS.md</code>; a graph without one is linked at its place in the repository.
+    Every old anchor is the id of the landing's link to its page, and the site's own links go to the
+    pages directly. The moved pages keep their decision codes in prose until T7 rewrites them; the
+    four new ones carry them only at their foot. Docs search (T10) is not built.</td></tr>
+  <tr><td>F34-Q22</td><td><strong>What T7 left.</strong> &ldquo;Sign an explainer&rdquo; and
+    &ldquo;Check a statement is faithful&rdquo; were written on the owner's word (2026-11-25), each fact
+    checked against AGENTS.md's sections on signed explainers and on the formalization review. The reading page
+    (4,000 words with its state map) moved as it was. The Leiden row's &ldquo;an explainer still waits
+    for a person to press merge&rdquo; may be stale now that the merge actor takes appends, and was
+    not changed without checking.</td></tr>
+  <tr><td>F34-Q23</td><td><strong>The reference pages (T8).</strong> API routes is generated from
+    <code>opn_api.routes.ROUTES</code>, which imports nothing, so the site build gains
+    <code>api</code> on its path (site-deploy) and still needs none of the service's packages; what
+    each route is for stays with the live <code>GET /</code>, whose builder imports the web stack.
+    Error codes is generated from <code>opn_gate.codes.CATALOG</code> and shown verbatim, decision
+    numbers included, so the page reads exactly as <code>GET /errors.json</code> does; it is the
+    one Docs page the codes rule (R6) does not hold. MCP operations and rate limits are pointed at
+    (the service's <code>search</code>, AGENTS.md) rather than copied.</td></tr>
+  <tr><td>F34-Q24</td><td><strong>No &ldquo;GitHub linked&rdquo; badge or filter (T9); the owner's
+    answer, 2026-11-25: track contributors by GitHub, built by v3.51 (ii) and T13, T14, T23.</strong> The mockup
+    marks each person GitHub-linked or anonymous and filters on it. Whether an identity proved itself
+    with GitHub is in the service's token store, not on the graph, so the site cannot say it from the
+    record (D-35: nothing here becomes a second source of truth). The cards carry neither; if the owner
+    wants them, the record needs the fact first. A steward's GitHub login is on the record, and their
+    card shows it. Until operator records group identities (T13&ndash;T15), there is one card per
+    identity: 139 on the live graph.</td></tr>
+  <tr><td>F34-Q25</td><td><strong>T12 split: the folds (R15) are T24.</strong> T12 shipped the rest of R14:
+    the drawing opens on the proving set with the fewest open statements (its selector leaf, named on the
+    drawing as <code>data-home</code>), Esc and a second press come back to it rather than to every route,
+    and Tree and List are two tabs over the selector and the sets table, the table moved up beside the
+    tabs so List shows where Tree was; without the script both stay on the page. The List is F27's sets
+    table as it is: set, statements, proved, open, shared, assemblies, and the routes each set goes
+    through with Retire for a steward or curator (F31); a set's kind is its row's colour, and pressing a
+    row draws it, so the mockup's separate Kind, Draw and Statements columns were not added. The fold
+    boxes change the layout model itself (a fold is a mark in every view's layout, and unfolding one is a
+    new layout), which is larger than the rest of T12 and touches every layout test; they are T24 rather
+    than half-built here. Every F30 browser test of the whole drawing now opens at the
+    <code>#view=routes</code> bookmark, which still works, and asserts that clearing lands on the home
+    route. The full drawing is still one press away: the root of the tree.</td></tr>
+  <tr><td>F34-Q26</td><td><strong>&sect;2 is lists for now; the speculative column stays (T18).</strong> Every
+    statement no route uses is listed once in &sect;2, in the handoff's groups: proposed for a statement
+    (grouped by it, with the statements a proposed one rests on beside it), proposed for none, related
+    results, special cases no split uses, superseded with what replaced it. Checked on every problem of the
+    live graph: each statement is on a route or in &sect;2, exactly once (445 problems, 8 with a &sect;2).
+    Two parts of &sect;3.4.4 are not built: drawing each proposed group as a small tree with its links, and
+    taking the speculative-statements column out of &sect;1, which the small trees replace. Until then a
+    proposed statement is drawn in the column and listed in &sect;2. Selecting a &sect;2 statement into the
+    tabs is T16's.</td></tr>
+  <tr><td>F34-Q28</td><td><strong>How a fold sits in the drawing (T24; the owner's choice, 2026-11-26: a box, the
+    tree laid out again round it).</strong> Under each statement of a set's route, its children whose whole
+    subtree is proved, and reached from nowhere else, fold into one box when they hold at least two
+    statements; the route is laid out with the box in their place, and each fold has a second layout with
+    it open, which pressing the box moves to (the same transition as choosing a route; Esc or the route
+    again folds it). A subtree that a lemma or a use line reaches from elsewhere is not folded, so no line
+    is cut. Only a set's own view is folded, not the selector's branches and edges: on erdos-1094 that is
+    55 open layouts and 770 KB (folding every view was 125 and 2.9 MB). The phone outline folds by its own
+    rule (runs of proved siblings in reading order), so the two can box different statements. The page's
+    layouts on erdos-1094 are 4.6 MB, 2.4 MB of them the follow-the-proof twins that only a bookmark now
+    reaches (Q7); dropping them is the owner's call.</td></tr>
+  <tr><td>F34-Q27</td><td><strong>T23 built the holder's half; the automatic filing at a first GitHub token is
+    the owner's to confirm.</strong> <code>POST /me/name</code> (and the MCP's <code>set_display_name</code>) takes
+    <code>"github": true</code> and writes <code>display-name/v2</code> with the login from the identity's own
+    GitHub proof, never from the call; an identity proved otherwise is refused <code>400
+    github-not-paired</code>; the duplicate guard tells the two records apart. My problems has a &ldquo;How you
+    are named&rdquo; form whose box is unticked, so an identity paired before v3.51 publishes only when its
+    holder asks. The first web sign-in now says, before the tick, that Contributors lists the person's work
+    under their GitHub login, which is already true there: a web sign-in's pseudonym is its login. Not built:
+    filing the record by itself at an identity's first GitHub token. That would make every first token open a
+    pull request on the graph, and for an agent's token, whose pseudonym is chosen, it publishes a login the
+    holder may not expect; the form and the flag cover the case without it. <strong>Ruled 2026-11-26</strong>: the owner deferred to the builder's judgement, and the automatic filing is not built. Publishing a login stays the holder's own act, at first sign-in or later. R22's &ldquo;when an identity is first made through GitHub&rdquo; is met by the sign-in notice and the form, not by a record filed unasked.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> specced 2026-11-25 · <strong>Tasks:</strong> (24 tasks; T13&ndash;T15 and T23 are v3.51) T1 done (tokens, fonts, frame: 11 new tests, two restated (Q16), goldens
+regenerated; <code>engineering/evidence/F34/task-1.txt</code>, 26 captures) · T2 done (raw TeX and
+markers: 9 new tests, the live scan from six kinds of hit to the two authored ones of Q17;
+<code>task-2.txt</code>) · T3 done (phone and Rules layout: 18 browser checks; every live page at 390,
+17 of 453 too wide before, none after; <code>task-3.txt</code>) · T4 done (the codes guard with Rules and About clean, Q18; a motion
+passed without a vote says so; the no-account note beside Sign in; <code>task-4.txt</code>) ·
+T5 done (Problems: 8 fast and 9 browser tests, the browser ones shown to bite; 118,897px to 6,997px
+on the live graph; 19 older test files restated to the new page, Q19, Q20; <code>task-5.txt</code>) ·
+T6 done (Docs one page per topic: 17 tests, red against the previous commit; /docs/ 97,758px to
+2,005px on the live graph; AGENTS.md served whole and copied nowhere; Q21; <code>task-6.txt</code>) ·
+T7 done (codes out of every Docs page's prose and to its foot; How a problem is worked, Claim a
+statement, Precheck and submit, Sign an explainer, Check a statement is faithful; two stale Leiden
+claims corrected; the reading page keeps its length, Q22; <code>task-7.txt</code>) · T8 done (API routes and error codes generated from the service's own tables,
+Q23; <code>task-8.txt</code>) · T9 done (Contributors: stewards, one card per identity until T14, test runs
+held back, the ledger folded; 43,242px to 14,788px on the live graph; Q24; <code>task-9.txt</code>) ·
+T13 done (v3.51 applied; operator/v1 and display-name/v2 in the gate, newest record wins; the
+guide's graph copy on graph branch <code>f34-t13-agents</code>, unpushed; <code>task-13.txt</code>) ·
+T14 done (Contributors lists identities under their operator, by operator record and by GitHub login,
+with display names; test runs never folded in; <code>task-14.txt</code>) · T20 done (Home: §1 the featured problem as Figure 1, §2 the rules numbered and struck, §3, §4;
+<code>task-20.txt</code>) · T11 done (problem page: head with mark and one sentence, &ldquo;On this page&rdquo;, &sect;1 &sect;3&ndash;&sect;6, needs card, definitions linked never printed, follow toggle off (Q7); abc 20,069&rarr;3,463px at 1440; <code>task-11.txt</code>) · T12 done (opens on the fewest-open proving route, Esc comes back to it, Tree and List tabs; the folds split to T24, Q25; <code>task-12.txt</code>) · T18 done (&sect;2 Not on a route, every statement placed once on all 445 live problems; small trees and the column's removal left, Q26; <code>task-18.txt</code>) · T23 done (the holder asks: <code>github: true</code> on <code>POST /me/name</code> and the MCP, a form on My problems, the sign-in notice; the automatic filing left to the owner, Q27; <code>task-23.txt</code>) · T19 part (R20: My problems by statement, most waiting first, one &ldquo;Approve all&rdquo; per statement sending one approval per version; a stale gloss no button could approve is no longer listed; <code>task-19.txt</code>; then the sign-up page's five &ldquo;what happens next&rdquo; steps, each with its way in; then the review page: &ldquo;Does the Lean say &hellip;?&rdquo;, who does what, the questions first and grouped by kind, the exhibits folded, the TeX rendered; T19 done) · T10 done (Docs search: the index written at build as JSON and as a same-origin script, since the site's policy lets a page connect only to the service; the box hidden without the script; <code>task-10.txt</code>) · T16 done (each panel's tabs Claim, Proof, Known, Work, Record for the parts it has, its path from the problem drawn heavier, the action and &ldquo;Open its page&rdquo; always visible, Esc back to the problem's statement; no counts in the tab labels and no line from the box to the panel yet; <code>task-16.txt</code>) · T17 done (at phone width the selected route is an outline, indented by depth, 44px rows, following the selection; a tapped statement's record opens under it, a second tap closes it; folds wait for T24; <code>task-17.txt</code>) · T24 done (the outline's folds, then the drawing's on the owner's choice, 2026-11-26: a set's route laid out with each fold one box, the tree laid out again with it open; Q28; <code>task-24.txt</code>) · T15, T21, T22 todo · v3.51 approved 2026-11-25 (Q9)</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered, in the handoff's order of work (§7). Each task: red test
+first, then green; <code>make verify</code>; captures at 1440 and 390 for visual work under
+<code>engineering/evidence/F34/</code>. <code>PW</code> below is
+<code>uv run --frozen --with 'playwright==1.58.0' python -m pytest</code>.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F34-T1</td><td>Tokens, fonts and the frame (R1&ndash;R3): vendored fonts with manifest, tokens
+    light and dark, header and footer.</td>
+    <td><code>site/opn_site/static/{site.css,fonts/}</code>, <code>site/opn_site/templates/base.html</code>,
+    <code>site/opn_site/render.py</code>, <code>site/tests/test_f34_frame.py</code>, goldens</td>
+    <td>&mdash;</td><td><code>uv run --frozen pytest site/tests/test_f34_frame.py</code></td></tr>
+  <tr><td>F34-T2</td><td>Inline text (R4): TeX and markdown in titles, subtitles and hole claims
+    (abc, erdos-257, singmaster).</td>
+    <td><code>site/opn_site/{render,prose}.py</code>, <code>site/tests/test_f34_inline_text.py</code></td>
+    <td>T1</td><td><code>uv run --frozen pytest site/tests/test_f34_inline_text.py</code></td></tr>
+  <tr><td>F34-T3</td><td>Phone and Rules layout (R5): the Rules table, Problems' display maths and badge
+    rows at 390.</td>
+    <td><code>site/opn_site/static/site.css</code>, <code>render.py</code> (<code>rules</code>),
+    <code>site/tests/test_f34_phone_browser.py</code></td>
+    <td>T1</td><td><code>PW site/tests/test_f34_phone_browser.py</code></td></tr>
+  <tr><td>F34-T4</td><td>The codes guard (R6, held page by page: Q18), the panel's &ldquo;passed, 0 yes
+    &middot; 0 no&rdquo; wording, and a line beside Sign in saying contributing needs no account.
+    Every later task that rebuilds a page adds it to the guard's <code>CLEAN</code> list.</td>
+    <td><code>site/opn_site/{render.py,templates/*}</code>, <code>site/tests/test_f34_codes.py</code></td>
+    <td>T1</td><td><code>uv run --frozen pytest site/tests/test_f34_codes.py</code></td></tr>
+  <tr><td>F34-T5</td><td>Problems (R7): rows, waiting table, filter bar, URL parameters, paging.</td>
+    <td><code>site/opn_site/{render.py,templates/problems.html,templates/problem-row.html,static/problems.js}</code>,
+    <code>site/tests/test_f34_problems{,_browser}.py</code></td>
+    <td>T1</td><td><code>uv run --frozen pytest site/tests/test_f34_problems.py && PW site/tests/test_f34_problems_browser.py</code></td></tr>
+  <tr><td>F34-T6</td><td>Docs split, first pages (R8): the docs frame and sidebar, Overview, Quick start,
+    Getting a token, AGENTS.md raw and linked, the old anchors mapped.</td>
+    <td><code>site/opn_site/{render.py,templates/docs*.html}</code>, <code>site/docs/*.md</code>,
+    <code>site/tests/test_f34_docs.py</code></td>
+    <td>T1</td><td><code>uv run --frozen pytest site/tests/test_f34_docs.py</code></td></tr>
+  <tr><td>F34-T7</td><td>Docs, the remaining guides, section by section, each fact checked against
+    AGENTS.md.</td>
+    <td><code>site/docs/*.md</code>, <code>site/tests/test_f34_docs.py</code></td>
+    <td>T6</td><td><code>uv run --frozen pytest site/tests/test_f34_docs.py</code></td></tr>
+  <tr><td>F34-T8</td><td>Docs reference pages generated (R9).</td>
+    <td><code>site/opn_site/render.py</code>, <code>site/tests/test_f34_docs_reference.py</code></td>
+    <td>T6</td><td><code>uv run --frozen pytest site/tests/test_f34_docs_reference.py</code></td></tr>
+  <tr><td>F34-T9</td><td>Contributors (R10&ndash;R12): stewards, operator cards (one per identity until
+    T14), model names normalised, test runs hidden, the folded ledger.</td>
+    <td><code>site/opn_site/{render.py,config.py,templates/contributors.html,static/contributors.js}</code>,
+    <code>site/tests/test_f34_contributors.py</code></td>
+    <td>T1</td><td><code>uv run --frozen pytest site/tests/test_f34_contributors.py</code></td></tr>
+  <tr><td>F34-T10</td><td>Docs search (Q13): a JSON index written at build, a same-origin script.</td>
+    <td><code>site/opn_site/{render.py,static/docs.js}</code>, <code>site/tests/test_f34_docs_search_browser.py</code></td>
+    <td>T7</td><td><code>PW site/tests/test_f34_docs_search_browser.py</code></td></tr>
+  <tr><td>F34-T11</td><td>Problem page frame (R13, R19): the new order, the statement as headline, stage
+    mark, margin notes, sections &sect;3&ndash;&sect;6, the empty-problem card, shared definitions linked;
+    the info-map test captured from <code>origin/main</code> first.</td>
+    <td><code>site/opn_site/{render.py,templates/target.html}</code>,
+    <code>site/tests/test_f34_{infomap,empty_problem}.py</code></td>
+    <td>T2</td><td><code>uv run --frozen pytest site/tests/test_f34_infomap.py site/tests/test_f34_empty_problem.py</code></td></tr>
+  <tr><td>F34-T12</td><td>Routes and the route drawing (R14, R15): Tree and List, one route drawn,
+    folds, the opening route, Retire, uses boxes, speculative links.</td>
+    <td><code>site/opn_site/{render.py,one_view.py,routes_view.py,dag.py,static/graph.js}</code>,
+    <code>site/tests/test_f34_routes.py</code></td>
+    <td>T11</td><td><code>uv run --frozen pytest site/tests/test_f34_routes.py</code></td></tr>
+  <tr><td>F34-T13 <em>(v3.51)</em></td><td>Apply the amendment to the decisions doc, and the gate's
+    two records: <code>operator/v1</code> (path role, curator mode, newest-wins reading, an identity
+    held by one operator) and <code>display-name/v2</code> with the GitHub login (written by the
+    service only) (R21, R22).</td>
+    <td><code>docs/architecture_decisions.html</code>, <code>gate/schemas/operator/v1.json</code>,
+    <code>gate/schemas/HASHES</code>, <code>gate/opn_gate/{paths,modes}.py</code>,
+    <code>gate/tests/test_f34_operator_record.py</code>, goldens</td>
+    <td>&mdash;</td><td><code>uv run --frozen pytest gate/tests/test_f34_operator_record.py</code></td></tr>
+  <tr><td>F34-T14 <em>(v3.51)</em></td><td>Contributors lists identities under their operator, by
+    operator record and by GitHub login, with display names (R23).</td>
+    <td><code>gate/opn_gate/ledger.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/tests/test_f34_contributors.py</code></td>
+    <td>T9, T13</td><td><code>uv run --frozen pytest site/tests/test_f34_contributors.py</code></td></tr>
+  <tr><td>F34-T15 <em>(v3.51)</em></td><td>The backfill: after the re-pin that carries T13, a curator pull
+    request adding one operator record for <code>thisisanameforsure</code> (Q11), rehearsed with the
+    pinned gate's <code>classify</code> first; then a render.</td>
+    <td><code>../open_proof_network_graph/operators/thisisanameforsure/*.yaml</code></td>
+    <td>T13, T14, re-pin</td><td><code>engineering/evidence/F34/task-15.txt</code>: classify output, the
+    merged PR, the live Contributors capture</td></tr>
+  <tr><td>F34-T16</td><td>Selection and the five tabs (R16), the panel beside the tree, Esc.</td>
+    <td><code>site/opn_site/{render.py,templates/statement-panel.html,static/graph.js}</code>,
+    <code>site/tests/test_f34_select_browser.py</code></td>
+    <td>T12</td><td><code>PW site/tests/test_f34_select_browser.py</code></td></tr>
+  <tr><td>F34-T17</td><td>The phone outline and the record under the statement (R17).</td>
+    <td><code>site/opn_site/{static/site.css,static/graph.js,render.py}</code>,
+    <code>site/tests/test_f34_select_browser.py</code></td>
+    <td>T16</td><td><code>PW site/tests/test_f34_select_browser.py</code></td></tr>
+  <tr><td>F34-T18</td><td>Not on a route (R18).</td>
+    <td><code>site/opn_site/{render.py,one_view.py}</code>, <code>site/tests/test_f34_not_on_route.py</code></td>
+    <td>T12</td><td><code>uv run --frozen pytest site/tests/test_f34_not_on_route.py</code></td></tr>
+  <tr><td>F34-T19</td><td>Steward pages (R20, Q14): sign-up with what happens next, My problems grouped
+    with approve-a-statement, the review page's questions first.</td>
+    <td><code>site/opn_site/{render.py,templates/review.html,static/{me,words,steward}.js}</code>,
+    <code>site/tests/test_f34_me_browser.py</code></td>
+    <td>T1</td><td><code>PW site/tests/test_f34_me_browser.py</code></td></tr>
+  <tr><td>F34-T20</td><td>Home in the new look (handoff &sect;3.0): Figure 1, the six rules struck
+    through, where you come in, lately on the record.</td>
+    <td><code>site/opn_site/{render.py,templates/home.html}</code>, <code>site/tests/test_finding_home_page.py</code></td>
+    <td>T1</td><td><code>uv run --frozen pytest site/tests/test_finding_home_page.py</code></td></tr>
+  <tr><td>F34-T21</td><td>Every page captured at 1440 and 390 against its mockup, side by side, and
+    each difference either fixed or recorded here.</td>
+    <td><code>engineering/evidence/F34/shoot.py</code></td>
+    <td>T1&ndash;T20</td><td><code>uv run --frozen --with 'playwright==1.58.0' python engineering/evidence/F34/shoot.py</code></td></tr>
+  <tr><td>F34-T22</td><td>Live: merge, <code>site-deploy.yml</code> dispatched (a network push deploys
+    the api, never the site), the live pages captured.</td>
+    <td>&mdash;</td><td>T21</td><td><code>engineering/evidence/F34/task-22.txt</code>: run ids and live
+    captures</td></tr>
+  <tr><td>F34-T23 <em>(v3.51)</em></td><td>The service files the GitHub link (R22): at an identity's
+    first GitHub token, after the sign-in says so; for an existing GitHub identity, when its holder asks
+    from My problems (<code>POST /me/name</code> with the link).</td>
+    <td><code>api/opn_api/{identity,names}.py</code>, <code>site/opn_site/static/me.js</code>,
+    <code>api/tests/test_f34_github_link.py</code></td>
+    <td>T13</td><td><code>uv run --frozen pytest api/tests/test_f34_github_link.py</code></td></tr>
+  <tr><td>F34-T24</td><td>The folds (R15, Q25): each run of proved statements in a drawn route is a
+    visible box naming how many it holds; activating it unfolds them in place (a new layout); a split with
+    many holes unfolds as a grid, deeper levels as &ldquo;&#9656; n open below&rdquo;.</td>
+    <td><code>site/opn_site/{one_view,dag}.py</code>, <code>site/opn_site/static/graph.js</code>,
+    <code>site/tests/test_f34_folds.py</code></td>
+    <td>T12</td><td><code>uv run --frozen pytest site/tests/test_f34_folds.py</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F34 spec v1 · 2026-11-25 · specs are authored in HTML</footer>
+</body>
+</html>

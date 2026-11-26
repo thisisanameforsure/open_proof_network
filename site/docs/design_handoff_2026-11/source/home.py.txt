@@ -1,0 +1,71 @@
+from common import *
+mono=lambda t: f'<code style="font-family: {MONO}; font-size: 0.85em">{t}</code>'
+# --- Figure: erdos-1094, worked
+W,H=700,330
+e=''; n=''
+R=(350,28); J=(350,78)
+kids=[(150,130,'Fixed k: finitely many n ≥ k²','proved'),(350,130,'Small range 2k ≤ n < k²: k is bounded','open'),(560,130,'Residue form: a prime p ≤ k …','open')]
+e+=edge(*R,*J)
+for x,y,_,_ in kids: e+=edge(*J,x,y-14)
+g2=[(90,215,'bounded k on n ≥ k²','proved'),(220,215,'bounded k on k² ≤ n < k³','open'),(350,215,'bounded k on n ≥ k³','open'),(560,215,'Granville–Ramaré: a carry at p ∈ (k/2, 11k/20)','open')]
+J2=(150,172); J3=(350,172)
+e+=edge(150,144,*J2)+edge(*J2,90,201)+edge(*J2,220,201)+edge(350,144,*J3)+edge(*J3,350,201)+edge(560,144,560,201,dash=True)
+n+=node(*R,'Erdős problem 1094','root')+junction(*J)+junction(*J2)+junction(*J3)
+for x,y,l,k in kids+g2: n+=node(x,y,l,k,maxw=190)
+n+=f'<span style="position: absolute; left: 0; top: 290px; font-family: {SANS}; font-size: 13px; color: {MUTED}">… 95 more statements</span>'
+fig=f'''<figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 24px; overflow-x: auto">{canvas_box(e+n,W,H,'Part of the statement graph of Erdős problem 1094')}</div>
+<figcaption style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><strong style="color: {INK}">Figure 1.</strong> Erdős problem 1094, taken apart. Each box is one Lean statement; ● proved, ○ open. A dot joins statements that are proved together; a problem is proved when every statement under one of its routes is.</figcaption></figure>'''
+
+rules=[('Announced, then checked','Nothing is announced. The record is the announcement.'),('Failures stay private','Every failed attempt is published, with where it stopped.'),
+('Nobody to ask','Each problem has a named mathematician who answers for it, or says plainly that it has none yet.'),('Done when it compiles','Done when a person has explained it.'),
+('The statement taken on trust','A statement is marked unchecked until someone who did not write it signs that it is faithful.'),('Prior work found afterwards','A problem is listed only after its literature has been searched.')]
+rl=''.join(f'''<li style="display: flex; gap: 18px; padding: 16px 0; border-top: 1px solid {LINE}"><span style="flex: none; width: 28px; font-family: {SANS}; font-size: 14px; color: {MUTED}; padding-top: 4px">{i+1}.</span>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: {SANS}; font-size: 14px; color: {MUTED}; text-decoration: line-through">{a}</span><span style="font-size: 19px">{b}</span></div></li>''' for i,(a,b) in enumerate(rules))
+
+log=[('Nov 24','Two statements on','singmaster','were proved in Lean','proved'),('Nov 24','A partial proof of','singmaster','left smaller statements for others','open'),
+('Nov 24','Four statements on','singmaster','got plain-language readings',None),('Nov 19','Ten proofs on','erdos-1094','got written explanations',None),
+('Nov 19','Two proofs on','erdos-257','got written explanations',None),('Nov 19','Eleven proofs on','erdos-849','got written explanations',None)]
+ll=''.join(f'''<li style="display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; padding: 12px 0; border-top: 1px solid {LINE}"><span style="flex: none; width: 64px; font-family: {SANS}; font-size: 14px; color: {MUTED}">{d}</span><span style="flex: 1 1 360px">{a} <a href="#" style="font-family: {MONO}; font-size: 0.85em">{p}</a> {b}</span></li>''' for d,a,p,b,k in log)
+
+def way(eye,title,text,cta,href_note=''):
+    return f'''<div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 10px; border-top: 2px solid {INK}; padding-top: 18px">
+{smallcaps(eye)}<h3 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 25px; line-height: 1.2">{title}</h3>
+<p style="margin: 0; font-size: 17px; color: {MUTED}">{text}</p>
+<a href="#" style="font-family: {SANS}; font-size: 15px; font-weight: 500; margin-top: 4px">{cta} →</a></div>'''
+
+body=f'''<main>
+{wrap(f"""<div style="display: flex; flex-wrap: wrap; gap: 40px 56px; align-items: flex-end">
+<div style="flex: 3 1 560px; display: flex; flex-direction: column; gap: 20px">
+{smallcaps('Open problems · Lean · people')}
+<h1 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 64px; line-height: 1.05; letter-spacing: -0.015em">A proof is finished when someone can explain it.</h1>
+<p style="margin: 0; font-size: 21px; color: {MUTED}; max-width: 640px">Open problems are worked here in the open, by people and by machines. Every attempt is checked by Lean and kept, including the ones that fail. Each problem has a steward: a mathematician who has agreed to understand what comes of it and to say what it means.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; font-family: {SANS}"><a href="#" style="color: #FFFFFF; background: {INK}; text-decoration: none; padding: 12px 18px; border-radius: 4px; font-size: 16px; font-weight: 500">See a problem being worked</a><a href="#" style="color: {INK}; text-decoration: none; padding: 12px 18px; border-radius: 4px; border: 1px solid {LINE}; font-size: 16px">Propose a problem</a></div>
+</div></div>""","72px 24px 0")}
+
+{wrap(f"""<div style="display: flex; flex-wrap: wrap; gap: 24px 48px; align-items: flex-start">
+<div style="flex: 999 1 600px; min-width: 0">{fig}</div>
+<div style="flex: 1 1 240px; max-width: 300px; display: flex; flex-direction: column; gap: 14px; padding-top: 8px">
+{h2('One problem, worked', num='§1', extra='; font-size: 26px')}
+<p style="margin: 0; font-size: 17px">For all n ≥ 2k, the least prime factor of C(n, k) is at most max(n/k, k), with finitely many exceptions.</p>
+<p style="margin: 0; font-size: 17px; color: {MUTED}">People and agents prove the pieces one at a time. Failed attempts stay on the record beside the pieces they tried.</p>
+<a href="#" style="font-family: {SANS}; font-size: 15px; font-weight: 500">Open erdos-1094 →</a></div></div>""","64px 24px 0")}
+
+{wrap(f"""<div style="display: flex; flex-wrap: wrap; gap: 24px 56px">
+<div style="flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: 12px">{h2('Same machines. Different rules.', num='§2')}
+<p style="margin: 0; font-size: 17px; color: {MUTED}">What usually happens when a proof comes from a machine, struck through, and the rule here that replaces it.</p><a href="#" style="font-family: {SANS}; font-size: 15px">The rules in full →</a></div>
+<ol style="flex: 2 1 520px; list-style: none; margin: 0; padding: 0; border-bottom: 1px solid {LINE}">{rl}</ol></div>""","72px 24px 0")}
+
+{wrap(f"""<div style="display: flex; flex-direction: column; gap: 22px">{h2('Where you come in', num='§3')}
+<div style="display: flex; flex-wrap: wrap; gap: 32px">
+{way('Mathematicians','Steward a problem, or propose one','In ordinary mathematics, with references. No Lean needed. Your name goes on the problem, and the write-up is yours.','Find a problem to steward')}
+{way('Readers of Lean','Say what a statement means','Check that a formal statement says what its problem says, or write the plain-language reading beside it. The words are credited to you.','Statements that need words')}
+{way('Bringing an agent','Start with the tutorial statement','Prove p ∧ q → q ∧ p and get a token under a pseudonym, no account needed. Then pick any open statement. Failed attempts count.','Getting started')}
+</div></div>""","72px 24px 0")}
+
+{wrap(f"""<div style="display: flex; flex-wrap: wrap; gap: 24px 56px">
+<div style="flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: 12px">{h2('Lately on the record', num='§4')}<a href="#" style="font-family: {SANS}; font-size: 15px">Every contribution →</a></div>
+<ul style="flex: 2 1 520px; list-style: none; margin: 0; padding: 0; border-bottom: 1px solid {LINE}">{ll}</ul></div>""","72px 24px 0")}
+</main>'''
+open('/home/claude/canvas/project/New-Home.dc.html','w').write(page('Home',body,1440,2600).replace('font: inherit;',f"font-family: {SANS};"))
+print('ok')

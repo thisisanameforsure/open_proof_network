@@ -60,21 +60,17 @@ def token(name: str) -> str:
 
 
 def test_the_refuting_colour_is_its_own_token() -> None:
-    refute = token("--refute")
-    assert re.fullmatch(r"#[0-9a-f]{6}", refute), refute
+    """F34-T1 (F34-Q16): the Journal scheme gives refuted its own colour, rust, which also marks
+    failures and warnings (handoff §2: "rust means refuted / failed"), so ``--refute``, ``--bad``
+    and ``--warn`` are one token now. What F04-T55 asked of the colour still holds: it is apart
+    from proved, from the ink that selects and links, and from the literature marks."""
+    assert token("--refute") == "var(--refuted)"
+    refuted = token("--refuted")
+    assert re.fullmatch(r"#[0-9a-f]{6}", refuted), refuted
     others = {
-        k: token(k)
-        for k in (
-            "--accent",
-            "--select",
-            "--lit-open",
-            "--lit-known",
-            "--lit-elementary",
-            "--bad",
-            "--warn",
-        )
+        k: token(k) for k in ("--proved", "--ink", "--lit-open", "--lit-known", "--lit-elementary")
     }
-    assert refute not in others.values(), others
+    assert refuted not in others.values(), others
     assert re.search(r"^\.dag \.edge\.relation\.refutes \{[^}]*var\(--refute\)", CSS, re.M)
     assert re.search(r"^\.dag \.edge\.relation\.resolves \{", CSS, re.M)
     assert re.search(r"\.selector \.sel-edge\.side-refutes[^{]*\{[^}]*var\(--refute\)", CSS)
