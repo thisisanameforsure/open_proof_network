@@ -291,10 +291,10 @@ def test_every_statement_proved_leaves_the_assemblies() -> None:
 # --- R6: minimality -------------------------------------------------------------------------
 
 
-def test_finest_keeps_every_full_expansion_any_drops_the_dominated() -> None:
-    """F27-T7 (the owner, 2026-10-15: show every set that goes all the way to the leaves): each
-    choice of routes is a finest set, even one needing strictly more than another; only the
-    coarser cuts (``cut: any``) drop a dominated set."""
+def test_finest_and_any_both_drop_a_set_needing_strictly_more() -> None:
+    """F27-T7 kept every full expansion (the owner, 2026-10-15); F27-R14 (D-25 v3.52, the owner,
+    2026-11-25) overturns that: a finest set needing strictly more than another is not offered,
+    and the coarser cuts drop it as before."""
     g = doc(
         node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1", "t--h2"]]),
         hole("t--h1"),
@@ -306,7 +306,7 @@ def test_finest_keeps_every_full_expansion_any_drops_the_dominated() -> None:
         hole("t--h2--h1"),
         hole("t--h2--h2"),
     )
-    assert open_sets(routes.read(g)) == [["t--h1"], ["t--h1", "t--h2--h1", "t--h2--h2"]]
+    assert open_sets(routes.read(g)) == [["t--h1"]]
     assert ["t--h1", "t--h2--h1", "t--h2--h2"] not in open_sets(routes.read(g, cut="any"))
 
 
@@ -539,13 +539,16 @@ def test_as_dict_round_trips_through_json() -> None:
 
 
 def followed_doc() -> dict[str, Any]:
-    """Root ``t`` with two routes, ``[a, p]`` and ``[q]``. ``p`` is proved and decomposed into
+    """Root ``t`` with two routes, ``[a, p]`` and ``[q, r]``, ``a`` and ``r`` open (each route
+    needs one open statement the other does not, so neither is strictly harder, F27-R14). ``p``
+    is proved and decomposed into
     ``[p--h1, p--h2]``, both proved, but its proof's term used ``p--h1`` alone: the proof went
     past the route. ``q`` is proved and its term used both holes of its one route: the proof
     is the route's assembly."""
     return doc(
-        node("t", decompositions=[["t--a", "t--p"], ["t--q"]]),
+        node("t", decompositions=[["t--a", "t--p"], ["t--q", "t--r"]]),
         node("t--a"),
+        node("t--r"),
         node(
             "t--p",
             "proved",
@@ -577,20 +580,20 @@ def test_follow_adds_what_each_proved_member_rests_on_and_changes_no_set() -> No
     follow = routes.read(g, [], at_proved="follow")
     assert (stop.at_proved, follow.at_proved) == ("stop", "follow")
     assert [s.id for s in stop.sets] == [s.id for s in follow.sets]
-    assert open_sets(stop) == open_sets(follow) == [["t--a"], []]
+    assert open_sets(stop) == open_sets(follow) == [["t--a"], ["t--r"]]
     assert [(s.assemblies, s.routes) for s in stop.sets] == [
         (s.assemblies, s.routes) for s in follow.sets
     ]
     assert routes.selector_tree(stop).as_dict() == routes.selector_tree(follow).as_dict()
-    assert [s.statements for s in stop.sets] == [("t--a", "t--p"), ("t--q",)]
+    assert [s.statements for s in stop.sets] == [("t--a", "t--p"), ("t--q", "t--r")]
     # p's proof used p--h1 alone: p--h1 joins, p--h2 does not, and no route is followed
     assert follow.sets[0].statements == ("t--a", "t--p", "t--p--h1")
     assert follow.sets[0].proved == ("t--p", "t--p--h1")
     assert follow.sets[0].proof_routes == ()
     # q's proof used both holes of its route: the route is the proof's own structure
-    assert follow.sets[1].statements == ("t--q", "t--q--h1", "t--q--h2")
+    assert follow.sets[1].statements == ("t--q", "t--q--h1", "t--q--h2", "t--r")
     assert follow.sets[1].proof_routes == ("t--q@1",)
-    assert (follow.sets[1].closed, follow.sets[1].remaining) == (3, 0)
+    assert (follow.sets[1].closed, follow.sets[1].remaining) == (3, 1)  # r stays open
     assert all(s.proof_routes == () for s in stop.sets)
     for s in follow.sets:
         assert closes_root(g, set(s.statements)), s.id
@@ -696,8 +699,13 @@ def test_live_shape_sets_close_the_root() -> None:
     result = routes.read(graph, entries)
     assert len(result.routes) == 16
     assert all(r.resolved for r in result.routes)
-    assert len(result.sets) == 4  # two statements with two live routes each: 2 x 2
-    assert len({s.id for s in result.sets}) == 4
+    # two statements with two live routes each make 2 x 2 expansions; F27-R14 drops the two
+    # that contain the first (each mixes one route of each pair with the other's), leaving two
+    # sets neither of which contains the other, and every route still in one of them
+    assert len(result.sets) == 2
+    a, b = (set(s.open) for s in result.sets)
+    assert not a <= b and not b <= a
+    assert routes.dominated(graph).routes == frozenset()
     for s in result.sets:
         assert closes_root(graph, set(s.statements)), s.id
     coarse = routes.read(graph, entries, cut="any")
@@ -737,11 +745,12 @@ def test_cap_counts_minimal_sets_not_intermediate_combinations() -> None:
 def test_finest_sets_reach_the_leaves() -> None:
     """F27-T7: on erdos-1094 of 2026-10-15 every finest set is a full expansion — each of its
     open statements has no live route of its own, so nothing in it could be expanded further —
-    and there is one per combination of route choices (h2--h1 and h3 have two live routes each)."""
+    and (h2--h1 and h3 having two live routes each) the four combinations less the two that need
+    strictly more than another (F27-R14)."""
     graph, entries = live("erdos-1094-20261015")
     result = routes.read(graph, entries)
     expandable = {r.node for r in result.routes if r.live}
-    assert len(result.sets) == 4
+    assert len(result.sets) == 2
     for s in result.sets:
         assert not set(s.open) & expandable, s.id
         assert closes_root(graph, set(s.statements)), s.id

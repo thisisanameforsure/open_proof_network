@@ -38,7 +38,11 @@ def placed(page: str) -> Counter[str]:
 
 
 def on_route(page: str) -> set[str]:
-    return {n for n in layouts_in(page)["routes"]["nodes"] if "@" not in n}
+    """Drawn on a route: in the routes view, or (F27-R14, D-25 v3.52) on a strictly harder route,
+    drawn in the ``harder`` view behind its own toggle — on a route either way, never in §2."""
+    lays = layouts_in(page)
+    views = [lays["routes"], *([lays["harder"]] if "harder" in lays else [])]
+    return {n for v in views for n in v["nodes"] if "@" not in n}
 
 
 def every_statement(root: Path) -> set[str]:

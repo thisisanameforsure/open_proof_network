@@ -742,6 +742,16 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "shelving record (D-14 v3.47)",
     ),
     (
+        "harder",
+        "strictly harder",
+        "Every way to settle the problem through this statement needs everything some other "
+        "way needs, and more, so it is not offered: it is hidden from the routes view, off the "
+        "frontier and out of the sets, and no one can claim it. Nobody decided this; it is "
+        "worked out again at every merge, so it comes back by itself once the extra work is "
+        "done or a new route changes the picture. Work on it is still accepted.",
+        "strictly harder route (D-25 v3.52)",
+    ),
+    (
         "attempt",
         "Attempt",
         "Any proof submitted, pass or fail. Failures are kept on the record and count as "
@@ -781,6 +791,7 @@ ROUTE_MARK_KEYS = (
     "relation-refutes",
     "relation-partial",  # F30-T16
     SHELVED,  # F31-T10 (R7): a mark on a statement's pill, not a status (F31-Q7)
+    "harder",  # F27-R14 (D-25 v3.52): a mark too, never a status
 )
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
@@ -1720,7 +1731,7 @@ class Renderer:
             "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
             + self.literature_key(self.literature_marks(tv).values())
             # F34-T21: the problem page folds the key and places the toggle beside the fold
-            + (drawn.toggle if drawn and toggle else "")
+            + (drawn.toggle + drawn.harder_toggle if drawn and toggle else "")
         )
 
     # -- F04-T54 (D-25 v3.45): the literature mark ------------------------------------------
@@ -3302,7 +3313,8 @@ class Renderer:
             steward_card=self.steward_card(tv),
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv, picture, toggle=False),
-            view_toggle=picture.toggle,  # F34-T21: beside the folded key, never inside it
+            # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
+            view_toggle=picture.toggle + picture.harder_toggle,
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
             selector=selector_block,

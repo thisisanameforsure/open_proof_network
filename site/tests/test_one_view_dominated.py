@@ -1,0 +1,142 @@
+"""F27-T13 (R14; D-25 v3.52): the problem page draws a strictly harder route only on request.
+
+Root ``t`` with two routes: ``[a]`` and ``[a, b, p]``, ``b`` open and ``p`` proved. The second
+needs everything the first needs and ``b`` besides, so it is dominated with ``b`` and ``p``.
+
+Under F34 every statement is placed exactly once, drawn on a route or listed in "Not on a route"
+(§2). A strictly harder statement is on a route, so §2 never lists it; the drawing has a view of
+its own for it (``harder``: the routes view and the strictly harder routes), reached by a toggle
+of its own beside the key, which counts the routes and statements it adds and how many of those
+are proved. The general toggle appears only when something is on no route.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Any
+
+from test_decompositions import HOLE_IDS
+from test_one_view import browser, classes, element, layouts_in
+from test_products import attest as gate_attest
+from test_products import nodes_dir
+from test_routes_view import THIRD, node, two_routes
+
+from opn_gate import routes
+from opn_site import one_view, render
+
+
+def harder_doc(*, stray: bool = False) -> dict[str, Any]:
+    """``stray`` adds ``u``, an authored statement on no route: the general toggle's own case."""
+    rows = [
+        node("t", origin="authored", routes=[["t--a"], ["t--a", "t--b", "t--p"]]),
+        node("t--a"),
+        node("t--b"),
+        node("t--p", "proved"),
+    ]
+    if stray:
+        rows.append(node("u", origin="authored"))
+    return {"schema": "graph/v16", "target_id": "t", "root": "t", "nodes": rows}
+
+
+def test_a_dominated_route_has_a_view_of_its_own_and_no_set() -> None:
+    g = harder_doc()
+    vs = one_view.views(g, routes.read(g, []))
+    harder = {"t--b", "t--p", "t@2"}
+    assert harder <= set(vs[one_view.ALL].nodes)
+    assert not harder & set(vs[one_view.ROUTES].nodes)
+    assert set(vs[one_view.HARDER].nodes) == set(vs[one_view.ROUTES].nodes) | harder
+    lines = {(s, t) for s, t, _k in vs[one_view.HARDER].lines}
+    assert ("t@2", "t") in lines and ("t--b", "t@2") in lines
+    set_views = [v for k, v in vs.items() if k == one_view.TOP or k.startswith(("sel/", "edge/"))]
+    assert set_views
+    assert all(not {"t--b", "t--p"} & set(v.nodes) for v in set_views)
+
+
+def test_no_harder_view_when_nothing_is_dominated() -> None:
+    g = harder_doc()
+    g["nodes"][0] = node("t", origin="authored", routes=[["t--a"], ["t--b", "t--p"]])
+    vs = one_view.views(g, routes.read(g, []))
+    assert one_view.HARDER not in vs
+    d = one_view.drawing(g, [], href={})
+    assert d.harder == 0 and d.harder_toggle == "" and "harder" not in d.marks
+
+
+def test_the_harder_toggle_counts_routes_statements_and_proved() -> None:
+    d = one_view.drawing(harder_doc(), [], href={})
+    assert d.harder == 2
+    assert 'class="chip harder-toggle"' in d.harder_toggle
+    assert 'data-view="harder"' in d.harder_toggle
+    assert "Show 1 strictly harder route (2 statements, 1 proved)" in d.harder_toggle
+    assert "Hide the strictly harder route" in d.harder_toggle
+    assert d.toggle == ""  # everything else is on a route: no general toggle
+    assert "harder" in d.marks
+    assert "harder" in render.ROUTE_MARK_KEYS and "harder" in render.GLOSSARY_BY_KEY
+
+
+def test_the_general_toggle_appears_only_for_what_is_on_no_route() -> None:
+    """The general toggle shows ``all``, which holds every statement (it seeds the layouts), so
+    when something is on no route it says everything it adds; when nothing is, the strictly
+    harder routes have their own toggle and the general one is absent."""
+    d = one_view.drawing(harder_doc(stray=True), [], href={})
+    assert "Show 3 more statements (1 on no route, 2 on strictly harder routes" in d.toggle
+    assert "Show 1 strictly harder route" in d.harder_toggle
+    assert one_view.drawing(harder_doc(), [], href={}).toggle == ""
+
+
+def test_not_on_a_route_never_lists_a_strictly_harder_statement() -> None:
+    """F34-R18: placed once. The strictly harder statements are on a route (behind the
+    toggle); only ``u`` is on no route."""
+    d = one_view.drawing(harder_doc(stray=True), [], href={})
+    assert {"t--a", "t--b", "t--p"} <= d.on_route
+    assert "u" not in d.on_route
+
+
+def test_pills_and_junction_say_why() -> None:
+    d = one_view.drawing(harder_doc(), [], href={})
+    assert "harder" in classes(d.svg, "t--b") and "harder" in classes(d.svg, "t--p")
+    assert "harder" not in classes(d.svg, "t--a")
+    title = re.search(r"<title>(.*?)</title>", element(d.svg, "t--b")).group(1)  # type: ignore[union-attr]
+    assert "strictly harder" in title
+    assert "strictly harder" in element(d.svg, "t@2")
+
+
+def harder_tree(tmp_path: Path) -> Path:
+    """``two_routes`` (routes ``[h1, h2]`` and ``[h3]``) with ``h3`` proved: the second route
+    needs nothing open, so the first, needing ``h1`` and ``h2``, is strictly harder."""
+    root = two_routes(tmp_path)
+    hole = nodes_dir(root) / THIRD
+    statement = (hole / "Statement.lean").read_text(encoding="utf-8")
+    (hole / "Proof.lean").write_text(statement.replace("sorry", "exact trivial"), encoding="utf-8")
+    gate_attest(root, THIRD, n=12, footprint={"nodes": []})
+    return root
+
+
+def test_the_harder_toggle_draws_the_strictly_harder_route_and_back(tmp_path: Path) -> None:
+    """In a browser (Playwright): the toggle is shown beside the key; pressing it moves the
+    drawing to ``harder``, where the first route's holes are drawn (dimmed); pressing it again
+    returns to the routes view, where they are not."""
+    with browser(harder_tree(tmp_path / "g"), tmp_path / "site", view=one_view.ROUTES) as pg:
+        assert one_view.HARDER in layouts_in(pg)
+        toggle = pg.locator("button.harder-toggle")
+        assert toggle.is_visible()
+        assert "Show 1 strictly harder route (2 statements)" in toggle.inner_text()
+
+        def drawn(nid: str) -> bool:
+            found: bool = pg.evaluate(
+                '(n) => { const g = document.querySelector(`svg.dag [data-node="${n}"]`);'
+                " return !!g && !g.classList.contains('off-view'); }",
+                nid,
+            )
+            return found
+
+        assert not drawn(HOLE_IDS[0]) and not drawn(HOLE_IDS[1])
+        toggle.click()
+        pg.wait_for_function("() => document.querySelector('svg.dag').dataset.view === 'harder'")
+        assert drawn(HOLE_IDS[0]) and drawn(HOLE_IDS[1]) and drawn(THIRD)
+        assert toggle.get_attribute("aria-pressed") == "true"
+        assert "Hide the strictly harder route" in toggle.inner_text()
+        toggle.click()
+        pg.wait_for_function("() => document.querySelector('svg.dag').dataset.view === 'routes'")
+        assert not drawn(HOLE_IDS[0]) and drawn(THIRD)
+        assert toggle.get_attribute("aria-pressed") == "false"

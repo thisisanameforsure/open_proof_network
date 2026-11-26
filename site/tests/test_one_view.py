@@ -80,9 +80,10 @@ def with_proof(row: dict[str, Any], used: list[str]) -> dict[str, Any]:
 
 
 def followed_doc() -> dict[str, Any]:
-    """F27-R13: root ``t`` with two routes, ``[a, p]`` and ``[q]``. ``p`` is proved past its
+    """F27-R13: root ``t`` with two routes, ``[a, p]`` and ``[q, r]`` (``a`` and ``r`` open, so
+    neither route is strictly harder than the other, F27-R14). ``p`` is proved past its
     route (its term used ``p--h1`` alone, as a lemma); ``q`` is proved as its route's assembly
-    (its term used both holes). The published sets are ``{a, p}`` and ``{q}``; followed, they
+    (its term used both holes). The published sets are ``{a, p}`` and ``{q, r}``; followed, they
     also hold ``p--h1`` and ``q--h1, q--h2``."""
     return {
         "schema": "graph/v12",
@@ -92,10 +93,11 @@ def followed_doc() -> dict[str, Any]:
             node(
                 "t",
                 origin="authored",
-                routes=[["t--a", "t--p"], ["t--q"]],
+                routes=[["t--a", "t--p"], ["t--q", "t--r"]],
                 approaches=["through p", "through q"],
             ),
             node("t--a"),
+            node("t--r"),
             with_proof(node("t--p", "proved", routes=[["t--p--h1", "t--p--h2"]]), ["t--p--h1"]),
             with_proof(node("t--p--h1", "proved"), []),
             with_proof(node("t--p--h2", "proved"), []),
@@ -142,9 +144,9 @@ def test_follow_views_add_what_proved_members_rest_on() -> None:
     past = vs[one_view.FOLLOW + "sel/t@1"]
     assert set(past.nodes) == {"t", "t@1", "t--a", "t--p", "t--p--h1"}
     assert ("t--p--h1", "t--p", "edge") in past.lines
-    assert set(vs["sel/t@2"].nodes) == {"t", "t@2", "t--q"}
+    assert set(vs["sel/t@2"].nodes) == {"t", "t@2", "t--q", "t--r"}
     assembly = vs[one_view.FOLLOW + "sel/t@2"]
-    assert set(assembly.nodes) == {"t", "t@2", "t--q", "t--q@1", "t--q--h1", "t--q--h2"}
+    assert set(assembly.nodes) == {"t", "t@2", "t--q", "t--r", "t--q@1", "t--q--h1", "t--q--h2"}
     assert {(src, dst) for src, dst, _k in assembly.lines} >= {
         ("t--q@1", "t--q"),
         ("t--q--h1", "t--q@1"),
@@ -411,13 +413,18 @@ def off_route(tmp_path: Path) -> Path:
 
 def followed_tree(tmp_path: Path) -> Path:
     """``two_routes`` with its second route's hole proved by a proof whose term rests on the
-    root's proved dependency ``and-reassoc``: followed, that set adds ``and-reassoc``."""
+    root's proved dependency ``and-reassoc``: followed, that set adds ``and-reassoc``. The first
+    route's holes are proved too (resting on nothing), so the two routes tie: with only the
+    second proved, the first would need strictly more and not be offered (F27-R14)."""
     root = two_routes(tmp_path)
     gate_attest(root, DEP, n=11, footprint={"nodes": []})
-    hole = nodes_dir(root) / THIRD
-    statement = (hole / "Statement.lean").read_text(encoding="utf-8")
-    (hole / "Proof.lean").write_text(statement.replace("sorry", "exact trivial"), encoding="utf-8")
-    gate_attest(root, THIRD, n=12, footprint={"nodes": [DEP]})
+    for k, (hid, used) in enumerate(((HOLE_IDS[0], []), (HOLE_IDS[1], []), (THIRD, [DEP]))):
+        hole = nodes_dir(root) / hid
+        statement = (hole / "Statement.lean").read_text(encoding="utf-8")
+        (hole / "Proof.lean").write_text(
+            statement.replace("sorry", "exact trivial"), encoding="utf-8"
+        )
+        gate_attest(root, hid, n=12 + k, footprint={"nodes": used})
     return root
 
 
