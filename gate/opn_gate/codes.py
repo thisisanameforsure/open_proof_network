@@ -15,6 +15,7 @@ emits it, when one does.
 
 from __future__ import annotations
 
+import difflib
 import json
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -1261,6 +1262,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An identity already exists for this GitHub login.",
         "Use the token you were issued before; one GitHub login holds one identity.",
     ),
+    "gloss-no-latex": (
+        "gate",
+        None,
+        "A warning POST /glosses answers, never a refusal: a statement, witness or relation gloss "
+        "whose text has no "
+        "LaTeX at all (no $, \\( or \\[). A gloss opens with the statement in math so a reader "
+        "sees the claim before the words.",
+        "Open the text with the statement in LaTeX, for example $\\forall n,\\ P(n)$, then the "
+        "words; or send it as it is if the subject has no formula to show.",
+    ),
     "gloss-absent": (
         "gate",
         None,
@@ -1370,6 +1381,95 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "heartbeats is not true or false.",
         "Send heartbeats as a boolean.",
+    ),
+    # --- mcpfix WB1 (testers 2026-11-25, L12): POST /check's lint findings (check_lean) -------
+    # Each is a warning in the answer's `lint`, never a refusal of the call; the ones the gate
+    # refuses on make `okay` false in mode verify (and sorry-present, admit-present in check).
+    "imports-differ": (
+        "api",
+        None,
+        "Fast-check lint: the text's imports are not the statement's. AXLE substitutes `import "
+        "Mathlib` and would not notice; the gate requires the statement's header exactly "
+        "(F00-R19), with the node's own Context import the one addition it takes.",
+        "Copy the statement's import lines exactly (expected and got are in the finding); add only "
+        "the node's own Context import, or use lines after it (D-4 v3.25).",
+    ),
+    "helper-declarations": (
+        "api",
+        None,
+        "Fast-check lint: the text declares something public besides the statement's theorem (a "
+        "lemma or def above it without `private`); the gate refuses it at step 2.",
+        "Declare each helper `private` directly before the statement's doc comment (F00-T11), or "
+        "move it inside the proof as a `have`, or submit a skeleton.",
+    ),
+    "header-diverges": (
+        "api",
+        None,
+        "Fast-check lint: the text before the theorem's signature differs from Statement.lean (a "
+        "changed doc comment, an extra `open` or `set_option ... in`, a line moved); the gate "
+        "takes a proof as the statement with its sorry replaced and refuses this at step 2 "
+        "(proof-not-statement). `line`, `expected` and `got` name the first difference.",
+        "Start from the statement's text byte for byte and replace only its `sorry`; private "
+        "helpers go directly before the statement's doc comment (F00-T11), anything else inside "
+        "the proof.",
+    ),
+    "signature-diverges": (
+        "api",
+        None,
+        "Fast-check lint: the theorem's own signature differs from the statement's (a binder "
+        "renamed, a type rewritten); the gate refuses this at step 2 (proof-not-statement).",
+        "Copy the signature from Statement.lean exactly and change only the proof after `:=`.",
+    ),
+    "sorry-present": (
+        "api",
+        None,
+        "Fast-check lint: the text still uses `sorry`. A proof with it fails the axiom step (D-4 "
+        "step 5); a text with holes is a skeleton, submitted as a partial. `okay` is false in "
+        "modes check and verify; `result.okay` still says whether it compiled.",
+        "Prove the holes, or submit the text as a partial (its comments name the approach, a "
+        "licence and each hole's label and claim; partial-unlabelled says which are missing).",
+    ),
+    "admit-present": (
+        "api",
+        None,
+        "Fast-check lint: the text uses `admit`, which Lean elaborates to sorryAx; a proof with it "
+        "fails the axiom step (D-4 step 5).",
+        "Replace each `admit` with a proof, or write the hole as `sorry` in a partial.",
+    ),
+    "sorry-reported": (
+        "api",
+        None,
+        "Fast-check lint (mode verify): the checker reports that the declaration uses sorry, "
+        "through an admit, a sorry, or a search tactic such as apply? that found nothing and "
+        "admitted the goal; the gate's axiom step refuses sorryAx.",
+        "Find the step that admitted its goal (the checker's warnings name the declaration) and "
+        "prove it with a named lemma.",
+    ),
+    "import-unknown-node": (
+        "api",
+        None,
+        "Fast-check lint: the text imports a node the graph does not have. The checker "
+        "substitutes its own header and would not notice; the gate cannot build the module. "
+        "`okay` is false in every mode.",
+        "Import only the node's own Context, or a use line naming a node on the graph "
+        "(`import Nodes.«<id>».Proof` of a merged node); check the id with get_node.",
+    ),
+    "context-restated": (
+        "api",
+        None,
+        "Fast-check lint (mode verify): the node's Context, or a used node's statement, restates "
+        "what the proof uses with sorry bodies, so the verifier reports a proof that uses one as "
+        "incomplete whatever its merit. Where the only failures are those declarations, `okay` "
+        "is true.",
+        "Use mode check for a proof that uses a dependency, and the precheck for the verdict: "
+        "the gate builds against the real proofs.",
+    ),
+    "echo-invalid": (
+        "api",
+        None,
+        "POST /check's echo (check_lean's) is not true or false.",
+        "Send echo as a boolean, or leave it out: the answer then omits the checker's echo of "
+        "the composed program and gives every position as a line of your own text.",
     ),
     "heartbeats-not-used": (
         "api",
@@ -2097,7 +2197,9 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Add one `-- approach:` line and one `-- licence:` line before the first hole, and a "
         "`-- label:` line and a `-- claim: $…$` line in the comment block directly above each "
         "hole's `have` (the guide's Skeletonization section shows the grammar); the extractor's "
-        "hole names are the ones held to the rule, and the service refuses it before any job runs.",
+        "hole names are the ones held to the rule, and the service refuses it before any job "
+        "runs. POST /check (check_lean) names the same missing lines in its lint for any text "
+        "with sorry.",
     ),
     "partial-without-holes": (
         "gate",
@@ -2212,13 +2314,20 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The node merged a moment ago and its products are not rendered yet.",
         "Retry shortly.",
     ),
-    "proof-empty": ("gate", 2, "Proof.lean has no body after `:=`.", "Write the proof after `:=`."),
+    "proof-empty": (
+        "both",
+        2,
+        "Proof.lean has no body after `:=`; refused at step 2, and named in POST /check's lint "
+        "(check_lean) before any precheck.",
+        "Write the proof after `:=`.",
+    ),
     "helper-forbidden": (
-        "gate",
+        "both",
         2,
         "The lines before the statement's theorem are a helper block, and it holds something a "
         "helper block may not: a public declaration, set_option, axiom, instance, notation or "
-        "macro, an attribute, open, variable, a # command, sorry or admit.",
+        "macro, an attribute, open, variable, a # command, sorry or admit. Refused at step 2, and "
+        "named in POST /check's lint (check_lean) before any precheck.",
         "Declare each helper `private theorem`, `private lemma`, `private def` or `private "
         "abbrev` directly before the statement's doc comment, and drop the rest; details name "
         "the token and its line (F00-T11).",
@@ -3728,6 +3837,12 @@ def document(prefix: str | None = None) -> dict[str, Any]:
         "count": len(rows),
         "codes": rows,
     }
+
+
+def close_matches(code: str, n: int = 5) -> list[str]:
+    """The catalog's codes closest to ``code``, nearest first: the lookup's answer to a near
+    miss (mcpfix WA2), so a misspelt code names the one meant rather than nothing."""
+    return difflib.get_close_matches(code, sorted(CATALOG), n=n, cutoff=0.6)
 
 
 def render_json(prefix: str | None = None) -> str:

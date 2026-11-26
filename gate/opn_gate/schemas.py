@@ -71,6 +71,19 @@ def _validator(schema_id: str) -> jsonschema.Draft202012Validator:
     return jsonschema.Draft202012Validator(schema)
 
 
+def plain_message(exc: jsonschema.ValidationError) -> str:
+    """The validator's message with the values it quotes written as JSON (``null``, ``true``,
+    ``"x"``), not as Python's repr (``None``, ``True``, ``'x'``). A ``type`` error's type names
+    are words of the message, not values, and stay as they are (mcpfix, testers 2026-11-25)."""
+    message = str(exc.message)
+    values = [exc.instance] if exc.validator == "type" else [exc.instance, exc.validator_value]
+    for value in values:
+        python, plain = repr(value), json.dumps(value, ensure_ascii=False, default=str)
+        if python != plain and python in message:
+            message = message.replace(python, plain)
+    return message
+
+
 def violations(doc: object, schema_id: str | None = None) -> list[Violation]:
     """Validate ``doc`` against the schema in its ``schema`` field (or ``schema_id``)."""
     if not isinstance(doc, dict):
@@ -83,7 +96,10 @@ def violations(doc: object, schema_id: str | None = None) -> list[Violation]:
     except SchemaError as exc:
         return [Violation("$.schema", str(exc))]
     found = sorted(validator.iter_errors(doc), key=lambda e: list(e.absolute_path))
-    return [Violation("$" + "".join(f"[{p!r}]" for p in e.absolute_path), e.message) for e in found]
+    return [
+        Violation("$" + "".join(f"[{p!r}]" for p in e.absolute_path), plain_message(e))
+        for e in found
+    ]
 
 
 def validate(doc: object, schema_id: str | None = None) -> JsonDoc:

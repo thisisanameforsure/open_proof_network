@@ -1,0 +1,43 @@
+# QA log — t1125-883, scope: search + all read operations
+
+Method: MCP tools via the connection (token on) and the same MCP endpoint over plain HTTP JSON-RPC from python (no token; reads only); plain paths via curl/python from api.openproofnetwork.org and raw.githubusercontent.com (graph repo main). Every MCP-over-HTTP call printed its wall time.
+
+- 11:05Z GET / → 200, route index; 21 GET routes incl. /reviews/{target_id}, /reviews/{target_id}/questions, /checks/{id}
+- 11:06Z search {} → 47 ops (24 read, 23 write). `plain` for list_registrations, get_review, list_review_questions, list_open_pairs is a prose sentence, not a path
+- 11:07Z search {operations:[all 24 reads]} → schemas for all 24
+- 11:08Z raw targets/index.json → 200, 2.26 MB, 445 targets
+- 11:09Z read list_targets {} → 1,316,781 chars; JSON-equal to raw targets/index.json (rendered_from a8f1c34)
+- 11:10Z search "find an open problem to work on" → list_open_pairs #1, list_frontier #2 (miss)
+- 11:10Z search "what does this error code mean" → list_error_codes #1 (ok)
+- 11:10Z search "check the status of my pull request" → get_check, check_lean, file_revision_request, list_submissions, list_words_needed; get_submission / get_my_submissions absent from top 5 (miss)
+- 11:12Z read list_my_claims {} → {claims: []} ok; list_my_claims {node_id} → arguments-invalid ok
+- 11:12Z read get_my_submissions {} → open [], recent 4 merged (PR 2041, 2029, 2030, 2027) ok
+- 11:12Z read get_check {check_id:"01NOTAREALCHECKID0000000000"} → arguments-invalid (adapter) ; get_check {} → arguments-invalid ok; get_check {submission ULID} → 404 check-unknown ok
+- 11:13Z write check_lean {tutorial, `1+1=2`} → okay, log_id 01M896HS8G6GCDFW8FDMRS0D9P (to get a real check id; no PR)
+- 11:13Z read get_check {that log_id} → full record, outcome answered, okay true ok
+- 11:13Z read get_submission {ULID 01M87XRT…} and {"2041"} → same record ok; attestation_path "attestations/002041.json" (search's plain says attestations/<id>.json)
+- 11:13Z get_submission {"999999"} → 404 submission-unknown ok; {"not-a-ulid!"} → adapter arguments-invalid; {"-5"} → service 400 submission-id-invalid (two codes for one class)
+- 11:14Z background batches produced nothing (sandboxed background); restarted in foreground
+- 11:15–11:21Z search 26 queries + 8 malformed calls (see REPORT). Misses: "what Lean files need a gloss" → list_words_needed #5; "what is the pinned Mathlib version" → get_gate_spec #3 behind check_lean, list_targets. limit 0 / limit "3" / unknown op / extra prop → arguments-invalid / operation-unknown ok. Latencies: most 1.2 s, but 55.6 s, 80.1 s, 36.2 s on some calls
+- 11:22–11:26Z read server_info ok (=GET /info.json); extra arg → arguments-invalid; list_targets {target_id} → arguments-invalid
+- 11:23Z get_target tutorial/erdos-883/erdos-257/erdos-1094/abc → ok (graph equals raw graph.json for 883 and abc); no-such-target → not-found (graph); "Erdos-883", "../etc", 883, {} → arguments-invalid. get_target {} took 76.2 s (adapter-only refusal)
+- 11:30Z plain fetches: info.json, dco.json, errors.json, hosted-checkers.json, frontier.json, submissions.json, submissions/2041, attestations/002041.json, graph.json x4, raw frontier.json, reviews/erdos-1094, reviews/erdos-883/questions → all 200
+- 11:31Z get_dco ok (= /dco.json); {version} → arguments-invalid; list_routes ok (= GET /)
+- 11:32Z a batch call hung until my 295 s timeout (next op was get_hosted_checkers {}); rerun alone took 6.5 s → not reproduced
+- 11:33Z get_hosted_checkers ok (= /hosted-checkers.json); {target_id} → arguments-invalid
+- 11:33Z list_error_codes ok (526 codes, = /errors.json); prefix witness- → 14; zzz → count 0; "BAD PREFIX" → arguments-invalid
+- 11:34Z list_frontier {} → 602 entries, = API /frontier.json; differs from raw repo frontier.json only by live claim overlay + rendered_from (expected). filters target_id erdos-1094/abc/tutorial ok; unknown field → filter-unknown with field list (good); filters as string → arguments-invalid; tags.library x → []
+- 11:35Z get_defs erdos-883, abc ok; nope-nope → not-found. get_gate_spec erdos-257 ok; nope-nope → not-found; {} → arguments-invalid (timeout in batch, schema-required)
+- 11:39Z get_node erdos-883 [], tutorial-and-swap, abc [] ok; no-such-node → node-unknown (helpful); include ["bogus"] → arguments-invalid
+- 11:39Z list_submissions {} → 0 open (= /submissions.json); kind "nonsense-kind" → no error; target_id "no-such-target" → no error (other list_* ops answer not-found)
+- 11:40Z get_schema postmortem/v1, mcp/get_node/v1 ok; nope/v1 → not-found; ../../etc/passwd → arguments-invalid
+- 11:41Z get_precheck {real job} → done ok; {submission ULID} → 404 job-unknown; "bad id" → arguments-invalid
+- 11:41Z list_words_needed erdos-1094 → 134 ok; kind nonsense → filter-unknown; no-such-target → not-found
+- 11:42Z list_registrations {} → 0; erdos-883 → 0; no-such-target → not-found
+- 11:43Z get_review erdos-1094 → ok, blind true, equals GET /reviews/erdos-1094 (+untrusted_note); abc → 404 review-unknown; no-such-target → 404 target-unknown (service) ; n -1 → arguments-invalid
+- 11:44Z **list_review_questions {} → HTTP 500, empty body** (30.1 s). Retried 11:48 (HTTP), 11:49 (HTTP) and 11:49 (connection): all ok, 205 questions, 69,758 chars → not reproduced
+- 11:44Z list_review_questions erdos-883 → 0 (= GET /reviews/erdos-883/questions); erdos-1094 → 8 (= index questions_waiting 8); no-such-target → not-found
+- 11:45Z list_open_pairs {} → 0; erdos-1094 n 5 → 0 (= index open_pairs 0); no-such-target → not-found; n "5" → arguments-invalid
+- 11:46Z list_sufficient_sets erdos-257 ok; tutorial at_proved follow ok; cut coarsest → arguments-invalid; no-such-target → not-found
+- 11:49Z list_sufficient_sets erdos-1094 cut any → 1,057,245 chars, truncated true, 569 sets
+- 11:49Z read claim_node → operation-kind-mismatch (good); write get_node → operation-kind-mismatch (good); read unknown op → operation-unknown

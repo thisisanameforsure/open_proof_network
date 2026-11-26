@@ -75,7 +75,7 @@ def test_the_filters_keep_what_they_name(h: Harness) -> None:
     assert numbers(h, "?kind=words") == sorted([prs["gloss"], prs["other"]])
     assert numbers(h, "?kind=annex") == [prs["annex"]]
     assert numbers(h, "?target=propositional") == sorted(prs.values())
-    assert numbers(h, "?target=elsewhere") == []
+    # mcpfix WB2 item 4: an unknown target is 404 not-found now (test_mcpfix_wb2_filters.py)
 
 
 def test_a_filter_it_does_not_know_is_named(h: Harness) -> None:

@@ -1,0 +1,30 @@
+F14-T36 — the owner's rulings on the held rows carried out (2026-11-25)
+
+Rulings: the five adapted Green rows at the lead's discretion (all five imported: each states that
+the registry's unknown answer exists in the form the registry gives, open and non-trivial, shown
+equal to "∃ answer, the registry's text" by Iff.rfl in curator C's check); the three variants
+through the owner's account; Kurepa's prime form as its own target; an agent for the Margulis
+witness.
+
+Intakes (scratchpad open_curated.py, honest bodies): graph #2052 green 25 lower, #2053 green 27
+upper, #2054 green 31 lower, #2055 green 31 upper, #2056 green 38 upper, #2057 Kurepa prime; all
+merged by the actor. #2052 first failed step 6 (hazard-unacknowledged: `1 ≤ L N`, `1 ≤ k N`, the
+registry's own ranges at GreensOpenProblems/25.lean lines 80 and 82); acknowledged in
+curated/<id>/hazards.yaml and re-pushed, then green and merged.
+
+Margulis 1.1: a second agent wrote the witness (n = 3, the lattice of Z[θ] for θ³ = 3θ − 1, a
+totally real cubic field; 368 lines in one theorem, axioms propext, Classical.choice, Quot.sound,
+LOG-M.md), reversing curator A's decline. graph #2064 first failed step 6 on `3 ≤ n` (the
+conjecture's n ≥ 3, registry line 42), acknowledged, then green — step 7 admitted the witness —
+and merged.
+
+Variants (scratchpad open_variants.py: scaffold.files with the service's own id and own-Context
+rule, authored and opened under the owner's account, merged by the lead only when CLEAN and green,
+never by admin bypass, each after the previous merge's bot commit): graph #2058 variant-35007c92
+of green-75 (partial), #2059 variant-aec6bdcf of green-76 (partial), #2060 variant-3dc44a75 of
+new-mersenne-conjecture (resolves, the registry's own implication as the relation proof). All
+three merged with bot commits (74f9d270, 3387f6ec, 419d2dc3). Curator branches are not the merge
+actor's, so under the strict up-to-date rule each waited out several rounds of main moving
+during its seven-minute gate.
+
+Not imported: strong BSD (algebraic geometry, D-6), whatever its adaptation.

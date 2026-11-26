@@ -1,0 +1,37 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/opn-mcpfix-wa2/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/opn-mcpfix-wa2
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 13 items / 12 deselected / 1 selected
+
+api/tests/test_mcpfix_wa2_frontier_targets.py::test_every_read_names_an_unknown_target_not_found FAILED [100%]
+
+=================================== FAILURES ===================================
+E   AssertionError: {'get_target': 'not-found', 'get_defs': 'not-found', 'get_gate_spec': 'not-found', 'get_review': 'target-unknown', ...}
+    assert {'get_target'...unknown', ...} == {'get_target'...t-found', ...}
+      
+      Omitting 8 identical items, use -vv to show
+      Differing items:
+      {'get_review': 'target-unknown'} != {'get_review': 'not-found'}
+      {'list_frontier': 'arguments-invalid'} != {'list_frontier': 'not-found'}
+      {'list_submissions': 'answered'} != {'list_submissions': 'not-found'}
+      {'list_targets': 'arguments-invalid'} != {'list_targets': 'not-found'}...
+      
+      ...Full output truncated (26 lines hidden), use '-vv' to show
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-mcpfix-wa2/api/tests/test_mcpfix_wa2_frontier_targets.py:178: AssertionError: {'get_target': 'not-found', 'get_defs': 'not-found', 'get_gate_spec': 'not-found', 'get_review': 'target-unknown', ...}
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wa2/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wa2/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wa2_frontier_targets.py::test_every_read_names_an_unknown_target_not_found
+================= 1 failed, 12 deselected, 2 warnings in 2.01s =================

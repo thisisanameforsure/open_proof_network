@@ -1,0 +1,9 @@
+# LOG-M — curator M (Margulis 1.1 witness)
+
+Row: `fc:FormalConjectures/Arxiv/2504.17644/Margulis.lean#conjecture_1_1`, target `arxiv-2504-17644-margulis-conjecture-1-1`.
+
+- 2026-11-25T15:29Z — started; read the brief, curator A's CURATION.md and LOG-A, the registry file and both def modules. Plan: x^3-3x+1 (totally real cubic, disc 81), Vandermonde lattice, units theta^2 and (1-theta)^2 (norm 1), fundamental box by floor of log coordinates, compact image in the quotient, closure compact in an R1 quotient.
+- 15:30Z — check call 1 (api /check): statement compiles; SL(3,ℝ) is a topological group; smul on the quotient is rfl; R1Space of the quotient NOT synthesized.
+- 15:35Z — call 2 (api /check) timed out at the route's 20 s budget (an exact? probe); switching to AXLE directly (timeout 120 s) for the heavy witness. AXLE call 1: no WeaklyLocallyCompact on SL(3,ℝ), no LocallyCompact on Matrix, QuotientGroup.instT3Space needs Normal. Plan for the closure: closure(π K) ⊆ π(C·K) with C a compact box around 1 in SL, by the open-map argument, so no separation axiom is needed.
+- 15:46Z — AXLE calls 2–8: iterated the witness (ring vs ring1 in a first-combinator, SL subtype coercions, Pointwise-free product set, nlinarith only for speed). Call 8: compiles, 167k heartbeats (under Lean's default 200k).
+- 15:46Z — final: set_option lines removed; AXLE call 9 compiles at the default limit, `#print axioms witness` = [propext, Classical.choice, Quot.sound]; api /check call 3 (log_id 01M89P67X8QY9K9F9Z4AF6M83S) lean_messages.errors == [] for defs + statement + witness. Witness.lean written (no set_option, sorry or axiom). **Decision: import as stated** (reverses curator A's decline, whose only reason was the missing witness). Totals: 3 calls to api /check, 9 to AXLE directly (the route's 20 s budget is too short for the first drafts).

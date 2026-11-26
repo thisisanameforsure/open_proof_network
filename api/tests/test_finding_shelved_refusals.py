@@ -229,7 +229,7 @@ def test_mcp_get_node_carries_the_shelving_through_the_bundle(harness: Harness) 
 def test_mcp_list_frontier_omits_a_shelved_node(harness: Harness) -> None:
     seed_node(harness)
     shelve(harness, NODE)
-    served = McpClient(harness).ok("list_frontier")
+    served = McpClient(harness).ok("list_frontier", {"full": True})  # mcpfix WA2: the entries
     ids = [e["node_id"] for e in served["entries"]]
     assert NODE not in ids and SIBLING in ids
 

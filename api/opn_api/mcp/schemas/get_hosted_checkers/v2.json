@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/get_hosted_checkers/v2.json",
+  "title": "mcp/get_hosted_checkers/v2",
+  "description": "The result of the get_hosted_checkers tool (F09-R9; D-28 notation note 2026-09-20): GET /hosted-checkers.json, the pinned-Mathlib-to-hosted-environment mapping check_lean uses (F13-R11), or an error result naming the source that did not answer (R10). v2 (mcpfix WA2, 2026-11-25): the per-target map only with target_id (one row) or full: true.",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "service",
+        "targets"
+      ],
+      "properties": {
+        "service": {
+          "type": "string"
+        },
+        "authoritative": {
+          "type": "boolean"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "core": {},
+        "pins": {},
+        "targets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        }
+      },
+      "description": "full: true — GET /hosted-checkers.json exactly, every target's row.",
+      "not": {
+        "required": [
+          "target_count"
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "service",
+        "target_count"
+      ],
+      "properties": {
+        "service": {
+          "type": "string"
+        },
+        "authoritative": {
+          "type": "boolean"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "core": {},
+        "pins": {},
+        "targets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "target_count": {
+          "description": "How many targets the route maps.",
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "The default (mcpfix WA2): the route's body without its per-target map, with target_count; with target_id, that target's row alone under targets.",
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}

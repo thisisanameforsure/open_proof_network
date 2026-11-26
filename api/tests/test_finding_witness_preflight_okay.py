@@ -37,11 +37,12 @@ from test_finding_witness_preflight import (
 )
 
 #: The error the hosted checker gave PR #195's witness (the shape AXLE's lean_messages carry).
-#: F13-T23: positioned on line 14, the witness's line in the text these fixtures send (the
-#: statement part is lines 1 to 12 or 13); #195's own text was longer, and line 6 of the fixture
-#: text is the statement's, which is now its own refusal (``statement-fails``).
+#: F13-T23: positioned on line 16, the witness's line in the text these fixtures send (the
+#: statement part is lines 1 to 14 or 15, the one inlined module in a section of its own since
+#: F13-T38; it was line 14 before); #195's own text was longer, and line 6 of the fixture text is
+#: the statement's, which is now its own refusal (``statement-fails``).
 DECIDE_ERROR = (
-    "-:14:62-14:68: error: decide proved that the proposition\n"
+    "-:16:62-16:68: error: decide proved that the proposition\n"
     "  ({1, 2, 3, 4, 5, 7} : Finset ℕ).card = 7\nis false"
 )
 

@@ -31,6 +31,7 @@ from mcp_client import NODE, NODE_DIR, TARGET, McpClient, materialize, plain, se
 from test_finding_mcp_bootstrap import HOLE, add_hole
 from test_literature_route import seed_stewards
 
+from opn_api import identity
 from opn_api.mcp import demarcate
 from opn_api.mcp.server import TOOLS
 from opn_gate import context, schemas, steward
@@ -80,8 +81,10 @@ def test_read_tools_equal_plain_path(
     client = McpClient(harness)
 
     assert client.ok("server_info") == harness.client.get("/info.json").json()
-    assert client.ok("list_targets") == plain(harness, "targets/index.json")
-    assert client.ok("list_frontier") == harness.client.get("/frontier.json").json()
+    # mcpfix WA2 (F09, the compact reads of 2026-11-25): the two answer compactly by default;
+    # the plain path's document is their full: true form.
+    assert client.ok("list_targets", {"full": True}) == plain(harness, "targets/index.json")
+    assert client.ok("list_frontier", {"full": True}) == harness.client.get("/frontier.json").json()
     assert client.ok("get_gate_spec", {"target_id": TARGET}) == plain(
         harness, f"targets/{TARGET}/gate-spec.json"
     )
@@ -462,6 +465,13 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
     "withdraw_submission": ({}, "DELETE /submissions/{submission_id}", {}, with_submission),
     # F05-T27: the caller's own token renewed; the new token is masked, the expiry is not.
     "renew_token": ({}, "POST /tokens/renew", {}, no_setup),
+    # mcpfix WA1 (qa-eb L13): the re-acceptance, body for body; a fresh identity accepts again.
+    "accept_dco": (
+        {"dco": {"version": identity.DCO_VERSION, "accepted": True}},
+        "POST /dco/accept",
+        {"dco": {"version": identity.DCO_VERSION, "accepted": True}},
+        no_setup,
+    ),
     # F09-T24 (D-25, D-32 v3.35): the literature pair, each POST /literature* body for body.
     "propose_literature": (
         LITERATURE,

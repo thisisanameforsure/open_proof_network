@@ -58,9 +58,7 @@ def test_a_short_id_one_row_claims_is_unchanged() -> None:
 def test_the_holder_keeps_a_shared_id_and_the_others_are_qualified() -> None:
     ids = wave.assign_ids([OPPERMANN, ARTIN, GREEN], live={"i"}, holders={"i": OPPERMANN["key"]})
     assert ids[OPPERMANN["key"]] == "i"
-    assert ids[ARTIN["key"]] == (
-        "wikipedia-artin-primitive-roots-conjecture-artin-primitive-roots-parts-i"
-    )
+    assert ids[ARTIN["key"]] == "artin-primitive-roots-conjecture-artin-primitive-roots-parts-i"
     assert ids[GREEN["key"]] == "greens-open-problems-17-green-17-parts-i"
 
 
@@ -104,7 +102,11 @@ def test_the_catalog_gives_every_draftable_row_an_id_of_its_own() -> None:
     ids = wave.assign_ids(catalog["rows"], live=set(holders), holders=holders)
     values = list(ids.values())
     assert len(values) == len(set(values)), "two rows share a target id"
-    assert all(ID_RE.match(v) and len(v) <= 200 for v in values)
+    # A target id is its root node's id, and a node id is at most 64 characters (the intake of
+    # Artin's parts was refused at 73).
+    too_long = [v for v in values if len(v) > 64]
+    assert not too_long, f"{len(too_long)} ids over 64 characters, e.g. {too_long[:2]}"
+    assert all(ID_RE.match(v) for v in values)
     for target_id, key in holders.items():
         assert ids[key] == target_id
 

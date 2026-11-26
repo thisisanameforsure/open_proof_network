@@ -23,7 +23,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from opn_api import clock as clockmod
-from opn_api import duplicates, precheck, submissions
+from opn_api import duplicates, pending, precheck, submissions
 from opn_api.githost import Author, GitHostError, PullRequestState
 from opn_gate.paths import ALTERNATE_SUFFIX
 
@@ -123,6 +123,8 @@ def convert(ctx: Context, found: Submission, state: PullRequestState) -> bool:  
         log.warning("racer #%d: not moved to an alternate: %s", found.pr_number, exc)
         ctx.store.drop_counter(mark)
         return False
-    ctx.pulls.pop(found.pr_number, None)  # its state is about to change: read it afresh next time
+    pending.forget_pull(
+        ctx, found.pr_number
+    )  # its state is about to change: read it afresh next time
     log.info("racer #%d moved to %s", found.pr_number, alternate_path(found))
     return True

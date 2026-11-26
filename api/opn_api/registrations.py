@@ -189,7 +189,9 @@ def render(doc: dict[str, Any]) -> str:
 async def post_registrations(ctx: Context, request: Request) -> Response:
     """R15: one registration record, as the sign-in, in its own pull request."""
     held: Identity = request.state.identity
-    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
+    login = stewards.github_login(
+        held, "register a target"
+    )  # who is asking comes before what they sent (F-D2)
     fields, _ = await identitymod.body_fields(request, FIELDS)
     target_id = appends.known_target(ctx, fields.get("target_id"))
     chosen = record_body(fields)

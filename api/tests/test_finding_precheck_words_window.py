@@ -37,7 +37,7 @@ from test_githost_seam import (  # the seam's fixtures, reused as they stand
     rsa_key,
     script,
 )
-from test_precheck import NODE, TARGET
+from test_precheck import TARGET
 
 from opn_api.githost import GitHostError, HostBudget, HttpxGitHost
 
@@ -107,7 +107,9 @@ def test_a_literature_record_is_words_too(harness: Harness) -> None:
         f"{NODES}/{OTHER}/META.yaml",  # superseded, lemmas, proved binders
         f"{NODES}/{OTHER}/Proof.lean",
         f"{NODES}/{OTHER}/attempts/20261027T101500Z-bob-partial.lean",  # holes are coming
-        f"{NODES}/{NODE}/annex/{'3' * 64}.md",  # a skeleton's citation reads annexes
+        # mcpfix WB2 item 3 (owner, 2026-11-25: "an annex is just text"): an annex no longer holds a
+        # plan that does not cite it; one that does is held by check_cited_annex
+        # (test_mcpfix_wb2_annex_hold.py)
         f"{NODES}/{OTHER}/status/20261027T101500Z-carol.yaml",
         f"{NODES}/{OTHER}/shelving/20261027T101500Z-carol.yaml",
         f"{NODES}/{OTHER}/withdrawals/20261027T101500Z-carol.yaml",

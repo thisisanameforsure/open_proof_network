@@ -41,8 +41,10 @@ def commit_frontier(harness: Harness, entries: list[dict[str, Any]]) -> dict[str
 
 
 def test_filters_no_ranking(harness: Harness) -> None:
-    """AC7: {origin: authored, tags.library contains "Nat"} returns only the matching entries,
-    in the file's order — the second match listed after the first however it scores."""
+    """AC7: {origin: authored, tags.library contains "Nat"} returns only the matching entries, in
+    the file's order — the second match listed after the first however it scores. mcpfix WA2 (F09,
+    the compact reads of 2026-11-25): the entries are read with ``full: true``; the default is one
+    row per target."""
     commit_frontier(
         harness,
         [
@@ -53,23 +55,31 @@ def test_filters_no_ranking(harness: Harness) -> None:
         ],
     )
     client = McpClient(harness)
-    doc = client.ok("list_frontier", {"filters": {"origin": "authored", "tags.library": "Nat"}})
+    full = {"full": True}
+    doc = client.ok(
+        "list_frontier", {"filters": {"origin": "authored", "tags.library": "Nat"}, **full}
+    )
     assert [e["node_id"] for e in doc["entries"]] == ["z-nat-first", "b-nat-second"]
     assert doc["schema"] == "frontier/v1"
     # Equality on a list field is containment; equality on a scalar is equality; both compose.
     assert [
-        e["node_id"] for e in client.ok("list_frontier", {"filters": {"attempts": 0}})["entries"]
+        e["node_id"]
+        for e in client.ok("list_frontier", {"filters": {"attempts": 0}, **full})["entries"]
     ] == ["b-nat-second"]
-    assert client.ok("list_frontier", {"filters": {"origin": "speculative"}})["entries"] == []
+    assert (
+        client.ok("list_frontier", {"filters": {"origin": "speculative"}, **full})["entries"] == []
+    )
 
 
 def test_no_filters_is_the_overlay(harness: Harness) -> None:
-    """R5: the unfiltered result is GET /frontier.json — claims overlaid, nothing else touched."""
+    """R5: the unfiltered result is GET /frontier.json — claims overlaid, nothing else touched.
+    mcpfix WA2 (F09, the compact reads of 2026-11-25): that is the ``full: true`` form; the default
+    is one row per target."""
     token = harness.token_for("code_alice", "alice-p")
     harness.client.post("/claims", json={"node_id": "and-reassoc"}, headers=harness.auth(token))
     served = harness.client.get("/frontier.json").json()
-    assert McpClient(harness).ok("list_frontier") == served
-    assert McpClient(harness).ok("list_frontier", {"filters": {}}) == served
+    assert McpClient(harness).ok("list_frontier", {"full": True}) == served
+    assert McpClient(harness).ok("list_frontier", {"filters": {}, "full": True}) == served
     by_node = {e["node_id"]: e for e in served["entries"]}
     assert by_node["and-reassoc"]["claims"]["active"][0]["pseudonym"] == "alice-p"
 

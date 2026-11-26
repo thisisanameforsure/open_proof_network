@@ -650,6 +650,32 @@ def spaced(raw: Any) -> Any:
     return " ".join(raw.split()) if isinstance(raw, str) else raw
 
 
+def drafted_with_of(raw: Any) -> str | None:
+    """``drafted_with`` as the route reads it: whitespace normalised (``spaced``), null or ``""``
+    no model, a non-string or an over-long one ``tooling-invalid`` (``appends.declared``). mcpfix
+    (testers 2026-11-25, qa-eb B1): a string of whitespace alone had read as no model; a field
+    sent with nothing in it is a mistake to name, so it is ``tooling-invalid`` too. The
+    ``<name> (<id>)`` shape is described, not enforced: a third of the merged record lacks it
+    (engineering/evidence/mcpfix/wb2-5-drafted-with-measure.txt)."""
+    if isinstance(raw, str) and raw and not raw.strip():
+        raise ApiError(
+            400,
+            "tooling-invalid",
+            "drafted_with is only whitespace: name the model as <model name> (<model id>), or "
+            "send null when no model drafted the words",
+            details={"field": "drafted_with"},
+        )
+    return appends.declared(spaced(raw), "drafted_with", cap=DRAFTED_WITH_MAX_CHARS)
+
+
+def latex_warnings(subject: dict[str, Any], text: str) -> list[Diagnostic]:
+    """mcpfix (testers 2026-11-25, qa-eb L10): ``gloss-no-latex`` for a statement, witness or
+    relation gloss whose text has no math at all, by the gate's rule (``glosses.no_latex``);
+    a warning in the answer, never a refusal."""
+    found = glosses.no_latex(str(subject.get("kind")), text)
+    return [found] if found is not None else []
+
+
 def dry_run_of(raw: Any) -> bool:
     """F22-T5: ``dry_run`` is a boolean, absent meaning false. Anything else is the catalogued
     ``arguments-invalid``, naming the field (a code of its own would need a catalog row)."""
@@ -839,7 +865,7 @@ def amend(  # noqa: PLR0913 — one amended pull request, described
             "pull-request-failed",
             f"pull request #{found.pr_number} could not be amended; it is as it was: {exc}",
         ) from exc
-    ctx.pulls.pop(found.pr_number, None)  # its head moved: read it afresh next time
+    pending.forget_pull(ctx, found.pr_number)  # its head moved: read it afresh next time
     try:
         ctx.store.put_submission(replace(found, fingerprints=tuple(prints)))
     except Exception as exc:  # any store failure: the branch moved regardless (C7)
@@ -894,9 +920,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         fields.get("licence"), licensed="a gloss or explainer is licensed"
     )
     supersedes = fields.get("supersedes")
-    drafted_with = appends.declared(
-        spaced(fields.get("drafted_with")), "drafted_with", cap=DRAFTED_WITH_MAX_CHARS
-    )
+    drafted_with = drafted_with_of(fields.get("drafted_with"))
     dry_run = dry_run_of(fields.get("dry_run"))
     amended = (
         amended_submission(ctx, identity, fields["amends"])
@@ -932,7 +956,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         parent = f"targets/{target_id}/" + (f"nodes/{node_id}/" if node_id else "")
         directory = explainers.EXPLAINER_DIR if record == "explainer" else glosses.GLOSS_DIR
         path = f"{parent}{directory}/{digest}.md"
-        warned = preflight(root, path, content.encode(), verifier)
+        warned = preflight(root, path, content.encode(), verifier) + latex_warnings(subject, text)
         sections = dry_sections(target_dir, subject, text) if dry_run else []
     # F21-R5: after the gate's own refusals, as the copy rule is (appends.append_pr): a new chain
     # waits for the writer already at work on its subject; a superseding version does not.

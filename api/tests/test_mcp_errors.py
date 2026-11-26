@@ -126,7 +126,9 @@ def test_arguments_refused_structured(harness: Harness) -> None:
     assert unknown.isError
     assert unknown.structuredContent == {
         "error": "tool-unknown",
-        "message": "no such tool no_such_tool",
+        # mcpfix WA1: the message points at the list (and a close name, when there is one).
+        "message": f"no such tool no_such_tool; this surface has {len(TOOLS)} tools, named by "
+        "tools/list",
         "source": "adapter",
     }
     # On the three-tool surface the name is an operation's.

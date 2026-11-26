@@ -1,0 +1,81 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+____________ test_a_merged_proof_not_yet_rendered_is_not_claimable _____________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10e0727b0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_merged_proof_not_yet_rendered_is_not_claimable(harness: Harness) -> None:
+        assert entry(frontier_doc(harness), TUTORIAL_NODE)["claimable"] is True
+        merged_at = merged_through_the_route(harness, rendered=False)
+        doc = frontier_doc(harness)
+>       assert entry(doc, TUTORIAL_NODE)["claimable"] is False
+E       assert True is False
+
+api/tests/test_mcpfix_wb2_pending_render.py:63: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_______________ test_a_merge_the_products_carry_overlays_nothing _______________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10e13d6d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_merge_the_products_carry_overlays_nothing(harness: Harness) -> None:
+        merged_through_the_route(harness, rendered=True)
+        doc = frontier_doc(harness)
+        assert entry(doc, TUTORIAL_NODE)["claimable"] is True
+>       assert doc["pending_render"] == {}
+               ^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'pending_render'
+
+api/tests/test_mcpfix_wb2_pending_render.py:74: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_________________ test_a_host_that_cannot_say_overlays_nothing _________________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10e13c2d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_host_that_cannot_say_overlays_nothing(harness: Harness) -> None:
+        """C7: no answer about the products is no claim that they lag."""
+        merged_through_the_route(harness, rendered=False)
+        harness.githost.ancestry.clear()  # the fake's host failure
+        harness.context.render_ancestry.clear()
+        doc = frontier_doc(harness)
+        assert entry(doc, TUTORIAL_NODE)["claimable"] is True
+>       assert doc["pending_render"] == {}
+               ^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'pending_render'
+
+api/tests/test_mcpfix_wb2_pending_render.py:84: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:87 the graph's head could not be read, serving the branch: no head configured
+_________ test_pending_words_names_a_merged_gloss_until_it_is_rendered _________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10e1a8510>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_pending_words_names_a_merged_gloss_until_it_is_rendered(harness: Harness) -> None:
+        key = gloss_record(harness, 12, f"nodes/{TUTORIAL_NODE}/Statement.lean")
+        harness.githost.ancestry[(MERGE, RENDERED)] = False
+>       assert frontier.pending_words(harness.context, TARGET) == {key}
+E       AssertionError: assert set() == {'words:propo...atement.lean'}
+E         
+E         Extra items in the right set:
+E         'words:propositional:nodes/tutorial-and-swap/Statement.lean'
+E         Use -v to get more diff
+
+api/tests/test_mcpfix_wb2_pending_render.py:113: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-mcpfix-wb2/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_mcpfix_wb2_pending_render.py::test_a_merged_proof_not_yet_rendered_is_not_claimable
+FAILED api/tests/test_mcpfix_wb2_pending_render.py::test_a_merge_the_products_carry_overlays_nothing
+FAILED api/tests/test_mcpfix_wb2_pending_render.py::test_a_host_that_cannot_say_overlays_nothing
+FAILED api/tests/test_mcpfix_wb2_pending_render.py::test_pending_words_names_a_merged_gloss_until_it_is_rendered
+4 failed, 2 warnings in 0.92s

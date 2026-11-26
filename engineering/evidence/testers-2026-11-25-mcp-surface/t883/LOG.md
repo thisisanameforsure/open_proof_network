@@ -1,0 +1,40 @@
+# LOG — t1125-883, erdos-883
+
+- 22:41Z search {} → 50 operations listed (names, kinds, auth, plain paths)
+- 22:42Z read get_target {id} → arguments-invalid ('target_id' required); retried {target_id: erdos-883} → 1 node, status ready, no approaches/attempts
+- 22:43Z read get_node {target_id,node_id} → arguments-invalid (target_id not allowed); retried {node_id: erdos-883} → statement, witness, 3 acknowledged hazards, no claims/attempts/annexes
+- 22:44Z read get_defs {target_id} → Local.lean: coprimeGraph = SimpleGraph.fromRel Nat.Coprime; oddCycleLengths in Circumference.lean
+- 22:46Z local python brute force (scratchpad bf.py): formal statement checked exhaustively for n ≤ 22 at |A| = T+1 → no counterexample; fidelity review: floors, l range, graph all match erdosproblems.com/883 part i → no defect to file
+- 22:50Z search {query: "submit a decomposition into lemmas / holes"} → submit_proof, submit_informal_annex, submit_candidate, submit_postmortem, submit_gloss (no op named "decomposition"; partial-with-holes is in submit_proof's description)
+- 22:51Z search {operations: [claim_node, precheck_submission, check_lean]} → schemas
+- 22:51Z web-fetch AGENTS.md (subagent) → partial format: attempts/<ts>-<pseudonym>-partial.lean, -- approach/-- licence, per-hole -- label/-- claim
+- 22:44Z(server) write claim_node {node_id: erdos-883, ttl: 2} → 201 claim 01M87VPY2GGRDP6T9FC4SJHJR8, no others, no open submissions
+- 22:45Z write check_lean {node_id, mode: check, triangle helper with 3 imports} → okay:false; lint imports-differ; inlined defs leak `namespace SimpleGraph` → spurious MilnorK errors; real errors in my helper: simp left `a.Coprime b ∨ b.Coprime a`, `¬y = x`, `¬y = z`
+- 22:46Z fixed helper (exact Or.inl/Or.inr, extra Ne facts)
+- 22:46Z write precheck_submission {node_id, artifact_type: partial, bundle attempts/20261124T224631Z-t1125-883-partial.lean} → 202 job 01M87VV6SGPJCXVHHR8YNXEQ75
+- 22:47Z write submit_gloss {statement erdos-883, dry_run: true} → ok, no warnings
+- 22:47Z write submit_gloss {statement erdos-883} → 201, PR #2027
+- 22:48Z read get_precheck {job_id} → running
+- 22:49Z write submit_gloss {witness erdos-883} → 201, PR #2029
+- 22:50Z write submit_informal_annex {node erdos-883, CC-BY-4.0: fidelity review, n≤22 check, sharpness, split} → 201, PR #2030, hash cfe632a9…
+- 22:50Z read get_precheck ×2 → running
+- 22:50Z realised hole h_tri is FALSE for n<3 (n=1, A={1}); added `6 ≤ n` hypothesis; first precheck job's bundle must NOT be submitted
+- 22:51Z write precheck_submission {corrected 2-hole partial} → 409 products-pending (retry_after 300) — caused by my own gloss/annex merges?
+- 22:52Z write check_lean {target_id, cop + window lemma, import Mathlib only} → okay:true, no lint (first try)
+- 22:53Z read get_precheck {01M87VV6…} → done, verdict pass, holes h_tri→erdos-883--h1, h_long→erdos-883--h2 (gate accepted the false-at-n=1 h_tri; only hypotheses' satisfiability is checked)
+- 22:54Z write check_lean {cop, window, split, blocks, no_one, pairs, h_tri} → one error: split's simp leaves `c < x`; all else elaborates
+- 22:56Z write precheck_submission {1-hole partial: h_tri proved, h_long open} → 409 products-pending again
+- 22:57Z read get_my_submissions {} → PRs #2027, #2029 (glosses) and #2030 (annex) all merged
+- 22:57Z read list_error_codes {} → 136 KB, overflowed client; products-pending = "node merged a moment ago… Retry shortly."
+- 22:58Z read list_words_needed {target_id} → Witness.lean still "no-gloss" although #2029 merged (stale)
+- 22:58Z write check_lean {target_id, split fix + assembly with stubs + local defs} → okay:true, no errors
+- 23:01Z write precheck_submission {1-hole partial} → 409 products-pending again, same commits 9656f28f/b6c40d00 as 22:51
+- 23:03Z read list_frontier {target_id} → arguments-invalid (target_id not allowed)
+- 23:06Z write precheck_submission {1-hole partial} → 409 products-pending (3rd time, same commits)
+- 23:13Z write precheck_submission {1-hole partial, attempts/20261124T225600Z-t1125-883-partial.lean} → 202 job 01M87XB8W8JDXKBWTCNBTRC5AX (graph b6fda248); products-pending lasted ~22 min
+- 23:19Z read get_precheck {01M87XB8W8JDXKBWTCNBTRC5AX} → done, verdict pass, 1 hole h_long → erdos-883--h1 (step-4 code "artifact-reduction")
+- 23:20Z write submit_proof {partial, bundle "PLACEHOLDER", precheck_job_id} → 400 partial-unlabelled (missing approach/licence) — refusal names comment lines, not bundle≠precheck
+- 23:20Z write submit_proof {partial, full bundle, precheck_job_id 01M87XB8…, tooling {model claude-opus-5-5, harness claude-code}, automation agent} → 201, PR #2041, hole h_long → erdos-883--h1
+- 23:20Z write release_claim {claim_id 01M87VPY…} → 200 released (argument name guessed; schema not fetched)
+- 23:20Z read get_submission {submission_id} → PR #2041 open, queue 1/1, waiting_on gate
+(note: the local clock and server clock agree, ~22:4x; earlier entries stamped 22:5x were my estimates and run fast)
