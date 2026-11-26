@@ -60,7 +60,7 @@ def test_the_pointer_is_published_and_the_crux_is_drawn_in_the_band(tmp_path: Pa
     assert all(r["proposed_for"] is None for nid, r in rows.items() if nid != CRUX)
     # F34-Q26 closed (the owner, 2026-11-26): the crux is drawn in §2's group for the root, not
     # in a column beside the tree; no lit-only use line runs from §2 into §1.
-    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    group = re.search(r'<div class="off-group"[^>]*>(.*?)</div><!-- /off-group -->', page, re.S)
     assert group is not None and f'data-node="{CRUX}"' in group.group(1)
     assert f'href="/nodes/{TARGET}/{ROOT_NODE}/"' in group.group(1).split("</h3>", 1)[0]
     main = page.split('<svg class="dag"', 1)[1].split("</svg>", 1)[0]

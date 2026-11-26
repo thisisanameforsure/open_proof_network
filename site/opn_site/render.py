@@ -15,6 +15,7 @@ import fnmatch
 import hashlib
 import json
 import re
+from collections import Counter
 from dataclasses import replace
 from html import escape, unescape
 from pathlib import Path
@@ -59,7 +60,7 @@ from opn_site.model import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -1375,6 +1376,11 @@ _CODE_PAREN_RE = re.compile(rf"\s*\(\s*{_CODE_ITEM}(?:\s*(?:[,;]|and)\s*{_CODE_I
 _PROTECTED_RE = re.compile(
     r'(<pre\b.*?</pre>|<code\b.*?</code>|<span class="proto">.*?</span>|<[^>]+>)', re.S
 )  # a hover card's protocol line keeps its codes: a hover is where R6 lets them stay
+
+
+def proposed_anchor(target: str) -> str:
+    """F34-T27: the anchor of the §2 group of statements proposed for ``target``."""
+    return "proposed-for-" + re.sub(r"[^A-Za-z0-9_-]", "-", target)
 
 
 def record_words(text: str) -> str:
@@ -3213,6 +3219,8 @@ class Renderer:
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         off_route = self.not_on_route(tv, picture.on_route, picture.mini)  # F34-T18, T26
+        chips = self.speculative_chips(tv, picture.on_route)  # F34-T27
+        svg = one_view.with_spec_chips(svg, chips)
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
         # keeps its place beneath the drawing.
         selector_block = (
@@ -3284,7 +3292,7 @@ class Renderer:
             needs=self.needs_card(tv),
             review_card=self.review_card(tv),  # F34-T21
             not_on_route=off_route,
-            outline=self.route_outline(tv, picture.outline),  # F34-T17
+            outline=self.route_outline(tv, picture.outline, chips),  # F34-T17, T27
             not_on_route_link=(
                 ' · <a href="#not-on-route">Not on a route</a>' if off_route else ""
             ),
@@ -3878,6 +3886,13 @@ class Renderer:
         body = _template("review.html").substitute(
             named=math(named),
             progress=self.review_progress(tv, rv),  # F34-T21
+            # F34-T28: "Your turn", filled by session.js for the signed-in intent signer alone
+            your_turn=(
+                f'<div class="your-turn" role="note" data-your-turn="{esc(tv.target_id)}" '
+                "hidden></div>"
+                if self.api_url
+                else ""
+            ),
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
             words=math(str(head.get("words") or "")),  # F34-T19: the TeX renders
@@ -4005,7 +4020,7 @@ class Renderer:
             "</ul></details>"
         )
 
-    def not_on_route(  # noqa: PLR0912
+    def not_on_route(
         self,
         tv: TargetView,
         on_route: frozenset[str],
@@ -4028,22 +4043,8 @@ class Renderer:
         }
         by_target: dict[str, list[str]] = {}
         members: dict[str, list[str]] = {}  # F34-T26: each group's statements, for its tree
-        off = [nid for nid in tv.nodes if nid not in on_route]
-        where = {nid: self.off_route_group(tv.nodes[nid]) for nid in off}
-        # A statement no route reaches that an off-route statement rests on (a proposed
-        # statement's holes, say) joins that statement's group: the handoff's small trees.
-        changed = True
-        while changed:
-            changed = False
-            for nid in off:
-                if where[nid] != "other":
-                    continue
-                for m in off:
-                    if where[m] != "other" and nid in tv.nodes[m].deps:
-                        where[nid] = where[m]
-                        changed = True
-                        break
-        for nid in off:
+        where = self.off_route_places(tv, on_route)
+        for nid in where:
             key, item = where[nid], self.off_route_item(tv, tv.nodes[nid])
             if key.startswith("for:"):
                 by_target.setdefault(key.removeprefix("for:"), []).append(item)
@@ -4067,13 +4068,45 @@ class Renderer:
                     # F34-T26 (Q26 closed): the group drawn as a small tree, then listed
                     drawn = mini(members[target]) if mini is not None else ""
                     parts.append(
-                        f'<div class="off-group"><h3>Proposed for {named}</h3>'
+                        f'<div class="off-group" id="{esc(proposed_anchor(target))}">'
+                        f"<h3>Proposed for {named}</h3>"
                         f"{drawn}<ul>{''.join(by_target[target])}</ul></div><!-- /off-group -->"
                     )
             elif groups.get(key):
                 parts.append(f"<h3>{heads[key]}</h3>\n<ul>{''.join(groups[key])}</ul>")
         parts.append("</section>")
         return "".join(parts)
+
+    def off_route_places(self, tv: TargetView, on_route: frozenset[str]) -> dict[str, str]:
+        """Each statement no route uses, and the key of its group in "Not on a route"."""
+        off = [nid for nid in tv.nodes if nid not in on_route]
+        where = {nid: self.off_route_group(tv.nodes[nid]) for nid in off}
+        # A statement no route reaches that an off-route statement rests on (a proposed
+        # statement's holes, say) joins that statement's group: the handoff's small trees.
+        changed = True
+        while changed:
+            changed = False
+            for nid in off:
+                if where[nid] != "other":
+                    continue
+                for m in off:
+                    if where[m] != "other" and nid in tv.nodes[m].deps:
+                        where[nid] = where[m]
+                        changed = True
+                        break
+        return where
+
+    def speculative_chips(
+        self, tv: TargetView, on_route: frozenset[str]
+    ) -> dict[str, tuple[int, str]]:
+        """F34-T27 (handoff §3.4.2): each statement with statements proposed for it, how many
+        its §2 group holds and that group's anchor."""
+        counts = Counter(
+            k.removeprefix("for:")
+            for k in self.off_route_places(tv, on_route).values()
+            if k.startswith("for:")
+        )
+        return {t: (n, proposed_anchor(t)) for t, n in counts.items()}
 
     @staticmethod
     def off_route_group(nv: NodeView) -> str:
@@ -4704,11 +4737,17 @@ class Renderer:
             f'<h3 class="kicker">Work on it</h3>{"".join(parts)}</section>\n'
         )
 
-    def route_outline(self, tv: TargetView, rows: tuple[tuple[str, int], ...]) -> str:
+    def route_outline(
+        self,
+        tv: TargetView,
+        rows: tuple[tuple[str, int], ...],
+        chips: Mapping[str, tuple[int, str]] | None = None,
+    ) -> str:
         """F34-T17 (R17; handoff §3.4.6): the routes as an outline, which a phone shows in place
         of the drawing — each statement a 44px link to its page, indented by its depth (a class,
         the site's policy allowing no inline style); graph.js keeps it to the selected route and
-        opens a statement's record under it. ``""`` when there is no route to outline."""
+        opens a statement's record under it. ``""`` when there is no route to outline.
+        ``chips`` (F34-T27): a statement with proposals links to its §2 group under its row."""
         if len(rows) < 2:
             return ""
         rows = tuple((n, d) for n, d in rows if n in tv.nodes)
@@ -4728,11 +4767,15 @@ class Renderer:
                 )
             in_fold = f' data-in-fold="{fold_of[i]}"' if i in fold_of else ""
             label = record_words(self.node_label(nv) or nid)
+            more = ""
+            if chips and nid in chips:
+                n, anchor = chips[nid]
+                more = f'<a class="spec-more" href="#{esc(anchor)}">+ {n} speculative ↓</a>'
             items.append(
                 f'<li class="depth-{min(depth, 8)}" data-node="{esc(nid)}"{in_fold}>'
                 f'<a href="{esc(self.node_path(tv.target_id, nid))}" data-node="{esc(nid)}">'
                 f"{self.dot(self.dot_state(self.node_state(nv)))}"
-                f'<span class="outline-label">{label}</span></a></li>'
+                f'<span class="outline-label">{label}</span></a>{more}</li>'
             )
         return (
             '<ol class="route-outline" aria-label="The selected route, as an outline">'

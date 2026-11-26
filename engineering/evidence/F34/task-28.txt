@@ -1,0 +1,19 @@
+F34-T28 — the review page's "Your turn" note (handoff §3.4, Review), 2026-11-26
+
+The page is static; GET /session already names the questions waiting for the signed-in login as a
+review's intent signer (`reviews`, F26-T11, computed by the service from the review's opener and
+the problem's stewards). The review page carries one hidden, empty slot
+(<div class="your-turn" role="note" data-your-turn="<target>" hidden>), placed above the progress
+strip, only when the site has a service address; session.js fills it with "Your turn" and
+"n questions wait for you below. Each answer, signed in your name, becomes an intent test." when
+the session's `reviews` holds a question of this problem. Nothing is posted and no data is added.
+
+Red first (task-28-red.txt): 6 failed (no slot). Green (task-28-green.txt):
+  uv run --frozen --with 'playwright==1.58.0' python -m pytest site/tests/test_f34_your_turn.py -> 6 passed
+  the slot once and above the strip; the signer sees "3 questions" (two waiting elsewhere not
+  counted); "1 question waits" singular; signed out, another login, and questions only on another
+  problem: hidden and empty.
+  test_review_legible.py (the answer and sign forms beside it): 10 passed.
+Found by the test, fixed: the label and the count had no space between them in the text (the
+gap was a CSS margin), which a screen reader reads as one word.
+Site fast suite: 1042 passed. Capture: task-28-your-turn-1440.png (fixture review, fake session).

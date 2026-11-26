@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import functools
 import json
+import re
 import textwrap
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
@@ -718,6 +719,43 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
         + dag.literature_mark(literature, p.w)
         + f"{diamond}</g></a>"
     )
+
+
+#: F34-T27: the chip a pill carries when statements are proposed for it (its height, the
+#: width one character of its 11px label takes, and its padding).
+CHIP_H = 18
+CHIP_CHAR_W = 6.2
+CHIP_PAD = 14
+
+
+def with_spec_chips(svg: str, chips: Mapping[str, tuple[int, str]]) -> str:
+    """F34-T27 (handoff §3.4.2): "+ n speculative ↓" on the pill of each statement in
+    ``chips`` (its count and the anchor of its §2 group), drawn inside the pill's own group so
+    it moves with the pill, over the pill's lower right corner. A statement the drawing does not
+    draw gets none. Markup only: the layout never reads it."""
+    for nid, (n, anchor) in sorted(chips.items()):
+        m = re.search(
+            rf'<g class="node[^"]*" data-node="{re.escape(escape(nid))}" '
+            r'data-w="(\d+)"[^>]*>',
+            svg,
+        )
+        if m is None:
+            continue
+        end = svg.index("</g></a>", m.end())
+        words = f"+ {n} speculative ↓"
+        cw = round(len(words) * CHIP_CHAR_W) + CHIP_PAD
+        x = max(4, int(m.group(1)) - cw - 8)
+        chip = (
+            f'<g class="spec-chip" data-to="{escape(anchor)}" '
+            f'transform="translate({x},{dag.NODE_H - CHIP_H // 2})">'
+            f"<title>{n} statement{'s' if n != 1 else ''} proposed for this one, in §2</title> "
+            f'<rect width="{cw}" height="{CHIP_H}" rx="4"/>'
+            f'<text x="{cw / 2:g}" y="{CHIP_H // 2 + 4}" text-anchor="middle">'
+            f"{escape(words)}</text>"
+            "</g>"
+        )
+        svg = svg[:end] + chip + svg[end:]
+    return svg
 
 
 def mini_tree(  # noqa: PLR0913 — one group's drawing, every input it is drawn from

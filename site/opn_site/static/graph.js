@@ -618,9 +618,25 @@
     applyBand();
   }
 
+  // F34-T27: the outline's "+ n speculative ↓" scrolls to its group; the hash keeps the view
+  slice(document.querySelectorAll("a.spec-more")).forEach(function (a) {
+    a.addEventListener("click", function (ev) {
+      var group = document.getElementById(a.getAttribute("href").slice(1));
+      if (group) { ev.preventDefault(); group.scrollIntoView({ block: "start" }); }
+    });
+  });
+
   pills.forEach(function (g) {
     var link = g.parentNode;
     g.addEventListener("click", function (ev) {
+      // F34-T27: "+ n speculative ↓" scrolls to its group in §2; the view and the hash stay
+      var chip = ev.target.closest ? ev.target.closest(".spec-chip") : null;
+      if (chip) {
+        ev.preventDefault();
+        var group = document.getElementById(chip.getAttribute("data-to"));
+        if (group) { group.scrollIntoView({ block: "start" }); }
+        return;
+      }
       // F34-T24 (R15): a fold opens in place — the drawing moves to the view with it open
       if (g.classList.contains("fold")) {
         ev.preventDefault();
