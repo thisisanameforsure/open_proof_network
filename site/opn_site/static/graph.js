@@ -505,6 +505,7 @@
   function settle(to, keepHash) {
     state.view = to;
     svg.setAttribute("data-view", to);
+    outlineFollows(to);  // F34-T17
     var sets = setsOf(to), shown = 0, plain = base(to);
     choices.forEach(function (c) {
       var on = c.getAttribute("data-view") === plain;
@@ -854,6 +855,36 @@
   }
 
   // -- the start, and the hash ---------------------------------------------------------------------
+
+  // -- F34-T17 (R17): on a phone, the selected route as an outline ----------------------------------
+
+  var outline = document.querySelector("ol.route-outline");
+  var phone = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
+  var panelHome = panels.length ? panels[0].parentNode : null;
+  function outlineFollows(view) {
+    if (!outline || !layouts || !layouts[view]) { return; }
+    var lay = layouts[view];
+    slice(outline.children).forEach(function (li) { li.hidden = !nodeIn(lay, li.getAttribute("data-node")); });
+  }
+  function putBack() {
+    panels.forEach(function (p) { if (p.parentNode !== panelHome && panelHome) { panelHome.appendChild(p); } });
+    if (outline) { slice(outline.children).forEach(function (li) { li.classList.remove("selected"); }); }
+  }
+  if (outline) {
+    outline.addEventListener("click", function (ev) {
+      var a = ev.target.closest ? ev.target.closest("a[data-node]") : null;
+      if (!a || !(phone && phone.matches)) { return; }
+      ev.preventDefault();
+      var id = a.getAttribute("data-node"), li = a.parentNode;
+      var open = li.classList.contains("selected");
+      putBack();
+      if (open) { select(homeNode); writeHash(); return; }  // closes: the problem's own record, in its place
+      select(id);
+      writeHash();
+      var panel = panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0];
+      if (panel) { li.appendChild(panel); li.classList.add("selected"); }
+    });
+  }
 
   // -- F34-T12 (R14): Tree and List -----------------------------------------------------------------
 

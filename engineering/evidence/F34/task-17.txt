@@ -1,0 +1,25 @@
+F34-T17 — at phone width the selected route is an outline (R17; handoff §3.4.6).
+
+Red (task-17-red.txt):
+FAILED site/tests/test_f34_phone_outline.py::test_every_route_statement_once_from_the_problem_down
+FAILED site/tests/test_f34_phone_outline.py::test_the_outline_replaces_the_drawing_and_follows_the_route
+FAILED site/tests/test_f34_phone_outline.py::test_tapping_a_statement_opens_its_record_under_it
+3 failed in 33.57s
+
+Green (static and at 390 in a browser):
+14 passed in 10.18s
+
+One outline of every statement on a route, built from the routes layout's own lines (lower statement up to
+upper), each statement once at the first depth met, a junction adding no depth. The script keeps it to the
+selected view's statements, so it follows the selector. Depth is a class (the site's policy allows no inline
+style). One media query (760px) swaps the drawing for it.
+
+Restated: test_finding_mobile_scroll — at 390 the drawing gives way to the outline; the page still never
+scrolls sideways and long Lean still scrolls in its block. Whole site suite with Playwright: only the three
+tests red on main before F34 fail.
+
+On the live graph at 257feba2 (shoot_outline.py):
+{"target": "erdos-257", "rows_shown": 4, "first": [["erdos-257", "depth-0"], ["erdos-257--h1", "depth-1"], ["erdos-257--h2", "depth-1"], ["erdos-257--h2--h1", "depth-2"]], "tapped": "erdos-257--h2", "min_row_height": 44, "scrollWidth": 390, "graph_commit": "257feba2344969bcaf93fbd4a08c24448146f0ad"}
+{"target": "erdos-1094", "rows_shown": 19, "first": [["erdos-1094", "depth-0"], ["erdos-1094--h1", "depth-1"], ["erdos-1094--h2", "depth-1"], ["erdos-1094--h2--h1", "depth-2"]], "tapped": "erdos-1094--h2", "min_row_height": 44, "scrollWidth": 390, "graph_commit": "257feba2344969bcaf93fbd4a08c24448146f0ad"}
+Captures: task-17-{erdos-257,erdos-1094}-{outline,tapped}-390.png.
+Not built: the thin connector lines between rows; the folds (T24).

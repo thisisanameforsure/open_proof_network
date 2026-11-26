@@ -3243,6 +3243,7 @@ class Renderer:
             head_sentence=self.head_sentence(tv),
             needs=self.needs_card(tv),
             not_on_route=off_route,
+            outline=self.route_outline(tv, picture.outline),  # F34-T17
             not_on_route_link=(
                 ' · <a href="#not-on-route">Not on a route</a>' if off_route else ""
             ),
@@ -4600,6 +4601,30 @@ class Renderer:
         return (
             '<section class="panel-sec" data-section="work">'
             f'<h3 class="kicker">Work on it</h3>{"".join(parts)}</section>\n'
+        )
+
+    def route_outline(self, tv: TargetView, rows: tuple[tuple[str, int], ...]) -> str:
+        """F34-T17 (R17; handoff §3.4.6): the routes as an outline, which a phone shows in place
+        of the drawing — each statement a 44px link to its page, indented by its depth (a class,
+        the site's policy allowing no inline style); graph.js keeps it to the selected route and
+        opens a statement's record under it. ``""`` when there is no route to outline."""
+        if len(rows) < 2:
+            return ""
+        items = []
+        for nid, depth in rows:
+            nv = tv.nodes.get(nid)
+            if nv is None:
+                continue
+            label = record_words(self.node_label(nv) or nid)
+            items.append(
+                f'<li class="depth-{min(depth, 8)}" data-node="{esc(nid)}">'
+                f'<a href="{esc(self.node_path(tv.target_id, nid))}" data-node="{esc(nid)}">'
+                f"{self.dot(self.dot_state(self.node_state(nv)))}"
+                f'<span class="outline-label">{label}</span></a></li>'
+            )
+        return (
+            '<ol class="route-outline" aria-label="The selected route, as an outline">'
+            f"{''.join(items)}</ol>"
         )
 
     def panel_tabs(self, known: str, work: str) -> str:

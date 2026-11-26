@@ -604,6 +604,9 @@ class Drawing:
     #: F34-T18 (R18): the statements the routes drawing holds (junctions left out); the page
     #: places every other statement in "Not on a route".
     on_route: frozenset[str] = frozenset()
+    #: F34-T17 (R17): the routes drawing as an outline for a phone — each statement on a route
+    #: once, top to bottom from the problem, with its depth (a route's junction adds none).
+    outline: tuple[tuple[str, int], ...] = ()
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -1116,6 +1119,36 @@ def _hidden_counts(
     return len(off_route), sum(1 for n in off_route if n in shelved_rows)
 
 
+def outline_rows(
+    lay: dag.Layout, root: str, junctions: Iterable[str]
+) -> tuple[tuple[str, int], ...]:
+    """F34-T17 (R17): the layout as an outline — depth first from ``root`` down its lines (each
+    line runs from the lower statement up to the upper), each statement once at the first depth
+    it is met, a junction passed through without a depth of its own."""
+    below: dict[str, list[str]] = {}
+    for e in lay.edges:
+        below.setdefault(e.dst, []).append(e.src)
+    order = {p.node_id: p.x for p in lay.placed}  # siblings left to right, as drawn
+    joins = set(junctions)
+    out: list[tuple[str, int]] = []
+    seen: set[str] = set()
+
+    def visit(nid: str, depth: int) -> None:
+        if nid in seen:
+            return
+        seen.add(nid)
+        if nid in joins:
+            nxt = depth
+        else:
+            out.append((nid, depth))
+            nxt = depth + 1
+        for child in sorted(below.get(nid, []), key=lambda c: order.get(c, 0)):
+            visit(child, nxt)
+
+    visit(root, 0)
+    return tuple(out)
+
+
 def opening_view(sets: Sequence[routes.SufficientSet], leaf_of: Mapping[str, str]) -> str:
     """F34-T12 (R14): the view the page opens on — of the sets that prove the problem, the one
     with the fewest open statements, ties to the fewer statements, then the record's order; the
@@ -1284,4 +1317,5 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         routes=route_rows,
         home=home,
         on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions),
+        outline=outline_rows(lays[ROUTES], root, d.junctions) if ROUTES in lays else (),
     )

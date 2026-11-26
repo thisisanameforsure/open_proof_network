@@ -1571,3 +1571,18 @@ details.defs > summary, details.qa-fold > summary, details.known-fold > summary 
 .panel-always .btn-block { width: auto; }
 .panel-open { font-family: var(--sans); font-size: 14px; }
 svg.dag path.edge.on-path { stroke-width: 3.2; }
+
+/* F34-T17 (R17): on a phone the selected route is an outline, not a drawing */
+.route-outline { display: none; list-style: none; padding: 0; margin: var(--s4) 0 0; font-family: var(--sans); font-size: 15px; }
+.route-outline > li { border-left: 1px solid var(--rule); }
+.route-outline > li > a { display: flex; gap: var(--s3); align-items: center; min-height: 44px; padding: var(--s2) var(--s3); text-decoration: none; color: var(--ink); overflow-wrap: anywhere; }
+.route-outline > li.selected > a { background: var(--ink); color: var(--paper); }
+.route-outline > li > .panel { margin: 0 0 var(--s4) var(--s3); }
+.route-outline .depth-1 { margin-left: 12px; } .route-outline .depth-2 { margin-left: 24px; }
+.route-outline .depth-3 { margin-left: 36px; } .route-outline .depth-4 { margin-left: 48px; }
+.route-outline .depth-5 { margin-left: 60px; } .route-outline .depth-6 { margin-left: 72px; }
+.route-outline .depth-7 { margin-left: 84px; } .route-outline .depth-8 { margin-left: 96px; }
+@media (max-width: 760px) {
+  .graph-main .dag-scroll { display: none; }
+  .route-outline { display: block; }
+}
