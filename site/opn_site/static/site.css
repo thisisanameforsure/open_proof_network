@@ -1262,9 +1262,6 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dag .spec-chip { cursor: pointer; }
 .dag .spec-chip rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 1.5 2; }
 .dag .spec-chip text { font-family: var(--sans); font-size: 11px; fill: var(--muted); }
-/* an SVG child cannot undo its link's underline: on a pill with a chip, the label alone carries it */
-.dag a:has(.spec-chip) { text-decoration: none; }
-.dag a:has(.spec-chip) g.node > text { text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
 .route-outline > li > a.spec-more { display: inline-block; min-height: 0; margin: 0 0 6px 30px; padding: 2px 7px; font-family: var(--sans); font-size: 12.5px; color: var(--muted); border: 1px dotted var(--rule-strong); border-radius: 4px; text-decoration: none; }
 .dag .spec-chip:hover rect { stroke: var(--ink); }
 .off-group { scroll-margin-top: 16px; }
@@ -1672,3 +1669,19 @@ details.dag-key[open] > summary { margin-bottom: var(--s2); }
 .off-group { border: 1px dotted var(--rule-strong); border-radius: var(--radius); background: var(--surface); padding: var(--s4) var(--s5); margin: var(--s5) 0; }
 .off-group > h3 { margin-top: 0; }
 .off-group svg.mini-tree { display: block; max-width: 100%; height: auto; margin: var(--s3) 0; }
+/* F34-T32 (REMINDERS item 11; mockups New-Erdos257, -Unfolded, New-Select-Side): the tree's boxes.
+   Every box white with a grey hairline and a 12.5px sans label, never underlined; the status is
+   the dot alone — proved a filled blue dot, open an ink ring; the selected box filled ink, and
+   the lines of its path from the problem drawn heavier (graph.js marks them on-path). */
+svg.dag a { text-decoration: none; }
+svg.dag g.node:not(.fold) > text { font-family: var(--sans); font-size: 12.5px; fill: var(--ink); }
+svg.dag g.node rect.pill { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; rx: 4px; }
+svg.dag g.node.proved rect.pill { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; }
+svg.dag g.node circle:not(.halo) { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+svg.dag g.node.proved circle:not(.halo) { fill: var(--proved); stroke: var(--proved); }
+svg.dag g.node.selected rect.pill { fill: var(--ink); stroke: var(--ink); stroke-width: 2; }
+svg.dag g.node.selected > text { fill: var(--surface); }
+svg.dag g.node.selected circle:not(.halo) { stroke: var(--surface); }
+svg.dag g.node.selected.proved circle:not(.halo) { fill: var(--surface); }
+svg.dag a:hover g.node:not(.selected) rect.pill, svg.dag a:focus-visible g.node:not(.selected) rect.pill { stroke: var(--ink); }
+svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }

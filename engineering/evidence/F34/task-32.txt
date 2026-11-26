@@ -1,0 +1,24 @@
+F34-T32 — the tree's boxes (REMINDERS-erdos-257 item 11; mockups New-Erdos257, -Unfolded,
+New-Select-Side), 2026-11-27
+
+Read from the mockups' own markup: every box white (#FFF) with a 1px #CFCBC2 hairline and a
+12.5px IBM Plex Sans label; proved boxes keep the grey border and carry a filled #2A4D8F dot;
+open boxes an ink ring; the selected box is filled ink with a white label and a 2px border. (The
+reminder says "serif" and "blue hairline"; the mockup's source says sans and grey, and the
+picture wins, as in T30.) CSS only, one block at the end of site.css; the path from the problem to
+a selection was already marked on-path by graph.js and is now ink, 2.5px.
+
+Red first (task-32-red.txt): 3 of 4 failed on computed styles (proved pills filled, proved dot
+ink, selected box not filled). The first red run used a fixture with no proved statement, which
+made the proved test vacuous; it now uses the band fixture, which draws proved and open.
+Green (task-32-green.txt): 4 passed; with the chip and fold tests, 14 passed. Site fast suite
+1064 passed.
+
+Seen in the capture and fixed before commit: the label rule also matched the text inside the
+"+ n speculative" chip and the outline-count badge, which turned white on the selected root; it
+is scoped to the pill's own label (g.node:not(.fold) > text). The T27 rule that re-underlined a
+chipped pill's label is gone with the underline.
+Captures from the live graph: task-32-tree-1440.png (erdos-257), task-32-tree-1094-1440.png.
+Noticed, not changed: box widths are still computed for the old monospace label, so the boxes
+are wider than their sans labels need; the mockup's boxes wrap at 140px. That is layout (dag.py),
+a separate change.
