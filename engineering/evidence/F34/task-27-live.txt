@@ -1,0 +1,3 @@
+{"pages_with_chips": 5, "chips": 12, "erdos-257": 4}
+{"width": 1440, "chip_box": {"x": 432.109375, "y": 440.234375, "width": 120, "height": 19}, "pill": [380.609375, 413.734375, 179, 36], "before": ["", "sel/proves/erdos-257@1"], "after": ["", "sel/proves/erdos-257@1", 16]}
+{"width": 390, "outline_link": {"x": 63.796875, "y": 436.75, "width": 114.1875, "height": 26}, "before": "", "after": ["", 16, 390]}

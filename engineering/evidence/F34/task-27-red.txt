@@ -1,0 +1,11 @@
+../../../.cache/uv/archive-v0/-3-oUiRHVn01H8wb/lib/python3.13/site-packages/playwright/_impl/_connection.py:559: TimeoutError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_site.model:model.py:1087 and-swap-reassoc--h3: Proof.lean is not the file attestation attestations/000012.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found fc765d318e656596350f86d29d99c1129226ef85d9c9ae7e8fe9d195d6ad1fa9); its text is withheld from the page
+WARNING  opn_site.model:model.py:1087 spec-crux1: Proof.lean is not the file attestation attestations/000013.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found 58354a6fd77b30a931b6f5e44bba792407e1fcb88823a7290377db7044c7819b); its text is withheld from the page
+=========================== short test summary info ============================
+FAILED site/tests/test_f34_speculative_chips.py::test_a_statement_with_proposals_carries_a_chip_naming_its_group
+FAILED site/tests/test_f34_speculative_chips.py::test_a_click_on_the_chip_scrolls_to_the_group_and_keeps_the_view
+2 failed, 1 passed in 33.56s
+=========================== short test summary info ============================
+FAILED site/tests/test_f34_speculative_chips.py::test_the_phone_outline_carries_the_same_link
+1 failed, 3 deselected in 0.72s
