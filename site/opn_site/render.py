@@ -1189,6 +1189,30 @@ def topic_of(record: dict[str, Any] | None) -> str:
 outline_folds = one_view.outline_folds
 
 
+def figure_top(svg: str, layouts_json: str, *, rows: int = 3) -> tuple[str, int]:
+    """F34-T21 (Home's Figure 1, as the mockup): the routes drawing at rest cut after its first
+    ``rows`` rows of statements, and how many statements the cut leaves out. A junction is no
+    row; the drawing is returned whole when it has no more rows than that."""
+    found = re.search(r'id="graph-layouts">(.*?)</script>', layouts_json, re.S)
+    if found is None:
+        return svg, 0
+    lay = json.loads(found.group(1).replace("<\\/", "</")).get(one_view.ROUTES) or {}
+    statements = {nid: at[1] for nid, at in (lay.get("nodes") or {}).items() if "@" not in nid}
+    levels = sorted(set(statements.values()))
+    if len(levels) <= rows:
+        return svg, 0
+    cut = levels[rows]
+    more = sum(1 for y in statements.values() if y >= cut)
+    height = max(cut - 12, 1)
+    out = re.sub(
+        r'viewBox="0 0 (\d+(?:\.\d+)?) [\d.]+"', rf'viewBox="0 0 \1 {height}"', svg, count=1
+    )
+    out = re.sub(
+        r'(<svg class="dag"[^>]*?) height="[\d.]+"', rf'\1 height="{height}"', out, count=1
+    )
+    return out, more
+
+
 def question_groups(kinds: list[str]) -> list[tuple[int, int, str]]:
     """F34-T19: runs of one kind in a list of questions, as (first, last, kind), 1-based."""
     out: list[tuple[int, int, str]] = []
@@ -2299,11 +2323,20 @@ class Renderer:
         if tv is None:
             return ""
         href = esc(self.target_path(tv.target_id))
-        # F34-T20 (handoff §3.0): the drawing as Figure 1, captioned, beside the statement
+        # F34-T20 (handoff §3.0): the drawing as Figure 1, captioned, beside the statement;
+        # F34-T21: its first rows only, the rest counted, as the mockup has it
+        picture = self.problem_drawing(tv)
+        top, more = figure_top(picture.svg, picture.layouts_json)
+        rest = (
+            f'<p class="figure-more"><a href="{href}">… {more} more statement'
+            f"{'' if more == 1 else 's'}</a></p>"
+            if more
+            else ""
+        )
         return (
             '<section class="home-band home-worked" id="worked">'
             '<figure class="home-figure">'
-            f'<div class="worked-drawing">{self.problem_drawing(tv).svg}</div>'
+            f'<div class="worked-drawing">{top}{rest}</div>'
             f"<figcaption><strong>Figure 1.</strong> {esc(tv.target_id)}, taken apart. Each box "
             "is one Lean statement, filled when proved; a problem is proved when every statement "
             "under one of its routes is.</figcaption></figure>"

@@ -47,3 +47,31 @@ def test_the_review_shows_its_six_stages_in_order(page: str) -> None:  # noqa: F
     if "now" in states:  # every stage before the one now is done
         assert all(s == "done" for s in states[: states.index("now")]), states
     assert page.index('class="review-progress"') < page.index('id="questions"')
+
+
+def test_figure_one_is_the_top_of_the_tree_with_the_rest_counted() -> None:
+    """Home's Figure 1, as the mockup: the drawing cut after its first rows of statements, and
+    how many statements the cut leaves out, for the problem's page to show."""
+    import json  # noqa: PLC0415
+
+    from opn_site import render  # noqa: PLC0415
+
+    nodes = {
+        "r": [100, 10, 80],
+        "r@1": [130, 60, 8],
+        "a": [20, 110, 60],
+        "b": [120, 110, 60],
+        "a1": [20, 210, 60],
+        "a2": [100, 210, 60],
+        "a3": [180, 310, 60],
+    }
+    doc = json.dumps({"routes": {"w": 300, "h": 360, "nodes": nodes, "lines": []}})
+    layouts = f'<script type="application/json" id="graph-layouts">{doc}</script>'
+    svg = (
+        '<svg class="dag" data-view="routes" viewBox="0 0 300 360" width="300" height="360"></svg>'
+    )
+    cut, more = render.figure_top(svg, layouts, rows=3)
+    assert more == 1  # rows at 10, 110 and 210 are kept; a3 at 310 is cut; a junction is no row
+    assert 'viewBox="0 0 300 ' in cut and 'height="360"' not in cut
+    whole, none = render.figure_top(svg, layouts, rows=9)
+    assert (whole, none) == (svg, 0)

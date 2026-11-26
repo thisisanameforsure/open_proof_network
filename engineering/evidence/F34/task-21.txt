@@ -41,3 +41,12 @@ with its count, from the records alone; on erdos-257: done, done, now (0 of 8), 
 Capture: task-21c-review-257-light-1440.png. Still not built: the signed-in "Your turn" note.
 The owner, 2026-11-26: another session is reworking the Docs tab, so Docs is out of this comparison; the
 callout labels added an hour earlier (never deployed) are taken back out of site.css.
+
+---- then: §4 as cards; Figure 1 as the top of the tree
+§4: the stewards in one card, the panel and the write-up in another, side by side (one column on a phone);
+every heading id and the panel-writeup wrapper kept. Capture task-21d-erdos-257-people-light-1440.png.
+Home's Figure 1: the routes drawing cut after its first three rows of statements (render.figure_top; a
+junction is no row), with "… n more statements" linking to the problem: erdos-1094 shows its root, its two
+splits and "… 92 more statements", as the mockup draws it. Red then green in test_f34_mockup_fixes.py (the
+first expected count in the test was wrong — 1, not 2 — and was corrected before the code was written).
+Capture task-21e-home-light-1440.png. Site fast suite green.
