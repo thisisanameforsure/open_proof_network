@@ -50,3 +50,16 @@ junction is no row), with "… n more statements" linking to the problem: erdos-
 splits and "… 92 more statements", as the mockup draws it. Red then green in test_f34_mockup_fixes.py (the
 first expected count in the test was wrong — 1, not 2 — and was corrected before the code was written).
 Capture task-21e-home-light-1440.png. Site fast suite green.
+
+---- then: §3's review card
+A problem with a review shows it in §3 as the mockup's card: "Does the Lean say the conjecture?", "Open the
+review →" and the review's six stages (the same strip as the review page). None on a problem with no review.
+Red then green in test_f34_mockup_fixes.py; site fast suite 1032 passed.
+
+---- then: §1's key folded
+The drawing's key behind "Key to the drawing" (closed), as the mockup draws the route with no key above it.
+The "Show n more statements" button lived inside the key and the browser suite caught it hidden
+(test_one_view::test_the_toggle_shows_every_statement): it is placed beside the fold now (graph_legend's
+toggle flag), and the nothing-dropped test holds it as its own fragment. Site suite with Playwright: only the
+three tests red on main before F34 fail. Capture task-21f-erdos-257-proof-light-1440.png.
+Left for §1: the speculative column, which the mockup moves into §2 as small trees (Q26).

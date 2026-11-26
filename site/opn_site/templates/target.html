@@ -20,7 +20,7 @@ $needs
 <p class="cue">$count_words. The problem's own statement is the one selected when the page opens. A statement is drawn above the statements it depends on, so the pieces of its proof are below it and a variant that uses it is above it. Select one to see its record.</p>
 </div>
 <div class="graph-grid">
-<div class="dag-wrap card"><div class="dag-legend">$legend</div><div class="graph-body"><div class="graph-main">$selector<div class="dag-scroll">$dag</div>$outline</div>$band</div><span class="dag-caption">labels drop the problem&rsquo;s own name (a pill&rsquo;s title has its full id); <span class="on-hover">hover</span><span class="on-touch">tap</span> a statement to light its lines; select a set in the tree above to see its tree here</span></div>
+<div class="dag-wrap card"><details class="dag-key"><summary>Key to the drawing</summary><div class="dag-legend">$legend</div></details>$view_toggle<div class="graph-body"><div class="graph-main">$selector<div class="dag-scroll">$dag</div>$outline</div>$band</div><span class="dag-caption">labels drop the problem&rsquo;s own name (a pill&rsquo;s title has its full id); <span class="on-hover">hover</span><span class="on-touch">tap</span> a statement to light its lines; select a set in the tree above to see its tree here</span></div>
 <div class="panels">
 $panels
 </div>
@@ -32,6 +32,7 @@ $not_on_route
 <section class="detail">
 <h2 id="statement"><span class="sec">§3</span> The statement and its review</h2>
 <p class="informal">$informal_full</p>
+$review_card
 $qa_block
 <p class="review">$review</p>
 <details class="qa-fold"><summary>Does the Lean say the conjecture? Quality checks by subject</summary>

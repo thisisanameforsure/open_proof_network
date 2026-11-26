@@ -29,6 +29,7 @@ PAGES = {
     "review-257": "/problems/erdos-257/review/",  # T19: the review page
     "erdos-257-off-route": "/problems/erdos-257/#not-on-route",  # T18: §2 at the top
     "erdos-257-people": "/problems/erdos-257/#people",  # T21: §4 at the top
+    "erdos-257-proof": "/problems/erdos-257/#proof",  # T21: §1 at the top
     "abc": "/problems/abc/",
     "singmaster": "/problems/singmaster/",
     "collatz-like": "/problems/collatz-like/",
