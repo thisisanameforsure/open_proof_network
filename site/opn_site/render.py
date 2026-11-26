@@ -3886,6 +3886,13 @@ class Renderer:
         body = _template("review.html").substitute(
             named=math(named),
             progress=self.review_progress(tv, rv),  # F34-T21
+            # F34-T28: "Your turn", filled by session.js for the signed-in intent signer alone
+            your_turn=(
+                f'<div class="your-turn" role="note" data-your-turn="{esc(tv.target_id)}" '
+                "hidden></div>"
+                if self.api_url
+                else ""
+            ),
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
             words=math(str(head.get("words") or "")),  # F34-T19: the TeX renders
