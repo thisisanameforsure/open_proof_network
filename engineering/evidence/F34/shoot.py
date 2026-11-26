@@ -26,6 +26,7 @@ PAGES = {
     "home": "/",
     "problems": "/problems/",
     "erdos-257": "/problems/erdos-257/",
+    "erdos-257-off-route": "/problems/erdos-257/#not-on-route",  # T18: §2 at the top
     "abc": "/problems/abc/",
     "singmaster": "/problems/singmaster/",
     "collatz-like": "/problems/collatz-like/",

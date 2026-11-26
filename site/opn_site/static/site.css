@@ -1522,3 +1522,11 @@ details.defs > summary, details.qa-fold > summary, details.known-fold > summary 
 .route-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
 .route-tabs button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .graph-main > #sets-list { margin: 0 0 var(--s4); overflow-x: auto; }
+
+/* F34-T18 (R18): Not on a route */
+.off-route > h2 { margin-top: calc(var(--s8) * 1.4); padding-top: var(--s4); border-top: 1px solid var(--rule); }
+.off-route h2 .sec { font-family: var(--sans); font-size: 15px; color: var(--muted); margin-right: 8px; font-weight: 400; }
+.off-route h3 { font-size: 16px; margin: var(--s6) 0 var(--s2); }
+.off-route ul { list-style: none; padding: 0; margin: 0; }
+.off-route li { padding: var(--s2) 0; border-bottom: 1px solid var(--rule); overflow-wrap: anywhere; }
+.off-route .status-word { font-family: var(--sans); font-size: 13px; color: var(--muted); }

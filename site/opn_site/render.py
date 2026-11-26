@@ -3081,6 +3081,7 @@ class Renderer:
         picture = self.problem_drawing(tv)
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
+        off_route = self.not_on_route(tv, picture.on_route)  # F34-T18
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
         # keeps its place beneath the drawing.
         selector_block = (
@@ -3150,6 +3151,10 @@ class Renderer:
             stage_mark=self.stage_mark(tv),
             head_sentence=self.head_sentence(tv),
             needs=self.needs_card(tv),
+            not_on_route=off_route,
+            not_on_route_link=(
+                ' · <a href="#not-on-route">Not on a route</a>' if off_route else ""
+            ),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
             registrations=self.registration_lines(tv),
@@ -3782,6 +3787,103 @@ class Renderer:
             '<p class="cue">Modules the problem\'s statements import, each a file in the graph; '
             f'they change only by a curator\'s revision.</p><ul class="defs-list">{"".join(items)}'
             "</ul></details>"
+        )
+
+    def not_on_route(self, tv: TargetView, on_route: frozenset[str]) -> str:  # noqa: PLR0912
+        """F34-T18 (R18; handoff §3.4.4): every statement no route uses, so the page places each
+        statement of the problem exactly once — drawn on a route, or listed here. Proposed
+        statements grouped by the statement they were proposed for, then those proposed for
+        none, related results, special cases no split uses, superseded statements with what
+        replaced them, and anything else no route reaches. ``""`` when every statement is on a
+        route."""
+        groups: dict[str, list[str]] = {}
+        order = ("proposed", "unattached", "related", "special", "superseded", "other")
+        heads = {
+            "unattached": "Proposed for no statement",
+            "related": "Related results",
+            "special": "Special cases no split uses",
+            "superseded": "Superseded",
+            "other": "On no route",
+        }
+        by_target: dict[str, list[str]] = {}
+        off = [nid for nid in tv.nodes if nid not in on_route]
+        where = {nid: self.off_route_group(tv.nodes[nid]) for nid in off}
+        # A statement no route reaches that an off-route statement rests on (a proposed
+        # statement's holes, say) joins that statement's group: the handoff's small trees.
+        changed = True
+        while changed:
+            changed = False
+            for nid in off:
+                if where[nid] != "other":
+                    continue
+                for m in off:
+                    if where[m] != "other" and nid in tv.nodes[m].deps:
+                        where[nid] = where[m]
+                        changed = True
+                        break
+        for nid in off:
+            key, item = where[nid], self.off_route_item(tv, tv.nodes[nid])
+            if key.startswith("for:"):
+                by_target.setdefault(key.removeprefix("for:"), []).append(item)
+            else:
+                groups.setdefault(key, []).append(item)
+        if not groups and not by_target:
+            return ""
+        parts = [
+            '<section class="off-route">'
+            '<h2 id="not-on-route"><span class="sec">§2</span> Not on a route</h2>'
+            '<p class="cue">Statements no way of settling the problem uses yet: proposed ones, '
+            "related results, special cases, and statements a revision replaced.</p>"
+        ]
+        for key in order:
+            if key == "proposed":
+                for target in sorted(by_target):
+                    named = (
+                        self.node_link(tv.target_id, target) if target in tv.nodes else esc(target)
+                    )
+                    parts.append(
+                        f"<h3>Proposed for {named}</h3>\n<ul>{''.join(by_target[target])}</ul>"
+                    )
+            elif groups.get(key):
+                parts.append(f"<h3>{heads[key]}</h3>\n<ul>{''.join(groups[key])}</ul>")
+        parts.append("</section>")
+        return "".join(parts)
+
+    @staticmethod
+    def off_route_group(nv: NodeView) -> str:
+        """Which group of "Not on a route" a statement belongs to by its own record:
+        ``for:<id>`` for one proposed for a statement, else a group's key."""
+        e = nv.graph_entry
+        if nv.status == "superseded":
+            return "superseded"
+        if e.get("relation") == "related":
+            return "related"
+        if e.get("relation") == "partial":
+            return "special"
+        if e.get("proposed_for"):
+            return f"for:{e['proposed_for']}"
+        if e.get("origin") == "authored" or nv.status == "speculative":
+            return "unattached"
+        return "other"
+
+    def off_route_item(self, tv: TargetView, nv: NodeView) -> str:
+        """One statement in "Not on a route": its label (or id) linked, its status, and for a
+        superseded one what replaced it."""
+        label = self.node_label(nv)
+        href = esc(self.node_path(tv.target_id, nv.node_id))
+        name = (
+            f'<a href="{href}">{record_words(label)}</a> '
+            f'<span class="mono">{esc(nv.node_id)}</span>'
+            if label
+            else f'<a href="{href}" class="mono">{esc(nv.node_id)}</a>'
+        )
+        words = status_words(nv.status, nv.graph_entry.get("cause"))
+        after = ""
+        if nv.status == "superseded" and nv.superseded_by:
+            after = f" · replaced by {self.node_link(tv.target_id, nv.superseded_by)}"
+        return (
+            f'<li data-node="{esc(nv.node_id)}">{name} '
+            f'<span class="status-word">{esc(words)}</span>{after}</li>'
         )
 
     def problem_kicker(self, tv: TargetView) -> str:

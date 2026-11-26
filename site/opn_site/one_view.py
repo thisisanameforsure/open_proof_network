@@ -601,6 +601,9 @@ class Drawing:
     #: F34-T12 (R14): the view the page opens on — the selector's leaf for the proving set with
     #: the fewest open statements; ``""`` for a problem with no route (it opens on ``routes``).
     home: str = ""
+    #: F34-T18 (R18): the statements the routes drawing holds (junctions left out); the page
+    #: places every other statement in "Not on a route".
+    on_route: frozenset[str] = frozenset()
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -1280,4 +1283,5 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         shelved=shelved_hidden,
         routes=route_rows,
         home=home,
+        on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions),
     )

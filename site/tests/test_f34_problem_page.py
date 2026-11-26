@@ -4,7 +4,7 @@ it dropped.
 * The order: the statement as the headline, its status and stage mark, one sentence on its
   stewards and open statements, then "On this page" and the numbered sections — §1 Proof, §3 The
   statement and its review, §4 Stewards, panel and write-up, §5 What is known and tried, §6 Record
-  (§2, Not on a route, is T18's).
+  (§2, Not on a route, is T18's, and appears only when a statement is on no route).
 * Nothing dropped (``New-Problem-InfoMap``): every fragment today's page was built from still
   renders, verbatim, on the new page — two by the owner's word excepted: the follow-the-proof
   toggle (F34-Q7) and the definition modules' Lean, which is linked, never printed (R19).
@@ -90,13 +90,16 @@ def test_the_sections_are_numbered_in_order(built: tuple[render.Renderer, dict[s
     for tid in r.site.targets:
         page = pages[f"problems/{tid}/index.html"]
         heads = re.findall(r'<h2 id="([a-z-]+)"><span class="sec">§(\d)</span> ([^<]+)</h2>', page)
-        assert [(sid, n) for sid, n, _w in heads] == [
+        got = [(sid, n) for sid, n, _w in heads]
+        # §2, Not on a route (T18), is there only when some statement is on no route.
+        assert [g for g in got if g != ("not-on-route", "2")] == [
             ("proof", "1"),
             ("statement", "3"),
             ("people", "4"),
             ("known", "5"),
             ("record", "6"),
         ], (tid, heads)
+        assert ("not-on-route", "2") not in got or got[1] == ("not-on-route", "2"), got
         nav = re.search(r'<nav class="onpage"[^>]*>(.*?)</nav>', page, re.S)
         assert nav is not None, tid
         for sid, _n, _w in heads:
