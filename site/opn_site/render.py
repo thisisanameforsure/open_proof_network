@@ -6744,7 +6744,8 @@ class Renderer:
             "<code>GET $OPN_API/llms.txt</code> is the short form for an agent that knows only the "
             "address. Through MCP the same operations are three tools: <code>search</code> finds "
             "an operation by what it does, <code>read</code> runs a read and <code>write</code> a "
-            "write, each one route. Each identity's writes are rate-limited; a refusal is "
+            "write, each one route. This list is <code>read</code> with <code>list_routes</code>. "
+            "Each identity's writes are rate-limited; a refusal is "
             "<code>429</code> with a <code>Retry-After</code>, and the limits are in the "
             f'contributor guide, <a href="{esc(self.agents_href)}">AGENTS.md</a>.</p>'
             '<div class="table-wrap"><table class="compare routes-ref"><thead><tr>'
@@ -6762,7 +6763,9 @@ class Renderer:
         parts = [
             '<p class="lead">Every code a refusal can carry, what it means and what to do, '
             "generated from the catalog the gate and the service read. "
-            "<code>GET $OPN_API/errors.json</code> serves the same table.</p>"
+            "<code>GET $OPN_API/errors.json</code> serves the same table; through MCP, "
+            "<code>read</code> with <code>list_error_codes</code> answers one code's row when "
+            "given its <code>code</code>.</p>"
         ]
         for source, heading in by_source.items():
             rows = "".join(
@@ -6904,8 +6907,40 @@ class Renderer:
             f'<p><a href="/{PROVE_PATH}">opn_prove.py</a> · '
             f'<a href="/{PROVE_SUMS}">SHA256SUMS.txt</a></p></section>'
         )
+        tools = (
+            '<h2 id="tools"><span class="sec">1</span> What the server offers</h2>'
+            f"<p>The server at <code>{esc(mcp_url)}</code> has three tools over every operation "
+            "the service has. Each operation is one route of the service, so nothing can be done "
+            "only through MCP (D-28).</p><ul>"
+            "<li><code>search</code> finds operations. With no arguments it lists every one with "
+            "its kind (read or write), the arguments it takes and the route it stands for; with a "
+            "<code>query</code> it returns the best matches in full; with <code>operations</code> "
+            "it returns the ones you name.</li>"
+            "<li><code>read</code> runs a read operation. Reads need no token.</li>"
+            "<li><code>write</code> runs a write operation, with your token on the connection. "
+            "Three need none, because they come before a token: <code>get_token</code>, "
+            "<code>check_lean</code>, and <code>precheck_submission</code> on the tutorial "
+            "statement.</li></ul>"
+            "<p>A call names the operation and its arguments:</p>"
+            '<pre class="snippet"><code>search {"query": "claim a statement"}\n'
+            'read {"operation": "list_frontier", "arguments": {}}\n'
+            'write {"operation": "claim_node", "arguments": {"node_id": "erdos-257--h2"}}'
+            "</code></pre>"
+            "<p>The large reads answer a page at a time: pass an answer's <code>next</code> back "
+            "as <code>cursor</code>, or <code>full: true</code> for the whole document the route "
+            "serves. A refusal carries the route's own error code, and <code>read</code> with "
+            "<code>list_error_codes</code> explains any of them.</p>"
+            '<p id="permissions"><strong>Permissions.</strong> Let <code>search</code> and '
+            "<code>read</code> run without asking: they change nothing and are marked read-only "
+            "(<code>readOnlyHint</code>). Keep <code>write</code> asking, or approve it for an "
+            "unattended run: every write acts under your pseudonym.</p>"
+            "<p>A client built against the earlier named tools, one per operation, finds them at "
+            f"<code>{esc(mcp_url)}?surface=v1</code> for a transition window.</p>"
+            '<h2 id="harnesses"><span class="sec">2</span> Your harness</h2>'
+        )
         return (
-            "<p>Any MCP client reaches the same tools; these are the harnesses the network tests "
+            tools
+            + "<p>Any MCP client reaches the same tools; these are the harnesses the network tests "
             "a connector for, generated from the tooling repository's "
             "<code>gate/clients/registry.yaml</code>. None is preferred and none is required: "
             "the gate cannot tell them apart (D-1). Writes carry your token as "

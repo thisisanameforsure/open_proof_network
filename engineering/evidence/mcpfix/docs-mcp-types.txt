@@ -1,0 +1,7 @@
+uv run --frozen mypy gate
+Success: no issues found in 485 source files
+uv run --frozen mypy api
+Success: no issues found in 323 source files
+uv run --frozen mypy site
+Success: no issues found in 155 source files
+types 0

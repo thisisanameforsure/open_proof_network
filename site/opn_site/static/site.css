@@ -1413,6 +1413,8 @@ table.waiting .wstmt { overflow-wrap: anywhere; }
 .docs-main table.compare th { text-transform: none; letter-spacing: 0; }
 .docs-main table.compare tbody th { font-family: var(--sans); font-weight: 500; font-size: 14px; }
 .callout { border-left: 3px solid var(--proved); padding: 4px 0 4px 16px; margin: 20px 0; }
+/* mcpfix (2026-11-26): the MCP operation beside a route, quieter than the route it pairs. */
+p.mcp { color: var(--muted); font-size: 0.92em; margin-top: -4px; }
 .callout-warn { border-left-color: var(--refuted); }
 .callout p { margin: 0; }
 .prevnext { display: flex; justify-content: space-between; gap: 16px; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--rule); }

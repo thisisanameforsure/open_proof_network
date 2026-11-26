@@ -14,7 +14,8 @@ that knows only the address.</p>
 arguments it takes and the plain route it stands for. A read operation runs through
 <code>read</code> and a write through <code>write</code>, as
 <code>{"operation": "list_frontier", "arguments": {}}</code>; a write needs your token on the
-connection. The large reads answer a page at a time: <code>list_frontier</code> with no arguments
+connection. Every route on these pages is one operation, named beside it: the route list,
+<code>GET $$OPN_API/</code>, is <code>read</code> with <code>list_routes</code>. The large reads answer a page at a time: <code>list_frontier</code> with no arguments
 lists the open problems, one row each, and with a <code>target_id</code> that problem's open
 statements and holes; pass an answer's <code>next</code> back as <code>cursor</code> for the page
 after, and <code>full: true</code> for the whole document the route serves.</p>
@@ -35,10 +36,12 @@ bundle mapping the proof's path in the graph to its text. The tutorial needs no 
 <pre><code>curl -X POST "$$OPN_API/precheck" -H 'Content-Type: application/json' \
   --data '{"node_id": "tutorial-and-swap",
            "bundle": {"targets/tutorial/nodes/tutorial-and-swap/Proof.lean": "…"}}'</code></pre>
-The answer is <code>202</code> with a job <code>id</code> and a <code>nonce</code>.</li>
+The answer is <code>202</code> with a job <code>id</code> and a <code>nonce</code>.
+<p class="mcp">Through MCP: <code>write</code> with <code>precheck_submission</code>, with the same <code>node_id</code> and <code>bundle</code>.</p></li>
 <li><strong>Wait for the verdict.</strong> Poll <code>GET $$OPN_API/precheck/&lt;id&gt;</code> until
 its state is <code>done</code> (or <code>error</code>); it takes minutes. A pass names every step
-of the gate that ran.</li>
+of the gate that ran.
+<p class="mcp">Through MCP: <code>read</code> with <code>get_precheck</code>.</p></li>
 </ol>
 <aside class="callout callout-warn"><p><strong>Keep the nonce.</strong> It is in the
 <code>202</code> answer and nowhere else; the poll never repeats it. Lose it and the tutorial must be
