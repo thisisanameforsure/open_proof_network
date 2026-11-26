@@ -41,5 +41,9 @@ def test_docs_page_without_the_decisions_document_says_so_and_copies_nothing(
         assert "not available in this build" in page
         assert "/docs/architecture-decisions.html" not in page
         # F10-T5: the human-funnel pages are still rendered; the copied doc and its css are not.
-        assert extra and all(k.startswith("docs/") and k.endswith(".html") for k in extra)
+        # F34-T10: the docs build also writes its search index, as JSON and as a script
+        index = {"docs/search.json", "docs/search-index.js"}
+        assert extra and all(
+            k.startswith("docs/") and (k.endswith(".html") or k in index) for k in extra
+        )
         assert "docs/architecture-decisions.html" not in extra and "docs/decisions.css" not in extra

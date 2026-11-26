@@ -1553,3 +1553,11 @@ details.defs > summary, details.qa-fold > summary, details.known-fold > summary 
 .review-fold > summary { cursor: pointer; list-style-position: outside; }
 .review-fold > summary h2 { display: inline; }
 .question-group { font-size: 16px; margin: var(--s6) 0 var(--s2); color: var(--muted); }
+
+/* F34-T10: Docs search, at the top of the sidebar */
+.docs-search { margin: 0 0 var(--s6); }
+.docs-search input { width: 100%; font: inherit; font-family: var(--sans); font-size: 14px; padding: var(--s2) var(--s3); border: 1px solid var(--rule-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); min-height: 44px; }
+.docs-results { list-style: none; padding: 0; margin: var(--s2) 0 0; }
+.docs-results li { padding: var(--s2) 0; border-bottom: 1px solid var(--rule); }
+.docs-results a { font-family: var(--sans); font-size: 14px; }
+.docs-results .cue { margin: 2px 0 0; font-size: 12.5px; overflow-wrap: anywhere; }

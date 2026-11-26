@@ -16,7 +16,7 @@ import hashlib
 import json
 import re
 from dataclasses import replace
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 from string import Template
 from typing import TYPE_CHECKING, Any
@@ -283,6 +283,8 @@ ANNEX_LICENCES = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
 SCRIPTS: tuple[str, ...] = (
     "/problems.js",
     "/graph.js",
+    "/docs.js",  # F34-T10: Docs search
+    "/docs/search-index.js",  # F34-T10: its index, as a script (connect-src names only the service)
     "/vendor/katex/katex.min.js",
     "/vendor/katex/auto-render.min.js",
     "/math.js",
@@ -1119,6 +1121,8 @@ def document_head(text: str) -> tuple[str, str]:
 
 
 _STRIP_RE = re.compile(r"<link\b[^>]*>|<script\b.*?</script>", re.S | re.I)
+#: F34-T10: a tag, for the search index's plain text
+_TAG_RE = re.compile(r"<[^>]+>")
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
 #: F34-T1 (R3): the wordmark is the way home, so the nav names the four sections only.
 NAV = (
@@ -6366,7 +6370,33 @@ class Renderer:
                 extra[f"docs/{slug}/index.html"] = html
             else:
                 landing = html
+        # F34-T10 (Q13): the search index, written at build — as JSON, and as a same-origin
+        # script docs.js loads, since the site's policy lets a page connect only to the service
+        index = json.dumps(
+            {"pages": [self.docs_index_entry(s, t, bodies[s]) for s, t, _w in internal]},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        extra["docs/search.json"] = index
+        extra["docs/search-index.js"] = f"window.OPN_DOCS_INDEX = {index.replace('</', '<\\/')};\n"
         return landing, extra
+
+    def docs_index_entry(self, slug: str, title: str, body: str) -> dict[str, Any]:
+        """One Docs page in the search index: its address, title and group, each heading that
+        has an anchor, and its text as a reader sees it."""
+        group = next(g for g, entries in DOCS_GROUPS if any(e[0] == slug for e in entries))
+        headings = [
+            {"id": m.group(2), "text": " ".join(unescape(_TAG_RE.sub("", m.group(3))).split())}
+            for m in re.finditer(r'<h([23]) id="([^"]+)"[^>]*>(.*?)</h\1>', body, re.S)
+        ]
+        text = " ".join(unescape(_TAG_RE.sub(" ", body)).split())
+        return {
+            "href": self.docs_href(slug),
+            "title": title,
+            "group": group,
+            "headings": headings,
+            "text": text,
+        }
 
     def docs_listed(self, slug: str) -> bool:
         """A page elsewhere is listed only when this build has it: the decisions document is
@@ -6443,12 +6473,15 @@ class Renderer:
         # the AGENTS.md it links
         names = ("LICENSE", "DCO") if slug == "licence" else ("AGENTS.md",)
         renders = [n for n in names if (self.site.root / n).is_file()]
+        frame_parts = self.math_frame(frame)
+        # F34-T10: Docs search, drawn by docs.js; the sidebar is the way round without it
+        frame_parts["script"] = frame_parts.get("script", "") + '<script src="/docs.js"></script>'
         return self.page(
             "Docs" if not slug else title,
             frame,
             renders=renders,
             path="/docs/",
-            **self.math_frame(frame),
+            **frame_parts,
         )
 
     def docs_bodies(self, funnel: list[tuple[str, str, str]]) -> dict[str, str]:
