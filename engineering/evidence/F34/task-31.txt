@@ -1,0 +1,14 @@
+F34-T31 — the drawing's caption (REMINDERS-erdos-257 item 12), 2026-11-27
+
+The caption under the drawing ("labels drop the problem's own name (a pill's title has its full
+id); hover a statement to light its lines; select a set in the tree above to see its tree here")
+was written for a developer. It is now one hint: "Select a statement to see its record."
+
+Red (task-31-red.txt), green (task-31-green.txt, with test_f22_reader: 18 passed).
+Restated, not deleted: test_f22_reader's touch test (the caption names no pointer, so a touch
+screen is never told to hover; the hover/tap swap rule stays for other pages), and
+test_finding_dag_layout's short-labels test (what the caption explained still holds: every pill's
+title starts with its full id). Golden regenerated (problems/propositional, one line).
+Site fast suite before the restatements: 1062 passed, 2 failed (those two).
+Captures from the live graph: task-31-drawing-1440.png, task-31-drawing-390.png
+(task-31-live.txt: scrollWidth 1440 / 390).

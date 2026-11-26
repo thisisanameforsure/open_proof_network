@@ -188,11 +188,11 @@ def test_on_a_phone_the_graph_keeps_its_size_and_scrolls() -> None:
 
 def test_touch_screens_read_tap_not_hover(pages: dict[str, str]) -> None:
     page = pages[f"problems/{TARGET}/index.html"]
-    caption = re.search(r'<span class="dag-caption">(.*?)</span></div>', page, re.S)
+    # F34-T31 (REMINDERS item 12): the caption is one hint that names no pointer at all, so a
+    # touch screen is never told to hover; the swap below is kept for any page that does
+    caption = re.search(r'<p class="dag-caption">(.*?)</p>', page, re.S)
     assert caption is not None
-    assert '<span class="on-hover">hover</span><span class="on-touch">tap</span>' in caption.group(
-        1
-    )
+    assert "hover" not in caption.group(1)
     assert re.search(r"@media \(hover: none\)\s*\{[^}]*\.on-hover[^}]*display:\s*none", css())
 
 
