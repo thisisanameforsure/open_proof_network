@@ -22,3 +22,16 @@ statement's group instead of the flat list; the same four sections.
 Left of T19: the sign-up page's five 'what happens next' steps, and the review page's questions first.
 
 Captures: task-19-me-waiting-{desktop,phone}.png after Approve all (four approvals, four receipts).
+
+---- then: the sign-up page's next steps (handoff §3.5)
+
+Red (task-19b-red.txt):
+FAILED site/tests/test_f34_steward_next.py::test_the_five_steps_in_order_each_with_its_way_in
+1 failed, 1 passed in 1.04s
+Green:
+2 passed in 0.93s
+Five steps in order, each linked: the name on the problem's page, the review's questions, literature to
+confirm and words to approve (both from My problems; a dispute from the statement's page), the explainer and
+the write-up. None on a problem that takes no steward. Site fast suite: 1008 passed.
+Captures: task-19-steward-abc-{light,dark}-{1440,390}.png on the live graph (the form itself is drawn by
+steward.js once the service answers, so a static capture shows the slot empty).

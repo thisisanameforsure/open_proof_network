@@ -1542,3 +1542,8 @@ details.defs > summary, details.qa-fold > summary, details.known-fold > summary 
 .waiting-statement .waiting-count { font-family: var(--sans); font-size: 13px; color: var(--muted); font-weight: 400; }
 .waiting-statement details summary { font-family: var(--sans); font-size: 13px; color: var(--muted); cursor: pointer; }
 .waiting-statement ul { margin: var(--s2) 0 0; font-size: 14px; }
+
+/* F34-T19: what happens next, on Become a steward */
+.steward-next { max-width: var(--measure); margin: calc(var(--s8) * 1.4) 0 0; }
+.steward-next ol { padding-left: 1.3em; }
+.steward-next li { margin: 0 0 var(--s3); }

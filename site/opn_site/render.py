@@ -2626,6 +2626,33 @@ class Renderer:
             **self.math_frame(body),
         )
 
+    def steward_next(self, tv: TargetView) -> str:
+        """F34-T19 (handoff §3.5): what happens after the form, as five steps in order, each with
+        its way in — the onboarding, so a new steward knows their first jobs. ``""`` for a
+        problem that takes no steward."""
+        if not self.takes_steward(tv):
+            return ""
+        tid = tv.target_id
+        page = esc(self.target_path(tid))
+        review = (
+            f'<a href="{page}review/">its review</a>'
+            if tv.review_records is not None
+            else '<a href="/docs/review/">how a statement is reviewed</a>'
+        )
+        steps = (
+            f'Your name goes on <a href="{page}">the problem&rsquo;s page</a> once the pull '
+            "request the form opens merges.",
+            f"Answer the review&rsquo;s questions: does the Lean say the conjecture? See {review}.",
+            "Confirm the literature statuses proposed for its statements, from "
+            '<a href="/me/">My problems</a> (a dispute is filed from the statement&rsquo;s page).',
+            "Approve the words written for its statements, a statement at a time, from "
+            '<a href="/me/">My problems</a>.',
+            "When a proof closes it, sign the explainer and start the write-up "
+            '(<a href="/docs/sign-explainer/">how</a>).',
+        )
+        items = "".join(f"<li>{s}</li>" for s in steps)
+        return f'<section class="steward-next"><h2>What happens next</h2><ol>{items}</ol></section>'
+
     def steward_page(self, tv: TargetView) -> str:
         """R7: one screen — the problem in prose, what the role asks in three lines, Read more,
         and an empty slot steward.js draws the form into once the service answers (R15). The
@@ -2701,7 +2728,7 @@ class Renderer:
             "</li>"
             '<li class="asks">Best efforts, no deadline: step down at any time.</li></ul>'
             '<a href="/docs/stewards/">Read more about stewards →</a></div>'
-            f"{form}</section>"
+            f"{form}</section>{self.steward_next(tv)}"
         )
         frame = self.math_frame(body)
         return self.page(
