@@ -2026,3 +2026,13 @@ The law of the project:
   per-node rule would have hidden nothing that mattered. **A fixture node with a `Proof.lean` turns a partial's
   attestation into a proof** (F03-Q7), so a frontier test built on one decomposed a node that was then proved
   and judged nothing; give a partial's holder the live shape (no proof file) before asserting about its routes.
+- 2026-11-27 — F27-T14 carried v3.52 live (network 0b54e7c6, graph re-pin 40873cb5c4, render 4ee982bf75), and
+  the live page then showed what no test had: erdos-1094's frontier fell 69 → 18 while the header still said "69
+  statements open" and every strictly harder statement offered a claim the service refuses. F04-T17's test holds
+  the site's workable set to the frontier's, but only on fixtures with no strictly harder route, so a new reason
+  for leaving the frontier passed it green. **Whenever a rule removes something from a product, re-run every
+  "two readers, one set" test on a fixture that has the new case**, and compare the live site's counts with the
+  product for every target after the render (one script, 458 targets, 0 mismatches after F27-T15). Two smaller
+  ones: `pin_image --check` on the tutorial always reports the graph's one devcontainer running the Mathlib image
+  (expected, not a defect); and a tag guessed by hand (`gate-0b54e7c6c3a2`) is a tag on the right commit with the
+  wrong name — derive it with `git rev-parse --short=12`, never type it.
