@@ -1,0 +1,2521 @@
+{
+ "schema": "graph/v16",
+ "target_id": "erdos-1094",
+ "root": "erdos-1094",
+ "rendered_from": "a8f1c34b909970980537045f2905e1ae736c43e1",
+ "nodes": [
+  {
+   "node_id": "erdos-1094",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h1",
+    "erdos-1094--h2",
+    "erdos-1094--h3"
+   ],
+   "origin": "authored",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Erdős problem 1094",
+   "decompositions": [
+    {
+     "partial": "attempts/20261008T130306Z-t1008-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_fixed_k",
+       "node": "erdos-1094--h1"
+      },
+      {
+       "name": "h_large_n",
+       "node": "erdos-1094--h2"
+      },
+      {
+       "name": "h_small_n",
+       "node": "erdos-1094--h3"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Fixed k: finitely many n at or above k²",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1",
+    "erdos-1094--h2--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "bounded k on n ≥ k²",
+   "decompositions": [
+    {
+     "partial": "attempts/20261009T124800Z-t1009-b-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_lo",
+       "node": "erdos-1094--h2--h1"
+      },
+      {
+       "name": "h_hi",
+       "node": "erdos-1094--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h1",
+    "erdos-1094--h2--h1--h4"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [
+    {
+     "hole": "h_bhp",
+     "node": "erdos-1094--h2--h2--h1"
+    },
+    {
+     "hole": "h_vdt",
+     "node": "erdos-1094--h2--h2--h2"
+    }
+   ],
+   "uses": [],
+   "shelved": null,
+   "label": "bounded k on k² ≤ n < k³",
+   "decompositions": [
+    {
+     "partial": "attempts/20261009T143300Z-t1009-c-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_good_below_cube",
+       "node": "erdos-1094--h2--h1--h1"
+      }
+     ]
+    },
+    {
+     "partial": "attempts/20261014T075000Z-t1014-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_bhp",
+       "node": "erdos-1094--h2--h2--h1"
+      },
+      {
+       "name": "h_vdt",
+       "node": "erdos-1094--h2--h2--h2"
+      },
+      {
+       "name": "h_strip",
+       "node": "erdos-1094--h2--h1--h4"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h1--h1",
+    "erdos-1094--h2--h1--h1--h4",
+    "erdos-1094--h2--h1--h1--h5",
+    "erdos-1094--h2--h1--h1--h6"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [
+    {
+     "hole": "h_bhp",
+     "node": "erdos-1094--h2--h2--h1"
+    },
+    {
+     "hole": "h_med",
+     "node": "erdos-1094--h2--h2--h2--h2--h1"
+    }
+   ],
+   "uses": [],
+   "shelved": null,
+   "label": "C(n,k) with no prime factor ≤ k, 2k ≤ n < k³",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T111741Z-t1014-y-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_gp",
+       "node": "erdos-1094--h2--h1--h1--h1"
+      }
+     ]
+    },
+    {
+     "partial": "attempts/20261111T190000Z-t1111-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_bhp",
+       "node": "erdos-1094--h2--h2--h1"
+      },
+      {
+       "name": "h_med",
+       "node": "erdos-1094--h2--h2--h2--h2--h1"
+      },
+      {
+       "name": "h_ml",
+       "node": "erdos-1094--h2--h1--h1--h4"
+      },
+      {
+       "name": "h_large",
+       "node": "erdos-1094--h2--h1--h1--h5"
+      },
+      {
+       "name": "h_small",
+       "node": "erdos-1094--h2--h1--h1--h6"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h1--h1--h1",
+    "erdos-1094--h2--h1--h1--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "2k ≤ n < k³ with n/gcd(n,k) free of primes ≤ k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T151456Z-t1015c-a06-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_low",
+       "node": "erdos-1094--h2--h1--h1--h1--h1"
+      },
+      {
+       "name": "h_high",
+       "node": "erdos-1094--h2--h1--h1--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h1--h1--h1--h1",
+    "erdos-1094--h2--h1--h1--h1--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "2k ≤ n < k² with n/gcd(n,k) free of primes ≤ k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261018T192600Z-t1018-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_prime",
+       "node": "erdos-1094--h2--h1--h1--h1--h1--h1"
+      },
+      {
+       "name": "h_comp",
+       "node": "erdos-1094--h2--h1--h1--h1--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "n prime in [2k, k^2)",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h1--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "n = g q with 2 <= g | k and q > k prime",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h1--h1--h2--h1",
+    "erdos-1094--h2--h1--h1--h1--h2--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "k² ≤ n < k³ with n/gcd(n,k) free of primes ≤ k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261018T193800Z-t1018-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_one",
+       "node": "erdos-1094--h2--h1--h1--h1--h2--h1"
+      },
+      {
+       "name": "h_two",
+       "node": "erdos-1094--h2--h1--h1--h1--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h1--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "n = gcd(n,k) times one prime q > k",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h1--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "n = gcd(n,k) times p q, two primes > k",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h4",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [
+    "erdos-1094--h2--h2--h2--h3--h1"
+   ],
+   "shelved": null,
+   "label": "medium-large range: near-integer m are o(k^θ/log k)",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h5",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [
+    "erdos-1094--h2--h2--h2--h3--h1"
+   ],
+   "shelved": null,
+   "label": "large range: near-integer m are o(k^θ/log k)",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h1--h6",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "small n: a prime above k/2 with two multiples",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h4",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h4--h1"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [
+    {
+     "hole": "h_below_cube",
+     "node": "erdos-1094--h2--h1--h1"
+    }
+   ],
+   "uses": [],
+   "shelved": null,
+   "label": "the thin strip above k²",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T111658Z-t1014-y-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_gp",
+       "node": "erdos-1094--h2--h1--h4--h1"
+      }
+     ]
+    },
+    {
+     "partial": "attempts/20261119T142211Z-agent7-claude-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_below_cube",
+       "node": "erdos-1094--h2--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h4--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h4--h1--h1",
+    "erdos-1094--h2--h1--h4--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "the thin strip with n/gcd(n,k) prime",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T145300Z-t1015c-a06-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_cop",
+       "node": "erdos-1094--h2--h1--h4--h1--h1"
+      },
+      {
+       "name": "h_div",
+       "node": "erdos-1094--h2--h1--h4--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h4--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "the thin strip with n prime and coprime to k",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h4--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h1--h4--h1--h2--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "the thin strip with n/gcd(n,k) prime, gcd(n,k) ≥ 2",
+   "decompositions": [
+    {
+     "partial": "attempts/20261018T192800Z-t1018-b-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_proper",
+       "node": "erdos-1094--h2--h1--h4--h1--h2--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h1--h4--h1--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "proper common divisor case",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h1",
+    "erdos-1094--h2--h2--h2",
+    "erdos-1094--h2--h2--h3",
+    "erdos-1094--h2--h2--h4",
+    "erdos-1094--h2--h2--h5"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "bounded k on n ≥ k³",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T073500Z-t1014-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_bhp",
+       "node": "erdos-1094--h2--h2--h1"
+      },
+      {
+       "name": "h_vdt",
+       "node": "erdos-1094--h2--h2--h2"
+      },
+      {
+       "name": "h_beyond",
+       "node": "erdos-1094--h2--h2--h3"
+      }
+     ]
+    },
+    {
+     "partial": "attempts/20261111T202500Z-t1111-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_kfull",
+       "node": "erdos-1094--h2--h2--h4"
+      },
+      {
+       "name": "h_edge",
+       "node": "erdos-1094--h2--h2--h5"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h1--h1"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "BHP short-interval primes",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T144328Z-agent4-33d9-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_psi",
+       "node": "erdos-1094--h2--h2--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "BHP in Chebyshev ψ form",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2",
+   "status": "proved",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h2--h1",
+    "erdos-1094--h2--h2--h2--h2",
+    "erdos-1094--h2--h2--h2--h3",
+    "erdos-1094--h2--h2--h2--h4"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "van Doorn–Tang's theorem, unless BHP fails",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T111800Z-t1014-x-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_small",
+       "node": "erdos-1094--h2--h2--h2--h1"
+      },
+      {
+       "name": "h_medium",
+       "node": "erdos-1094--h2--h2--h2--h2"
+      },
+      {
+       "name": "h_mediumlarge",
+       "node": "erdos-1094--h2--h2--h2--h3"
+      },
+      {
+       "name": "h_large",
+       "node": "erdos-1094--h2--h2--h2--h4"
+      }
+     ]
+    }
+   ],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h1",
+      "erdos-1094--h2--h2--h2--h2",
+      "erdos-1094--h2--h2--h2--h3",
+      "erdos-1094--h2--h2--h2--h4"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "small range 2k < n ≤ k^(2−21/40)/2",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h2",
+   "status": "proved",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h2--h2--h1"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "medium range k^(2−21/40)/2 < n ≤ k²/log²k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T181000Z-t1014-r-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_count",
+       "node": "erdos-1094--h2--h2--h2--h2--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h2--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h2--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "medium range: few m with n/m near an integer",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h3",
+   "status": "proved",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h2--h3--h1"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "medium-large range k²/log²k < n ≤ k^(2+21/40)/2",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T021346Z-t1015-r-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_kon",
+       "node": "erdos-1094--h2--h2--h2--h3--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h2--h3--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Konyagin's bound on m with n/m near an integer",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T023339Z-t1015-r-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_thm",
+       "node": "erdos-1094--h2--h2--h2--h3--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h2--h3--h1--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Konyagin's theorem: points where f is near a rational",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T063320Z-opn-prove-aristotle-1015-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "core",
+       "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1--h1--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Konyagin's theorem at scale in [1, 2) when 65536X < 1",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T130229Z-t1015b-s-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "hsilr",
+       "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "a small integer linear relation on 2r points",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h2--h4",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [
+    {
+     "hole": "h_kon",
+     "node": "erdos-1094--h2--h2--h2--h3--h1"
+    }
+   ],
+   "uses": [],
+   "shelved": null,
+   "label": "large range up to exp(log²k/(20 log log k))",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T023100Z-t1015-q-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_kon",
+       "node": "erdos-1094--h2--h2--h2--h3--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h3",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h3--h1"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "beyond van Doorn–Tang's range, n ≥ k³",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T111449Z-t1014-y-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_gp",
+       "node": "erdos-1094--h2--h2--h3--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h3--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h3--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "beyond van Doorn–Tang with n/gcd(n,k) prime",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T144930Z-t1015c-a08-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_ndvd",
+       "node": "erdos-1094--h2--h2--h3--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h3--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h3--h1--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "beyond van Doorn–Tang, n/gcd(n,k) prime, k ∤ n",
+   "decompositions": [
+    {
+     "partial": "attempts/20261112T123915Z-t1112-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_residue",
+       "node": "erdos-1094--h2--h2--h3--h1--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h3--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h3--h1--h1--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "residue form beyond van Doorn–Tang",
+   "decompositions": [
+    {
+     "partial": "attempts/20261112T131816Z-t1112-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_digits",
+       "node": "erdos-1094--h2--h2--h3--h1--h1--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h3--h1--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "digit form beyond van Doorn–Tang",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h4",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h4--h2",
+    "erdos-1094--h2--h2--h4--h3"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [
+    {
+     "hole": "h_bhp",
+     "node": "erdos-1094--h2--h2--h1"
+    }
+   ],
+   "uses": [],
+   "shelved": null,
+   "label": "a prime ≤ k divides C(n,k), k³ ≤ n ≤ exp(c·log²k)",
+   "decompositions": [
+    {
+     "partial": "attempts/20261111T210000Z-t1111-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_bhp",
+       "node": "erdos-1094--h2--h2--h1"
+      },
+      {
+       "name": "h_supply",
+       "node": "erdos-1094--h2--h2--h4--h2"
+      },
+      {
+       "name": "h_count",
+       "node": "erdos-1094--h2--h2--h4--h3"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h4--h2",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "many products q·p just above k, q ≤ k^(1/100)",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h4--h3",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [
+    "erdos-1094--h2--h2--h2--h3--h1--h1"
+   ],
+   "shelved": null,
+   "label": "few m above k with n/m near a fraction a/q, q ≤ k^(1/100)",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": [
+      "erdos-1094--h2--h2--h2--h3--h1--h1"
+     ]
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h5",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h5--h1",
+    "erdos-1094--h2--h2--h5--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "bounded k on n ≥ k³, n > exp(c·log²k), every c > 0",
+   "decompositions": [
+    {
+     "partial": "attempts/20261112T123413Z-t1112-b-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_prod",
+       "node": "erdos-1094--h2--h2--h5--h1"
+      },
+      {
+       "name": "h_core",
+       "node": "erdos-1094--h2--h2--h5--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h5--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "the k-smooth parts of n-k+1..n multiply to k! times C(n,k)'s",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h5--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h2--h2--h5--h2--h1",
+    "erdos-1094--h2--h2--h5--h2--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "h_core",
+   "decompositions": [
+    {
+     "partial": "attempts/20261112T133600Z-t1112-b-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_split",
+       "node": "erdos-1094--h2--h2--h5--h2--h1"
+      },
+      {
+       "name": "h_core",
+       "node": "erdos-1094--h2--h2--h5--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h5--h2--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "window integers are k-smooth or have k-smooth part below k",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h2--h2--h5--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "window smooth parts below k or whole, multiplying to k!",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1",
+    "erdos-1094--h3--h2",
+    "erdos-1094--h3--h3"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [
+    {
+     "hole": "h_good_below_cube",
+     "node": "erdos-1094--h2--h1--h1"
+    }
+   ],
+   "uses": [],
+   "shelved": null,
+   "label": "Small range 2k ≤ n < k²: k is bounded",
+   "decompositions": [
+    {
+     "partial": "attempts/20261008T133001Z-t1008-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_sieve",
+       "node": "erdos-1094--h3--h1"
+      }
+     ]
+    },
+    {
+     "partial": "attempts/20261009T143300Z-t1009-c-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_good_below_cube",
+       "node": "erdos-1094--h2--h1--h1"
+      }
+     ]
+    },
+    {
+     "partial": "attempts/20261015T125200Z-t1015b-g-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_els",
+       "node": "erdos-1094--h3--h2"
+      },
+      {
+       "name": "h_gr",
+       "node": "erdos-1094--h3--h3"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h1",
+    "erdos-1094--h3--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form: a prime p ≤ k with n mod p < k mod p",
+   "decompositions": [
+    {
+     "partial": "attempts/20261009T125000Z-t1009-a-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_keven",
+       "node": "erdos-1094--h3--h1--h1"
+      },
+      {
+       "name": "h_odd",
+       "node": "erdos-1094--h3--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h1--h1",
+    "erdos-1094--h3--h1--h1--h2",
+    "erdos-1094--h3--h1--h1--h3"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T112100Z-t1014-z-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_k6",
+       "node": "erdos-1094--h3--h1--h1--h1"
+      },
+      {
+       "name": "h_k3rest",
+       "node": "erdos-1094--h3--h1--h1--h2"
+      }
+     ]
+    },
+    {
+     "partial": "attempts/20261015T145000Z-t1015c-a16-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_smooth",
+       "node": "erdos-1094--h3--h1--h1--h3"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h1--h1--h1",
+    "erdos-1094--h3--h1--h1--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even, 3 | k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T145000Z-t1015c-a12-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_k30",
+       "node": "erdos-1094--h3--h1--h1--h1--h1"
+      },
+      {
+       "name": "h_k6rest",
+       "node": "erdos-1094--h3--h1--h1--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even, 15 | k",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, 6 | k, 5 ∤ k, no carry at 5",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h1--h2--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even, 3 ∤ k, no carry at 3",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T175700Z-t1014-q-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_p5to13",
+       "node": "erdos-1094--h3--h1--h1--h2--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h1--h2--h1--h1",
+    "erdos-1094--h3--h1--h1--h2--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even, 3 ∤ k, no carry at 3 to 13",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T145026Z-t1015c-a09-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_k3one",
+       "node": "erdos-1094--h3--h1--h1--h2--h1--h1"
+      },
+      {
+       "name": "h_k3two",
+       "node": "erdos-1094--h3--h1--h1--h2--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even, k ≡ 1 (mod 3), no carry at 3 to 13",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even, k ≡ n ≡ 2 (mod 3), no carry 5 to 13",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h1--h3",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k even, every prime ≤ k dividing n divides k",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h2--h1",
+    "erdos-1094--h3--h1--h2--h2"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k and n odd",
+   "decompositions": [
+    {
+     "partial": "attempts/20261014T112100Z-t1014-z-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_odd_k3",
+       "node": "erdos-1094--h3--h1--h2--h1"
+      },
+      {
+       "name": "h_odd_rest",
+       "node": "erdos-1094--h3--h1--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h2--h1--h1",
+    "erdos-1094--h3--h1--h2--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k and n odd, 3 | k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T145000Z-t1015c-a10-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_k15",
+       "node": "erdos-1094--h3--h1--h2--h1--h1"
+      },
+      {
+       "name": "h_k3_rest5",
+       "node": "erdos-1094--h3--h1--h2--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k and n odd, 15 | k",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k and n odd, 3 | k, 5 ∤ k, no carry at 5",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h2--h2--h1",
+    "erdos-1094--h3--h1--h2--h2--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k and n odd, 3 ∤ k, no carry at 3",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T145200Z-t1015c-a11-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_k3_one",
+       "node": "erdos-1094--h3--h1--h2--h2--h1"
+      },
+      {
+       "name": "h_k3_two",
+       "node": "erdos-1094--h3--h1--h2--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k and n odd, k ≡ 1 (mod 3)",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h1--h2--h2--h2--h1",
+    "erdos-1094--h3--h1--h2--h2--h2--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Residue form, k and n odd, k ≡ n ≡ 2 (mod 3)",
+   "decompositions": [
+    {
+     "partial": "attempts/20261018T192600Z-t1018-d-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_k5_zero",
+       "node": "erdos-1094--h3--h1--h2--h2--h2--h1"
+      },
+      {
+       "name": "h_k5_le",
+       "node": "erdos-1094--h3--h1--h2--h2--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h2--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "k divisible by 5",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h1--h2--h2--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "5 gives no carry",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h2--h1",
+    "erdos-1094--h3--h2--h2",
+    "erdos-1094--h3--h2--h3"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "ELS lower bound: k² ≤ C·n·log₂k when lpf C(n,k) > k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T132800Z-t1015b-h-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_ees",
+       "node": "erdos-1094--h3--h2--h1"
+      },
+      {
+       "name": "h_caseB",
+       "node": "erdos-1094--h3--h2--h2"
+      },
+      {
+       "name": "h_caseA",
+       "node": "erdos-1094--h3--h2--h3"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h2--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Ecklund–Erdős–Selfridge: n > k^(1+c) when lpf C(n,k) > k",
+   "decompositions": [
+    {
+     "partial": "attempts/20261018T193200Z-t1018-c-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_lt",
+       "node": "erdos-1094--h3--h2--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h2--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [
+    {
+     "hole": "h_bhp",
+     "node": "erdos-1094--h2--h2--h1"
+    }
+   ],
+   "uses": [],
+   "shelved": null,
+   "label": "EES bound below k squared",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T135726Z-agent4-33d9-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_bhp",
+       "node": "erdos-1094--h2--h2--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "ELS case B: k^(1+c) < n < k^(7/4), a prime in (k/2, k)",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h2--h3",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h2--h3--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "ELS case A: k^(7/4) ≤ n ≪ k²/log k, a prime in (k/2, k)",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T141117Z-claude-agent2-e849-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_close",
+       "node": "erdos-1094--h3--h2--h3--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h2--h3--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h2--h3--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "two close primes just above k/2",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T145741Z-claude-agent2-e849-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_ingham",
+       "node": "erdos-1094--h3--h2--h3--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h2--h3--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "many primes just above k/2",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1",
+    "erdos-1094--h3--h3--h2"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Granville–Ramaré: a carry at some prime p in (k/2, 11k/20)",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T132200Z-t1015b-g-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_cheb",
+       "node": "erdos-1094--h3--h3--h1"
+      },
+      {
+       "name": "h_sander",
+       "node": "erdos-1094--h3--h3--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Chebyshev sum of log p over (k/2, 11k/20) is at least k/100",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T145500Z-t1015c-a03-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_pnt",
+       "node": "erdos-1094--h3--h3--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Prime number theorem: θ(x) ~ x",
+   "decompositions": [
+    {
+     "partial": "attempts/20261018T192634Z-t1018-e-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_psi",
+       "node": "erdos-1094--h3--h3--h1--h1--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1--h1",
+    "erdos-1094--h3--h3--h1--h1--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Prime number theorem for psi",
+   "decompositions": [
+    {
+     "partial": "attempts/20261018T200210Z-t1018-e-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_wi",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1"
+      },
+      {
+       "name": "h_ext",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h1",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Wiener–Ikehara Tauberian theorem",
+   "decompositions": [
+    {
+     "partial": "attempts/20261112T123802Z-t1112-c-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_unsmooth",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h1"
+      },
+      {
+       "name": "h_smooth",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h1--h1",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "unsmoothing with f ≥ 0",
+   "decompositions": [
+    {
+     "partial": "attempts/20261112T132844Z-t1112-c-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_bound",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h1--h1"
+      },
+      {
+       "name": "h_sandwich",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h1--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "partial sums are O(N)",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h1--h2",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "sandwich by bumps",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "smoothed Wiener–Ikehara",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T133227Z-opn-agent-3-claude-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_fourier",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1"
+      },
+      {
+       "name": "h_approx",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h2",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h3",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h4",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h5"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "band-limited Wiener–Ikehara",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T141220Z-opn-agent-3-claude-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_cheb",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1"
+      },
+      {
+       "name": "h_summ",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h2"
+      },
+      {
+       "name": "h_id",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h3"
+      },
+      {
+       "name": "h_rl",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h4"
+      },
+      {
+       "name": "h_tail",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h5"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1--h1",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Chebyshev bound under the Wiener–Ikehara hypotheses",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T145204Z-opn-agent-3-claude-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_kernel",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1--h1"
+      },
+      {
+       "name": "h_kcheb",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "a positive kernel with bounded weighted sums",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h1--h2",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "bounded kernel sums give a Chebyshev bound",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h2",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "weighted sums converge under a Chebyshev bound",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h3",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "the limiting Fourier identity",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h4",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Riemann–Lebesgue along log X",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h1--h5",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "the tail integral tends to the whole integral",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2--h1",
+    "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2--h2"
+   ],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "band-limited one-sided approximation",
+   "decompositions": [
+    {
+     "partial": "attempts/20261119T142055Z-opn-agent-3-claude-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_cov",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2--h1"
+      },
+      {
+       "name": "h_bs",
+       "node": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2--h2"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2--h1",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "change of variables x = e^u",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1--h2--h2--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "band-limited one-sided approximation, exponential tail",
+   "decompositions": [],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h2",
+   "status": "proved",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "-ζ'/ζ minus the pole extends to Re s ≥ 1",
+   "decompositions": [],
+   "proofs": [
+    {
+     "kind": "proof",
+     "used": []
+    }
+   ]
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h2",
+   "status": "ready",
+   "cause": null,
+   "deps": [
+    "erdos-1094--h3--h3--h2--h1"
+   ],
+   "origin": "skeleton-hole",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "Sander equidistribution: Σ({n/p} − 1/2) log p = o(k)",
+   "decompositions": [
+    {
+     "partial": "attempts/20261015T145123Z-t1015c-a02-partial.lean",
+     "annex": null,
+     "holes": [
+      {
+       "name": "h_l51",
+       "node": "erdos-1094--h3--h3--h2--h1"
+      }
+     ]
+    }
+   ],
+   "proofs": []
+  },
+  {
+   "node_id": "erdos-1094--h3--h3--h2--h1",
+   "status": "ready",
+   "cause": null,
+   "deps": [],
+   "origin": "compiler-derived",
+   "relation": null,
+   "lemmas": [],
+   "uses": [],
+   "shelved": null,
+   "label": "GR Lemma 5.1: {n/p} below σ carries weight σ Σ log p + o(k)",
+   "decompositions": [],
+   "proofs": []
+  }
+ ]
+}

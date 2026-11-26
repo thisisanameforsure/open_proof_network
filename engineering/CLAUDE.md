@@ -2016,3 +2016,13 @@ The law of the project:
   nothing could approve it. **A guard's fingerprint must carry every field that makes two requests
   different**: the display-name duplicate guard hashed name and link, so the same name with
   `"github": true` would have been refused as identical within two minutes.
+- 2026-11-25 — Strictly harder routes are no longer offered (F27-T12/T13, decisions v3.52), from the owner's
+  question whether erdos-1094 had dead routes: 46 sets became 4, and 60 of 96 statements left the offer. Three
+  things worth keeping. **Count only what someone has to do**: the first rule counted assemblies as needs and
+  kept every set that avoided one closing proof at the price of dozens of open leaves, while D-12 v3.42 closes
+  an assembly by itself; leaves-only was what the hand analysis had used, and the two disagreed until the rule
+  did too. **Domination is a fact about the whole target**: at `--h3` alone the residue sieve is not worse than
+  the Konyagin route; it is worse only because every proof of the root already needs BHP elsewhere, so a
+  per-node rule would have hidden nothing that mattered. **A fixture node with a `Proof.lean` turns a partial's
+  attestation into a proof** (F03-Q7), so a frontier test built on one decomposed a node that was then proved
+  and judged nothing; give a partial's holder the live shape (no proof file) before asserting about its routes.

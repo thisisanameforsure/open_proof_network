@@ -670,6 +670,12 @@ it is done. `at_proved: follow` lists it anyway — beneath each proved statemen
 term rests on (the closure the products publish for a proof), with `proof_routes` naming the
 assemblies those proofs went through — so a reader following the proof sees the proved structure
 a set already stands on; the sets, their ids and their open statements are the same either way.
+A set whose open statements include every open statement of another set, and more, is not
+listed: that way is the same work plus extra (D-25 v3.52). A statement only such sets reach is
+off the frontier and drawn on the problem page only on request; a claim on it answers
+`409 node-dominated` naming the routes, while a proof of it is still accepted. Nobody decides
+this and nothing is recorded: it is worked out again at every render, so the statement comes
+back once its extra work is proved or a new route changes the picture.
 Nothing is ranked: sets come in the record's order, and the counts are facts, as every frontier
 field is.
 

@@ -11,6 +11,7 @@
 //     (view=<key>); under prefers-reduced-motion the drawing changes in one step (R7);
 //   - hovering or focusing a selector node, edge or table row previews it: the view's nodes
 //     and lines lit, the rest dimmed, no coordinate changed (R8);
+//   - F27-R14: the harder-toggle shows the strictly harder routes (the harder layout) and back;
 //   - the view-toggle shows the statements on no route (the all layout); superseded statements
 //     are not drawn (F30-T16); the table sorts, filters to the shown view's sets
 //     ("showing n of m") and "Fewest open first" selects the first row's view (R4, R9);
@@ -52,6 +53,9 @@
   var showing = document.querySelector(".routes-showing");
   var fewest = document.querySelector("button.routes-fewest");
   var viewToggle = document.querySelector("button.view-toggle[data-view]");
+  // F27-R14 (D-25 v3.52): the strictly harder routes' own toggle: routes <-> harder
+  var harderToggle = document.querySelector("button.harder-toggle[data-view]");
+  var HARDER = "harder";
   var FOLLOW = "follow/";
   var followBox = document.querySelector("input.follow-proved");
   var setsGrid = document.querySelector(".sets-grid");
@@ -532,6 +536,11 @@
       viewToggle.setAttribute("aria-pressed", all ? "true" : "false");
       viewToggle.textContent = all ? toggleWords.shown : toggleWords.plain;
     }
+    if (harderToggle) {
+      var hard = to === HARDER;
+      harderToggle.setAttribute("aria-pressed", hard ? "true" : "false");
+      harderToggle.textContent = hard ? harderWords.shown : harderWords.plain;
+    }
     if (fewest && to !== state.fewestView) {
       state.fewestView = null;
       fewest.setAttribute("aria-pressed", "false");
@@ -801,6 +810,18 @@
     viewToggle.hidden = false;
     viewToggle.addEventListener("click", function () {
       transition(state.view === ALL ? ROUTES : ALL);
+    });
+  }
+
+  // -- F27-R14: the strictly harder routes' toggle: harder <-> routes --------------------------------
+
+  var harderWords = { plain: "", shown: "" };
+  if (harderToggle && has(HARDER)) {
+    harderWords.plain = harderToggle.textContent;
+    harderWords.shown = harderToggle.getAttribute("data-shown-label") || harderWords.plain;
+    harderToggle.hidden = false;
+    harderToggle.addEventListener("click", function () {
+      transition(state.view === HARDER ? ROUTES : HARDER);
     });
   }
 

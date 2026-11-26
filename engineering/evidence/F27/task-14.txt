@@ -1,0 +1,49 @@
+F27-T14 — live: a strictly harder route is not offered (R14, D-25 v3.52)
+2026-11-27
+
+Network
+  PR #122 merged as 0b54e7c6b224775cfffc1eb1bf9b6a8ba6a7d3e4 (all three CI tiers green on the
+  branch, lean tier 1h51m; main had moved, so main was merged into the branch first and the
+  merged tree run locally: 8002 fast tests passed, the one failure the guide copy that only the
+  re-pin moves; 38 problem-page Playwright tests passed).
+  api-deploy green; GET /health {"ok":true,"store":"dynamodb",...}.
+  Tag gate-0b54e7c6b224 → image-publish green:
+    plain   ghcr.io/thisisanameforsure/opn-gate@sha256:3a9f96104c3d47a4c34d4fc2c4481fba01c7a9fc4c6e9a2c39d179bea48c251f  (1.34 GB of layers)
+    Mathlib ghcr.io/thisisanameforsure/opn-gate@sha256:53c167b6f35d0cdf520ad301e65ade5842fc51a7a1ea5cdb17dca365f280c130  (3.82 GB, 0df444a360ea)
+  (which is which read from the registry's layer sizes, not job order)
+
+Graph
+  40873cb5c4  F27-T12/T13: re-pin every target to network 0b54e7c6b224
+              460 files: 458 gate-spec.json (457 Mathlib + tutorial plain, all network 0b54e7c6b224),
+              .devcontainer/devcontainer.json (image only; OPN_API kept), AGENTS.md (the guide copy,
+              byte-identical to the network's gate/agents/AGENTS.md at 0b54e7c6)
+              pin_image --check: erdos-1094 and zagier-conjecture "pin ok"; tutorial reports the one
+              devcontainer runs the Mathlib image, as it did before the re-pin (one per graph).
+  4ee982bf75  gate: render 0b54e7c6b224   (dispatched by the re-pin's own gate run, F07-T60)
+
+Products, 40873cb5c4 → 4ee982bf75
+  frontier.json  frontier/v8   622 entries → 571
+  erdos-1094 entries            69 → 18
+  entries gone                  51, every one erdos-1094's; none new; no other target changed
+  info.json protocol_version    3.51 → 3.52
+  51 = the 60 dominated statements less the 9 proved, which were never on the frontier.
+  (T14's row first said "omits the 60"; corrected to 51.)
+
+MCP (live, read → list_sufficient_sets, target erdos-1094)
+  read_at 4ee982bf756da947ca89ab45e2fab98b49c10aa6, cut finest, truncated False, count 4, sets 4
+
+Site
+  site-deploy dispatched (run 45904391473), green. Live /problems/erdos-1094/ built from 4ee982bf756d.
+  Playwright against the live page (task-14-live-*.png):
+    1440 visible True view sel/erdos-1094--h2--h1@1/erdos-1094--h2--h2@1 pills 17 scrollW 1440
+    1440 pressed true 'Hide the strictly harder routes' pills 96
+    1440 back routes pills 36
+    390 visible True view sel/erdos-1094--h2--h1@1/erdos-1094--h2--h2@1 pills 17 scrollW 390
+    390 pressed true 'Hide the strictly harder routes' pills 96
+    390 back routes pills 36
+  Toggle text: "Show 35 strictly harder routes (60 statements, 9 proved)".
+
+Found on the live page, not by any test: the header still said "69 statements open", and every
+strictly harder statement's panel and page said "Work on this statement →" — a claim the service
+refuses 409 node-dominated. The site's workable set was held to the frontier's by F04-T17's test
+only on fixtures with no strictly harder route. Fixed as F27-T15 (task-15.txt).

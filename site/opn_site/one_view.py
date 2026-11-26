@@ -44,6 +44,8 @@ from opn_site import dag, routes_view
 JUNCTION_W = routes_view.JUNCTION_W
 ALL = "all"
 ROUTES = "routes"
+#: F27-R14 (D-25 v3.52): the routes view with the strictly harder routes added, its own toggle's.
+HARDER = "harder"
 #: F30-T11: the band's own view (never in the layouts JSON: the script does not move it).
 BAND = "band"
 TOP = "sel"
@@ -232,10 +234,13 @@ def views(
     *,
     proofs: Sequence[dag.ProofMarks] = (),
     follow: routes.Routes | None = None,
+    dominated: routes.Dominated | None = None,
 ) -> dict[str, View]:
     """Every view of a target, keyed (see the module), the selector's in depth-first order.
     ``follow`` (F27-R13), the same target read with ``at_proved: follow``, adds a ``follow/``
-    twin of every set view."""
+    twin of every set view. ``dominated`` (F27-R14) is the target's strictly harder routes and
+    statements, read from the real rows when the drawn ones rename a status; read here if not
+    given."""
     d = routes_view.drawn(graph, result)
     rows = [n for n in graph.get("nodes") or [] if isinstance(n, Mapping)]
     root = result.root
@@ -256,6 +261,10 @@ def views(
         rid for rid in d.junctions if d.below.get(rid) and all(h in shelved for h in d.below[rid])
     }
     dim = {i for i in shelved if str(merged[i].get("status")) != routes.PROVED}
+    # F27-R14 (D-25 v3.52): a strictly harder route and the statements only it reaches leave
+    # ``routes`` and stay in ``all``; the sets already leave them out.
+    dom = dominated if dominated is not None else routes.dominated(graph)
+    harder = (set(dom.statements) | set(dom.routes)) & (set(merged) | set(d.junctions))
     dead = {rid for rid in d.junctions if any(h in dim for h in d.below.get(rid, []))}
     out[ALL] = _view(ALL, ALL, merged, [i for i in merged if i not in band and i not in gone])
     out[ROUTES] = _view(
@@ -265,10 +274,22 @@ def views(
         [
             i
             for i in (*d.statements, *d.junctions)
-            if i not in band and i not in shelved and i not in cut
+            if i not in band and i not in shelved and i not in cut and i not in harder
         ]
         or [root],
     )
+    if harder:
+        # F27-R14: the routes view with the strictly harder routes added, the harder toggle's
+        out[HARDER] = _view(
+            HARDER,
+            HARDER,
+            merged,
+            [
+                i
+                for i in (*d.statements, *d.junctions)
+                if i not in band and i not in shelved and i not in cut
+            ],
+        )
     if band:
         out[BAND] = _view(BAND, BAND, merged, band)
     out.update(_set_views(graph, result, d, merged, prefix=""))
@@ -611,6 +632,14 @@ class Drawing:
     outline: tuple[tuple[str, int], ...] = ()
     #: F34-T26 (Q26 closed): draws some statements as a small tree in the drawing's style.
     mini: Callable[[Sequence[str]], str] | None = None
+    #: F27-R14: how many of ``hidden`` lie only on strictly harder routes.
+    harder: int = 0
+    #: F27-R14: the toggle between the routes view and ``harder``; ``""`` when nothing is.
+    harder_toggle: str = ""
+
+
+#: F27-R14 (D-25 v3.52): the words a strictly harder statement or route carries on hover.
+HARDER_WORDS = "on a strictly harder route, not offered (another route needs less)"
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -621,15 +650,24 @@ def _status_of(rows: Mapping[str, Mapping[str, Any]], nid: str) -> str:
     return str(rows[nid].get("status")) if nid in rows else "route"
 
 
-def _junction_markup(
-    r: routes.Route, x: int, y: int, hidden: bool, shelving: str | None = None
+def _junction_markup(  # noqa: PLR0913 — one junction, every state it may show
+    r: routes.Route,
+    x: int,
+    y: int,
+    hidden: bool,
+    shelving: str | None = None,
+    *,
+    harder: bool = False,
 ) -> str:
     """One junction. ``shelving`` (F31-T10) is what shelving did to the route, when anything:
-    a retired or shelved-through route is drawn dead and says so in its title."""
+    a retired or shelved-through route is drawn dead and says so in its title. ``harder``
+    (F27-R14): the route is strictly harder than another; it stays live, dimmed, and says so."""
     holes = r.summary.holes
     live = r.live and shelving is None
     if shelving is not None:
         words = f"route {r.id}: {shelving}"
+    elif harder:
+        words = f"route {r.id}: strictly harder than another route, not offered"
     elif r.live:
         words = f"route {r.id}: {holes} hole{'' if holes == 1 else 's'}, all needed"
     else:
@@ -645,6 +683,8 @@ def _junction_markup(
         f'<path class="dead-cross" d="M{cx - 3} {cy - 3}l6 6m0 -6l-6 6"/>'
     )
     off = " off-view" if hidden else ""
+    if harder:
+        off += " harder"
     return (
         f'<g class="junction {"live" if live else "dead"}{off}" data-route="{escape(r.id)}" '
         f'data-node="{escape(r.id)}" data-w="{JUNCTION_W}" transform="translate({x},{y})">'
@@ -669,6 +709,7 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
     literature: dag.LitMark | None = None,
     lines: Sequence[str] | None = None,
     shelved: bool = False,
+    harder: bool = False,
 ) -> str:
     """One pill. ``lines`` (F30-T14, the column of proposed statements) is the label broken to
     fit the pill's width: one line per row, the pill as tall as its lines, every mark still on
@@ -693,6 +734,8 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
         cls += " closable"
     if shelved:
         cls += " shelved"
+    if harder:
+        cls += " harder"  # F27-R14: a mark, not a status, dimmed as a shelving is
     if hidden:
         cls += " off-view"
     diamond = (
@@ -846,6 +889,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     closable: Mapping[str, Any],
     literature: dag.Literature = None,
     folds: Mapping[str, tuple[str, str]] | None = None,
+    harder: frozenset[str] = frozenset(),
 ) -> str:
     opening = lays[ROUTES]
     shown_nodes = set(vs[ROUTES].nodes)
@@ -902,7 +946,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
         if nid in d.junctions:
             r = d.junctions[nid]
             words = shelving_words(r, rows, d.below.get(nid, []))  # F31-T10
-            parts.append(_junction_markup(r, p.x, p.y, hidden, words))
+            parts.append(_junction_markup(r, p.x, p.y, hidden, words, harder=nid in harder))
             continue
         status = _status_of(rows, nid)
         label = dag.label_of(nid, names, labels)
@@ -921,6 +965,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
                 outline=outlines.get(nid, 0),
                 literature=(literature or {}).get(nid),
                 shelved=bool(rows.get(nid, {}).get("shelved")),  # F31-T10
+                harder=nid in harder,  # F27-R14
             )
         )
     parts.append("</svg>")
@@ -1200,18 +1245,27 @@ def _follow_toggle() -> str:
     )
 
 
-def _toggle(hidden: int, shelved: int = 0) -> str:
+def _toggle(hidden: int, shelved: int = 0, harder: int = 0, harder_proved: int = 0) -> str:
     """The view-toggle's words: how many statements ``all`` adds to ``routes``, and (F31-T10)
-    how many of those are shelved rather than on no route."""
+    how many of those are shelved rather than on no route, and (F27-R14) how many lie only on
+    strictly harder routes, with how many of those are proved."""
     if not hidden:
         return ""
     noun = "statement" if hidden == 1 else "statements"
-    if not shelved:
+    off_route = hidden - shelved - harder
+    if not shelved and not harder:
         detail, why = "", " on no route"
-    elif shelved == hidden:
-        detail = why = f" ({shelved} shelved)"
     else:
-        detail = why = f" ({hidden - shelved} on no route, {shelved} shelved)"
+        parts = [f"{off_route} on no route"] if off_route else []
+        if shelved:
+            parts.append(f"{shelved} shelved")
+        if harder:
+            route_noun = "route" if harder == 1 else "routes"
+            parts.append(
+                f"{harder} on strictly harder {route_noun}"
+                + (f", {harder_proved} of them proved" if harder_proved else "")
+            )
+        detail = why = f" ({', '.join(parts)})"
     return (
         f'<button type="button" class="chip view-toggle" data-view="{ALL}" aria-pressed="false" '
         f'data-shown-label="Hide the {hidden} {noun}{why}" hidden>'
@@ -1230,13 +1284,47 @@ def _shelved_titles(
     return found
 
 
+def _harder_toggle(routes_n: int, statements: int, proved: int) -> str:
+    """F27-R14: the toggle between the routes view and ``harder`` — how many strictly harder
+    routes it draws, the statements only they reach and how many of those are proved. Hidden
+    until the script runs, as the general toggle is; ``""`` when nothing is strictly harder."""
+    if not routes_n:
+        return ""
+    noun = "route" if routes_n == 1 else "routes"
+    detail = f"{statements} statement{'' if statements == 1 else 's'}" + (
+        f", {proved} proved" if proved else ""
+    )
+    return (
+        f'<button type="button" class="chip harder-toggle" data-view="{HARDER}" '
+        f'aria-pressed="false" data-shown-label="Hide the strictly harder {noun}" hidden>'
+        f"Show {routes_n} strictly harder {noun} ({detail})</button>"
+    )
+
+
+def _mark_harder(dom: routes.Dominated, drawn: Sequence[str], titles: dict[str, str]) -> set[str]:
+    """F27-R14: each strictly harder statement's title says why it is not offered; the drawing's
+    marks start with ``harder`` when it has one, so the key names it."""
+    for nid in dom.statements:
+        if nid in titles:
+            titles[nid] += f"; {HARDER_WORDS}"
+    return {"harder"} if dom.statements & set(drawn) else set()
+
+
 def _hidden_counts(
-    vs: Mapping[str, View], d: routes_view.Drawn, shelved_rows: Mapping[str, Any]
-) -> tuple[int, int]:
+    vs: Mapping[str, View],
+    d: routes_view.Drawn,
+    shelved_rows: Mapping[str, Any],
+    dom: routes.Dominated | None = None,
+) -> tuple[int, int, int, int]:
     """R4, F31-T10: what the toggle counts — statements ``all`` adds to ``routes``, never
-    junctions (a cut route's junction is off ``routes`` too), and how many are shelved."""
+    junctions (a cut route's junction is off ``routes`` too), how many are shelved, and
+    (F27-R14) how many lie only on strictly harder routes (a shelved one counts as shelved)
+    and how many of those are proved."""
     off_route = [n for n in vs[ALL].nodes if n not in d.junctions and n not in vs[ROUTES].nodes]
-    return len(off_route), sum(1 for n in off_route if n in shelved_rows)
+    shelved = [n for n in off_route if n in shelved_rows]
+    harder = [n for n in off_route if dom is not None and n in dom.statements and n not in shelved]
+    proved = [n for n in harder if dom is not None and n in dom.proved]
+    return len(off_route), len(shelved), len(harder), len(proved)
 
 
 def outline_rows(
@@ -1445,7 +1533,9 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         drawn_graph["nodes"] = list(nodes)
     rows = {str(n["node_id"]): n for n in drawn_graph["nodes"] if isinstance(n, Mapping)}
     d = routes_view.drawn(drawn_graph, result)
-    vs = views(drawn_graph, result, proofs=proofs, follow=follow)
+    # F27-R14: read from the real rows, as the sets are, never from the drawn ones
+    dom = routes.dominated(graph)
+    vs = views(drawn_graph, result, proofs=proofs, follow=follow, dominated=dom)
     labels = dag.labels_of(rows.values())
     root = str(graph.get("root"))
     names: dag.Prefix = (prefix, root) if prefix else None
@@ -1469,6 +1559,7 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         if target and nid in full_titles:
             full_titles[nid] += f"; proposed for: {dag.label_of(str(target), names, labels)}"
     shelved_rows = _shelved_titles(rows, full_titles)  # F31-T10 (R7)
+    marks = _mark_harder(dom, vs[ALL].nodes, full_titles)
     svg = _dag_svg(
         vs,
         lays,
@@ -1482,6 +1573,7 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         closable=ready,
         literature=literature,
         folds=boxes,
+        harder=frozenset(dom.statements | dom.routes),
     )
     # A target with no route has no sets worth choosing (its one "set" is the root taken
     # directly): no selector and no table, unless it has proofs to list.
@@ -1495,7 +1587,6 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
     home = opening_view(result.sets, leaf_of)
     if home:
         svg = svg.replace('<svg class="dag" ', f'<svg class="dag" data-home="{escape(home)}" ', 1)
-    marks: set[str] = set()
     if any(r.live for r in d.junctions.values()):
         marks.add("route-and")
     if any(not r.live for r in d.junctions.values()):
@@ -1510,7 +1601,7 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
             marks.add(f"relation-{label}")
     if any(n in shelved_rows for n in vs[ALL].nodes):
         marks.add("shelved")  # F31-T10
-    hidden, shelved_hidden = _hidden_counts(vs, d, shelved_rows)
+    hidden, shelved_hidden, harder_hidden, harder_proved = _hidden_counts(vs, d, shelved_rows, dom)
     doc = json.dumps(layouts_document(lays), separators=(",", ":")).replace("</", "<\\/")
     merged_rows = list(merged_nodes(rows.values(), d, root).values())
     crossing = [ln for ln in dag.lines(merged_rows) if (ln[0] in set(band)) != (ln[1] in set(band))]
@@ -1568,7 +1659,13 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         if result.sets
         else "",
         layouts_json=f'<script type="application/json" id="graph-layouts">{doc}</script>',
-        toggle=_toggle(hidden, shelved_hidden),
+        # the general toggle only when something is on no route (F34-R18); then it says all
+        toggle=_toggle(hidden, shelved_hidden, harder_hidden, harder_proved)
+        if hidden > harder_hidden
+        else "",
+        harder_toggle=_harder_toggle(
+            len(dom.routes & set(d.junctions)), harder_hidden, harder_proved
+        ),
         marks=frozenset(marks),
         sets=len(result.sets),
         hidden=hidden,
@@ -1576,8 +1673,12 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         band=band_svg,
         shelved=shelved_hidden,
         routes=route_rows,
+        harder=harder_hidden,
         home=home,
-        on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions),
+        # F27-R14: a strictly harder statement is on a route, drawn behind its toggle, so §2
+        # never lists it (F34-R18: each statement placed once)
+        on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions)
+        | (dom.statements & set(rows)),
         outline=outline_rows(lays[ROUTES], root, d.junctions) if ROUTES in lays else (),
         mini=functools.partial(
             mini_tree, rows, href=href, names=names, labels=labels, titles=full_titles

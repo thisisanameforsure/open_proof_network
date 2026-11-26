@@ -88,7 +88,7 @@ def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
     assert got["selector"] == routes.selector_tree(found).as_dict()  # F29-T4
     assert got["cut"] == "finest"
     assert len(got["routes"]) == 16
-    assert len(got["sets"]) == 4  # every full expansion (F27-T7)
+    assert len(got["sets"]) == 2  # the full expansions no other set undercuts (F27-R14)
     assert isinstance(got["read_at"], str)
 
 
