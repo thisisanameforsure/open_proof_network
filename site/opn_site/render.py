@@ -3532,11 +3532,17 @@ class Renderer:
         out = []
         for first, last, kind in question_groups(kinds):
             words = question_group_head(first, last, kind)
-            out.append(
-                (f'<h3 class="question-group">{esc(words)}</h3>' if words else "")
-                + f'<ol class="review-questions" start="{first}">'
+            listed = (
+                f'<ol class="review-questions" start="{first}">'
                 + "".join(items[first - 1 : last])
                 + "</ol>"
+            )
+            # F34-T21 (the mockup): a run of one kind folds behind its heading
+            out.append(
+                f'<details class="question-run"><summary class="question-group">{esc(words)}'
+                f"</summary>{listed}</details>"
+                if words
+                else listed
             )
         return "".join(out)
 

@@ -1,0 +1,26 @@
+F34-T21 (part) — every page beside its mockup, at 1440 and 390 (compare21.py; t21/side-*.jpg, the mockup on the
+left, this tree's render of the live graph at 257feba2 on the right, cut at 4000px).
+
+Fixed in this commit (test_f34_mockup_fixes.py; the colour test red against the previous stylesheet, task-21-red.txt):
+  * Problems: every statement in "Waiting for a first steward" was bold rust. The review page's ".waiting { color:
+    var(--warn) }" matched T5's table.waiting; scoped to p.waiting. (The bold is the record's own emphasis.)
+  * Review: a run of questions of one kind folds behind "Questions 2–7: constant changes"; each question's statement
+    and variant sit side by side, as the mockup draws them (stacked at phone width).
+
+Recorded, not fixed (largest first):
+  * erdos-257 §1: the mockup draws the selected route as a compact tree of large pills with a "Drawn below: Route n"
+    header, Retire, "+n speculative" markers and the fold as a "14 proved · show" chip; ours is the F30 drawing with
+    its full key and the speculative column beside it. The column's removal waits for §2's small trees (Q26).
+  * erdos-257 §2: small trees per proposed group in cards; ours lists (Q26).
+  * erdos-257 §3–§6: the mockup's cards (the review's five stages as a list, Stewards and Panel side by side, the
+    write-up ladder) and every §6 part folded; ours plain sections.
+  * Contributors: one card per person with agents folded under; ours one card per identity (139) until the operator
+    record (T15) is on the graph. The code groups by it (T14).
+  * Home: the headline wraps to three lines (the mockup's two: a wider measure); Figure 1 is the whole drawing
+    scaled down, where the mockup draws the top two layers with "… 95 more statements".
+  * Docs: margin sidenotes and IMPORTANT/NOTE labels on the callouts; the sidebar's MCP tools, Rate limits,
+    Glossary and Protocol entries.
+  * Review: the six-stage progress strip and the signed-in "Your turn" note.
+  * Steward sign-up and My problems were designed signed out (Q14); the static pages match their structure.
+  * Heights: the mockups are drawn with a few sample rows; ours carry the live record (Problems 50 waiting rows, the
+    review's eight questions), so the pages are longer by design, not by layout.
