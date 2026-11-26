@@ -1185,36 +1185,8 @@ def topic_of(record: dict[str, Any] | None) -> str:
     return str(domains[0]) if domains else "other"
 
 
-def outline_folds(rows: list[tuple[str, int]], proved: set[str]) -> list[tuple[int, int]]:
-    """F34-T24 (R15): the folds of an outline, as row ranges [start, end) — each a run of
-    sibling statements whose subtrees are entirely proved, holding at least two statements. The
-    root (row 0) is never folded; a sibling not entirely proved is looked into."""
-    folds: list[tuple[int, int]] = []
-
-    def end(i: int) -> int:
-        j = i + 1
-        while j < len(rows) and rows[j][1] > rows[i][1]:
-            j += 1
-        return j
-
-    def walk(lo: int, hi: int) -> None:
-        run: list[int] = []  # [start, end) of the current run of proved siblings
-        i = lo
-        while i < hi:
-            j = end(i)
-            if all(rows[k][0] in proved for k in range(i, j)):
-                run = [run[0], j] if run else [i, j]
-            else:
-                if run and run[1] - run[0] >= 2:
-                    folds.append((run[0], run[1]))
-                run = []
-                walk(i + 1, j)
-            i = j
-        if run and run[1] - run[0] >= 2:
-            folds.append((run[0], run[1]))
-
-    walk(1, len(rows))
-    return sorted(folds)
+#: F34-T24 (R15): the outline's fold rule, one with the drawing's home module
+outline_folds = one_view.outline_folds
 
 
 def question_groups(kinds: list[str]) -> list[tuple[int, int, str]]:

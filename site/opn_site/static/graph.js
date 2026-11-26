@@ -78,7 +78,11 @@
   function has(view) { return !!(view && layouts && layouts[view]); }
   // F27-R13: a set view (a selector node, leaf or edge) has a follow/ twin; the selector and the
   // table carry the plain keys, and the reading in force picks which of the two is shown.
-  function base(view) { return view && view.indexOf(FOLLOW) === 0 ? view.slice(FOLLOW.length) : view; }
+  function base(view) {
+    if (!view) { return view; }
+    var b = view.indexOf(FOLLOW) === 0 ? view.slice(FOLLOW.length) : view;
+    return b.replace(/~fold\d+$/, "");  // F34-T24: an open fold is still its route
+  }
   function isSetView(view) {
     var b = base(view);
     return !!b && (b === "sel" || b.indexOf("sel/") === 0 || b.indexOf("edge/") === 0);
@@ -617,6 +621,13 @@
   pills.forEach(function (g) {
     var link = g.parentNode;
     g.addEventListener("click", function (ev) {
+      // F34-T24 (R15): a fold opens in place — the drawing moves to the view with it open
+      if (g.classList.contains("fold")) {
+        ev.preventDefault();
+        var open = g.getAttribute("data-open");
+        if (has(open)) { transition(open); }
+        return;
+      }
       if (select(idOf(g))) {
         ev.preventDefault();
         writeHash();
@@ -865,12 +876,14 @@
   var foldOpen = {};
   function outlineFollows(view) {
     if (!outline || !layouts || !layouts[view]) { return; }
-    var lay = layouts[view], inView = {};
+    // the route's statements, folded in the drawing or not: its own layout and its open folds'
+    var route = base(view), lays = [layouts[view]], inView = {};
+    for (var i = 0; layouts[route + "~fold" + i]; i++) { lays.push(layouts[route + "~fold" + i]); }
     slice(outline.children).forEach(function (li) {
       var id = li.getAttribute("data-node");
       if (!id) { return; }
       var fold = li.getAttribute("data-in-fold");
-      var on = nodeIn(lay, id);
+      var on = lays.some(function (lay) { return nodeIn(lay, id); });
       if (on && fold !== null) { inView[fold] = true; }
       li.hidden = !on || (fold !== null && !foldOpen[fold]);
     });

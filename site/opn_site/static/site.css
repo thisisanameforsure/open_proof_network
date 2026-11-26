@@ -1591,3 +1591,6 @@ svg.dag path.edge.on-path { stroke-width: 3.2; }
 .route-outline > li.fold { border-left: 0; }
 .fold-box { display: block; width: 100%; min-height: 44px; text-align: left; font: inherit; font-size: 14px; color: var(--muted); background: var(--surface); border: 1px dashed var(--rule-strong); border-radius: var(--radius); padding: var(--s2) var(--s4); cursor: pointer; }
 .fold-box[aria-expanded="true"] { color: var(--ink); }
+svg.dag g.node.fold .fold-rect { fill: var(--surface); stroke: var(--rule-strong); stroke-dasharray: 4 3; }
+svg.dag g.node.fold text { font-family: var(--sans); font-size: 12px; fill: var(--muted); }
+svg.dag g.node.fold { cursor: pointer; }

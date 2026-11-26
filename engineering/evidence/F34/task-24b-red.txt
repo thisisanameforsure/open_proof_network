@@ -1,0 +1,8 @@
+E       assert (0 == 1)
+E        +  where 0 = len([])
+E       AssertionError: assert 0 == 1
+E        +  where 0 = count()
+E        +    where count = <Locator frame=<Frame name= url='http://127.0.0.1:61954/problems/propositional/'> selector='svg.dag:not(.band) g.node.fold:not(.off-view)'>.count
+FAILED site/tests/test_f34_folds.py::test_the_route_is_laid_out_folded_and_each_fold_has_an_open_layout
+FAILED site/tests/test_f34_folds.py::test_clicking_the_box_lays_the_tree_out_again_with_the_fold_open
+2 failed, 8 deselected in 12.32s
