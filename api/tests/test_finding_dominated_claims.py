@@ -1,4 +1,4 @@
-"""F27-T13 (R14; D-25 v3.51): a claim on a statement only strictly harder routes reach is refused
+"""F27-T13 (R14; D-25 v3.52): a claim on a statement only strictly harder routes reach is refused
 with ``node-dominated``, and nothing else about it changes.
 
 The products leave a dominated statement off the frontier, and a claim is the frontier's act, so
@@ -57,7 +57,7 @@ def test_a_claim_on_a_dominated_statement_is_refused_and_says_why(harness: Harne
     r = harness.client.post("/claims", json={"node_id": NODE}, headers=token(harness))
     body: dict[str, Any] = r.json()
     assert (r.status_code, body.get("error")) == (409, "node-dominated"), body
-    assert "strictly harder" in body["message"] and "D-25 v3.51" in body["message"]
+    assert "strictly harder" in body["message"] and "D-25 v3.52" in body["message"]
     assert body["details"]["node_id"] == NODE
     assert body["details"]["routes"] == [f"{ROOT}@2"]
     assert harness.store.list_claims() == []

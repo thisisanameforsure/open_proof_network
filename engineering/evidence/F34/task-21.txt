@@ -1,0 +1,65 @@
+F34-T21 (part) — every page beside its mockup, at 1440 and 390 (compare21.py; t21/side-*.jpg, the mockup on the
+left, this tree's render of the live graph at 257feba2 on the right, cut at 4000px).
+
+Fixed in this commit (test_f34_mockup_fixes.py; the colour test red against the previous stylesheet, task-21-red.txt):
+  * Problems: every statement in "Waiting for a first steward" was bold rust. The review page's ".waiting { color:
+    var(--warn) }" matched T5's table.waiting; scoped to p.waiting. (The bold is the record's own emphasis.)
+  * Review: a run of questions of one kind folds behind "Questions 2–7: constant changes"; each question's statement
+    and variant sit side by side, as the mockup draws them (stacked at phone width).
+
+Recorded, not fixed (largest first):
+  * erdos-257 §1: the mockup draws the selected route as a compact tree of large pills with a "Drawn below: Route n"
+    header, Retire, "+n speculative" markers and the fold as a "14 proved · show" chip; ours is the F30 drawing with
+    its full key and the speculative column beside it. The column's removal waits for §2's small trees (Q26).
+  * erdos-257 §2: small trees per proposed group in cards; ours lists (Q26).
+  * erdos-257 §3–§6: the mockup's cards (the review's five stages as a list, Stewards and Panel side by side, the
+    write-up ladder) and every §6 part folded; ours plain sections.
+  * Contributors: one card per person with agents folded under; ours one card per identity (139) until the operator
+    record (T15) is on the graph. The code groups by it (T14).
+  * Home: the headline wraps to three lines (the mockup's two: a wider measure); Figure 1 is the whole drawing
+    scaled down, where the mockup draws the top two layers with "… 95 more statements".
+  * Docs: margin sidenotes and IMPORTANT/NOTE labels on the callouts; the sidebar's MCP tools, Rate limits,
+    Glossary and Protocol entries.
+  * Review: the six-stage progress strip and the signed-in "Your turn" note.
+  * Steward sign-up and My problems were designed signed out (Q14); the static pages match their structure.
+  * Heights: the mockups are drawn with a few sample rows; ours carry the live record (Problems 50 waiting rows, the
+    review's eight questions), so the pages are longer by design, not by layout.
+
+---- 2026-11-26, more from the list
+Fixed: Home's headline on two lines across the column (max-width lifted, 56px; 34px on a phone, unchanged);
+the Docs callouts labelled Note (blue) and Important (rust) as the mockup has them, in CSS, the prose untouched;
+§6 Record folded part by part ("Proved, explained, written up"; "Where the statement comes from"), each heading
+kept inside its fold's summary so every anchor and test that reads it still finds it. Goldens regenerated; site
+fast suite 1029 passed. Captures: task-21b-home-light-1440.png, task-21b-docs-token-light-1440.png.
+Not a defect: the Docs sidebar's later groups (Glossary, Protocol) are there; the sidebar scrolls in its own box
+at a 900px viewport, and a full-page capture shows only its visible part.
+
+---- then: the review's progress strip; the Docs labels taken back out
+Red (task-21c-red.txt), green in test_f34_mockup_fixes.py. The review page carries the mockup's six stages —
+Candidates, Pairs, Answers, Intent tests, Screens, Signatures — each done, now (the first not done) or later,
+with its count, from the records alone; on erdos-257: done, done, now (0 of 8), later, done, later.
+Capture: task-21c-review-257-light-1440.png. Still not built: the signed-in "Your turn" note.
+The owner, 2026-11-26: another session is reworking the Docs tab, so Docs is out of this comparison; the
+callout labels added an hour earlier (never deployed) are taken back out of site.css.
+
+---- then: §4 as cards; Figure 1 as the top of the tree
+§4: the stewards in one card, the panel and the write-up in another, side by side (one column on a phone);
+every heading id and the panel-writeup wrapper kept. Capture task-21d-erdos-257-people-light-1440.png.
+Home's Figure 1: the routes drawing cut after its first three rows of statements (render.figure_top; a
+junction is no row), with "… n more statements" linking to the problem: erdos-1094 shows its root, its two
+splits and "… 92 more statements", as the mockup draws it. Red then green in test_f34_mockup_fixes.py (the
+first expected count in the test was wrong — 1, not 2 — and was corrected before the code was written).
+Capture task-21e-home-light-1440.png. Site fast suite green.
+
+---- then: §3's review card
+A problem with a review shows it in §3 as the mockup's card: "Does the Lean say the conjecture?", "Open the
+review →" and the review's six stages (the same strip as the review page). None on a problem with no review.
+Red then green in test_f34_mockup_fixes.py; site fast suite 1032 passed.
+
+---- then: §1's key folded
+The drawing's key behind "Key to the drawing" (closed), as the mockup draws the route with no key above it.
+The "Show n more statements" button lived inside the key and the browser suite caught it hidden
+(test_one_view::test_the_toggle_shows_every_statement): it is placed beside the fold now (graph_legend's
+toggle flag), and the nothing-dropped test holds it as its own fragment. Site suite with Playwright: only the
+three tests red on main before F34 fail. Capture task-21f-erdos-257-proof-light-1440.png.
+Left for §1: the speculative column, which the mockup moves into §2 as small trees (Q26).

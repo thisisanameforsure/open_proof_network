@@ -1,0 +1,58 @@
+F34-T24 (part) — the outline's folds (R15; handoff §3.4.2, §3.4.6).
+
+Red (task-24-red.txt; the helper's cases failed on its missing name, the page's on the missing box):
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows0-proved0-folds0]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows1-proved1-folds1]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows2-proved2-folds2]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows3-proved3-folds3]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows4-proved4-folds4]
+FAILED site/tests/test_f34_folds.py::test_the_outline_boxes_the_proved_pair
+FAILED site/tests/test_f34_folds.py::test_the_fold_is_a_box_that_opens_in_place
+7 failed, 1 passed in 79.65s (0:01:19)
+
+Green:
+11 passed in 4.50s
+Site fast suite: 1026 passed.
+
+The rule (render.outline_folds): a run of sibling statements whose subtrees are entirely proved, holding at
+least two statements, is one fold; a sibling not entirely proved is looked into; the root is never folded.
+Without the script every row shows and the box stays hidden.
+
+On the live graph at 257feba2 (shoot_outline.py, phone width):
+{"target": "erdos-257", "rows_shown": 4, "first": [["erdos-257", "depth-0"], [null, "fold depth-1"], ["erdos-257--h2", "depth-1"], ["erdos-257--h2--h1", "depth-2"]], "tapped": "erdos-257--h2", "min_row_height": 44, "scrollWidth": 390, "graph_commit": "257feba2344969bcaf93fbd4a08c24448146f0ad"}
+{"target": "erdos-1094", "rows_shown": 16, "first": [["erdos-1094", "depth-0"], ["erdos-1094--h1", "depth-1"], ["erdos-1094--h2", "depth-1"], ["erdos-1094--h2--h1", "depth-2"]], "tapped": "erdos-1094--h2", "min_row_height": 44, "scrollWidth": 390, "graph_commit": "257feba2344969bcaf93fbd4a08c24448146f0ad"}
+erdos-1094's route shows '10 proved statements' and '3 proved statements' boxes: 16 rows shown where T17 showed 19.
+Captures: task-24-{erdos-257,erdos-1094}-folds-390.png.
+
+Not built: the drawing's folds. A fold there is a new kind of mark in every view's layout, and how it sits
+(a box in the place of the run, pills reflowing round it when it opens) is a choice for the owner.
+
+---- then: the drawing's folds (the owner's choice, 2026-11-26: a box, the tree laid out again; Q28)
+
+Red (task-24b-red.txt):
+E       assert (0 == 1)
+E        +  where 0 = len([])
+E       AssertionError: assert 0 == 1
+E        +  where 0 = count()
+E        +    where count = <Locator frame=<Frame name= url='http://127.0.0.1:61954/problems/propositional/'> selector='svg.dag:not(.band) g.node.fold:not(.off-view)'>.count
+FAILED site/tests/test_f34_folds.py::test_the_route_is_laid_out_folded_and_each_fold_has_an_open_layout
+FAILED site/tests/test_f34_folds.py::test_clicking_the_box_lays_the_tree_out_again_with_the_fold_open
+2 failed, 8 deselected in 12.32s
+Green:
+61 passed in 55.43s
+
+Found on the way:
+ * folding every set, branch and edge view put erdos-1094's layouts at 6.6 MB (125 open layouts, 2.9 MB);
+   only a set's own view is folded now: 55 and 770 KB, the page's layouts 4.6 MB (2.4 MB of them the
+   follow-the-proof twins only a bookmark reaches, Q7 — the owner's call).
+ * the phone outline's .fold-box rule (width 100%) also matched the drawing's rect of that class, and SVG
+   honours CSS width: the box ran past the drawing. The drawing's rect is .fold-rect.
+ * the outline read a route's statements from its layout, which a fold now leaves out; it reads the open
+   layouts too.
+
+On the live graph at 257feba2 (shoot_folds.py, 1440):
+{"target": "erdos-1094", "boxes": ["3 proved statements \u25b8"], "drawing_height_folded": "1620", "drawing_height_opened": "1818", "layouts_bytes": 4678498, "scrollWidth": 1440}
+{"target": "erdos-257", "boxes": [], "drawing_height_folded": "502", "drawing_height_opened": null, "layouts_bytes": 272112, "scrollWidth": 1440}
+{"graph_commit": "257feba2344969bcaf93fbd4a08c24448146f0ad"}
+erdos-257's routes hold no proved subtree reached from nowhere else, so its drawing has no box.
+Captures: task-24-erdos-1094-{folded,opened}-1440.png, task-24-erdos-257-folded-1440.png.

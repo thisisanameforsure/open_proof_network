@@ -28,9 +28,10 @@ plain keys alone; the page's toggle swaps a view for its twin.
 
 from __future__ import annotations
 
+import functools
 import json
 import textwrap
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from html import escape
 from typing import Any
@@ -42,6 +43,8 @@ from opn_site import dag, routes_view
 JUNCTION_W = routes_view.JUNCTION_W
 ALL = "all"
 ROUTES = "routes"
+#: F27-R14 (D-25 v3.52): the routes view with the strictly harder routes added, its own toggle's.
+HARDER = "harder"
 #: F30-T11: the band's own view (never in the layouts JSON: the script does not move it).
 BAND = "band"
 TOP = "sel"
@@ -257,7 +260,7 @@ def views(
         rid for rid in d.junctions if d.below.get(rid) and all(h in shelved for h in d.below[rid])
     }
     dim = {i for i in shelved if str(merged[i].get("status")) != routes.PROVED}
-    # F27-R14 (D-25 v3.51): a strictly harder route and the statements only it reaches leave
+    # F27-R14 (D-25 v3.52): a strictly harder route and the statements only it reaches leave
     # ``routes`` and stay in ``all``; the sets already leave them out.
     dom = dominated if dominated is not None else routes.dominated(graph)
     harder = (set(dom.statements) | set(dom.routes)) & (set(merged) | set(d.junctions))
@@ -274,6 +277,18 @@ def views(
         ]
         or [root],
     )
+    if harder:
+        # F27-R14: the routes view with the strictly harder routes added, the harder toggle's
+        out[HARDER] = _view(
+            HARDER,
+            HARDER,
+            merged,
+            [
+                i
+                for i in (*d.statements, *d.junctions)
+                if i not in band and i not in shelved and i not in cut
+            ],
+        )
     if band:
         out[BAND] = _view(BAND, BAND, merged, band)
     out.update(_set_views(graph, result, d, merged, prefix=""))
@@ -605,11 +620,24 @@ class Drawing:
     shelved: int = 0
     #: F31-T11 (R8): the drawn routes (the tree's, not the band's), in the drawing's order.
     routes: tuple[RouteRow, ...] = ()
+    #: F34-T12 (R14): the view the page opens on — the selector's leaf for the proving set with
+    #: the fewest open statements; ``""`` for a problem with no route (it opens on ``routes``).
+    home: str = ""
+    #: F34-T18 (R18): the statements the routes drawing holds (junctions left out); the page
+    #: places every other statement in "Not on a route".
+    on_route: frozenset[str] = frozenset()
+    #: F34-T17 (R17): the routes drawing as an outline for a phone — each statement on a route
+    #: once, top to bottom from the problem, with its depth (a route's junction adds none).
+    outline: tuple[tuple[str, int], ...] = ()
+    #: F34-T26 (Q26 closed): draws some statements as a small tree in the drawing's style.
+    mini: Callable[[Sequence[str]], str] | None = None
     #: F27-R14: how many of ``hidden`` lie only on strictly harder routes.
     harder: int = 0
+    #: F27-R14: the toggle between the routes view and ``harder``; ``""`` when nothing is.
+    harder_toggle: str = ""
 
 
-#: F27-R14 (D-25 v3.51): the words a strictly harder statement or route carries on hover.
+#: F27-R14 (D-25 v3.52): the words a strictly harder statement or route carries on hover.
 HARDER_WORDS = "on a strictly harder route, not offered (another route needs less)"
 
 
@@ -735,6 +763,80 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
     )
 
 
+def mini_tree(  # noqa: PLR0913 — one group's drawing, every input it is drawn from
+    rows: Mapping[str, Mapping[str, Any]],
+    ids: Sequence[str],
+    *,
+    href: Mapping[str, str],
+    names: dag.Prefix,
+    labels: dag.Labels,
+    titles: Mapping[str, str],
+) -> str:
+    """F34-T26 (Q26 closed; handoff §3.4.4): a small tree of some statements — laid out by the
+    drawing's own ``dag.layout`` from those statements alone and the lines among them, each a
+    pill as in the drawing, linked to its page. ``""`` for no statement."""
+    keep = [i for i in ids if i in rows]
+    if not keep:
+        return ""
+    inside = set(keep)
+    sub: list[dict[str, Any]] = []
+    for nid in keep:
+        row = dict(rows[nid])
+        row["deps"] = [x for x in row.get("deps") or [] if x in inside]
+        row["uses"] = [x for x in row.get("uses") or [] if x in inside]
+        row["lemmas"] = [
+            lm
+            for lm in row.get("lemmas") or []
+            if (lm.get("node") if isinstance(lm, Mapping) else lm) in inside
+        ]
+        row.pop("proposed_for", None)  # inside the group a pointer is no line
+        sub.append(row)
+    prefix = names if isinstance(names, str) else (names[0] if names else None)
+    lay = dag.layout(sub, root=None, prefix=prefix, labels=labels, apart=False)
+    parts = [
+        f'<svg class="dag mini-tree" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
+        f'height="{lay.height}" role="img" aria-label="these statements and their lines">'
+    ]
+    parts.extend(
+        f'<path class="{escape(e.kind)}" data-from="{escape(e.src)}" data-to="{escape(e.dst)}" '
+        f'd="{dag.path_d(e)}"/>'
+        for e in lay.edges
+    )
+    for p in lay.placed:
+        status = _status_of(rows, p.node_id)
+        parts.append(
+            _pill_markup(
+                p.node_id,
+                p,
+                status=status,
+                label=dag.label_of(p.node_id, names, labels),
+                title=titles.get(p.node_id, f"{p.node_id}: {status}"),
+                href=href.get(p.node_id, "#"),
+                hidden=False,
+                proved=status == routes.PROVED,
+                closable=False,
+                or_mark=False,
+                outline=0,
+            )
+        )
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _fold_markup(nid: str, p: dag.Placed, *, opened: str, words: str, hidden: bool) -> str:
+    """F34-T24 (R15): a fold of proved statements — a dashed box naming how many it holds;
+    activating it moves the drawing to ``opened``, the view with this fold open."""
+    off = " off-view" if hidden else ""
+    return (
+        f'<a href="#" class="fold-link"><g class="node fold{off}" data-node="{escape(nid)}" '
+        f'data-open="{escape(opened)}" data-w="{p.w}" transform="translate({p.x},{p.y})" '
+        f'role="button" aria-label="{escape(words)}, show them">'
+        f"<title>{escape(words)}: show them</title>"
+        f'<rect class="fold-rect" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
+        f'<text x="14" y="{dag.NODE_H // 2 + 5}">{escape(words)}</text></g></a>'
+    )
+
+
 def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     vs: Mapping[str, View],
     lays: Mapping[str, dag.Layout],
@@ -748,6 +850,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     outlines: Mapping[str, int],
     closable: Mapping[str, Any],
     literature: dag.Literature = None,
+    folds: Mapping[str, tuple[str, str]] | None = None,
     harder: frozenset[str] = frozenset(),
 ) -> str:
     opening = lays[ROUTES]
@@ -798,6 +901,10 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     for nid in (*vs[ALL].nodes, *extra):
         p = at[nid]
         hidden = nid not in shown_nodes
+        if folds and nid in folds:  # F34-T24 (R15): a fold, one box that opens in place
+            opened, fold_words = folds[nid]
+            parts.append(_fold_markup(nid, p, opened=opened, words=fold_words, hidden=hidden))
+            continue
         if nid in d.junctions:
             r = d.junctions[nid]
             words = shelving_words(r, rows, d.below.get(nid, []))  # F31-T10
@@ -1139,6 +1246,23 @@ def _shelved_titles(
     return found
 
 
+def _harder_toggle(routes_n: int, statements: int, proved: int) -> str:
+    """F27-R14: the toggle between the routes view and ``harder`` — how many strictly harder
+    routes it draws, the statements only they reach and how many of those are proved. Hidden
+    until the script runs, as the general toggle is; ``""`` when nothing is strictly harder."""
+    if not routes_n:
+        return ""
+    noun = "route" if routes_n == 1 else "routes"
+    detail = f"{statements} statement{'' if statements == 1 else 's'}" + (
+        f", {proved} proved" if proved else ""
+    )
+    return (
+        f'<button type="button" class="chip harder-toggle" data-view="{HARDER}" '
+        f'aria-pressed="false" data-shown-label="Hide the strictly harder {noun}" hidden>'
+        f"Show {routes_n} strictly harder {noun} ({detail})</button>"
+    )
+
+
 def _mark_harder(dom: routes.Dominated, drawn: Sequence[str], titles: dict[str, str]) -> set[str]:
     """F27-R14: each strictly harder statement's title says why it is not offered; the drawing's
     marks start with ``harder`` when it has one, so the key names it."""
@@ -1165,7 +1289,185 @@ def _hidden_counts(
     return len(off_route), len(shelved), len(harder), len(proved)
 
 
-def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, each part of it assembled once
+def outline_rows(
+    lay: dag.Layout, root: str, junctions: Iterable[str]
+) -> tuple[tuple[str, int], ...]:
+    """F34-T17 (R17): the layout as an outline — depth first from ``root`` down its lines (each
+    line runs from the lower statement up to the upper), each statement once at the first depth
+    it is met, a junction passed through without a depth of its own."""
+    below: dict[str, list[str]] = {}
+    for e in lay.edges:
+        below.setdefault(e.dst, []).append(e.src)
+    order = {p.node_id: p.x for p in lay.placed}  # siblings left to right, as drawn
+    joins = set(junctions)
+    out: list[tuple[str, int]] = []
+    seen: set[str] = set()
+
+    def visit(nid: str, depth: int) -> None:
+        if nid in seen:
+            return
+        seen.add(nid)
+        if nid in joins:
+            nxt = depth
+        else:
+            out.append((nid, depth))
+            nxt = depth + 1
+        for child in sorted(below.get(nid, []), key=lambda c: order.get(c, 0)):
+            visit(child, nxt)
+
+    visit(root, 0)
+    return tuple(out)
+
+
+#: F34-T24 (R15): a fold's id in the drawing, and the suffix of the view with that fold open.
+FOLD = "fold:"
+FOLD_OPEN = "~fold"
+
+
+def outline_folds(rows: list[tuple[str, int]], proved: set[str]) -> list[tuple[int, int]]:
+    """F34-T24 (R15): the folds of an outline, as row ranges [start, end) — each a run of
+    sibling statements whose subtrees are entirely proved, holding at least two statements. The
+    root (row 0) is never folded; a sibling not entirely proved is looked into."""
+    folds: list[tuple[int, int]] = []
+
+    def end(i: int) -> int:
+        j = i + 1
+        while j < len(rows) and rows[j][1] > rows[i][1]:
+            j += 1
+        return j
+
+    def walk(lo: int, hi: int) -> None:
+        run: list[int] = []  # [start, end) of the current run of proved siblings
+        i = lo
+        while i < hi:
+            j = end(i)
+            if all(rows[k][0] in proved for k in range(i, j)):
+                run = [run[0], j] if run else [i, j]
+            else:
+                if run and run[1] - run[0] >= 2:
+                    folds.append((run[0], run[1]))
+                run = []
+                walk(i + 1, j)
+            i = j
+        if run and run[1] - run[0] >= 2:
+            folds.append((run[0], run[1]))
+
+    walk(1, len(rows))
+    return sorted(folds)
+
+
+def view_folds(
+    v: View, root: str, junctions: Iterable[str], proved: set[str]
+) -> list[tuple[str, tuple[str, ...], tuple[str, ...]]]:
+    """F34-T24 (R15): the folds of one view's drawing — under each node, its children whose whole
+    subtree is proved and reached from nowhere else, when they hold at least two statements —
+    as (the node they hang from, the children, every node the fold hides). The root is never
+    folded; a junction passes through, holding no statement of its own."""
+    joins = set(junctions)
+    below: dict[str, list[str]] = {}
+    above: dict[str, set[str]] = {}
+    for src, dst, _kind in v.lines:
+        below.setdefault(dst, []).append(src)
+        above.setdefault(src, set()).add(dst)
+
+    def subtree(n: str) -> set[str]:
+        seen, todo = {n}, [n]
+        while todo:
+            for k in below.get(todo.pop(), []):
+                if k not in seen:
+                    seen.add(k)
+                    todo.append(k)
+        return seen
+
+    out: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = []
+
+    def visit(n: str, done: set[str]) -> None:
+        if n in done:
+            return
+        done.add(n)
+        kids = sorted(set(below.get(n, [])))
+        taken: list[str] = []
+        hidden: set[str] = set()
+        for k in kids:
+            if k in joins:
+                continue
+            sub = subtree(k)
+            statements = [x for x in sub if x not in joins]
+            inside = all(above.get(x, set()) <= sub for x in sub - {k}) and above.get(k) == {n}
+            if inside and statements and all(x in proved for x in statements):
+                taken.append(k)
+                hidden |= sub
+        if sum(1 for x in hidden if x not in joins) >= 2:
+            out.append((n, tuple(taken), tuple(sorted(hidden))))
+        for k in kids:
+            if k not in taken:
+                visit(k, done)
+
+    visit(root, set())
+    return out
+
+
+def with_folds(
+    vs: Mapping[str, View], root: str, junctions: Iterable[str], proved: set[str]
+) -> tuple[dict[str, View], dict[str, tuple[str, str]]]:
+    """F34-T24 (R15; the owner, 2026-11-26: a box, the tree laid out again round it): every set
+    view laid out with its folds closed — each fold one box under the node it hangs from — and
+    for each fold a view with that fold open, ``<key>~fold<i>``. Returns the views and, per
+    fold box, (the view that opens it, its words). ``all``, ``routes`` and the bookmarked
+    followed views are left whole."""
+    out = dict(vs)
+    boxes: dict[str, tuple[str, str]] = {}
+    joins = set(junctions)
+    for key, v in vs.items():
+        # the routes a reader opens — the selector's numbered ends — not every branch and edge:
+        # each fold is one more layout in the page, and erdos-1094 has 154 branch and edge views
+        if v.kind != "leaf" or key.startswith(FOLLOW):
+            continue
+        folds = view_folds(v, root, joins, proved)
+        if not folds:
+            continue
+
+        def closed(
+            open_: int | None,
+            key: str = key,
+            v: View = v,
+            folds: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = folds,
+        ) -> View:
+            nodes = list(v.nodes)
+            lines = list(v.lines)
+            for i, (parent, kids, hidden) in enumerate(folds):
+                if i == open_:
+                    continue
+                fid = f"{FOLD}{key}:{i}"
+                drop = set(hidden)
+                kind = next((k for s, d, k in v.lines if s in kids and d == parent), "edge")
+                nodes = [n for n in nodes if n not in drop] + [fid]
+                lines = [ln for ln in lines if ln[0] not in drop and ln[1] not in drop]
+                lines.append((fid, parent, kind))
+            return replace(v, nodes=tuple(nodes), lines=tuple(lines))
+
+        out[key] = closed(None)
+        for i, (_parent, _kids, hidden) in enumerate(folds):
+            n = sum(1 for x in hidden if x not in joins)
+            opened = f"{key}{FOLD_OPEN}{i}"
+            out[opened] = replace(closed(i), key=opened, kind="fold-open")
+            boxes[f"{FOLD}{key}:{i}"] = (opened, f"{n} proved statements \u25b8")
+    return out, boxes
+
+
+def opening_view(sets: Sequence[routes.SufficientSet], leaf_of: Mapping[str, str]) -> str:
+    """F34-T12 (R14): the view the page opens on — of the sets that prove the problem, the one
+    with the fewest open statements, ties to the fewer statements, then the record's order; the
+    selector's leaf for it. ``""`` when no proving set has a leaf (no route to draw)."""
+    proving = [
+        (len(s.open), s.total, k, leaf_of[s.id])
+        for k, s in enumerate(sets)
+        if s.settles == routes.PROVES and s.id in leaf_of
+    ]
+    return min(proving)[3] if proving else ""
+
+
+def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
     graph: Mapping[str, Any],
     frontier_entries: Iterable[Mapping[str, Any]],
     *,
@@ -1199,6 +1501,10 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, each part of it as
     labels = dag.labels_of(rows.values())
     root = str(graph.get("root"))
     names: dag.Prefix = (prefix, root) if prefix else None
+    # F34-T24 (R15): proved statements folded, each fold a box the tree is laid out round
+    proved = {nid for nid, r in rows.items() if r.get("status") == routes.PROVED}
+    vs, boxes = with_folds(vs, root, d.junctions, proved)
+    labels = {**(labels or {}), **{fid: words for fid, (_open, words) in boxes.items()}}
     lays = layouts(rows.values(), vs, root=root, prefix=prefix, labels=labels)
     ready = {c.node: c for c in closing.closable(graph)}
     band = vs[BAND].nodes if BAND in vs else ()
@@ -1228,6 +1534,7 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, each part of it as
         outlines=outlines or {},
         closable=ready,
         literature=literature,
+        folds=boxes,
         harder=frozenset(dom.statements | dom.routes),
     )
     # A target with no route has no sets worth choosing (its one "set" is the root taken
@@ -1239,6 +1546,9 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, each part of it as
         result = replace(result, sets=())
         follow = replace(follow, sets=())
     leaf_of = {v.sets[0]: k for k, v in vs.items() if v.kind == "leaf" and not k.startswith(FOLLOW)}
+    home = opening_view(result.sets, leaf_of)
+    if home:
+        svg = svg.replace('<svg class="dag" ', f'<svg class="dag" data-home="{escape(home)}" ', 1)
     if any(r.live for r in d.junctions.values()):
         marks.add("route-and")
     if any(not r.live for r in d.junctions.values()):
@@ -1311,7 +1621,13 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, each part of it as
         if result.sets
         else "",
         layouts_json=f'<script type="application/json" id="graph-layouts">{doc}</script>',
-        toggle=_toggle(hidden, shelved_hidden, harder_hidden, harder_proved),
+        # the general toggle only when something is on no route (F34-R18); then it says all
+        toggle=_toggle(hidden, shelved_hidden, harder_hidden, harder_proved)
+        if hidden > harder_hidden
+        else "",
+        harder_toggle=_harder_toggle(
+            len(dom.routes & set(d.junctions)), harder_hidden, harder_proved
+        ),
         marks=frozenset(marks),
         sets=len(result.sets),
         hidden=hidden,
@@ -1320,4 +1636,13 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, each part of it as
         shelved=shelved_hidden,
         routes=route_rows,
         harder=harder_hidden,
+        home=home,
+        # F27-R14: a strictly harder statement is on a route, drawn behind its toggle, so §2
+        # never lists it (F34-R18: each statement placed once)
+        on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions)
+        | (dom.statements & set(rows)),
+        outline=outline_rows(lays[ROUTES], root, d.junctions) if ROUTES in lays else (),
+        mini=functools.partial(
+            mini_tree, rows, href=href, names=names, labels=labels, titles=full_titles
+        ),
     )

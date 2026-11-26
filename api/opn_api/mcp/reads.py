@@ -1662,7 +1662,8 @@ TOOLS: tuple[Tool, ...] = (
         "list field, applied to the entries. `next` is the `cursor` of the page after. The "
         "file's order, no ranking. An entry's `literature` is its confirmed status (with "
         "`disputes`, or null) and `literature_proposed` the one awaiting a steward. "
-        "`full: true` is GET /frontier.json exactly (large).",
+        "`full: true` is GET /frontier.json's document (large); `target_id` and `filters` "
+        "still narrow its entries.",
         params(
             {
                 "target_id": {

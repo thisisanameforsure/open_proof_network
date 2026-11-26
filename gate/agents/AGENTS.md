@@ -269,10 +269,15 @@ statement. With `"mode": "witness"` and a `node_id` it answers `witness`: the `e
 step 7 will hold a witness of that node to, printed so that you can paste it as your witness's
 type, and, when `content` is your witness, its `given` type and whether it `matches`; with no
 `content`, the expected type alone. A check against a node that has been replaced carries a
-`node-superseded` warning naming the replacement. Line and column numbers refer to the text
-that was checked, which is yours with the node's `Defs` and Context inlined above it and
-`import Mathlib` in place of your imports; `result.content` echoes that text, so read positions
-against it rather than your file.
+`node-superseded` warning naming the replacement. The text checked is yours with the node's
+`Defs` and Context inlined above it, each definition module in a section of its own, and
+`import Mathlib` in place of your imports; line and column numbers are mapped back to your own
+lines (a position inside an inlined module is reported at the import that pulled it in, with a
+note naming the module). The answer does not echo that text unless you send `"echo": true`. A
+text with a `have … := sorry` hole also gets the `partial-unlabelled` lint when its comment
+lines are missing, as the precheck would refuse it. A first check in an environment can run out
+of the twenty seconds while it elaborates the imports cold: on `504 check-timeout` retry once
+before changing the proof.
 
 You can check a witness before its statement is a node. Send `"mode": "witness"`, your
 `target_id`, the statement's text as `statement` (exactly as you would send it to a proposal)
@@ -666,7 +671,7 @@ term rests on (the closure the products publish for a proof), with `proof_routes
 assemblies those proofs went through — so a reader following the proof sees the proved structure
 a set already stands on; the sets, their ids and their open statements are the same either way.
 A set whose open statements include every open statement of another set, and more, is not
-listed: that way is the same work plus extra (D-25 v3.51). A statement only such sets reach is
+listed: that way is the same work plus extra (D-25 v3.52). A statement only such sets reach is
 off the frontier and drawn on the problem page only on request; a claim on it answers
 `409 node-dominated` naming the routes, while a proof of it is still accepted. Nobody decides
 this and nothing is recorded: it is worked out again at every render, so the statement comes
@@ -988,7 +993,10 @@ opens the pull request for you, authored by your pseudonym, and returns its URL;
 authoritative gate runs on it like on any other. A precheck job backs
 one pull request: once a submission on it has opened, the same `precheck_job_id` is refused
 `409 precheck-used`, so a second submission (a resubmission after a close, say) needs a precheck
-of its own. A submission whose pull request failed to open gives the job back.
+of its own. A submission whose pull request failed to open gives the job back: when GitHub
+refuses the service, the answer is `502 pull-request-failed` (or `502 dispatch-failed` for a
+precheck), nothing was opened, and the same call is safe to send again after the answer's
+`details.retry_after_s`.
 
 ```sh
 python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/submission.json"
@@ -3042,13 +3050,18 @@ with `{"name": "<1 to 200 characters>", "link": "<an https:// page, or null>"}` 
 network's approval key, by a pull request the service opens for you. Read this before you call
 it: a display name is a one-way publication, because once a registration names you the registry's
 record carries the name and the network cannot take it back, and a later record with `"name":
-null` withdraws it from every registration after that but from none before. The site shows the
-name nowhere yet. A second call while your first pull request is still open is refused
+null` withdraws it from every registration after that but from none before. The Contributors page
+shows it too. Add `"github": true` and the record becomes `display-name/v2` carrying the GitHub
+login your identity was proved with, taken from the service's own record and never from the call,
+so Contributors lists your work and your agents' under that login (D-19 v3.51); an identity not
+proved with GitHub is refused `400 github-not-paired`. A second call while your first pull
+request is still open is refused
 `409 display-name-in-review` (one writer at a time per file); a bad field is
 `400 arguments-invalid` naming it; a service without its key is `503 approval-key-missing`; nothing
 opens on a refusal. A record opened by hand is judged by the gate as `display-name` mode:
 `display-name-not-owner`, `display-name-unsigned`, `display-name-stem-mismatch` and
-`display-name-ssh-unpaired` are its refusals.
+`display-name-ssh-unpaired` are its refusals, and `display-name-github-unverified` refuses a
+record that carries a GitHub login the service did not write (D-19 v3.51).
 
 The registration itself is a record on the target, `targets/<id>/registrations/<date>-<n>.yaml`
 (`registration/v1`): the registry (`palomar`), its `registry_id` once issued and `version`, the
@@ -3174,10 +3187,10 @@ field an argument becomes.
 | Tool | Plain path | Argument → body field |
 |---|---|---|
 | `server_info` | `GET /info.json` | |
-| `list_targets` | `targets/index.json` | |
+| `list_targets(target_id?, fields?, limit?, cursor?, full?)` | `targets/index.json` | summary rows by default; `target_id` for one row with every field; `full: true` is the file |
 | `get_target(target_id)` | `targets/<id>/graph.json` + `targets/<id>/approaches/` | |
-| `list_frontier(filters?)` | `GET /frontier.json` | |
-| `get_node(node_id, include?)` | `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/` + the node's chains in `targets/<id>/glosses.json` + its proofs' `targets/<id>/outlines/<hash>.json` | `include` names the prose sections to answer (`annexes`, `explainers`, `outlines`, `gloss_chains`, `explainer_chains`), all of them when omitted; `include: []` is the Lean, the context, the claims, the `lemmas` (the bundle's: nodes under other branches this node may use once proved, D-12 v3.38) and the open submissions alone |
+| `list_frontier(target_id?, filters?, limit?, cursor?, full?)` | `GET /frontier.json` + `targets/index.json` | with no `target_id`, one row per problem with open work; with one, its entries 20 to a page; `pending_render` names what merged and is not rendered yet; `full: true` is the route's document |
+| `get_node(node_id, include?)` | `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/` + the node's chains in `targets/<id>/glosses.json` + its proofs' `targets/<id>/outlines/<hash>.json` | `include` names the prose sections to answer (`annexes`, `explainers`, `outlines`, `gloss_chains`, `explainer_chains`), all of them when omitted; `include` also names `attempts`, `deps`, `witness` and `proof`; `include: []` is Statement.lean and Context.lean, the context without its attempt records and dependency statements (`context.omitted` names what was left out), the claims, the `lemmas` (the bundle's: nodes under other branches this node may use once proved, D-12 v3.38) and the open submissions, with `files_omitted` naming the files left out |
 | `get_defs(target_id)` | `targets/<id>/defs/` | |
 | `get_gate_spec(target_id)` | `targets/<id>/gate-spec.json` | |
 | `get_submission(submission_id)` | `GET /submissions/<id>` + `attestations/<id>.json` | for a partial, `holes[].became` from `targets/<id>/graph.json`'s `decompositions` |
@@ -3188,7 +3201,7 @@ field an argument becomes.
 | `get_dco` | `GET /dco.json` | |
 | `list_routes` | `GET /` | |
 | `get_hosted_checkers` | `GET /hosted-checkers.json` | |
-| `list_error_codes(prefix?)` | `GET /errors.json` | |
+| `list_error_codes(code?, prefix?, limit?, cursor?, full?)` | `GET /errors.json` | each code with its meaning by default; `code` for one row in full |
 | `list_words_needed(target_id?, kind?)` | `targets/<id>/glosses.json` + `targets/<id>/target.yaml` | |
 | `list_registrations(target_id?)` | `targets/index.json` (each row's `registrations`) | |
 | `claim_node`, `release_claim` | `POST /claims`, `DELETE /claims/<id>` | `claim_node`: `ttl` → `ttl_hours` |
@@ -3203,12 +3216,12 @@ field an argument becomes.
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |
 | `file_defect_claim`, `file_revision_request` | `POST /defect-claims`, `/revision-requests` | |
 | `propose_literature`, `confirm_literature` | `POST /literature`, `/literature/confirm` | |
-| `set_display_name(name, link?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
+| `set_display_name(name, link?, github?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
 | `register_target` | `POST /registrations` (a curator or steward of the target, by GitHub login) | |
 | `get_review(target_id)` | `GET /reviews/<id>` (every candidate's Lean withheld until your own candidate is on the record: the blind rule) | |
 | `list_review_questions(target_id?)` | `targets/<id>/review/questions/` (`GET /reviews/<id>/questions`) | |
 | `list_open_pairs(target_id?)` | `targets/<id>/review/pairs/` | |
-| `list_sufficient_sets(target_id, cut?, at_proved?)` | `targets/<id>/graph.json` + `GET /frontier.json`, derived by `opn_gate.routes` | |
+| `list_sufficient_sets(target_id, cut?, at_proved?, set_id?, limit?, cursor?, detail?, include_selector?)` | `targets/<id>/graph.json` + `GET /frontier.json`, derived by `opn_gate.routes` | five compact sets a page by default (a set without `statements`, a route with its holes' node and status); `detail: full` for every fact; the selector on `include_selector` |
 | `submit_candidate(target_id, lean, models?, read_others?)` | `POST /reviews/<id>/candidates` (needs your token; `read_others` must be true or false) | `target_id` is the path |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |

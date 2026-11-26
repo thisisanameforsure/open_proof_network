@@ -1,0 +1,7 @@
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/sign-explainer/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_new_pages_carry_no_codes_in_prose_and_name_them_at_the_foot[docs/faithful/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/sign-explainer/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_pages_t6_wrote_are_short[docs/faithful/index.html]
+FAILED site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[sign-explainer-facts1]
+FAILED site/tests/test_f34_docs.py::test_the_operator_guides_say_what_the_guide_says[faithful-facts2]
+6 failed, 27 passed in 42.02s

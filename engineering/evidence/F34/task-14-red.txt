@@ -1,0 +1,7 @@
+E       assert ('op-a1' not in {'tester-op': '<article class="person" data-operator="tester-op" data-last="2026-11-20" data-test="1" hidden><h3>teste...">Worked
+E       AssertionError: []
+E       assert 0 == 1
+E        +  where 0 = len([])
+FAILED site/tests/test_f34_contributors.py::test_an_operator_record_puts_its_identities_under_one_card
+FAILED site/tests/test_f34_contributors.py::test_identities_with_one_github_login_are_one_person
+2 failed, 1 passed, 8 deselected in 43.65s

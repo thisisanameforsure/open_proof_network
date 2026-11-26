@@ -1,0 +1,22 @@
+E       ValueError: substring not found
+site/tests/test_f34_frame.py:49: ValueError
+E       ValueError: substring not found
+site/tests/test_f34_frame.py:49: ValueError
+E       ValueError: substring not found
+site/tests/test_f34_frame.py:49: ValueError
+E       FileNotFoundError: [Errno 2] No such file or directory: '/Users/mikehiggins/Desktop/repos/opn-f34/site/opn_site/static/fonts/MANIFEST.txt'
+../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/pathlib/_local.py:537: FileNotFoundError
+site/tests/test_f34_frame.py:114: AssertionError
+E       AssertionError: the wordmark is the way home (handoff §2)
+site/tests/test_f34_frame.py:188: AssertionError
+E           AssertionError: index.html
+site/tests/test_f34_frame.py:203: AssertionError
+FAILED site/tests/test_f34_frame.py::test_token_contrast[light] - ValueError:...
+FAILED site/tests/test_f34_frame.py::test_token_contrast[dark] - ValueError: ...
+FAILED site/tests/test_f34_frame.py::test_dark_scheme_redefines_every_colour
+FAILED site/tests/test_f34_frame.py::test_fonts_vendored - FileNotFoundError:...
+FAILED site/tests/test_f34_frame.py::test_reading_text_is_serif_and_controls_sans
+FAILED site/tests/test_f34_frame.py::test_header_names_four_sections_and_the_action
+FAILED site/tests/test_f34_frame.py::test_header_footer - AssertionError: ind...
+
+[exited with code 0]

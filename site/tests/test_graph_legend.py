@@ -61,7 +61,7 @@ def legend_words(html: str) -> list[str]:
 
 def test_the_key_is_inside_the_graph_card(tmp_path: Path) -> None:
     html = page(tmp_path)
-    head = re.search(r'<div class="section-head">(.*?)<div class="graph-grid">', html, re.S)
+    head = re.search(r'<div class="statements-head">(.*?)<div class="graph-grid">', html, re.S)
     assert head is not None
     assert "dot-proved" not in head.group(1), "the key still sits above the selected statement"
     assert "mini-legend" not in html
@@ -138,7 +138,8 @@ def test_the_stylesheet_colours_every_key_entry() -> None:
 def test_the_docs_glossary_carries_the_new_words(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
-    docs, _files = render.Renderer(site, repo_url=REPO, decisions_doc=None).docs()
+    _landing, files = render.Renderer(site, repo_url=REPO, decisions_doc=None).docs()
+    docs = files["docs/glossary/index.html"]  # F34-T6: the glossary has its own page
     for status in render.LEGEND_EXTRA:
         assert render.esc(render.GLOSSARY_BY_KEY[status][1]) in docs, status
 

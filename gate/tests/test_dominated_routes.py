@@ -1,4 +1,4 @@
-"""F27-T12 (R14; D-25 v3.51): a route that is strictly harder than another is not offered.
+"""F27-T12 (R14; D-25 v3.52): a route that is strictly harder than another is not offered.
 
 A sufficient set *needs* its open members; its assemblies add nothing, because the network
 closes each once its inputs are proved (D-12 v3.42). A set is dominated when another set of its
@@ -187,7 +187,7 @@ def test_a_capped_enumeration_leaves_out_nothing() -> None:
 
 
 def test_the_coarser_cuts_are_unchanged() -> None:
-    """``cut: any`` already lists the minimal sets alone (R6); v3.51 changes the finest."""
+    """``cut: any`` already lists the minimal sets alone (R6); v3.52 changes the finest."""
     g = strictly_more()
     assert ["t--h1", "t--h2--h1", "t--h2--h2"] not in open_sets(routes.read(g, cut="any"))
 
@@ -215,7 +215,7 @@ def e1094() -> dict[str, Any]:
 def test_erdos_1094_offers_two_ways_in_four_sets(e1094: dict[str, Any]) -> None:
     """Two choices of open statements, each reached twice: ``--h2--h1@2`` (the strip, whose
     second route goes back through ``--h2--h1--h1``) ties with ``--h2--h1@1``, so both are
-    offered. 46 sets before v3.51."""
+    offered. 46 sets before v3.52."""
     result = routes.read(e1094)
     assert result.truncated is False
     assert len(result.sets) == 4
@@ -300,4 +300,4 @@ def test_the_frontier_omits_a_dominated_statement(tmp_path: Path, keys: dict[str
     assert H3 not in after
     assert after == before
     assert ROOT in rows and A in rows
-    assert products.PROTOCOL_VERSION == "3.51"
+    assert products.PROTOCOL_VERSION == "3.52"

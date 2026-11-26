@@ -1,0 +1,29 @@
+F34-T23 — the service files the GitHub link when its holder asks (R22; D-19 v3.51 (ii)). Automatic filing left (Q27).
+
+Red, the api half (task-23-red.txt):
+FAILED api/tests/test_f34_github_link.py::test_the_holder_asks_and_the_record_carries_the_paired_login
+FAILED api/tests/test_f34_github_link.py::test_without_it_the_record_is_v1_as_before
+FAILED api/tests/test_f34_github_link.py::test_an_identity_not_proved_through_github_has_nothing_to_publish
+FAILED api/tests/test_f34_github_link.py::test_github_is_a_flag_and_a_withdrawal_carries_none[body0-github]
+FAILED api/tests/test_f34_github_link.py::test_github_is_a_flag_and_a_withdrawal_carries_none[body1-github]
+FAILED api/tests/test_f34_github_link.py::test_the_first_sign_in_says_the_work_is_listed_under_the_login
+6 failed, 2 warnings in 0.68s
+
+Green:
+30 passed, 2 warnings in 3.99s
+The whole api fast suite:
+2517 passed, 2 warnings in 87.37s (0:01:27)
+
+Browser (the /me/ form; written with the form, so no separate red run):
+4 passed, 13 deselected in 8.16s
+
+Found on the way: the duplicate guard fingerprinted name and link only, so the same name with the login would
+have been refused as identical within two minutes; the fingerprint carries the flag now (a test holds it).
+The MCP tool list's 115,000-character budget took the new parameter once set_display_name's stale sentence
+('nothing on the site shows it yet', untrue since T14) was rewritten.
+
+The guide (gate/agents/AGENTS.md) names github: true; its graph copy is committed on the unpushed graph branch
+f34-t13-agents as 8abcab9ffb, the owner's to push.
+
+Captures: task-23-me-name-{desktop,phone}.png (no sideways scroll at either width, asserted by the bench).
+Restated: gate/tests/test_finding_guide_f25_fields.py pinned set_display_name's fields at F25's two; it holds three now, github a boolean, and the guide naming display-name/v2 and "github": true.

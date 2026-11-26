@@ -22,6 +22,7 @@ from pathlib import Path
 import fixture
 import pytest
 import yaml
+from docs_pages import docs_page
 from fixture import (
     CANDIDATE_LEAN,
     COMMIT,
@@ -41,7 +42,8 @@ REPO = "https://github.com/example/graph"
 API = "https://api.example.org"
 PAGE = f"problems/{TARGET}/review/index.html"
 PROBLEM = f"problems/{TARGET}/index.html"
-SECTIONS = ("candidates", "pairs", "questions", "tests", "screens", "signatures")
+# F34-T19 (handoff §3.5): the questions first, then the exhibits (folded), then the signatures
+SECTIONS = ("questions", "candidates", "pairs", "tests", "screens", "signatures")
 STATE_LINE = 'class="tag tag-outline review-state"'
 
 
@@ -299,7 +301,7 @@ def test_the_two_signature_slots(page: str) -> None:
 
 def test_the_words_the_review_is_of_open_the_page_escaped(page: str) -> None:
     assert html.escape(REVIEW_WORDS) in page and "<b>&</b>" not in page
-    assert '<a href="/docs/#review">' in page
+    assert '<a href="/docs/review/">' in page
 
 
 # --- the answer form --------------------------------------------------------------------------
@@ -400,11 +402,9 @@ def test_an_older_graph_json_renders_with_no_line(
 
 
 def test_docs_has_a_how_a_statement_is_reviewed_section(pages: dict[str, str]) -> None:
-    docs = pages["docs/index.html"]
-    assert '<h2 id="review">How a statement is reviewed</h2>' in docs
-    jump = docs[docs.index('<p class="jump">') : docs.index("</p>", docs.index('<p class="jump">'))]
-    assert 'href="#review"' in jump
-    start = docs.index('<h2 id="review">')
-    sec = docs[start : docs.index("<h2", start + 1)]
+    # F34-T6: the section is its own page, and the landing keeps the old #review anchor
+    sec = docs_page(pages, "review")
+    assert "<h1>How a statement is reviewed</h1>" in sec
+    assert '<li id="review"><a href="/docs/review/">' in docs_page(pages, "")
     t = text_of(sec)
     assert "candidates" in t and "intent signer" in t and "exhibit" in t

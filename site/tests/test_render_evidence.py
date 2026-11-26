@@ -19,6 +19,7 @@ from fixture import (
     LISTED_TARGET,
     build_with_evidenced_target,
 )
+from problem_rows import problem_row
 
 from opn_site import model, render
 
@@ -33,8 +34,7 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 
 def card(page: str, target_id: str) -> str:
-    [found] = [c for c in page.split('<article class="card problem"')[1:] if f">{target_id}<" in c]
-    return found
+    return problem_row(page, target_id)  # F34-T5: a row of the Problems page
 
 
 def test_the_target_page_shows_the_evidence(pages: dict[str, str]) -> None:

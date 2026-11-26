@@ -1,4 +1,4 @@
-F27-T12 (R14; D-25 v3.51): strictly harder routes are not offered.
+F27-T12 (R14; D-25 v3.52): strictly harder routes are not offered.
 Branch dominated-routes, built 2026-11-25 from the owner's ruling of the same day.
 
 == erdos-1094 at graph 257feba234 (fixture erdos-1094-20261124.json) ==

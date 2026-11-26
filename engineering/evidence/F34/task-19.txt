@@ -1,0 +1,57 @@
+F34-T19 (part) — My problems groups waiting words by statement, with one Approve all (R20).
+
+Red (task-19-red.txt):
+FAILED site/tests/test_f34_me_waiting.py::test_each_statement_carries_exactly_the_approvals_its_pages_offer
+FAILED site/tests/test_f34_me_waiting.py::test_one_post_per_version_and_one_group_per_statement
+FAILED site/tests/test_f34_me_waiting.py::test_the_most_waiting_comes_first_and_each_says_how_many
+3 failed in 0.81s
+
+Green:
+8 passed in 8.90s
+Browser (Approve all sends exactly the group's approvals, one per version, and shows the receipts):
+5 passed, 13 deselected in 8.60s
+
+The test holds the /me/ groups to exactly the approvals the statements' own pages offer (every words-approve
+slot not final). Its first run found one more on /me/ than on any page: a witness gloss written before the
+witness changed (describes_current false), which the node page rightly offers no Approve for, and R13's flat
+list showed as waiting anyway, so a steward saw work no button could clear. The groups mirror the pages now.
+
+Restated: test_words_controls::test_the_me_page_is_a_shell_with_the_waiting_sections reads the tutorial
+statement's group instead of the flat list; the same four sections.
+
+Left of T19: the sign-up page's five 'what happens next' steps, and the review page's questions first.
+
+Captures: task-19-me-waiting-{desktop,phone}.png after Approve all (four approvals, four receipts).
+
+---- then: the sign-up page's next steps (handoff §3.5)
+
+Red (task-19b-red.txt):
+FAILED site/tests/test_f34_steward_next.py::test_the_five_steps_in_order_each_with_its_way_in
+1 failed, 1 passed in 1.04s
+Green:
+2 passed in 0.93s
+Five steps in order, each linked: the name on the problem's page, the review's questions, literature to
+confirm and words to approve (both from My problems; a dispute from the statement's page), the explainer and
+the write-up. None on a problem that takes no steward. Site fast suite: 1008 passed.
+Captures: task-19-steward-abc-{light,dark}-{1440,390}.png on the live graph (the form itself is drawn by
+steward.js once the service answers, so a static capture shows the slot empty).
+
+---- then: the review page (handoff §3.5)
+
+Red (task-19c-red.txt; the two helper tests failed on missing names, the page tests on the page):
+FAILED site/tests/test_f34_review_page.py::test_the_heading_asks_the_question
+FAILED site/tests/test_f34_review_page.py::test_questions_come_first_and_the_exhibits_are_folded
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds0-groups0]
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds1-groups1]
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds2-groups2]
+FAILED site/tests/test_f34_review_page.py::test_a_group_of_several_is_headed_by_its_range_and_kind
+6 failed in 48.68s
+Green:
+30 passed in 2.91s
+The heading asks 'Does the Lean say <the problem>?' (the head of its title), with the formal name as the kicker;
+one line on who does what; Questions first as section 1, runs of one kind grouped ('Questions 2–7: constant
+changes' on erdos-257); candidates, pairs, tests and screens folded; signatures left open, since the sign form
+is there (a deviation from the handoff's 'folded', on purpose). Every section keeps its id. The review's words
+render their TeX (they were raw on the live page). Restated: test_review_page's SECTIONS order.
+Not built: the six-stage progress strip and the signed-in 'Your turn' note.
+Captures: task-19-review-257-{light,dark}-{1440,390}.png on the live graph.

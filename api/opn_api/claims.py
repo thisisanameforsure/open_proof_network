@@ -217,7 +217,7 @@ def off_frontier(  # noqa: PLR0911 — one refusal per reason a node is off the 
 
 
 def dominated_routes(ctx: Context, target_id: str, node_id: str) -> list[str]:
-    """F27-R14 (D-25 v3.51): the routes through ``node_id`` that are not offered, when the
+    """F27-R14 (D-25 v3.52): the routes through ``node_id`` that are not offered, when the
     statement is dominated, read from the committed ``graph.json`` by the function the products
     use; empty when it is not, or when the graph cannot say."""
     try:
@@ -246,7 +246,7 @@ def dominated(node_id: str, harder: list[str]) -> ApiError:
         f"{node_id} lies only on routes that are strictly harder than another "
         f"({', '.join(harder)}): "
         "every way to settle the root through it needs everything some other way needs, and more, "
-        "so it is not offered for claims (D-25 v3.51). Work on it is still accepted; to claim, "
+        "so it is not offered for claims (D-25 v3.52). Work on it is still accepted; to claim, "
         "pick a statement of an offered set (list_sufficient_sets)",
         details={"node_id": node_id, "routes": harder},
     )

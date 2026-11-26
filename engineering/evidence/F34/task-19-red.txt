@@ -1,0 +1,4 @@
+FAILED site/tests/test_f34_me_waiting.py::test_each_statement_carries_exactly_the_approvals_its_pages_offer
+FAILED site/tests/test_f34_me_waiting.py::test_one_post_per_version_and_one_group_per_statement
+FAILED site/tests/test_f34_me_waiting.py::test_the_most_waiting_comes_first_and_each_says_how_many
+3 failed in 0.81s

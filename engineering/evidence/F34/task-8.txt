@@ -1,0 +1,11 @@
+F34-T8 verification: uv run --frozen pytest site/tests/test_f34_docs_reference.py
+site/tests/test_f34_docs_reference.py::test_the_reference_group_lists_both_pages PASSED [ 25%]
+site/tests/test_f34_docs_reference.py::test_every_error_code_is_on_its_page_with_what_to_do PASSED [ 50%]
+site/tests/test_f34_docs_reference.py::test_every_route_is_on_its_page_with_whether_it_needs_a_token PASSED [ 75%]
+site/tests/test_f34_docs_reference.py::test_the_mcp_and_rate_limits_point_at_the_live_service PASSED [100%]
+============================== 4 passed in 40.49s ==============================
+
+Red (task-8-red.txt): the four tests against 6d6766be.
+API routes: every RouteSpec of opn_api.routes.ROUTES with whether it needs a token; Error codes: all 526 rows of
+opn_gate.codes.CATALOG with meaning and remedy, an id per code, verbatim (F34-Q23). site-deploy's PYTHONPATH gains api;
+rendering with gate:site alone now fails with ModuleNotFoundError: opn_api, which is why. Site suite: 962 passed.

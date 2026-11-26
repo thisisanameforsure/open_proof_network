@@ -1,0 +1,119 @@
+from common import *
+mono=lambda t,sz='0.85em': f'<code style="font-family: {MONO}; font-size: {sz}">{t}</code>'
+def btn(t,primary=False,small=False):
+    pad='7px 12px' if small else '10px 16px'; fs=14 if small else 15
+    return f'<a href="#" style="font-family: {SANS}; text-decoration: none; padding: {pad}; border-radius: 4px; font-size: {fs}px; white-space: nowrap; {"color: #FFFFFF; background: "+INK+"; font-weight: 500" if primary else "color: "+INK+"; border: 1px solid "+LINE+"; background: "+SURF}">{t}</a>'
+def rowx(main, note=''):
+    return f'<div style="display: flex; flex-wrap: wrap; gap: 12px 40px; align-items: flex-start"><div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 18px">{main}</div><div style="flex: 1 1 200px; max-width: 250px; display: flex; flex-direction: column; gap: 14px">{note}</div></div>'
+def signedin(html):  # header variant: signed in
+    return html.replace('<a href="#" style="color: #1B1B1A; font-size: 15px; padding: 9px 14px; text-decoration: none; border: 1px solid #E3E0D9; border-radius: 4px">Sign in</a>',
+      f'<a href="#" style="color: {INK}; font-size: 15px; padding: 9px 4px; text-decoration: none; font-family: {SANS}">My problems</a><span style="font-family: {SANS}; font-size: 14px; color: {MUTED}">thisisanameforsure · <a href="#" style="color: {MUTED}">Sign out</a></span>')
+def step(n,title,text,state='todo',extra=''):
+    mark={'done':f'<span aria-hidden="true" style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: {PROVED}; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-family: {SANS}; font-size: 14px">✓</span>',
+          'now':f'<span aria-hidden="true" style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: {INK}; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-family: {SANS}; font-size: 13px; font-weight: 600">{n}</span>',
+          'todo':f'<span aria-hidden="true" style="flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid #9A968D; color: {MUTED}; display: inline-flex; align-items: center; justify-content: center; font-family: {SANS}; font-size: 13px">{n}</span>'}[state]
+    return f'''<li style="display: flex; gap: 16px; padding: 16px 0; border-top: 1px solid {LINE}">{mark}<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-family: {SANS}; font-size: 16px; font-weight: 600; color: {INK if state!='todo' else MUTED}">{title}</p><p style="margin: 0; font-size: 17px; color: {MUTED}">{text}</p>{extra}</div></li>'''
+
+# ===================== 1. Steward sign-up (onboarding)
+form=f'''<form style="background: {SURF}; border: 1px solid {INK}; border-radius: 4px; padding: 24px; display: flex; flex-direction: column; gap: 16px; font-family: {SANS}">
+<p style="margin: 0; font-size: 16px; font-weight: 600">Your commitment</p>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: {MUTED}">Name to show on the problem<input type="text" value="" placeholder="e.g. Ada Lovelace" style="font-family: {SANS}; font-size: 16px; padding: 10px 12px; border: 1px solid {LINE}; border-radius: 4px; background: {BG}; color: {INK}"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: {MUTED}">A page about you (optional)<input type="url" placeholder="Your university or personal page" style="font-family: {SANS}; font-size: 16px; padding: 10px 12px; border: 1px solid {LINE}; border-radius: 4px; background: {BG}; color: {INK}"></label>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 15px; color: {INK}"><input type="checkbox" style="margin-top: 4px"><span style="font-family: {SERIF}; font-size: 17px">I commit to make best efforts to understand and write up whatever the network produces on this problem, and to sign the explainer of the proof that closes it.</span></label>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><button type="submit" style="font-family: {SANS}; font-size: 15px; font-weight: 500; padding: 10px 16px; border-radius: 4px; border: 0; background: {INK}; color: #FFFFFF; cursor: pointer">Become steward of abc</button><span style="font-size: 13px; color: {MUTED}">Signed in as thisisanameforsure (GitHub)</span></div>
+</form>'''
+after=f'<ol style="list-style: none; margin: 0; padding: 0; border-bottom: 1px solid {LINE}">'+''.join([
+ step(1,'Your name goes on the problem','The record opens a pull request in your name; once it merges, the problem page shows you as its steward and claims open.','now'),
+ step(2,'Check that the Lean says the conjecture','You are the problem’s intent signer. The review asks you questions in mathematics — “should the conjecture and this variant differ?” — and you answer in words. No Lean needed.'),
+ step(3,'Confirm what is known','Literature proposals for the problem wait for you to confirm or dispute them.'),
+ step(4,'Approve the words','People write plain-language readings of statements and explainers of proofs; they become final when a steward approves them. My problems lists them.'),
+ step(5,'When a proof closes the problem','Sign its explainer once you can explain it, and start the write-up. The write-up is yours.'),
+])+'</ol>'
+s1=rowx(f'''<nav aria-label="Breadcrumb" style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><a href="#" style="color: {MUTED}">Problems</a> / <a href="#" style="color: {MUTED}">abc</a> / steward</nav>
+{smallcaps('Become a steward')}
+{h1('Steward the abc conjecture')}
+<p style="margin: 0; font-size: 21px">For every ε &gt; 0, only finitely many coprime triples a + b = c have c &gt; rad(abc)<sup>1+ε</sup>.</p>
+<p style="margin: 0; font-size: 19px; color: {MUTED}">A steward is the mathematician who answers for a problem: you agree to understand what the network proves here and to say what it means. Best efforts, no deadline, and you can step down at any time.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<div style="flex: 1 1 360px; min-width: 0">{form}</div>
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px"><p style="margin: 0; font-family: {SANS}; font-size: 16px; font-weight: 600">What happens next</p>{after}</div></div>''',
+ sidenote('What you receive: your name on the problem, the write-up and its credit, and a mention whenever anything merges on it.')+sidenote('What you do not receive: no power to pause or reserve the problem. Protocol: decision D-32.')+sidenote('Co-stewards join by the panel’s invitation once a problem has a steward.'))
+open('/home/claude/canvas/project/New-Steward-Signup.dc.html','w').write(signedin(page('Steward abc',f'<main>{wrap(s1,"44px 24px 0")}</main>',1440,1500)).replace('font: inherit;',f"font-family: {SANS};"))
+
+# ===================== 2. My problems (steward dashboard)
+def task(title,count,text,cta,urgent=False):
+    return f'''<div style="display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; padding: 14px 0; border-top: 1px solid {LINE}">
+<span style="flex: none; min-width: 56px; font-family: {SERIF}; font-size: 30px; line-height: 1; color: {FAIL if urgent else INK}">{count}</span>
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-family: {SANS}; font-size: 16px; font-weight: 600">{title}</span><span style="font-size: 16px; color: {MUTED}">{text}</span></div>
+{btn(cta, urgent, True)}</div>'''
+def problem_block(pid, stmt, tasks, role):
+    return f'''<section style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 22px 24px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; justify-content: space-between"><a href="#" style="font-family: {MONO}; font-size: 18px; font-weight: 500">{pid}</a><span style="font-family: {SANS}; font-size: 14px; color: {MUTED}">{role}</span></div>
+<p style="margin: 0; font-size: 17px">{stmt}</p>
+<div style="display: flex; flex-direction: column">{tasks}</div>
+<div style="display: flex; flex-wrap: wrap; gap: 14px; font-family: {SANS}; font-size: 14px; padding-top: 8px; border-top: 1px solid {LINE}"><a href="#">Panel and write-up</a><a href="#">Update your name</a><a href="#" style="color: {MUTED}">Step down</a></div></section>'''
+p257=problem_block('erdos-257','Is the sum of 1/(2ⁿ − 1) over any infinite A ⊆ ℕ irrational?',
+ task('Answer the review questions',8,'The statement can’t be signed until the intent signer answers. Each question is one variant; say whether the conjecture should differ from it.','Start with question 1',True)
+ +task('Confirm what is known',22,'Literature proposals waiting for a steward: confirm, or dispute with your own reading.','Review proposals')
+ +task('Approve words',347,'Readings and explainers across 69 statements. Start with the problem’s own statement and Route 2, the route closest to done.','Approve, statement by statement'),
+ 'Steward with riversupport')
+p1094=problem_block('erdos-1094','For n ≥ 2k, the least prime factor of C(n, k) is at most max(n/k, k), with finitely many exceptions.',
+ task('Confirm what is known',25,'Literature proposals waiting for a steward.','Review proposals')
+ +task('Approve words',237,'Readings and explainers waiting for approval.','Approve, statement by statement'),
+ 'Steward')
+prs=f'''<div style="display: flex; flex-direction: column; gap: 8px"><p style="margin: 0; font-family: {SANS}; font-size: 16px; font-weight: 600">Your open pull requests</p>
+<p style="margin: 0; font-size: 16px; color: {MUTED}">Records you file (answers, approvals, votes, step-downs) appear here until they merge.</p></div>'''
+s2=rowx(f'''{smallcaps('Signed in as thisisanameforsure')}
+{h1('My problems')}
+<p style="margin: 0; font-size: 19px; color: {MUTED}">What is waiting for you, problem by problem, most urgent first.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 15px">Your roles: steward of <a href="#">erdos-257</a> and <a href="#">erdos-1094</a></p>
+{p257}{p1094}{prs}''',
+ sidenote('Order on each problem: the review first (it gates everything signed), then literature, then words.')+sidenote('Approving words is the largest job. Group by statement, show the words beside the Lean, and allow approving every section of one statement at once.')+sidenote('A curator also sees every problem’s literature proposals, below their own problems, folded.'))
+open('/home/claude/canvas/project/New-My-Problems.dc.html','w').write(signedin(page('My problems',f'<main>{wrap(s2,"44px 24px 0")}</main>',1440,1700)).replace('font: inherit;',f"font-family: {SANS};"))
+
+# ===================== 3. Review page
+prog=[('Candidates','1 surviving','done'),('Pairs','1 cluster','done'),('Your answers','0 of 8','now'),('Intent tests','none yet','todo'),('Screens','passed','done'),('Signatures','0 of 2','todo')]
+progress='<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0; border: 1px solid '+LINE+'; border-radius: 4px; background: '+SURF+'">'+''.join(
+ f'<li style="flex: 1 1 110px; padding: 12px 14px; border-right: 1px solid {LINE}; {"box-shadow: inset 0 -3px 0 "+INK if s=="now" else ""}; font-family: {SANS}"><span style="display: block; font-size: 12px; color: {MUTED}">{i+1} · {"done" if s=="done" else "now" if s=="now" else "later"}</span><span style="display: block; font-size: 15px; font-weight: 600; color: {INK if s!="todo" else MUTED}">{t}</span><span style="display: block; font-size: 13px; color: {MUTED}">{d}</span></li>' for i,(t,d,s) in enumerate(prog))+'</ol>'
+STMT="∀ (A : Set ℕ), A.Infinite → Irrational (∑' n : A, (1 : ℝ) / (2 ^ n.1 - 1))"
+def lean_diff(pre,old,new,post):
+    a=f'<span style="background: {PROVED_SOFT}; color: {PROVED}; padding: 0 2px; border-radius: 2px">{old}</span>'
+    b=f'<span style="background: {FAIL_SOFT}; color: {FAIL}; padding: 0 2px; border-radius: 2px">{new}</span>'
+    return pre+a+post, pre+b+post
+qs=[('q-1','∀ → ∃','a quantifier change',"","∀","∃"," (A : Set ℕ), A.Infinite → Irrational (∑' n : A, (1 : ℝ) / (2 ^ n.1 - 1))",'For all infinite sets A, versus: for some infinite set A.'),
+    ('q-8','A.Infinite → dropped','a hypothesis change',"∀ (A : Set ℕ), ","A.Infinite → ","","Irrational (∑' n : A, (1 : ℝ) / (2 ^ n.1 - 1))",'For every infinite set A, versus: for every set A, finite ones included.')]
+def qcard(qid,change,kind,pre,old,new,post,plain,first=False):
+    s,v=lean_diff(pre,old,new,post)
+    pre_css=f'margin: 0; padding: 10px 12px; background: {BG}; border: 1px solid {LINE}; border-radius: 4px; font-family: {MONO}; font-size: 13px; white-space: pre-wrap; word-break: break-word'
+    form=f'''<div style="display: flex; flex-direction: column; gap: 8px; font-family: {SANS}">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: {MUTED}">Your answer, in mathematics<textarea rows="3" placeholder="e.g. Yes: for A = {{…}} the conjecture says … while the variant says …" style="font-family: {SERIF}; font-size: 16px; padding: 10px 12px; border: 1px solid {LINE}; border-radius: 4px; background: {BG}; color: {INK}"></textarea></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: {MUTED}">Source you rely on (optional — an answer without one is flagged)<input type="text" style="font-family: {SANS}; font-size: 15px; padding: 9px 12px; border: 1px solid {LINE}; border-radius: 4px; background: {BG}; color: {INK}"></label>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><button type="button" style="font-family: {SANS}; font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 4px; border: 0; background: {INK}; color: #FFFFFF; cursor: pointer">Send the answer as thisisanameforsure</button><span style="font-size: 13px; color: {MUTED}">Filed as a pull request; it reaches the page when it merges.</span></div></div>''' if first else f'<p style="margin: 0; font-family: {SANS}; font-size: 14px"><a href="#">Answer this question</a></p>'
+    return f'''<article style="background: {SURF}; border: 1px solid {INK if first else LINE}; border-radius: 4px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-family: {SANS}; font-size: 13px; color: {MUTED}"><span style="font-weight: 600; color: {INK}">Question {qid[2:]} of 8</span><span>{change} · {kind}</span><span>raised by a mutant on 2026-10-14</span></div>
+<h3 style="margin: 0; font-family: {SERIF}; font-size: 22px; font-weight: 400">Should the conjecture and this variant differ? If so, on which case?</h3>
+<p style="margin: 0; font-size: 17px; color: {MUTED}">{plain} They agree on every small case checked so far.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px"><div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 4px"><span style="font-family: {SANS}; font-size: 12px; color: {MUTED}">THE STATEMENT</span><pre style="{pre_css}">{s}</pre></div>
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 4px"><span style="font-family: {SANS}; font-size: 12px; color: {MUTED}">THE VARIANT</span><pre style="{pre_css}">{v}</pre></div></div>
+{form}</article>'''
+questions=qcard(*qs[0],first=True)+f'<p style="margin: 0; font-family: {SANS}; font-size: 14px; color: {MUTED}; padding: 4px 0">Questions 2–7: constant changes (1 → 0, 1 → 2, 2 → 1, 2 → 3, and two on the − 1). <a href="#">Show all</a></p>'+qcard(*qs[1])
+s3=rowx(f'''<nav aria-label="Breadcrumb" style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><a href="#" style="color: {MUTED}">Problems</a> / <a href="#" style="color: {MUTED}">erdos-257</a> / review</nav>
+{smallcaps('Formalization review')}
+{h1('Does the Lean say Erdős problem 257?')}
+<p style="margin: 0; font-size: 19px; color: {MUTED}">Before anyone’s proof of this statement counts, two people sign that the Lean says what the conjecture says. You are the intent signer: you answer questions in mathematics; an independent reader of Lean signs after you.</p>
+{progress}
+<div role="note" style="border-left: 3px solid {INK}; padding: 4px 0 4px 16px; font-size: 17px"><strong style="font-family: {SANS}; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; margin-right: 8px">Your turn</strong>Eight questions wait for you. Each shows the statement beside a small change to it that no test has told apart yet. Your answers become tests.</div>
+{h2('Questions for the intent signer', num='§3')}
+{questions}
+<div style="border-top: 1px solid {INK}">
+{''.join(f'<details style="border-bottom: 1px solid {LINE}; padding: 14px 0"><summary style="cursor: pointer; font-family: {SANS}; font-size: 15px; font-weight: 500">{t}</summary><p style="margin: 10px 0 0; font-size: 16px; color: {MUTED}">{b}</p></details>' for t,b in [
+ ('§1 Candidates · exhibits','c-f0a2c098, ported from the existing erdos-257 by the curator, surviving. Its Lean, with the licence header folded.'),
+ ('§2 Pairs and clusters · exhibits','1 cluster among the surviving candidates. No pair compared yet.'),
+ ('§4 The test matrix · exhibits','No intent test yet. 0 of 8 mutants caught; every mutant the tests passed became a question above.'),
+ ('§5 Screens and the brief · exhibits','Compile: passed at the pin. Screens (negation, statement, false): nothing proved within the budget. The brief is a model’s judgement and never evidence.'),
+ ('§6 Signatures · judgements','Intent signer: empty — may sign: thisisanameforsure, riversupport. Independent signer: empty — anyone who reads Lean, wrote no surviving candidate and is not the intent signer.')])}
+</div>''',
+ sidenote('Opened 2026-10-13 by network. State: needs an intent signer.')+sidenote('Exhibits are kernel-checked results; judgements are people’s signed words. Only exhibits are evidence for a grade (decision D-9 v3.12).')+sidenote('Highlighted: the part of the Lean the variant changes. The two expressions are otherwise identical.'))
+open('/home/claude/canvas/project/New-Review.dc.html','w').write(signedin(page('Review of erdos-257',f'<main>{wrap(s3,"44px 24px 0")}</main>',1440,2600)).replace('font: inherit;',f"font-family: {SANS};"))
+print('ok')

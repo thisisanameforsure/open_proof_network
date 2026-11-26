@@ -492,8 +492,12 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 
 
 @contextmanager
-def browser(root: Path, out: Path, *, reduced: bool = True) -> Iterator[Any]:
-    """The rendered site served locally and the problem page open in Chromium."""
+def browser(
+    root: Path, out: Path, *, reduced: bool = True, view: str | None = None
+) -> Iterator[Any]:
+    """The rendered site served locally and the problem page open in Chromium. ``view`` opens it
+    at that view's bookmark (``#view=``): F34-T12 (R14) opens the page on one route, its home,
+    so a test of the whole routes drawing opens at ``routes``."""
     sync_api = pytest.importorskip("playwright.sync_api")
     render.write(render_tree(root), out)
     handler = functools.partial(Quiet, directory=str(out))
@@ -504,7 +508,8 @@ def browser(root: Path, out: Path, *, reduced: bool = True) -> Iterator[Any]:
             pg = b.new_page(viewport={"width": 1440, "height": 900})
             if reduced:
                 pg.emulate_media(reduced_motion="reduce")
-            pg.goto(f"http://127.0.0.1:{srv.server_address[1]}/problems/{TARGET}/")
+            at = f"#view={view}" if view else ""
+            pg.goto(f"http://127.0.0.1:{srv.server_address[1]}/problems/{TARGET}/{at}")
             pg.wait_for_load_state("networkidle")
             pg.locator(".statements-section").scroll_into_view_if_needed()
             try:
@@ -564,6 +569,18 @@ def assert_at_layout(snap: dict[str, Any], lay: dict[str, Any]) -> None:
     assert float(snap["height"]) == pytest.approx(lay["h"], abs=0.01)
 
 
+def home_of(pg: Any) -> str:
+    """F34-T12 (R14): the route the page opens on and comes back to."""
+    home = pg.get_attribute("svg.dag:not(.band)", "data-home")
+    assert home
+    return str(home)
+
+
+def show_list(pg: Any) -> None:
+    """F34-T12 (R14): the sets table is the List tab's."""
+    pg.locator('.route-tabs [aria-controls="sets-list"]').click()
+
+
 def unquoted(hash_: str) -> str:
     return hash_.replace("%2F", "/").replace("%40", "@").replace("%3A", ":")
 
@@ -573,9 +590,14 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
     hash carries the view; an edge click leaves the segment; the pressed element again, or
     Escape, restores ``routes``; the panel never changes; the table filters to the view's sets;
     "Fewest open first" selects the first row's view. Then, without reduced motion, the same
-    leaf click arrives at the same place through the three phases."""
-    with browser(two_routes(tmp_path / "g"), tmp_path / "site") as pg:
+    leaf click arrives at the same place through the three phases.
+
+    F34-T12 (R14): opened at the ``routes`` bookmark; clearing and Escape now come back to the
+    page's home route (the proving set with the fewest open statements), not to ``routes``, and
+    the table is behind the List tab."""
+    with browser(two_routes(tmp_path / "g"), tmp_path / "site", view="routes") as pg:
         lays = layouts_in(pg)
+        home = home_of(pg)
         loaded = pg.evaluate(SNAPSHOT)
         leaves = pg.locator(LEAF)
         leaf_key = leaves.nth(0).get_attribute("data-view")
@@ -597,6 +619,7 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
         on_second = pg.evaluate(SNAPSHOT)
         pg.keyboard.press("Escape")
         escaped = pg.evaluate(SNAPSHOT)
+        show_list(pg)
         fewest = pg.locator("button.routes-fewest")
         assert fewest.is_visible()
         fewest.click()
@@ -604,7 +627,9 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
         first_row_view = pg.locator("tr.set-row").nth(0).get_attribute("data-view")
         by_fewest = pg.evaluate(SNAPSHOT)
         fewest_pressed = fewest.get_attribute("aria-pressed")
-    with browser(two_routes(tmp_path / "g2"), tmp_path / "site2", reduced=False) as pg:
+    with browser(
+        two_routes(tmp_path / "g2"), tmp_path / "site2", reduced=False, view="routes"
+    ) as pg:
         pg.locator(LEAF).nth(0).click()
         pg.mouse.move(5, 5)
         mid = pg.evaluate(SNAPSHOT)
@@ -614,8 +639,9 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
             timeout=5000,
         )
         animated = pg.evaluate(SNAPSHOT)
-    assert loaded["view"] == "routes" and loaded["hash"] == ""
+    assert loaded["view"] == "routes" and loaded["hash"] == "#view=routes"
     assert_at_layout(loaded, lays["routes"])
+    assert leaf_key != home and other_key == home  # by hand: [h3] leaves one open, [h1, h2] two
     assert on_leaf["view"] == leaf_key
     assert_at_layout(on_leaf, lays[leaf_key])
     assert f"view={leaf_key}" in unquoted(on_leaf["hash"])
@@ -625,13 +651,13 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
     assert on_edge["view"] == edge_key
     assert_at_layout(on_edge, lays[edge_key])
     assert on_edge["pressed"] == [edge_key] and on_edge["panel"] == loaded["panel"]
-    assert cleared["view"] == "routes" and cleared["pressed"] == []
+    assert cleared["view"] == home and cleared["pressed"] == [home]
     assert "view=" not in cleared["hash"]
-    assert_at_layout(cleared, lays["routes"])
-    assert len(cleared["rows"]) == 2 and cleared["showing"] == ""
+    assert_at_layout(cleared, lays[home])
+    assert cleared["rows"] == [home] and cleared["showing"] == "showing 1 of 2"
     assert on_second["view"] == other_key and on_second["pressed"] == [other_key]
-    assert escaped["view"] == "routes" and escaped["pressed"] == []
-    assert_at_layout(escaped, lays["routes"])
+    assert escaped["view"] == home and escaped["pressed"] == [home]
+    assert_at_layout(escaped, lays[home])
     assert fewest_pressed == "true" and first_row_view and by_fewest["view"] == first_row_view
     assert_at_layout(by_fewest, lays[first_row_view])
     # Without reduced motion the drawing is still moving right after the click (the svg has not
@@ -644,8 +670,9 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
 def test_hover_previews_without_moving(tmp_path: Path) -> None:
     """AC6 (R8): hovering a selector node, an edge or a table row lights that view's nodes and
     lines and dims the rest; no node moves and the view does not change; leaving restores the
-    selection's state."""
-    with browser(two_routes(tmp_path / "g"), tmp_path / "site") as pg:
+    selection's state. F34-T12 (R14): opened at the ``routes`` bookmark; the rows are the List
+    tab's, and pressing a tab moves nothing."""
+    with browser(two_routes(tmp_path / "g"), tmp_path / "site", view="routes") as pg:
         lays = layouts_in(pg)
         loaded = pg.evaluate(SNAPSHOT)
         leaf_key = pg.locator(LEAF).nth(0).get_attribute("data-view")
@@ -656,10 +683,12 @@ def test_hover_previews_without_moving(tmp_path: Path) -> None:
         on_leaf = pg.evaluate(SNAPSHOT)
         pg.locator(SEL_EDGE).nth(1).hover()
         on_edge = pg.evaluate(SNAPSHOT)
+        show_list(pg)
         pg.locator("tr.set-row").nth(1).hover()
         on_row = pg.evaluate(SNAPSHOT)
         pg.mouse.move(5, 5)
         left = pg.evaluate(SNAPSHOT)
+        pg.locator('.route-tabs [aria-controls="sets-tree"]').click()
         # With a leaf selected, hovering the other leaf previews over the selection's layout and
         # leaving restores it.
         pg.locator(LEAF).nth(0).click()
@@ -686,9 +715,9 @@ def test_hover_previews_without_moving(tmp_path: Path) -> None:
 def test_a_pill_click_opens_the_panel_and_moves_nothing(tmp_path: Path) -> None:
     """AC6 (R3): hovering a pill lights its lines and the statements they join and moves
     nothing; clicking a pill shows its panel, writes ``#node=`` and moves nothing — and never
-    changes the view."""
+    changes the view. F34-T12 (R14): opened at the ``routes`` bookmark, which the hash keeps."""
     hole = f"{ROOT_NODE}--h1"
-    with browser(two_routes(tmp_path / "g"), tmp_path / "site") as pg:
+    with browser(two_routes(tmp_path / "g"), tmp_path / "site", view="routes") as pg:
         lays = layouts_in(pg)
         loaded = pg.evaluate(SNAPSHOT)
         pg.locator(f'svg.dag g.node[data-node="{ROOT_NODE}"]').hover()
@@ -712,7 +741,7 @@ def test_a_pill_click_opens_the_panel_and_moves_nothing(tmp_path: Path) -> None:
     assert {*HOLE_IDS, THIRD} <= lit_nodes(hovered)  # the holes beyond the junctions
     assert boxes(hovered) == boxes(loaded)
     assert clicked["panel"] == [hole]
-    assert clicked["hash"] == f"#node={hole}"
+    assert clicked["hash"] == f"#node={hole}&view=routes"
     assert clicked["view"] == "routes" and not clicked["picking"]
     assert boxes(clicked) == boxes(loaded)
     assert href and href != "#" and href.endswith("/")  # still a link to the record page
@@ -763,43 +792,23 @@ def test_the_toggle_shows_every_statement(tmp_path: Path) -> None:
 
 
 def test_unticking_stop_at_proved_shows_the_followed_set(tmp_path: Path) -> None:
-    """F27-AC14 (R13): the toggle is ticked on load; with a set selected, unticking it moves the
-    drawing to the set's ``follow/`` twin (the proved dependency the hole's proof rests on
-    appears, at the twin's coordinates), the selector's plain node stays pressed and nothing in
-    the selector moves, the table row stays and its counts change, the hash carries the twin;
-    ticking again returns to the set."""
+    """F27-AC14 (R13), restated by F34-Q7: the owner took the "Stop at proved statements"
+    toggle off the page ("we are redesigning that page"); the drawing still builds every set's
+    ``follow/`` twin, so the followed reading is still reachable at its bookmark — the proved
+    dependency the hole's proof rests on appears at the twin's coordinates, the selector's plain
+    node pressed — and the redesign can put a control back on it."""
     with browser(followed_tree(tmp_path / "g"), tmp_path / "site") as pg:
         lays = layouts_in(pg)
-        key = next(k for k, lay in lays.items() if k.startswith("sel/") and THIRD in lay["nodes"])
-        twin = one_view.FOLLOW + key
-        box = pg.locator("input.follow-proved")
-        assert box.is_visible() and box.is_checked()
-        pg.locator(f'svg.selector [data-view="{key}"]').click()
-        pg.mouse.move(5, 5)
-        at_stop = pg.evaluate(SNAPSHOT)
-        sel_stop = pg.evaluate(SELECTOR_AT)
-        rows_stop = pg.evaluate(ROW_TEXT)
-        box.uncheck()
+    key = next(k for k, lay in lays.items() if k.startswith("sel/") and THIRD in lay["nodes"])
+    twin = one_view.FOLLOW + key
+    with browser(followed_tree(tmp_path / "g2"), tmp_path / "site2", view=twin) as pg:
+        assert pg.locator("input.follow-proved").count() == 0
         pg.mouse.move(5, 5)
         at_follow = pg.evaluate(SNAPSHOT)
-        sel_follow = pg.evaluate(SELECTOR_AT)
-        rows_follow = pg.evaluate(ROW_TEXT)
-        box.check()
-        pg.mouse.move(5, 5)
-        back = pg.evaluate(SNAPSHOT)
     assert DEP in lays[twin]["nodes"] and DEP not in lays[key]["nodes"]
-    assert at_stop["view"] == key and DEP not in shown_nodes(at_stop)
     assert at_follow["view"] == twin and DEP in shown_nodes(at_follow)
     assert_at_layout(at_follow, lays[twin])
-    assert at_follow["pressed"] == [key] and at_follow["rows"] == [key]
-    assert sel_follow == sel_stop
-    assert "view=follow" in at_follow["hash"]
-    # Statements and Proved each grew by one (and-reassoc); Open did not.
-    (stop_row,), (follow_row,) = rows_stop, rows_follow
-    assert (int(follow_row[1]), int(follow_row[2])) == (int(stop_row[1]) + 1, int(stop_row[2]) + 1)
-    assert follow_row[3] == stop_row[3]
-    assert back["view"] == key and DEP not in shown_nodes(back)
-    assert_at_layout(back, lays[key])
+    assert at_follow["pressed"] == [key]
 
 
 def test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector(
@@ -924,9 +933,15 @@ def test_a_shelved_hole_is_under_the_toggle_not_on_the_routes_view(tmp_path: Pat
     assert "<b>" not in title
     toggle = toggle_of(page)
     assert "Show 1 more statement" in toggle and "1 shelved" in toggle, toggle
-    rows_ = re.findall(r'<div class="stmt".*?</div>', pages["problems/index.html"], re.S)
-    stmt = next(r for r in rows_ if f"/{HOLE_IDS[0]}/" in r)
-    assert 'data-state="shelved"' in stmt and 'data-workable="0"' in stmt
+    # F34-T5 (F34-Q20): the statement's panel on its problem's page, not a Problems row
+    problem = next(
+        v
+        for k, v in pages.items()
+        if k.startswith("problems/") and k.count("/") == 2 and f'data-node="{HOLE_IDS[0]}"' in v
+    )
+    start = problem.index(f'<div class="card panel" data-node="{HOLE_IDS[0]}"')
+    stmt = problem[start : problem.find('<div class="card panel" ', start + 1)]
+    assert "shelved" in stmt.lower()
     assert "Supply a witness" not in stmt and "Work on this" not in stmt
 
 

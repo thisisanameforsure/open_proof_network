@@ -27,7 +27,6 @@ import samples
 import yaml
 from harness import TARGET
 from test_finding_dag_layout import SHAPES
-from test_one_view import LEAF, SNAPSHOT, boxes, browser, layouts_in, lit_edges, lit_nodes
 from test_products import ROOT_NODE, nodes_dir
 from test_products import attest as gate_attest
 from test_routes_view import THIRD, node, two_routes
@@ -323,71 +322,39 @@ LINK_ENDS = """() => [...document.querySelectorAll('path.band-link.lit')].map(p 
 
 
 def test_a_lit_band_link_meets_the_two_pills_it_joins(tmp_path: Path) -> None:
-    """The lit line is drawn where its pills are: it starts at the band pill's left side and
-    ends at the tree pill's right side (F30-T13), within a pixel, on screen (the overlay's own
-    coordinates, not the card's — an offset the d-attribute alone cannot show)."""
-    with browser(band_tree(tmp_path / "g"), tmp_path / "site") as pg:
-        pg.locator(f'svg.band g.node[data-node="{CRUX}"]').hover()
-        ends = pg.evaluate(LINK_ENDS)
-    assert len(ends) == 1, ends
-    assert all(d <= 1.0 for d in ends[0]), ends
+    """Retired with the column (F34-Q26 closed, the owner 2026-11-26): the proposed
+    statements are drawn as §2's small trees, so §1 has no column, no lit-only line into the tree
+    and nothing to pin there; the crux is drawn in its group's tree, linked to its page."""
+    from test_routes_view import render_tree  # noqa: PLC0415
+
+    page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
+    assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
+    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    assert group is not None and f'data-node="{CRUX}"' in group.group(1)
+    assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 
 
 def test_hovering_and_clicking_a_band_pill_lights_its_measured_lines_only(tmp_path: Path) -> None:
-    """Hover: the use line from the crux into the tree is drawn and lit, the third hole lit,
-    nothing else; the drawing's boxes unchanged. Leave: hidden again. Click: the panel and the
-    hash (``band=``), lit after the pointer leaves; click again: unlit."""
-    with browser(band_tree(tmp_path / "g"), tmp_path / "site") as pg:
-        lays = layouts_in(pg)
-        rest = pg.evaluate(BAND_STATE)
-        before = pg.evaluate(SNAPSHOT)
-        pill = pg.locator(f'svg.band g.node[data-node="{CRUX}"]')
-        pill.hover()
-        hovered = pg.evaluate(BAND_STATE)
-        hovered_main = pg.evaluate(SNAPSHOT)
-        pg.mouse.move(5, 5)
-        left = pg.evaluate(BAND_STATE)
-        pill.click()
-        pg.mouse.move(5, 5)
-        clicked = pg.evaluate(BAND_STATE)
-        pill.click()
-        pg.mouse.move(5, 5)
-        again = pg.evaluate(BAND_STATE)
-    assert CRUX not in lays["all"]["nodes"] and "band" not in lays
-    assert rest["band"] is not None and [b[0] for b in rest["band"]] == [CRUX]
-    # At rest no band line is visible: not displayed, no path, a zero box (getBBox).
-    assert [(ln["key"], ln["shown"], ln["d"], ln["box"]) for ln in rest["links"]] == [
-        (f"{CRUX}>{THIRD}", False, "", [0, 0])
-    ]
-    (link,) = hovered["links"]
-    assert link["shown"] and link["lit"] and link["d"].startswith("M") and link["box"][1] > 0
-    assert (
-        hovered["mainHovering"] and hovered["mainLit"] == [THIRD] and hovered["mainLitEdges"] == []
-    )
-    assert lit_nodes(hovered_main) == {THIRD} and lit_edges(hovered_main) == set()
-    assert hovered["band"] == [[CRUX, rest["band"][0][1], True]], "lit, and not moved"
-    assert boxes(hovered_main) == boxes(before)
-    assert not left["links"][0]["shown"] and not left["mainHovering"] and left["mainLit"] == []
-    assert clicked["panel"] == [CRUX] and f"band={CRUX}" in clicked["hash"]
-    assert clicked["links"][0]["lit"] and clicked["links"][0]["shown"], "a click keeps it lit"
-    assert clicked["mainLit"] == [THIRD]
-    assert not again["links"][0]["shown"] and "band=" not in again["hash"]
+    """Retired with the column (F34-Q26 closed, the owner 2026-11-26): the proposed
+    statements are drawn as §2's small trees, so §1 has no column, no lit-only line into the tree
+    and nothing to pin there; the crux is drawn in its group's tree, linked to its page."""
+    from test_routes_view import render_tree  # noqa: PLC0415
+
+    page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
+    assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
+    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    assert group is not None and f'data-node="{CRUX}"' in group.group(1)
+    assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 
 
 def test_the_band_never_moves_on_a_selection(tmp_path: Path) -> None:
-    with browser(band_tree(tmp_path / "g"), tmp_path / "site") as pg:
-        rest = pg.evaluate(BAND_STATE)
-        pg.locator(f'svg.band g.node[data-node="{CRUX}"]').click()
-        pg.mouse.move(5, 5)
-        pinned = pg.evaluate(BAND_STATE)
-        pg.locator(LEAF).nth(1).click()
-        pg.mouse.move(5, 5)
-        on_leaf = pg.evaluate(BAND_STATE)
-        main = pg.evaluate(SNAPSHOT)
-        pg.keyboard.press("Escape")
-        pg.mouse.move(5, 5)
-        back = pg.evaluate(BAND_STATE)
-    assert main["view"] != "routes" and THIRD in main["nodes"] and main["nodes"][THIRD]["shown"]
-    assert on_leaf["band"] == pinned["band"] == [[CRUX, rest["band"][0][1], True]]
-    assert on_leaf["links"][0]["lit"], "the pinned line follows the tree node to its new place"
-    assert back["band"][0][1] == rest["band"][0][1]
+    """Retired with the column (F34-Q26 closed, the owner 2026-11-26): the proposed
+    statements are drawn as §2's small trees, so §1 has no column, no lit-only line into the tree
+    and nothing to pin there; the crux is drawn in its group's tree, linked to its page."""
+    from test_routes_view import render_tree  # noqa: PLC0415
+
+    page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
+    assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
+    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    assert group is not None and f'data-node="{CRUX}"' in group.group(1)
+    assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)

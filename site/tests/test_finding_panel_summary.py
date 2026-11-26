@@ -109,7 +109,7 @@ def test_lean_only_shows_the_lean_and_explain_this(files: dict[str, str]) -> Non
     block = record_part(node, "Statement")  # F04-T50: the record's statement fold holds it
     assert 'id="statement-words"' in block
     assert '<pre class="lean statement' in block
-    assert "How to write one" in block and 'href="/docs/#guide-glosses' in block
+    assert "How to write one" in block and 'href="/docs/words/"' in block  # F34-T6
 
 
 def test_a_gloss_that_is_not_math_first_is_compact_and_unverified(tmp_path: Path) -> None:
@@ -169,10 +169,13 @@ def test_the_work_section_lists_the_plans_and_the_approach_records_on_the_root(
     assert "Each half is then a hole" not in shown
     assert "followed by " + sf.PARTIAL_NAME in shown
     assert sf.APPROACH in shown
-    assert "View the proof" in shown
-    hole = section(body(files, sf.H1), "work")
+    # F34-T16 (handoff §3.4.3): the action sits under the tabs, always visible, not in Work
+    always = re.search(r'<p class="panel-always">.*?</p>', body(files, sf.ROOT), re.S)
+    assert always is not None and "View the proof" in visible_text(always.group(0))
+    hole = body(files, sf.H1)
     assert sf.APPROACH not in hole  # a target's approach records name no node (Q47)
-    assert "Work on this statement" in visible_text(hole)
+    always = re.search(r'<p class="panel-always">.*?</p>', hole, re.S)
+    assert always is not None and "Work on this statement" in visible_text(always.group(0))
 
 
 @pytest.mark.parametrize("node_id", [sf.ROOT, sf.H1, sf.H2])
@@ -199,7 +202,7 @@ def test_boilerplate_is_out_of_sight_but_in_the_record_details(
     for words in BOILERPLATE:
         plain = visible_text(words)
         assert plain not in shown, words
-    assert 'href="/docs/#reading"' in details  # how to read this
+    assert 'href="/docs/reading/"' in details  # how to read this
     if node_id == sf.ROOT:
         for words in BOILERPLATE:
             assert words in details, words

@@ -1,0 +1,90 @@
+from common import *
+from panel import panel, fold, facts, holes, sub, LOGIC, holes_html, mono
+def btn(t,primary=False,small=False):
+    pad='7px 12px' if small else '10px 16px'; fs=14 if small else 15
+    return f'<a href="#" style="font-family: {SANS}; text-decoration: none; padding: {pad}; border-radius: 4px; font-size: {fs}px; white-space: nowrap; {"color: #FFFFFF; background: "+INK+"; font-weight: 500" if primary else "color: "+INK+"; border: 1px solid "+LINE+"; background: "+SURF}">{t}</a>'
+def rowx(main, note=''):
+    return f'<div style="display: flex; flex-wrap: wrap; gap: 12px 40px; align-items: flex-start"><div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 18px">{main}</div><div style="flex: 1 1 200px; max-width: 250px; display: flex; flex-direction: column; gap: 14px">{note}</div></div>'
+def det(summary, body):
+    return f'<details style="border-top: 1px solid {LINE}; padding: 14px 0"><summary style="cursor: pointer; font-family: {SANS}; font-size: 15px; font-weight: 500">{summary}</summary><div style="padding-top: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 17px">{body}</div></details>'
+it=lambda t: f'<span style="font-style: italic">{t}</span>'
+statement=f'For every ε &gt; 0, only finitely many coprime triples {it("a")} + {it("b")} = {it("c")} have {it("c")} &gt; rad({it("abc")})<sup>1+ε</sup>.'
+
+top=rowx(f'''<nav aria-label="Breadcrumb" style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><a href="#" style="color: {MUTED}">Problems</a> / abc</nav>
+{smallcaps('The abc conjecture · number theory')}
+<h1 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 40px; line-height: 1.3">{statement}</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center">{status('open')}{stages(0)}</div>
+<p style="margin: 0">No steward yet, and no one has worked on it. It is one statement, open for work.</p>''',
+ sidenote(f'Imported from {mono("formal-conjectures")} (Apache-2.0), Wikipedia/ABC.lean.')+sidenote('Listed after its literature was searched, as every problem here is.'))
+
+def need(n,title,text,cta,primary=False,note=''):
+    return f'''<li style="display: flex; gap: 16px; padding: 18px 0; border-top: 1px solid {LINE}">
+<span aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid {INK}; display: inline-flex; align-items: center; justify-content: center; font-family: {SANS}; font-size: 14px; font-weight: 600">{n}</span>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; justify-content: space-between">
+<div style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 4px"><p style="margin: 0; font-family: {SANS}; font-size: 16px; font-weight: 600">{title}</p><p style="margin: 0; font-size: 17px; color: {MUTED}">{text}</p>{note}</div>
+{btn(cta,primary,True)}</div></li>'''
+needs=f'''<section style="background: {SURF}; border: 1px solid {INK}; border-radius: 4px; padding: 22px 24px 8px; display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0 0 8px; font-family: {SERIF}; font-weight: 400; font-size: 28px">What this problem needs</h2>
+<ol style="list-style: none; margin: 0; padding: 0">
+{need(1,'A steward','A mathematician who will understand what the network produces here and say what it means. No Lean needed; best efforts, no deadline.','Become its steward',True)}
+{need(2,'A check that the Lean says the conjecture','No one has reviewed the formal statement yet. Until someone who did not write it signs, it reads “not yet checked”, and a proof of it waits for a reviewer.','How a statement is reviewed')}
+{need(3,'A first attempt','Prove it, or break it into smaller statements with a partial proof. A failed attempt counts and stays on the record.','Work on this statement')}
+</ol></section>'''
+
+lean_abc="theorem Opn.abc (ε : ℝ) (hε : 0 &lt; ε) :\n    {(a, b, c) : ℕ × ℕ × ℕ | 0 &lt; a ∧ 0 &lt; b ∧ 0 &lt; c ∧\n      ({a, b, c} : Set ℕ).Pairwise Nat.Coprime ∧\n      a + b = c ∧ (radical &lt;| a * b * c : ℝ)^(1 + ε) &lt; c}.Finite := by\n  sorry"
+claim=f"""<p style="margin: 0; font-size: 18px">For every ε &gt; 0, the set of triples (a, b, c) of positive, pairwise coprime integers with a + b = c and rad(abc)<sup>1+ε</sup> &lt; c is finite.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px; color: {MUTED}">No reading in words yet. <a href="#" style="color: {MUTED}">Write one</a> · <a href="#" style="color: {MUTED}">Rename or correct</a></p>
+<pre style="margin: 0; padding: 10px; background: {SOFT}; border-radius: 4px; font-family: {MONO}; font-size: 12px; white-space: pre-wrap">{lean_abc}</pre>
+{fold('Why does it end in sorry?', '<p style="margin: 0; font-size: 15px">A statement is a theorem with its proof left out. A proof is the same file with the sorry replaced; nothing else may change.</p>')}"""
+proof=f"""<p style="margin: 0">Open. A direct proof closes it.</p>
+<p style="margin: 0; font-size: 15.5px; color: {MUTED}">Not split yet. A partial proof that reduces it to smaller statements (holes) opens them to others, each one at a time.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px"><a href="#">How to submit a partial proof</a></p>"""
+known=f"""<p style="margin: 0">No literature record yet.</p>
+<p style="margin: 0; font-size: 15.5px; color: {MUTED}">A record says whether a proof is known, with references; a steward or curator confirms it.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px"><a href="#">Propose a literature record</a></p>"""
+work=f"""<p style="margin: 0; font-family: {SANS}; font-size: 14px">0 attempts · no plans · no approaches recorded</p>
+<p style="margin: 0; font-size: 15.5px; color: {MUTED}">Be the first. Failed attempts are kept and credited.</p>
+<p style="margin: 0; font-family: {SANS}; font-size: 13.5px"><a href="#">How to contribute</a> · <a href="#">Pull requests in flight</a></p>"""
+record=f"""{facts([('status','open'),('depends on','none'),('used by','none'),('attempts','0'),('files','<a href="#">Statement.lean ↗</a>'),('definitions','7 shared modules · <a href="#">list</a>')])}
+{fold('How to read this panel', '<p style="margin: 0; font-size: 15px">Status is the gate’s; words are people’s, labelled with who drafted, wrote or verified them.</p>')}"""
+pan=panel('The abc conjecture', f"{status('open')}<span>the problem’s statement · 0 attempts</span>",
+  dict(claim=claim,proof=proof,known=known,work=work,record=record),
+  btn('Work on this statement',True,True)+btn('Open its page',False,True), accent=False)
+
+s1=rowx(f'''{h2('The statement', num='§1')}
+<p style="margin: 0">The problem is one Lean statement so far. When someone splits it, the pieces appear here as a graph, with the routes that would settle it.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<figure style="flex: 1 1 260px; margin: 0; display: flex; flex-direction: column; gap: 10px">
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; height: 180px; display: flex; align-items: center; justify-content: center">
+<a href="#" style="display: inline-flex; gap: 8px; align-items: center; padding: 8px 14px; border: 2px solid {INK}; border-radius: 4px; text-decoration: none; color: {INK}; font-family: {SANS}; font-size: 14px; background: {SURF}">{glyph('open',10)}The abc conjecture</a></div>
+<figcaption style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><strong style="color: {INK}">Figure 1.</strong> One statement, open. Nothing beneath it yet.</figcaption></figure>
+<div style="flex: 2 1 420px; min-width: 0">{pan}</div></div>''')
+
+s2=rowx(f'''{h2('Where it comes from, and its review', num='§2')}
+<p style="margin: 0">From the Formal Conjectures registry (Wikipedia section), imported with its Lean. Licence Apache-2.0, cite only.</p>
+<div style="border-top: 1px solid {INK}">
+{det('Is the Lean faithful? Not reviewed yet','<p style="margin: 0">No statement review is recorded. A proof of this statement would wait for a non-author’s approving review: the statement has no counting signature and no high-grade catalog evidence.</p>')}
+{det('Catalog evidence · score 2 (C)','<ul style="margin: 0; padding-left: 20px; font-size: 16px"><li>+1 Lean statement public for 180+ days</li><li>+1 no misformalization issue ever filed</li><li>+0 file-local definitions in the statement: radical</li></ul><p style="margin: 0; font-size: 16px; color: '+MUTED+'">In the registry since 2025-04-26, last changed 2026-09-18 (11 commits). No upstream drift.</p>')}
+{det('Shared definitions (7)', '<p style="margin: 0; font-family: '+SANS+'; font-size: 14px">Linked, not printed: '+', '.join(mono(d) for d in ['AlgebraWeylAlgebra','AnalysisSpecialFunctionsAdditiveCharacter','CombinatoricsSimpleGraphInduced','DataNatPrimeFinset','FieldTheoryMilnorKTheory','GroupTheoryRationalClasses','Local'])+'. Open one to read it.</p>')}
+{det('Quality checks by subject','<p style="margin: 0; font-size: 16px; color: '+MUTED+'">Back-translation, brief, compile, equivalence and screens for the root and each definition module: none run yet.</p>')}
+</div>''', sidenote('Fast check (non-authoritative): lean-4.33.1 on AXLE (exact).')+sidenote(f'Source: {mono("FormalConjectures/Wikipedia/ABC.lean")} at d8d031d.'))
+
+s3=rowx(f'''{h2('People and write-up', num='§3')}
+<div style="border-top: 1px solid {INK}; font-family: {SANS}; font-size: 15px">
+<div style="display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid {LINE}"><span><strong>Steward</strong> · none yet</span><a href="#">Become its steward</a></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid {LINE}"><span><strong>Panel</strong> · none: a problem’s stewards are its panel</span><a href="#" style="color: {MUTED}">The panel’s rules</a></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid {LINE}"><span><strong>Write-up</strong> · none yet</span><a href="#" style="color: {MUTED}">How a write-up climbs</a></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid {LINE}"><span><strong>State of the problem</strong> · no note yet</span></div>
+</div>''')
+
+s4=rowx(f'''{h2('Record', num='§4')}
+<div style="border-top: 1px solid {INK}">
+{det('Proved, explained, written up', f'<p style="margin: 0">Not resolved. {stages(0)}</p>')}
+{det('Sources and licences','<p style="margin: 0">google-deepmind/formal-conjectures, Wikipedia/ABC.lean at d8d031d, Apache-2.0; cite only.</p>')}
+{det('Files and commits','<p style="margin: 0">targets/abc/graph.json, defs/ (7 modules), glosses.json · graph commit b6c40d0 · rendered ad3ae09.</p>')}
+</div>''')
+
+body=f'<main>{wrap(top,"44px 24px 0")}{wrap(needs,"32px 24px 0")}{wrap(s1,"56px 24px 0")}{wrap(s2,"56px 24px 0")}{wrap(s3,"56px 24px 0")}{wrap(s4,"56px 24px 0")}</main>'
+html=holes_html(page('abc',body,1440,2600,logic=LOGIC).replace('font: inherit;',f"font-family: {SANS};"))
+open('/home/claude/canvas/project/New-Problem-abc.dc.html','w').write(html)
+print('ok')

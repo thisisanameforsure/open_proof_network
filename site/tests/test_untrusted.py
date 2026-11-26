@@ -273,17 +273,22 @@ def test_ledger_free_text_fields_are_escaped(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("name", ["AGENTS.md", "LICENSE", "DCO"])
 def test_docs_page_graph_files_are_escaped(name: str, tmp_path: Path) -> None:
-    """R9: AGENTS.md, LICENSE and DCO are graph files, shown escaped; AGENTS.md is prose in an
-    untrusted block, the other two are preformatted."""
+    """R9: AGENTS.md, LICENSE and DCO are graph files, shown escaped. Since F34-T6 AGENTS.md is
+    rendered on no page and served whole as a Markdown file, which no browser runs; LICENSE and
+    DCO are preformatted on the licence page."""
     root = fixture.build(tmp_path)
     (root / name).write_text(f"{name} text {PAYLOAD}\n", encoding="utf-8")
-    page = _render(root)["docs/index.html"]
-    _assert_clean(page)
-    assert ESCAPED in page
+    files = _render(root)
+    for rel, html in files.items():
+        if rel.endswith(".html"):
+            assert PAYLOAD not in html, rel
     if name == "AGENTS.md":
-        assert "Untrusted: AGENTS.md" in page
-    else:
-        assert f'<h3>{name}</h3><pre class="prose">{name} text {ESCAPED}\n</pre>' in page
+        assert files["AGENTS.md"] == f"{name} text {PAYLOAD}\n"
+        assert 'href="/AGENTS.md"' in files["docs/index.html"]
+        return
+    page = files["docs/licence/index.html"]
+    _assert_clean(page)
+    assert f'<h3>{name}</h3><pre class="prose">{name} text {ESCAPED}\n</pre>' in page
     assert f"{REPO}/blob/{fixture.COMMIT}/{name}" in page
 
 
@@ -306,13 +311,18 @@ def test_problems_page_free_text_is_escaped(tmp_path: Path) -> None:
         ],
     }
     targets = {**site.targets, TARGET: dataclasses.replace(tv, index_entry=entry)}
-    page = render.Renderer(
+    r = render.Renderer(
         dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
-    ).problems()
+    )
+    page = r.problems()
     _assert_clean(page)
-    assert PAYLOAD not in page and page.count(ESCAPED) == 3
-    assert f'<span class="tag tag-outline">{ESCAPED}</span>' in page
+    # F34-T5: the row carries the reasons and the steward; the fidelity grade's tag is on the
+    # problem's own page (handoff §3.4), checked escaped there below.
+    assert PAYLOAD not in page and page.count(ESCAPED) == 2
     assert f"Not claimable: {ESCAPED}." in page
+    own = r.target(targets[TARGET])
+    _assert_clean(own)
+    assert f'<span class="tag tag-outline">{ESCAPED}</span>' in own
 
 
 # --- the prose renderer's edges (Q2) --------------------------------------------------------------

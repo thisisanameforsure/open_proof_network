@@ -292,7 +292,7 @@ def test_every_statement_proved_leaves_the_assemblies() -> None:
 
 
 def test_finest_and_any_both_drop_a_set_needing_strictly_more() -> None:
-    """F27-T7 kept every full expansion (the owner, 2026-10-15); F27-R14 (D-25 v3.51, the owner,
+    """F27-T7 kept every full expansion (the owner, 2026-10-15); F27-R14 (D-25 v3.52, the owner,
     2026-11-25) overturns that: a finest set needing strictly more than another is not offered,
     and the coarser cuts drop it as before."""
     g = doc(

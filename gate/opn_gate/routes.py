@@ -18,7 +18,7 @@ and taken directly only where none is live; a proved node ends the cut as a clos
 ``cut="any"`` an open node is also taken directly in place of its routes, which yields every
 coarser cut (F27-Q2). The finest cuts are every full expansion, one per choice of routes, except
 one that needs strictly more open statements than another of its side: a strictly harder route is
-not offered (F27-R14, D-25 v3.51, overturning F27-T7), and ``dominated`` names the routes and
+not offered (F27-R14, D-25 v3.52, overturning F27-T7), and ``dominated`` names the routes and
 statements only such sets reach, which the frontier omits. Among the coarser cuts only minimal sets
 are kept, since a set containing another says nothing the smaller one does not. Sets are listed in
 the order the record
@@ -720,7 +720,7 @@ def read(
     e = _enumerate(graph, frontier_entries, cut=cut, max_sets=max_sets, at_proved=at_proved)
     rows, walker, target_id, root, all_routes = e.rows, e.walker, e.target_id, e.root, e.routes
     proving, refuting = e.proving, e.refuting
-    # F27-R14 (D-25 v3.51): a finest set that needs strictly more than another of its side is
+    # F27-R14 (D-25 v3.52): a finest set that needs strictly more than another of its side is
     # not offered; an enumeration already cut short leaves nothing out (it cannot know).
     if cut == "finest" and not walker.truncated:
         proving = _undominated(proving, rows)
@@ -826,7 +826,7 @@ def _needs(o: _Option, rows: Mapping[str, Mapping[str, Any]]) -> frozenset[str]:
 
 
 def _undominated(options: list[_Option], rows: Mapping[str, Mapping[str, Any]]) -> list[_Option]:
-    """F27-R14 (D-25 v3.51): drop a set another of the same side needs a proper subset of; keep
+    """F27-R14 (D-25 v3.52): drop a set another of the same side needs a proper subset of; keep
     every set with equal needs, in the record's order."""
     needs = [_needs(o, rows) for o in options]
     distinct = set(needs)
@@ -837,7 +837,7 @@ def _undominated(options: list[_Option], rows: Mapping[str, Mapping[str, Any]]) 
 
 @dataclass(frozen=True)
 class Dominated:
-    """F27-R14 (D-25 v3.51): the routes and statements that appear only in dominated sets, and
+    """F27-R14 (D-25 v3.52): the routes and statements that appear only in dominated sets, and
     the proved among those statements. ``truncated``: the enumeration was cut short, so nothing
     is called dominated."""
 
@@ -860,7 +860,7 @@ def _reach(options: Iterable[_Option]) -> tuple[set[str], set[str]]:
 
 
 def dominated(graph: Mapping[str, Any], *, max_sets: int = DEFAULT_MAX_SETS) -> Dominated:
-    """F27-R14 (D-25 v3.51): a route or statement is dominated when it appears in some finest
+    """F27-R14 (D-25 v3.52): a route or statement is dominated when it appears in some finest
     set and only in sets another set of its side strictly undercuts. Read with ``follow``, so a
     statement a kept set's proved member rests on is live (a kernel-checked fact a live proof
     uses is live) and one only a dominated proved member rests on is dominated with it. A capped

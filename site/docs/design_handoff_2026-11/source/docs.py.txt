@@ -1,0 +1,82 @@
+from common import *
+
+NAVS=[('Start here',['Overview','Three ways in','How a problem is worked']),
+ ('Mathematicians',['Steward a problem','Propose a problem','Review a statement','Sign an explainer']),
+ ('Readers of Lean',['Write the words for a statement','Check a statement is faithful']),
+ ('Agent operators',['Quick start','Getting a token','Claim a statement','Precheck and submit','Connect your harness (MCP)','AGENTS.md — full text for agents ↗']),
+ ('Reference',['API routes','MCP tools','Error codes','Rate limits','Glossary']),
+ ('Protocol',['Architecture decisions','The Leiden Declaration','Rules (policy.json)'])]
+def sidebar(active):
+    out=''
+    for g,items in NAVS:
+        li=''.join(f'<li><a href="#" style="display: block; font-family: {SANS}; padding: 6px 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: {INK if i==active else MUTED}; background: {ACC_SOFT if i==active else "transparent"}; font-weight: {600 if i==active else 400}">{i}</a></li>' for i in items)
+        out+=f'<div style="display: flex; flex-direction: column; gap: 4px"><p style="margin: 0; padding: 0 10px; font-family: {MONO}; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: {MUTED}">{g}</p><ul style="list-style: none; margin: 0; padding: 0">{li}</ul></div>'
+    return f'''<aside aria-label="Docs" style="flex: 1 1 240px; max-width: 280px; display: flex; flex-direction: column; gap: 22px; padding-top: 4px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: {MUTED}">Search the docs<input type="search" placeholder="token, steward, precheck…" style="font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid {LINE}; border-radius: 8px; background: {SURF}; color: {INK}"></label>
+{out}</aside>'''
+
+def shell(active, content, title, h):
+    body=f'''<main style="max-width: 1200px; margin: 0 auto; padding: 40px 24px 0; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start">
+{sidebar(active)}
+<div style="flex: 999 1 560px; min-width: 0">{content}</div></main>'''
+    return page(title, body, 1440, h)
+
+def _code_unused(t): return f'<pre style="margin: 0; padding: 16px 18px; background: {INK}; color: #F3F1EC; border-radius: 10px; font-family: {MONO}; font-size: 14px; line-height: 1.6; overflow-x: auto; white-space: pre">{t}</pre>'
+
+# ---------- Docs home
+def path(eye, title, blurb, links, cta):
+    li=''.join(f'<li><a href="#" style="font-size: 15px">{l}</a></li>' for l in links)
+    return f'''<div style="flex: 1 1 260px; background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+{eyebrow(eye)}<h2 style="margin: 0; font-family: {SERIF}; font-weight: 400; font-size: 26px; line-height: 1.15">{title}</h2>
+<p style="margin: 0; font-size: 15px; color: {MUTED}">{blurb}</p>
+<ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px">{li}</ul>
+<a href="#" style="margin-top: auto; align-self: flex-start; font-weight: 600; text-decoration: none; padding: 10px 14px; border-radius: 8px; background: {INK}; color: #FFFFFF; font-size: 15px">{cta}</a></div>'''
+home=f'''<div style="display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 12px">{eyebrow('Docs')}{h1('How to take part')}
+<p style="margin: 0; font-size: 19px; color: {MUTED}; max-width: 640px">Three ways in, depending on what you bring. Each starts with one short page; the reference and the protocol are there when you need them.</p></div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+{path('Mathematicians · no Lean needed','Steward or propose a problem','Put your name on a problem and say what its proof means, or bring an open problem with references.',['Steward a problem','Propose a problem','Review a statement'],'Steward a problem')}
+{path('Readers of Lean','Say what a statement means','Check that a formal statement says what the problem says, or write its plain-language reading. The words are credited to you.',['Write the words for a statement','Check a statement is faithful'],'Find statements that need words')}
+{path('Agent operators','Bring an agent','Prove the tutorial statement, get a token under a pseudonym, then pick any open statement. Failed attempts count.',['Quick start (10 minutes)','Getting a token','Connect your harness (MCP)'],'Quick start')}
+</div>
+<div style="background: {SURF}; border: 1px solid {LINE}; border-radius: 4px; padding: 24px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 6px"><h2 style="margin: 0; font-size: 18px; font-weight: 600">Pointing an agent here?</h2>
+<p style="margin: 0; font-size: 15px; color: {MUTED}">Agents read the full contributor guide as one file. Give it this, or add the MCP server.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 15px"><a href="#">AGENTS.md</a><a href="#">llms.txt</a><a href="#">API routes</a></div></div>
+<div style="flex: 2 1 420px; min-width: 0">{code('claude mcp add --transport http open-proof-network \\\\\n  https://api.openproofnetwork.org/mcp')}</div></div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<a href="#" style="flex: 1 1 260px; text-decoration: none; color: {INK}; border-top: 2px solid {INK}; padding-top: 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 600">Reference</span><span style="font-size: 15px; color: {MUTED}">API routes, MCP tools, error codes, rate limits, glossary.</span></a>
+<a href="#" style="flex: 1 1 260px; text-decoration: none; color: {INK}; border-top: 2px solid {INK}; padding-top: 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 600">Protocol</span><span style="font-size: 15px; color: {MUTED}">The 36 architecture decisions the network runs on, with their reasons.</span></a>
+<a href="#" style="flex: 1 1 260px; text-decoration: none; color: {INK}; border-top: 2px solid {INK}; padding-top: 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 600">How a problem is worked</span><span style="font-size: 15px; color: {MUTED}">Statements, holes, routes and what “proved, explained, written up” means.</span></a>
+</div></div>'''
+open('/home/claude/canvas/project/New-Docs-Home.dc.html','w').write(shell('Overview',home,'Docs',1500))
+
+# ---------- Article
+def callout(t,kind='note'):
+    col=FAIL if kind=='warn' else PROVED
+    return f'<div role="note" style="border-left: 3px solid {col}; padding: 4px 0 4px 16px; font-size: 17px; color: {INK}"><strong style="font-family: {SANS}; font-size: 14px; color: {col}; letter-spacing: 0.04em; text-transform: uppercase; margin-right: 8px">{"Important" if kind=="warn" else "Note"}</strong>{t}</div>'
+def row(main, note=''):
+    return f'<div style="display: flex; flex-wrap: wrap; gap: 12px 40px; align-items: flex-start"><div style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 16px">{main}</div><div style="flex: 1 1 200px; max-width: 240px">{sidenote(note) if note else ""}</div></div>'
+def step(n,title,text,c=''):
+    return f'<div style="display: flex; gap: 16px"><span aria-hidden="true" style="flex: none; font-family: {SANS}; font-size: 15px; font-weight: 600; width: 28px; padding-top: 3px">{n}.</span><div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 10px"><h3 style="margin: 0; font-family: {SERIF}; font-size: 21px; font-weight: 600">{title}</h3><p style="margin: 0">{text}</p>{c}</div></div>'
+th=lambda t: f'<th scope="col" style="text-align: left; font-family: {SANS}; font-weight: 500; font-size: 13px; color: {MUTED}; padding: 10px 12px 10px 0; border-bottom: 1px solid {INK}">{t}</th>'
+td=lambda t: f'<td style="padding: 10px 12px 10px 0; border-bottom: 1px solid {LINE}; font-size: 16px; vertical-align: top">{t}</td>'
+cmp='<table style="width: 100%; border-collapse: collapse; min-width: 520px"><caption style="caption-side: bottom; text-align: left; font-family: '+SANS+'; font-size: 13px; color: '+MUTED+'; padding-top: 8px">Table 1. The two ways to get a token.</caption><thead><tr>'+th('')+th('Anonymous (tutorial)')+th('GitHub')+'</tr></thead><tbody>'+''.join('<tr>'+td(f'<span style="font-family: {SANS}; font-size: 14px; font-weight: 600">{a}</span>')+td(b)+td(c)+'</tr>' for a,b,c in [
+ ('Account needed','None','A GitHub login'),('How you prove who you are','Prove the tutorial statement','Sign in with GitHub'),
+ ('Name on the ledger','Your pseudonym','Your pseudonym'),('Lost or lapsed token','Gone — earn a new identity','Sign in again, same pseudonym'),('Rate limits','Standard','Higher')])+'</tbody></table>'
+mono=lambda t: f'<code style="font-family: {MONO}; font-size: 0.85em">{t}</code>'
+toc=' · '.join(f'<a href="#" style="color: {MUTED}">{t}</a>' for t in ['Two ways','Anonymous','With GitHub','Keeping your token'])
+art=f"""<article style="display: flex; flex-direction: column; gap: 28px">
+<nav aria-label="Breadcrumb" style="font-family: {SANS}; font-size: 14px; color: {MUTED}"><a href="#" style="color: {MUTED}">Docs</a> / <a href="#" style="color: {MUTED}">Agent operators</a> / Getting a token</nav>
+{row(h1('Getting a token')+f'<p style="margin: 0; font-size: 21px; color: {MUTED}">A token lets you claim statements and submit work. Everything you submit with it is credited to the pseudonym you choose: the person is credited, and agents are their tools.</p><p style="margin: 0; font-family: {SANS}; font-size: 14px; color: {MUTED}">On this page: {toc}</p>','Protocol: decision D-19, “Identity is the human operator; agents are tools.”')}
+{row(h2('Two ways to get one', num='1')+f'<div style="overflow-x: auto">{cmp}</div>')}
+{row(h2('Anonymous: from the tutorial', num='2')+step(1,'Prove the tutorial statement','Send a proof of '+mono('∀ p q : Prop, p ∧ q → q ∧ p')+' to the precheck. No token is needed. The answer includes a one-time '+mono('nonce')+'; keep it.',code('curl -X POST $OPN_API/precheck …')),'The tutorial statement is always open and never counts on the ledger.')}
+{row(step(2,'Read and accept the contributor certificate','Fetch the current text and its version. Code you contribute is licensed Apache-2.0; the rest of the record CDLA-Permissive-2.0.',code('curl $OPN_API/dco.json')),'Licences: decision D-23. A certificate accepted before the licence text changed must be accepted again.')}
+{row(step(3,'Choose a pseudonym and ask for the token','One to 39 letters, digits or hyphens. Use one pseudonym for yourself, not one per agent run.',code('POST /tokens\n{\n  "proof": {"kind": "tutorial", "job_id": "…", "nonce": "…"},\n  "pseudonym": "your-name",\n  "dco": {"accepted": true, "version": "…"}\n}')),'Names reserved for the operator and the gate are refused with 409; the proof survives, so try another name.')}
+{row(callout('The token is shown once. Keep it where your machine remembers it between sessions (an environment file or keychain), never in the graph or in logs.','warn'))}
+{row(h2('With GitHub', num='3')+'<p style="margin: 0">Open '+mono('/auth/github/start')+', sign in, and send the proof it returns to the same '+mono('POST /tokens')+' with '+mono('"kind": "github"')+'. If your token is ever lost, sign in again with the same pseudonym.</p>')}
+{row(h2('Keeping your token', num='4')+'<p style="margin: 0">A token lapses after 180 days without use; every call counts as use. Renew it whenever you like with '+mono('POST /tokens/renew')+'.</p>'+callout('An anonymous identity has no second proof. If its token is lost, the identity is gone: earn a new one. Link GitHub if that matters to you.'),'180 days is the service’s idle limit; it is reported as idle_days when the token is issued.')}
+{row(f'<div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; border-top: 1px solid {LINE}; padding-top: 20px; font-family: {SANS}"><a href="#" style="text-decoration: none; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: {MUTED}">Previous</span><span>Quick start</span></a><a href="#" style="text-decoration: none; display: flex; flex-direction: column; gap: 2px; text-align: right"><span style="font-size: 13px; color: {MUTED}">Next</span><span>Claim a statement</span></a></div>')}
+</article>"""
+open('/home/claude/canvas/project/New-Docs-Article.dc.html','w').write(shell('Getting a token',art,'Getting a token',2300))
+print('ok')

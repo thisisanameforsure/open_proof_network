@@ -3,8 +3,8 @@
   "hrefs": [
    "#node=and-swap-reassoc--h1",
    "#node=and-swap-reassoc--h2",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/words/",
+   "/docs/reading/",
    "/nodes/propositional/and-swap-reassoc/",
    "/nodes/propositional/and-swap-reassoc/#annex-cccccccccccc",
    "/nodes/propositional/and-swap-reassoc/#annex-dddddddddddd",
@@ -18,8 +18,8 @@
  "and-swap-reassoc--h1": {
   "hrefs": [
    "#node=and-swap-reassoc",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/words/",
+   "/docs/reading/",
    "/nodes/propositional/and-swap-reassoc--h1/",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h1/Statement.lean",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h1/gloss/c197cf079ce4bf4b3a420895f9e334d6168887156929bb898aa122d21b14fa3d.md",
@@ -32,8 +32,8 @@
  "and-swap-reassoc--h2": {
   "hrefs": [
    "#node=and-swap-reassoc",
-   "/docs/#guide-glosses-explainers-and-outlines",
-   "/docs/#reading",
+   "/docs/words/",
+   "/docs/reading/",
    "/nodes/propositional/and-swap-reassoc--h2/",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h2/Statement.lean",
    "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/attempts/20260920T000000Z-alice-partial.lean"

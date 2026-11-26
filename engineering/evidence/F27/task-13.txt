@@ -1,49 +1,80 @@
-F27-T13 (R14): the problem page and the service.
+F27-T13 (R14): the problem page and the service, re-done on F34's redesigned page (2026-11-26).
 
-== erdos-1094's page, rendered by this branch's site from graph 257feba234 (task-13-shoot.py) ==
+F34 (the Journal site) landed while this branch waited. It places each statement once: drawn on a route,
+or listed in §2 'Not on a route'. Merged as-is, §2 listed all 60 strictly harder statements under 'On no
+route', which is false. Now: they count as on a route (on_route), the drawing has a view of its own for
+them (harder: the routes view plus the strictly harder routes), and a toggle of its own beside the folded
+key; the general toggle appears only when something is truly on no route (it then says all it adds).
+
+== erdos-1094, rendered by this branch's site from graph c1bef1f19c (task-13-shoot.py) ==
 {
- "url_path": "/problems/erdos-1094/",
- "default-1440": {
+ "not_on_a_route_section": false,
+ "not_on_a_route_statement_links": 0,
+ "routes-1440": {
+  "view": "routes",
   "pills_shown": 36,
-  "junctions_shown": 24,
   "harder_shown": 0,
-  "harder_total": 95,
-  "toggle": "Show 60 more statements (60 on strictly harder routes, 9 of them proved)",
-  "sets": 4,
+  "harder_toggle": "Show 35 strictly harder routes (60 statements, 9 proved)",
+  "harder_pressed": "false",
+  "general_toggle": null,
   "scroll": 1440,
   "width": 1440
  },
- "toggled-1440": {
+ "harder-1440": {
+  "view": "harder",
   "pills_shown": 96,
-  "junctions_shown": 59,
   "harder_shown": 95,
-  "harder_total": 95,
-  "toggle": "Hide the 60 statements (60 on strictly harder routes, 9 of them proved)",
-  "sets": 4,
+  "harder_toggle": "Hide the strictly harder routes",
+  "harder_pressed": "true",
+  "general_toggle": null,
   "scroll": 1440,
   "width": 1440
  },
- "default-390": {
+ "back-1440": {
+  "view": "routes",
   "pills_shown": 36,
-  "junctions_shown": 24,
   "harder_shown": 0,
-  "harder_total": 95,
-  "toggle": "Show 60 more statements (60 on strictly harder routes, 9 of them proved)",
-  "sets": 4,
+  "harder_toggle": "Show 35 strictly harder routes (60 statements, 9 proved)",
+  "harder_pressed": "false",
+  "general_toggle": null,
+  "scroll": 1440,
+  "width": 1440
+ },
+ "routes-390": {
+  "view": "routes",
+  "pills_shown": 36,
+  "harder_shown": 0,
+  "harder_toggle": "Show 35 strictly harder routes (60 statements, 9 proved)",
+  "harder_pressed": "false",
+  "general_toggle": null,
   "scroll": 390,
   "width": 390
+ },
+ "opening-view": {
+  "view": "sel/erdos-1094--h2--h1@1/erdos-1094--h2--h2@1",
+  "pills_shown": 17,
+  "harder_shown": 0,
+  "harder_toggle": "Show 35 strictly harder routes (60 statements, 9 proved)",
+  "harder_pressed": "false",
+  "general_toggle": null,
+  "scroll": 1440,
+  "width": 1440
  }
 }
 
-harder_total 95 = 60 statements + 35 route junctions. Screenshots: task-13-1440-default.png (the routes view),
-task-13-1440-toggled.png (toggle on: the strictly harder pills dimmed and dashed), task-13-390-default.png
-(phone width, scroll width 390 = viewport, no sideways scroll).
+§2 is absent on erdos-1094: nothing there is on no route. Screenshots: task-13-1440-routes.png (the toggle
+beside the key, routes view), task-13-1440-harder.png (pressed: 'Hide the strictly harder routes'),
+task-13-390-routes.png (phone width, no sideways scroll). The selector shows the 4 sets; its other squares
+are F34-T24's open-fold views of those same sets.
+
+== red first ==
+the restated tests run against the merge before the change: 4 failed honestly (no harder view, no
+harder toggle, the general toggle counting the strictly harder, §2 claiming them) after the seam
+(HARDER key, empty harder_toggle) was added at today's behaviour.
 
 == mutation checks ==
-the views' 'i not in harder' filter removed: test_one_view_dominated 2 failed; restored, 3 passed
-the claim refusal branch disabled: test_finding_dominated_claims 1 failed; restored, 3 passed
+the views' harder filter removed: 2 failed; the claim refusal disabled: 1 failed;
+graph.js's harder-toggle transition removed: the Playwright test failed; each restored, green.
 
-== golden: site/tests/golden/docs/index.html regenerated; the only difference is one inserted glossary row (strictly harder) ==
-
-== verification command ==
-6 passed, 2 warnings in 0.38s
+== verification ==
+10 passed, 2 warnings in 4.19s

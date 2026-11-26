@@ -1,0 +1,8 @@
+FAILED site/tests/test_f34_problem_page.py::test_the_sections_are_numbered_in_order[curated]
+FAILED site/tests/test_f34_problem_page.py::test_the_head_is_the_statement_with_its_mark_and_one_sentence[curated]
+FAILED site/tests/test_f34_problem_page.py::test_the_sections_are_numbered_in_order[stewards]
+FAILED site/tests/test_f34_problem_page.py::test_the_head_is_the_statement_with_its_mark_and_one_sentence[stewards]
+FAILED site/tests/test_f34_problem_page.py::test_the_sections_are_numbered_in_order[qa]
+FAILED site/tests/test_f34_problem_page.py::test_the_head_is_the_statement_with_its_mark_and_one_sentence[qa]
+FAILED site/tests/test_f34_problem_page.py::test_a_problem_with_no_work_says_what_it_needs
+7 failed, 4 passed in 2.62s

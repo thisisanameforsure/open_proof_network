@@ -20,6 +20,8 @@ from typing import Any
 from opn_gate import paths, schemas
 
 SCHEMA = "display-name/v1"
+#: Every version a record may declare: v2 adds the GitHub login the service writes (D-19 v3.51).
+SCHEMAS: tuple[str, ...] = paths.SCHEMAS_FOR_ROLE["display-name"]
 DIR = paths.NAMES_DIR
 SUFFIXES = paths.YAML_SUFFIXES
 
@@ -47,6 +49,12 @@ class Record:
         found = self.doc.get("link")
         return found if isinstance(found, str) else None
 
+    @property
+    def github(self) -> str | None:
+        """F34-T14 (D-19 v3.51 (ii)): the GitHub login the service published for the pseudonym."""
+        found = self.doc.get("github")
+        return found if isinstance(found, str) else None
+
 
 def directory(graph_root: Path) -> Path:
     return graph_root / DIR
@@ -69,8 +77,8 @@ def load(graph_root: Path) -> list[Record]:
         except schemas.SchemaError as exc:
             log.warning("%s: a display-name record does not read, passed over: %s", path, exc)
             continue
-        bad = not isinstance(doc, dict) or doc.get("schema") != SCHEMA
-        if bad or schemas.violations(doc, SCHEMA):
+        bad = not isinstance(doc, dict) or doc.get("schema") not in SCHEMAS
+        if bad or schemas.violations(doc, str(doc.get("schema"))):
             log.warning("%s: a display-name record that does not validate is passed over", path)
             continue
         if path.stem != doc.get("pseudonym"):

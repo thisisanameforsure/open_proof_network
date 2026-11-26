@@ -495,8 +495,10 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "The fast check did not finish within its time budget.",
-        "Make the proof cheaper: replace search tactics such as exact?, apply? and rw? with the "
-        "lemma they find. POST /precheck has the gate's full budget if you need it.",
+        "Retry once first: the first calls in an environment elaborate its imports and the "
+        "target's definitions cold. If it times out again, make the proof cheaper: replace search "
+        "tactics such as exact?, apply? and rw? with the lemma they find. POST /precheck has the "
+        "gate's full budget if you need it.",
     ),
     "check-unknown": (
         "api",
@@ -757,6 +759,40 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Not an error: Proof.lean declares a counterexample, and step 4 checks its type.",
         "Nothing to do.",
     ),
+    "operator-record-dir-mismatch": (
+        "gate",
+        None,
+        "An operator record sits in a directory named for another operator than the one it "
+        "names (F34-T13, D-19 v3.51).",
+        "Put it at operators/<operator>/<timestamp>-<curator>.yaml, under the operator it names.",
+    ),
+    "operator-identity-is-operator": (
+        "gate",
+        None,
+        "An operator record names the operator among their own identities (F34-T13, D-19 v3.51).",
+        "List only the other identities that are theirs; the operator is the person they "
+        "belong to.",
+    ),
+    "operator-identity-unknown": (
+        "gate",
+        None,
+        "An operator record names an identity the ledger does not credit (F34-T13, D-19 v3.51).",
+        "Name only identities with a ledger file under ledger/.",
+    ),
+    "operator-identity-held": (
+        "gate",
+        None,
+        "An operator record names an identity another operator's newest record already holds "
+        "(F34-T13, D-19 v3.51).",
+        "Have that operator's record released first: a newer record for them without the identity.",
+    ),
+    "display-name-github-unverified": (
+        "gate",
+        None,
+        "A display name carries a GitHub login that was not written by the service from its "
+        "record of the pairing (F34-T13, D-19 v3.51).",
+        "Publish the link through the service (POST /me/name), which writes the login it knows.",
+    ),
     "credit-correction-same-identity": (
         "gate",
         None,
@@ -969,6 +1005,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "one writer at a time per file (D-3 v3.37).",
         "Wait for it to merge, or withdraw it (DELETE /submissions/<id>, MCP withdraw_submission), "
         "then send the name again.",
+    ),
+    "github-not-paired": (
+        "api",
+        None,
+        "You asked POST /me/name to publish your GitHub login (github: true), but your identity "
+        "was not proved with GitHub, so the service has no login of yours to publish "
+        "(D-19 v3.51).",
+        "Send the name without github, or sign in with GitHub and send it from that identity.",
     ),
     "display-name-not-owner": (
         "gate",
@@ -2051,7 +2095,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "The statement lies only on routes that are strictly harder than another: every way to "
-        "settle the root through it needs everything some other way needs, and more (D-25 v3.51). "
+        "settle the root through it needs everything some other way needs, and more (D-25 v3.52). "
         "It is off the frontier and out of the sufficient sets, so it is not offered for claims. "
         "Work on it is not refused; a proof that passes the gate merges as before. The refusal's "
         "details.routes names the routes through it that are not offered.",

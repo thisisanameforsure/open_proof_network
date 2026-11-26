@@ -42,3 +42,12 @@ statement). Lean sweep of the new compositions (Segments.lean, depth-first over 
 memory bounded by the longest composition; the first caching version swapped the 8 GiB laptop
 to 19 GB): 103 elaborated at the time of writing, 0 with an error; the run continues
 and its result is recorded when it ends.
+
+Final (2026-11-25, the sweep ended): every live target's root statement composed as the service
+now composes it elaborated without an error, 451 of 451. Composed the old way,
+47 of 451 did not: the leak broke their fast checks, the curator's green-75 case one
+of them. Their first errors, by kind: '81:13: Function expected at' x23; '28:64: Function expected at' x4; '59:8: Unknown identifier `encard`' x4; '64:0: invalid declaration name `S`, there is a section varia' x2; '32:8: Function expected at' x2.
+Examples: erdos-322, erdos-274, erdos-940, irving-leather-pow-two ("Function expected at Iio", a
+leaked variable shadowing Set.Iio); Artin's parts i and ii ("invalid declaration name `S`, there
+is a section variable with the same name"). Results: scratchpad leak/seg-results.jsonl (902
+lines).
