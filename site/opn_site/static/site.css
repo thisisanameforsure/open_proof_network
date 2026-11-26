@@ -1238,9 +1238,11 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 /* F30-T16: a partial variant's line into the problem: dashed, since it proves only a weaker version. */
 .dag .edge.relation.partial { stroke: var(--n500); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .dot-relation-partial { width: 16px; height: 0; border: 0; border-top: 2px dashed var(--n500); border-radius: 0; vertical-align: 3px; }
-.selector .side-refutes .dot { stroke: var(--refute); }
-.selector .sel-edge.side-refutes { stroke: var(--refute); }
-.selector .sel-node.side-refutes.lit .dot, .selector .sel-edge.side-refutes.lit { stroke: var(--refute); }
+/* F34-T30 (REMINDERS item 4): rust means refuted. The edges are ink whatever side they lead to;
+   only the numbered end of a route that would disprove the problem is rust. A chosen end is filled
+   by the pressed rule below, in the selection's own colour (F30-T10), whichever side it is. */
+.selector .kind-leaf.side-refutes .dot { stroke: var(--refute); }
+.selector .kind-leaf.side-refutes text { fill: var(--refute); }
 .set-side { display: inline-block; margin-left: var(--s2); padding: 0 6px; font-size: 11px; line-height: 16px; border-radius: 999px; color: var(--refute); border: 1px solid var(--refute); vertical-align: 1px; }
 /* F04-T54 (D-25 v3.45): the literature mark — a small square inside a pill's top-right corner and
    the same square inline as a badge (the key, the listing row, the node page's head). The colour
@@ -1298,7 +1300,7 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .selector .sel-node:hover .dot, .selector .sel-node:focus-visible .dot, .selector .sel-node.previewed .dot { stroke: var(--accent); stroke-width: 2.5; }
 .selector .sel-node[aria-pressed="true"] .dot { fill: var(--select); stroke: var(--select); }
 .selector .sel-node[aria-pressed="true"] text { fill: var(--bg); }
-.selector .sel-edge { stroke: var(--n600); stroke-width: 1.5; fill: none; cursor: pointer; }
+.selector .sel-edge { stroke: var(--rule-strong); stroke-width: 1; fill: none; cursor: pointer; }
 .selector .sel-edge[data-view]:hover, .selector .sel-edge:focus-visible, .selector .sel-edge.previewed { stroke: var(--accent); stroke-width: 3; }
 .selector .sel-edge[aria-pressed="true"] { stroke: var(--select); stroke-width: 3.5; }
 /* T8: the selector's own hover — the node, its lines and their other ends lit, the rest dimmed */

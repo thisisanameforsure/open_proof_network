@@ -1,0 +1,16 @@
+F34-T30 — the route selector's colours (REMINDERS-erdos-257 item 4; handoff §2 principle 2), 2026-11-27
+
+Before: every edge and node on a disproving side was rust, so most of erdos-257's selector read
+as "refuted". Now: edges are 1px hairlines in the rule colour (the mockup's screenshot draws them
+grey; the reminder's "ink hairlines" said ink, the picture wins), only the numbered end of a route
+that would disprove the problem is rust (dot and number), and a chosen end is filled by the one
+pressed rule in the selection's colour, as F30-T10 ruled (so a chosen disproving end is filled
+like any other; no second fill colour).
+
+Red first (task-30-red.txt): 3 failed. Green (task-30-green.txt): with the two restated tests,
+31 passed. Restated, not deleted: test_refutes_site (the selector's rust now on the disproving end
+only, and no rust edge), test_one_view_markup's amber test unchanged and passing (the pressed rule
+is still the only one, which is why the chosen end takes the selection colour).
+Captures from the live graph rendered by this tree: task-30-selector-1440.png,
+task-30-selector-390.png (task-30-live.txt: scrollWidth 1440 / 390). The phone capture shows the
+selector clipped at the right: that is item 21, not this one.
