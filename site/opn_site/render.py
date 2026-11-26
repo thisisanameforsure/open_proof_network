@@ -1181,6 +1181,22 @@ def topic_of(record: dict[str, Any] | None) -> str:
     return str(domains[0]) if domains else "other"
 
 
+def question_groups(kinds: list[str]) -> list[tuple[int, int, str]]:
+    """F34-T19: runs of one kind in a list of questions, as (first, last, kind), 1-based."""
+    out: list[tuple[int, int, str]] = []
+    for i, kind in enumerate(kinds, start=1):
+        if out and out[-1][2] == kind:
+            out[-1] = (out[-1][0], i, kind)
+        else:
+            out.append((i, i, kind))
+    return out
+
+
+def question_group_head(first: int, last: int, kind: str) -> str:
+    """The heading of a run of several questions of one kind; ``""`` for a single question."""
+    return "" if first == last else f"Questions {first}\N{EN DASH}{last}: {kind} changes"
+
+
 STEWARD_PATH = "/steward/"
 #: F34-T12 (R14): the routes' two views, switched by graph.js.
 ROUTE_TABS = (
@@ -3466,6 +3482,7 @@ class Renderer:
         if not rv.questions:
             return "<p>No question has been raised.</p>"
         items = []
+        kinds = [self.question_kind(rv, q) for q in rv.questions]
         for q in rv.questions:
             qid = str(q["id"])
             raised = q.get("raised_by") or {}
@@ -3502,7 +3519,28 @@ class Renderer:
                     f"<p>{test}</p></div>"
                 )
             items.append(f'<li class="question" data-question="{esc(qid)}">{head}{body}</li>')
-        return '<ol class="review-questions">' + "".join(items) + "</ol>"
+        # F34-T19 (handoff §3.5): questions of one kind in a row are one group, headed by its range
+        out = []
+        for first, last, kind in question_groups(kinds):
+            words = question_group_head(first, last, kind)
+            out.append(
+                (f'<h3 class="question-group">{esc(words)}</h3>' if words else "")
+                + f'<ol class="review-questions" start="{first}">'
+                + "".join(items[first - 1 : last])
+                + "</ol>"
+            )
+        return "".join(out)
+
+    def question_kind(self, rv: ReviewView, q: dict[str, Any]) -> str:
+        """A question's kind for grouping: a mutant's class of change (``constant``,
+        ``connective``, ...), read from its exhibit's label, else who raised it."""
+        raised = q.get("raised_by") or {}
+        if raised.get("kind") == "mutant":
+            ex = rv.exhibit(str(raised.get("ref")))
+            parsed = review_mutants.label_of(str(ex.get("detail") or "")) if ex else None
+            if parsed is not None:
+                return str(parsed[1])
+        return str(raised.get("kind") or "other")
 
     def review_mutant_variant(self, rv: ReviewView, ref: str) -> str:
         """F26-T22 (Q24): the change a mutant question is about, with the statement and the
@@ -3740,10 +3778,13 @@ class Renderer:
                 + ", ".join(f"<code>{esc(c)}</code>" for c in concepts)
                 + ".</p>"
             )
+        title = str((tv.record or {}).get("title") or "")
+        named = title.split(":", 1)[0].strip() if title else tid  # F34-T19: the problem's name
         body = _template("review.html").substitute(
+            named=math(named),
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
-            words=record_words(str(head.get("words") or "")),
+            words=math(str(head.get("words") or "")),  # F34-T19: the TeX renders
             opened=opened,
             state_words=state_words,
             stats=stats,
@@ -3758,7 +3799,15 @@ class Renderer:
             sign_ctl=self.review_sign_ctl(tv, rv),
         )
         renders = [f"targets/{tid}/review/review.yaml", f"targets/{tid}/graph.json"]
-        return self.page(f"{tid} · review", body, renders=renders, path=PROBLEMS_PATH)
+        frame = self.math_frame(body)
+        return self.page(
+            f"{tid} · review",
+            body,
+            renders=renders,
+            path=PROBLEMS_PATH,
+            head=frame.get("head", ""),
+            script=frame.get("script", ""),
+        )
 
     def proved_in_words(self, tv: TargetView) -> str:
         """F22-T18 (M): for a proved problem, the opening section of the explainer of its first

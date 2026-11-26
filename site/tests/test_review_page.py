@@ -42,7 +42,8 @@ REPO = "https://github.com/example/graph"
 API = "https://api.example.org"
 PAGE = f"problems/{TARGET}/review/index.html"
 PROBLEM = f"problems/{TARGET}/index.html"
-SECTIONS = ("candidates", "pairs", "questions", "tests", "screens", "signatures")
+# F34-T19 (handoff §3.5): the questions first, then the exhibits (folded), then the signatures
+SECTIONS = ("questions", "candidates", "pairs", "tests", "screens", "signatures")
 STATE_LINE = 'class="tag tag-outline review-state"'
 
 

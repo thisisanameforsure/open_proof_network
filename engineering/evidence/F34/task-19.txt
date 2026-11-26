@@ -35,3 +35,23 @@ confirm and words to approve (both from My problems; a dispute from the statemen
 the write-up. None on a problem that takes no steward. Site fast suite: 1008 passed.
 Captures: task-19-steward-abc-{light,dark}-{1440,390}.png on the live graph (the form itself is drawn by
 steward.js once the service answers, so a static capture shows the slot empty).
+
+---- then: the review page (handoff §3.5)
+
+Red (task-19c-red.txt; the two helper tests failed on missing names, the page tests on the page):
+FAILED site/tests/test_f34_review_page.py::test_the_heading_asks_the_question
+FAILED site/tests/test_f34_review_page.py::test_questions_come_first_and_the_exhibits_are_folded
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds0-groups0]
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds1-groups1]
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds2-groups2]
+FAILED site/tests/test_f34_review_page.py::test_a_group_of_several_is_headed_by_its_range_and_kind
+6 failed in 48.68s
+Green:
+30 passed in 2.91s
+The heading asks 'Does the Lean say <the problem>?' (the head of its title), with the formal name as the kicker;
+one line on who does what; Questions first as section 1, runs of one kind grouped ('Questions 2–7: constant
+changes' on erdos-257); candidates, pairs, tests and screens folded; signatures left open, since the sign form
+is there (a deviation from the handoff's 'folded', on purpose). Every section keeps its id. The review's words
+render their TeX (they were raw on the live page). Restated: test_review_page's SECTIONS order.
+Not built: the six-stage progress strip and the signed-in 'Your turn' note.
+Captures: task-19-review-257-{light,dark}-{1440,390}.png on the live graph.

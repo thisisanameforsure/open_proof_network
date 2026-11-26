@@ -1,0 +1,7 @@
+FAILED site/tests/test_f34_review_page.py::test_the_heading_asks_the_question
+FAILED site/tests/test_f34_review_page.py::test_questions_come_first_and_the_exhibits_are_folded
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds0-groups0]
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds1-groups1]
+FAILED site/tests/test_f34_review_page.py::test_questions_of_one_kind_in_a_row_are_one_group[kinds2-groups2]
+FAILED site/tests/test_f34_review_page.py::test_a_group_of_several_is_headed_by_its_range_and_kind
+6 failed in 48.68s
