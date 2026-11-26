@@ -24,3 +24,20 @@ Recorded, not fixed (largest first):
   * Steward sign-up and My problems were designed signed out (Q14); the static pages match their structure.
   * Heights: the mockups are drawn with a few sample rows; ours carry the live record (Problems 50 waiting rows, the
     review's eight questions), so the pages are longer by design, not by layout.
+
+---- 2026-11-26, more from the list
+Fixed: Home's headline on two lines across the column (max-width lifted, 56px; 34px on a phone, unchanged);
+the Docs callouts labelled Note (blue) and Important (rust) as the mockup has them, in CSS, the prose untouched;
+§6 Record folded part by part ("Proved, explained, written up"; "Where the statement comes from"), each heading
+kept inside its fold's summary so every anchor and test that reads it still finds it. Goldens regenerated; site
+fast suite 1029 passed. Captures: task-21b-home-light-1440.png, task-21b-docs-token-light-1440.png.
+Not a defect: the Docs sidebar's later groups (Glossary, Protocol) are there; the sidebar scrolls in its own box
+at a 900px viewport, and a full-page capture shows only its visible part.
+
+---- then: the review's progress strip; the Docs labels taken back out
+Red (task-21c-red.txt), green in test_f34_mockup_fixes.py. The review page carries the mockup's six stages —
+Candidates, Pairs, Answers, Intent tests, Screens, Signatures — each done, now (the first not done) or later,
+with its count, from the records alone; on erdos-257: done, done, now (0 of 8), later, done, later.
+Capture: task-21c-review-257-light-1440.png. Still not built: the signed-in "Your turn" note.
+The owner, 2026-11-26: another session is reworking the Docs tab, so Docs is out of this comparison; the
+callout labels added an hour earlier (never deployed) are taken back out of site.css.

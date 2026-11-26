@@ -3743,6 +3743,35 @@ class Renderer:
             f'data-waiting="{attr(waiting)}" hidden></div>'
         )
 
+    def review_progress(self, tv: TargetView, rv: ReviewView) -> str:
+        """F34-T21 (the mockup's strip): the review's six stages in order, each done, now (the
+        first not done) or later, with its count, from the records alone."""
+        asked = len(rv.questions)
+        answered = sum(1 for q in rv.questions if rv.answer_to(str(q["id"])) is not None)
+        screens = [e for e in rv.exhibits if e.get("kind") in ("compile", "screen")]
+        clusters = len(rv.clusters())
+        stages = [
+            ("Candidates", f"{len(rv.surviving)} surviving", bool(rv.surviving)),
+            (
+                "Pairs",
+                f"{clusters} cluster{'' if clusters == 1 else 's'}",
+                bool(rv.candidates) and not tv.open_pairs,
+            ),
+            ("Answers", f"{answered} of {asked}", asked > 0 and answered == asked),
+            ("Intent tests", f"{len(rv.tests)} run" if rv.tests else "none yet", bool(rv.tests)),
+            ("Screens", "passed" if screens else "none yet", bool(screens)),
+            ("Signatures", f"{len(rv.signatures)} of 2", len(rv.signatures) >= 2),
+        ]
+        now = next((i for i, (_n, _w, done) in enumerate(stages) if not done), None)
+        items = []
+        for i, (name, words, done) in enumerate(stages):
+            state = "done" if done else ("now" if i == now else "later")
+            items.append(
+                f'<li class="rp-{state}"><span class="rp-n">{i + 1} · {state}</span>'
+                f"<strong>{esc(name)}</strong><span>{esc(words)}</span></li>"
+            )
+        return f'<ol class="review-progress">{"".join(items)}</ol>'
+
     def review_page(self, tv: TargetView) -> str:
         """F26-R16: one page per target with a review, from the record only."""
         rv = tv.review_records
@@ -3797,6 +3826,7 @@ class Renderer:
         named = title.split(":", 1)[0].strip() if title else tid  # F34-T19: the problem's name
         body = _template("review.html").substitute(
             named=math(named),
+            progress=self.review_progress(tv, rv),  # F34-T21
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
             words=math(str(head.get("words") or "")),  # F34-T19: the TeX renders
