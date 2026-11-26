@@ -2001,3 +2001,18 @@ The law of the project:
   method defined twice is silent**: a new `stewards_section()` shadowed the problem page's, and only the
   wrong arity said so; grep `def <name>(` after adding methods to `render.py`. And when a task's code came
   before its test, the honest red is the new test run against the previous commit in a detached worktree.
+- 2026-11-26 — F34 overnight on the owner's "keep going … push this through": T11, T12, T18, T19 (part),
+  T20 and T23 built and pushed as network PR #116, unmerged. Four things worth keeping. **The browser
+  tests `make verify` skips are where a redesign's regressions hide**: running every Playwright test once
+  found that T11 had dropped the `<div class="panel-writeup">` wrapper the panel's controls hang from,
+  while T11's own "nothing dropped" test passed, because it held every *fragment* the old page carried
+  and none of the *elements around them*. Run the browser tests of every page a task touches before
+  pushing, and check a red one against the base in a clean worktree first: three were red on main before
+  F34 and are not this branch's. **A fixed wait races an animation**: the routes test clicked, waited
+  700 ms and read a view the 600 ms transition writes only when it ends; on a busy laptop it read the old
+  one. Wait for the condition (`wait_for_function` on `data-view`). **A list of work must equal what the
+  buttons can do**: holding My problems' groups to exactly the Approve slots the statements' pages carry
+  found a witness gloss written before its witness changed, listed as waiting by the old flat list though
+  nothing could approve it. **A guard's fingerprint must carry every field that makes two requests
+  different**: the display-name duplicate guard hashed name and link, so the same name with
+  `"github": true` would have been refused as identical within two minutes.
