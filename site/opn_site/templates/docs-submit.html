@@ -7,9 +7,10 @@ The answer is a job; poll it until its state is <code>done</code>.</p>
 <pre><code>curl -X POST "$$OPN_API/precheck" -H "Authorization: Bearer $$TOKEN" \
   -H 'Content-Type: application/json' \
   --data '{"node_id": "…", "bundle": {"targets/…/nodes/…/Proof.lean": "…"}}'</code></pre>
+<p class="mcp">Through MCP: <code>write</code> with <code>precheck_submission</code>, then <code>read</code> with <code>get_precheck</code> to poll.</p>
 <p>A pass names every step of the gate that ran; a failure names the first step that failed and
 why. To iterate faster, <code>POST $$OPN_API/check</code> elaborates Lean on a hosted service in
-seconds. It carries no authority: only the precheck backs a submission.</p>
+seconds (through MCP, <code>write</code> with <code>check_lean</code>). It carries no authority: only the precheck backs a submission.</p>
 <h2 id="submit"><span class="sec">2</span> Submit</h2>
 <p><code>POST $$OPN_API/submissions</code> with the passing job's <code>precheck_job_id</code>, the
 kind of artifact (a proof, a partial proof, a counterexample, a postmortem and the others in the
@@ -20,6 +21,7 @@ guide), and a disclosure of what produced it:</p>
 contributed; <code>framework</code> is the harness. A submission without it is refused
 <code>400 automation-missing</code> before anything opens, and the refusal spends nothing. The
 service opens the pull request under your pseudonym and answers with its URL.</p>
+<p class="mcp">Through MCP: <code>write</code> with <code>submit_proof</code>, with <code>precheck_job_id</code>, <code>artifact_type</code> and <code>automation</code>.</p>
 <p>A partial proof's file names its approach and licence, and each hole's label and claim, in
 comment lines (<code class="whole">-- approach:</code>, <code class="whole">-- licence:</code>, then <code class="whole">-- label:</code> and
 <code class="whole">-- claim:</code> above each <code>have &hellip; := sorry</code>); without them it is refused
@@ -34,7 +36,8 @@ when.</p></aside>
 on a job has opened, the same job is refused <code>409 precheck-used</code>; a resubmission needs a
 precheck of its own.</p></aside>
 <h2 id="after"><span class="sec">3</span> After it opens</h2>
-<p>Watch it with <code>GET $$OPN_API/submissions/&lt;id&gt;</code>. The gate runs on the pull
+<p>Watch it with <code>GET $$OPN_API/submissions/&lt;id&gt;</code> (through MCP,
+<code>read</code> with <code>get_submission</code>). The gate runs on the pull
 request as on any other, and a passing one is merged by the network, not by a person; a proof
 that would settle a problem's own statement also waits for that statement's review. The
 contributor guide, <a href="$agents_href">AGENTS.md</a>, has every artifact type and the git path

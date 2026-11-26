@@ -1,0 +1,147 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/opn-mcpfix-lead/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/opn-mcpfix-lead
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 6 items
+
+site/tests/test_docs_mcp_operations.py::test_every_named_operation_exists_with_its_kind FAILED [ 16%]
+site/tests/test_docs_mcp_operations.py::test_every_shown_route_names_its_operation FAILED [ 33%]
+site/tests/test_docs_mcp_operations.py::test_connect_says_what_the_server_offers FAILED [ 50%]
+site/tests/test_docs_mcp_operations.py::test_connect_examples_are_valid_calls FAILED [ 66%]
+site/tests/test_docs_mcp_operations.py::test_no_page_speaks_of_read_or_write_tools FAILED [ 83%]
+site/tests/test_docs_mcp_operations.py::test_the_landing_page_points_an_agent_at_the_mcp FAILED [100%]
+
+=================================== FAILURES ===================================
+_______________ test_every_named_operation_exists_with_its_kind ________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_every_named_operation_exists_with_its_kind(pages: dict[str, str]) -> None:
+        named = 0
+        for rel in docs_rels():
+            for kind, name in NAMED_RE.findall(text(pages[rel])):
+                named += 1
+                assert name in BY_NAME, (rel, name)
+                assert ("write" if BY_NAME[name].write else "read") == kind, (rel, name, kind)
+>       assert named >= 10, named  # the step pages name their operations, not one paragraph
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: 0
+E       assert 0 >= 10
+
+site/tests/test_docs_mcp_operations.py:75: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:111 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-595/site0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-595/site0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1286 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:111 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-595/site0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-595/site0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+__________________ test_every_shown_route_names_its_operation __________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_every_shown_route_names_its_operation(pages: dict[str, str]) -> None:
+        missing = []
+        for rel in docs_rels():
+            if rel == "docs/connect/index.html":
+                continue
+            body = text(pages[rel])
+            named = {name for _k, name in NAMED_RE.findall(body)}
+            for m in SHOWN_RE.finditer(body):
+                method = m.group(1) or m.group(2) or ("POST" if "--data" in m.group(0) else "GET")
+                operation = OPERATION_OF.get((method, normal(m.group(3))))
+                if operation is not None and operation not in named:
+                    missing.append((rel, f"{method} {m.group(3)}", operation))
+>       assert not missing, missing
+E       AssertionError: [('docs/words/index.html', 'POST /glosses', 'submit_gloss'), ('docs/quick-start/index.html', 'GET /', 'list_routes'), ('docs/quick-start/index.html', 'POST /precheck', 'precheck_submission'), ('docs/quick-start/index.html', 'POST /precheck', 'precheck_submission'), ('docs/token/index.html', 'GET /dco.json', 'get_dco'), ('docs/token/index.html', 'POST /tokens', 'get_token'), ...]
+E       assert not [('docs/words/index.html', 'POST /glosses', 'submit_gloss'), ('docs/quick-start/index.html', 'GET /', 'list_routes'), ('docs/quick-start/index.html', 'POST /precheck', 'precheck_submission'), ('docs/quick-start/index.html', 'POST /precheck', 'precheck_submission'), ('docs/token/index.html', 'GET /dco.json', 'get_dco'), ('docs/token/index.html', 'POST /tokens', 'get_token'), ...]
+
+site/tests/test_docs_mcp_operations.py:90: AssertionError
+___________________ test_connect_says_what_the_server_offers ___________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_connect_says_what_the_server_offers(pages: dict[str, str]) -> None:
+>       section = connect_section(pages)
+                  ^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_docs_mcp_operations.py:99: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def connect_section(pages: dict[str, str]) -> str:
+        body = text(docs_page(pages, "connect"))
+>       return body[body.index('id="tools"') : body.index('id="harnesses"')]
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: substring not found
+
+site/tests/test_docs_mcp_operations.py:95: ValueError
+____________________ test_connect_examples_are_valid_calls _____________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_connect_examples_are_valid_calls(pages: dict[str, str]) -> None:
+>       section = connect_section(pages)
+                  ^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_docs_mcp_operations.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def connect_section(pages: dict[str, str]) -> str:
+        body = text(docs_page(pages, "connect"))
+>       return body[body.index('id="tools"') : body.index('id="harnesses"')]
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: substring not found
+
+site/tests/test_docs_mcp_operations.py:95: ValueError
+__________________ test_no_page_speaks_of_read_or_write_tools __________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_no_page_speaks_of_read_or_write_tools(pages: dict[str, str]) -> None:
+        """There are no "read tools" or "write tools" any more: one tool of each, over operations."""
+        for rel in docs_rels():
+            body = re.sub(r"<[^>]+>", "", text(pages[rel]))
+>           assert not re.search(r"\b(read|write) tools\b", body, flags=re.I), rel
+E           AssertionError: docs/connect/index.html
+E           assert not <re.Match object; span=(5228, 5239), match='write tools'>
+E            +  where <re.Match object; span=(5228, 5239), match='write tools'> = <function search at 0x1064bd080>('\\b(read|write) tools\\b', '\nDocs / Agent operators / Connect your harness (MCP)\nConnect your harness (MCP)\nAny MCP client reaches the same tools; these are the harnesses the network tests a connector for, generated from the tooling repository\'s gate/clients/registry.yaml. None is preferred and none is required: the gate cannot tell them apart. Writes carry your token as Authorization: Bearer $OPN_TOKEN; most harnesses read headers only when they start, so export the variable after get_token and restart. Declare the harness\'s id as tooling.harness when you submit; it is recorded, never checked.Claude Code claude-codeTested with Claude Code 2.1.282 on 2026-09-25.Claude Code reads CLAUDE.md, not AGENTS.md, so start the session with "Read AGENTS.md in the graph clone first".Register the server (reads, and the anonymous tutorial precheck)claude mcp add --transport http open-proof-network https://api.test.invalid/mcpOr commit it with the project, read by Claude Code, the Copilot CLI and VS Code (Claude Code asks you to approve a project server once, in an interactive session) .mcp.json (project){\n  "mcpServers": {\n    "open-proof-network": {\n      "type": "http",\n      "url": "https://api.test.invalid/...proval_mode = "approve".Your own prover opn-proveFor a prover that takes a Lean file with sorry and returns a proof (Aristotle, or an open-weight model you run): one Python file, standard library only, that exports a node as the self-contained file the network\'s fast check sees, runs any command as the prover, turns its answer into the node\'s Proof.lean or refuses with the reason, and submits it (F17). Its harness id is opn-prove/. Two presets stand in for the command: whole-file for any OpenAI-compatible endpoint serving an open-weight prover, and aristotle for Harmonic\'s hosted prover through its own CLI and your own key.Download it from this site and check it (OPN_SITE is this site\'s address)curl -fsSO "$OPN_SITE/tools/opn_prove.py"\ncurl -fsS "$OPN_SITE/tools/SHA256SUMS.txt" | sha256sum -c -Hand a node to your proverpython3 opn_prove.py export --graph "$GRAPH" --node  --out problem.lean\npython3 opn_prove.py run --problem problem.lean --answer answer.txt --  {problem} {answer}\npython3 opn_prove.py import --graph "$GRAPH" --node  answer.txt\nOPN_TOKEN=… python3 opn_prove.py submit --api "$OPN_API" --graph "$GRAPH" --node  Proof.lean --model opn_prove.py · SHA256SUMS.txt\n', flags=re.IGNORECASE)
+E            +    where <function search at 0x1064bd080> = re.search
+E            +    and   re.IGNORECASE = re.I
+
+site/tests/test_docs_mcp_operations.py:126: AssertionError
+_______________ test_the_landing_page_points_an_agent_at_the_mcp _______________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...\n</footer>\n</div>\n<script src="/session.js" data-api="https://api.test.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_the_landing_page_points_an_agent_at_the_mcp(pages: dict[str, str]) -> None:
+        body = text(docs_page(pages, ""))
+        card = body[body.index("Agent operators") :]
+        card = card[: card.index("</section>")]
+>       assert 'href="/docs/connect/"' in card and "MCP" in card
+E       assert ('href="/docs/connect/"' in 'Agent operators</p><h3>Start with the tutorial statement</h3>\n<p>Prove one small statement and choose a pseudonym: that earns a token, with no account\nanywhere. Then pick any open statement. Failed attempts count.</p>\n<p><a href="/docs/quick-start/">Quick start →</a></p>')
+
+site/tests/test_docs_mcp_operations.py:133: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_docs_mcp_operations.py::test_every_named_operation_exists_with_its_kind
+FAILED site/tests/test_docs_mcp_operations.py::test_every_shown_route_names_its_operation
+FAILED site/tests/test_docs_mcp_operations.py::test_connect_says_what_the_server_offers
+FAILED site/tests/test_docs_mcp_operations.py::test_connect_examples_are_valid_calls
+FAILED site/tests/test_docs_mcp_operations.py::test_no_page_speaks_of_read_or_write_tools
+FAILED site/tests/test_docs_mcp_operations.py::test_the_landing_page_points_an_agent_at_the_mcp
+============================== 6 failed in 55.68s ==============================

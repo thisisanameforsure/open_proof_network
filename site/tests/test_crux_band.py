@@ -329,7 +329,7 @@ def test_a_lit_band_link_meets_the_two_pills_it_joins(tmp_path: Path) -> None:
 
     page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
     assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
-    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    group = re.search(r'<div class="off-group"[^>]*>(.*?)</div><!-- /off-group -->', page, re.S)
     assert group is not None and f'data-node="{CRUX}"' in group.group(1)
     assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 
@@ -342,7 +342,7 @@ def test_hovering_and_clicking_a_band_pill_lights_its_measured_lines_only(tmp_pa
 
     page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
     assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
-    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    group = re.search(r'<div class="off-group"[^>]*>(.*?)</div><!-- /off-group -->', page, re.S)
     assert group is not None and f'data-node="{CRUX}"' in group.group(1)
     assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 
@@ -355,6 +355,6 @@ def test_the_band_never_moves_on_a_selection(tmp_path: Path) -> None:
 
     page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
     assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
-    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    group = re.search(r'<div class="off-group"[^>]*>(.*?)</div><!-- /off-group -->', page, re.S)
     assert group is not None and f'data-node="{CRUX}"' in group.group(1)
     assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)

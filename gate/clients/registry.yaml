@@ -94,7 +94,7 @@ entries:
         format: shell
         auth: bearer
         template: codex mcp add {{server}} --url {{mcp_url}} --bearer-token-env-var {{token_env}}
-      - title: Or in the user config, which also lets codex exec call the write tools
+      - title: Or in the user config, which also lets codex exec call write
         kind: file
         path: ~/.codex/config.toml
         scope: user
@@ -115,8 +115,8 @@ entries:
     headless:
       template: codex exec "{{prompt}}"
       approve: >-
-        codex exec never asks, so an MCP call that needs approval is denied. Read tools carry
-        readOnlyHint and run; write tools need default_tools_approval_mode = "approve".
+        codex exec never asks, so an MCP call that needs approval is denied. search and read
+        carry readOnlyHint and run; write needs default_tools_approval_mode = "approve".
     list_check:
       # `codex mcp list` and `codex doctor` never connect; `codex exec` connects every server
       # before its first model call, so a placeholder key gets initialize and tools/list and the
