@@ -49,7 +49,7 @@ def test_the_stewarded_target_names_its_steward(pages: dict[str, str]) -> None:
     assert f'<a href="{STEWARD_LINK}">{escape(STEWARD_NAME)}</a>' in page
     assert "<b>not bold</b>" not in page
     assert f"<code>{STEWARD_LOGIN}</code>" in page and "committed 2026-09-16" in page
-    assert "This problem is open for work." in page
+    assert "Open for work:" in page  # F34-T29: in the head sentence
     row = card(pages, STEWARDED_TARGET)
     assert f'Steward · <a href="{STEWARD_LINK}">{escape(STEWARD_NAME)}</a>' in row
     assert 'data-status="open"' in row and row.count('class="stage-dot"') == 3  # none reached
@@ -96,7 +96,7 @@ def test_the_calibration_target_is_labelled(pages: dict[str, str]) -> None:
     page = target_page(pages, CALIBRATION_TARGET)
     assert "A calibration target" in page and "Stages v3.17" in page
     assert "Calibration target, no steward needed" in card(pages, CALIBRATION_TARGET)
-    assert "This problem is open for work." in page  # exempt from the steward rule (R4)
+    assert "Open for work:" in page  # exempt from the steward rule (R4); F34-T29: head sentence
     for other in (STEWARDED_TARGET, STEWARDLESS_TARGET, RESOLVED_TARGET):
         assert "A calibration target:" not in target_page(pages, other)
 

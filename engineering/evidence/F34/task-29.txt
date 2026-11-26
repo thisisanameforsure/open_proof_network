@@ -1,0 +1,25 @@
+F34-T29 — the problem head (REMINDERS-erdos-257 items 1–3; mockup New-Erdos257), 2026-11-27
+
+1. The informal statement is the h1; the mono id moved to the margin ("Id erdos-257"). The status
+   is a dot and a word with its definition on hover (no pill); the "statement unchecked" tag and
+   the "review: …" badge are one note: "The statement is not yet checked. Its review waits for the
+   intent signer: 8 questions. Open the review →" (complete: "Its review is complete."; other
+   states "Its review is under way: <counts>."; a checked grade is named with its card).
+2. Kicker: the title's head before its colon when short and free of TeX (render.problem_name),
+   else the collection; then the area in lower case: "Erdős problem 257 · number theory".
+3. "This problem is open for work" is no line of its own: the head sentence says "Open for work:
+   n statements are open." with "How to contribute →".
+
+Red first (task-29-red.txt): 3 of 5 failed (no headline, no note, no problem_name). Green
+(task-29-green.txt): 5 passed. The first green run broke 18 older tests; two were real and fixed:
+a title head with markdown (*abc*) printed its asterisks in the kicker (now record_words), and the
+page had lost its link to the guide (now in the head sentence). The other 16 pinned the old
+markup and were restated, not deleted (plus gate/tests/test_lifecycle_f15.py, found by the commit hook): the nothing-dropped guard (status_head, review_note), the
+head-sentence count, the review state line (now the note's sentence), wayfinding, stewards,
+untrusted (an unknown grade is escaped in the note). Golden regenerated: problems/propositional.
+Site fast suite: 1053 passed.
+
+Captures (live graph c1bef1f19c rendered by this tree, beside the mockup's own screenshot):
+task-29-head-1440-side.jpg, task-29-head-390-side.jpg; scrollWidth 1440 and 390.
+Left as they are, outside items 1–3: the headline breaks around the sum because the record's
+informal text is display math ($$…$$); the stage mark is three dots where the mockup labels them.

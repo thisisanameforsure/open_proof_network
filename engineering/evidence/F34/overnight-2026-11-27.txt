@@ -1,0 +1,16 @@
+F34 overnight log, 2026-11-26 → 2026-11-27 (for Mike in the morning)
+
+Live as of 2026-11-26 23:30 IST (PR #123, merge f4691370, site-deploy run 45897341534 green):
+  * F34-T27: "+ n speculative ↓" on a statement with proposals (pill chip in §1, a link under its
+    phone-outline row), scrolling to its §2 group, which now has an anchor (REMINDERS item 10, first half).
+  * F34-T28: the review page's "Your turn" note for the signed-in intent signer.
+
+Working list: site/docs/design_handoff_2026-11/REMINDERS-erdos-257.md, in its order
+(1–3, 4–7 + 11–12, 13–16, 21–23, 8–10, 17–20). Docs is another session's and stays out of this.
+Each item below: what changed, the commit, and whether it is deployed.
+
+00:55 F34-T29 — items 1–3 (the head): words as the headline, id a sidenote, status dot + word, one
+      note for the check and the review ("Open the review →"), kicker "Erdős problem 257 · number
+      theory", "Open for work" folded into the steward sentence. Two real defects found on the way
+      (raw *markdown* in a kicker; the guide link lost) and fixed. Committed; see task-29.txt.
+      Noticed, not changed: the stage mark is bare dots where the mockup labels them.

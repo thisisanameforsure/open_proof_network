@@ -1172,6 +1172,21 @@ def collection_label(record: dict[str, Any] | None) -> str:
     return re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", segment)
 
 
+#: F34-T29: the longest title head the kicker takes as the problem's name.
+PROBLEM_NAME_MAX = 40
+
+
+def problem_name(title: str) -> str | None:
+    """F34-T29 (REMINDERS item 2): the problem's name, the head of a record title before its
+    colon ("Erdős problem 257: Let A ..." names "Erdős problem 257"); ``None`` for a title with
+    no short head, or one with mathematics in it."""
+    head, colon, _rest = title.partition(":")
+    head = head.strip()
+    if not colon or not head or len(head) > PROBLEM_NAME_MAX or "$" in head:
+        return None
+    return head
+
+
 def topic_words(tag: str) -> str:
     """A domain tag as a heading: ``number-theory`` → ``Number theory``."""
     if tag in TOPIC_WORDS:
@@ -3113,7 +3128,7 @@ class Renderer:
         if tv.index_entry.get("claimable"):
             guide = f'<a href="{GUIDE_HREF}">How to contribute →</a>'
             if self.open_count(tv):
-                return f'<p class="claimable">This problem is open for work. {guide}</p>'
+                return ""  # F34-T29: the head sentence says "Open for work"
             return (
                 '<p class="claimable">This problem accepts work, but no statement of it is '
                 f"workable right now: each one waits on another. {guide}</p>"
@@ -3278,9 +3293,8 @@ class Renderer:
             # F04-T31: the section names the first stage as the problem reached it.
             digestion_heading=esc(self.resolution(tv).capitalize() if resolved else "Proved"),
             target_id=esc(tid),
-            status_tag=self.status_tag(tv),
-            fidelity_tag=self.fidelity_tag(tv),
-            review_state=self.review_state_tag(tv),
+            status_head=self.status_head(tv),  # F34-T29
+            review_note=self.review_note(tv),  # F34-T29: the check and the review, one note
             informal=self.informal_words(tv),
             provenance=(f"{record_words(sentence(title))} " if title else "")
             + self.source_line(tv),
@@ -3388,6 +3402,53 @@ class Renderer:
         return (
             f'<a class="tag tag-outline review-state" href="{esc(self.review_path(tv.target_id))}">'
             f"review: {esc(words)}</a>"
+        )
+
+    def status_head(self, tv: TargetView) -> str:
+        """F34-T29 (REMINDERS item 1): the problem's status as a dot and a word, its definition
+        on hover, beside the stage mark — no pill."""
+        status = self.problem_status(tv)
+        tag = self.status_tag(tv)
+        body = tag[tag.index('<span class="term-card"') :].removesuffix("</span>")
+        dot = {"open": "open", "resolved": "proved"}.get(status, "blocked")
+        return (
+            f'<span class="status-head">{self.dot(dot)}'
+            f'<span class="term" tabindex="0">{esc(status)}{body}</span></span>'
+        )
+
+    def review_note(self, tv: TargetView) -> str:
+        """F34-T29 (REMINDERS item 1; the mockup's note): one sentence for the statement's check
+        and its review in place of the two badges — "The statement is not yet checked. Its
+        review waits for the intent signer: 8 questions. Open the review →"."""
+        grade = str(tv.index_entry.get("fidelity") or "")
+        key = FIDELITY_KEYS.get(grade)
+        if key == "unchecked":
+            word, meaning, proto = self.words["by_key"][key]
+            card = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
+            check = f"<strong>The statement is {self.hover('not yet checked', card)}.</strong>"
+        elif key is not None:
+            word, meaning, proto = self.words["by_key"][key]
+            card = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
+            check = f"<strong>The statement:</strong> {self.hover(esc(word), card)}."
+        else:
+            check = f"<strong>The statement:</strong> {esc(grade)}." if grade else ""
+        review = tv.review or {}
+        state = str(review.get("state") or "none") if tv.review is not None else "none"
+        line = ""
+        if state != "none":
+            q = int(review.get("questions_waiting") or 0)
+            questions = f"{q} question{'' if q == 1 else 's'}"
+            if state == "needs-intent-signer":
+                line = f"Its review waits for the intent signer: {questions}."
+            elif state == "complete":
+                line = "Its review is complete."
+            else:
+                line = f"Its review is under way: {esc(self.review_state_words(review))}."
+            line += f' <a href="{esc(self.review_path(tv.target_id))}">Open the review →</a>'
+        if not (check or line):
+            return ""
+        return f'<div class="review-note" role="note"><span>{check} {line}</span></div>'.replace(
+            "<span> ", "<span>"
         )
 
     @staticmethod
@@ -4146,27 +4207,37 @@ class Renderer:
         )
 
     def problem_kicker(self, tv: TargetView) -> str:
-        """F34-T11: the small caps above the headline — the area, and the collection if any."""
-        parts = [topic_words(topic_of(tv.record))]
-        collection = collection_label(tv.record)
-        if collection:
-            parts.append(collection)
-        return esc(" · ".join(parts))
+        """F34-T11, T29 (the mockup): the small caps above the headline — the problem's name
+        from its title (else the collection it came from, if any), then its area."""
+        title = str((tv.record or {}).get("title") or "")
+        named = problem_name(title)
+        # a title's head is record text: its emphasis is set, never printed raw (F34-T2)
+        name = record_words(named) if named else esc(collection_label(tv.record))
+        area = topic_words(topic_of(tv.record))
+        area = esc(area[:1].lower() + area[1:])
+        return " · ".join(p for p in (name, area) if p)
 
     def head_sentence(self, tv: TargetView) -> str:
         """F34-T11 (handoff §3.4.1): one sentence under the headline — who stewards the problem,
         or what it lacks, and how many of its statements are open."""
         open_ = self.open_count(tv)
         count = f"{open_} statement{'' if open_ == 1 else 's'} open"
+        guide = ""
+        if open_ and tv.index_entry.get("claimable") and not self.is_tutorial(tv):
+            # F34-T29 (REMINDERS item 3): "open for work" is said here, not on a line of its own,
+            # with the way in it used to carry
+            are = "is" if open_ == 1 else "are"
+            count = f"Open for work: {open_} statement{'' if open_ == 1 else 's'} {are} open"
+            guide = f' <a href="{GUIDE_HREF}">How to contribute →</a>'
         if tv.stewards:
             names = ", ".join(self.steward_named(tv, s) for s in tv.stewards)
-            return f"Stewarded by {names}. {count}."
+            return f"Stewarded by {names}. {count}.{guide}"
         if tv.calibration:
-            return f"A calibration target: it takes no steward. {count}."
+            return f"A calibration target: it takes no steward. {count}.{guide}"
         if self.takes_steward(tv):
             href = esc(self.steward_path(tv.target_id))
-            return f'No steward yet (<a href="{href}">steward it</a>). {count}.'
-        return f"{count[0].upper()}{count[1:]}."
+            return f'No steward yet (<a href="{href}">steward it</a>). {count}.{guide}'
+        return f"{count[0].upper()}{count[1:]}.{guide}"
 
     def needs_card(self, tv: TargetView) -> str:
         """F34-T11 (R19; handoff §3.4.5): what a problem with no work on the record needs, each

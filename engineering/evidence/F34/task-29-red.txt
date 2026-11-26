@@ -1,0 +1,8 @@
+E       AttributeError: module 'opn_site.render' has no attribute 'problem_name'
+
+site/tests/test_f34_problem_head.py:79: AttributeError
+=========================== short test summary info ============================
+FAILED site/tests/test_f34_problem_head.py::test_the_words_are_the_headline_and_the_id_a_sidenote
+FAILED site/tests/test_f34_problem_head.py::test_status_is_a_dot_and_a_word_and_the_badges_are_one_note
+FAILED site/tests/test_f34_problem_head.py::test_the_kicker_names_the_problem_then_its_area
+3 failed, 2 passed in 73.04s (0:01:13)
