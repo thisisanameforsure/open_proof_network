@@ -1639,3 +1639,8 @@ details.record-fold > summary h3 { display: inline; font-size: 16px; font-weight
 /* F34-T21: the drawing's key folded, as the mockup draws the route without one above it */
 details.dag-key > summary { cursor: pointer; font-family: var(--sans); font-size: 13px; color: var(--muted); margin: 0 0 var(--s3); }
 details.dag-key[open] > summary { margin-bottom: var(--s2); }
+
+/* F34-T26 (Q26 closed): §2's proposed groups, each a card with its small tree */
+.off-group { border: 1px dotted var(--rule-strong); border-radius: var(--radius); background: var(--surface); padding: var(--s4) var(--s5); margin: var(--s5) 0; }
+.off-group > h3 { margin-top: 0; }
+.off-group svg.mini-tree { display: block; max-width: 100%; height: auto; margin: var(--s3) 0; }
