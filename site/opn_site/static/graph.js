@@ -98,16 +98,58 @@
 
   // -- the panel (R3, as problem.js) ----------------------------------------------------------
 
+  // F34-T16 (R16): a panel shows one part at a time under its tabs; Record opens its fold.
+  function showTab(panel, part) {
+    var tabs = panel.querySelector(".panel-tabs");
+    if (!tabs) { return; }
+    tabs.hidden = false;
+    slice(tabs.querySelectorAll("[data-tab]")).forEach(function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-tab") === part ? "true" : "false");
+    });
+    // a part is a section of the panel (data-section) or its record fold
+    slice(panel.querySelectorAll(".panel-sec[data-section], details.record")).forEach(function (sec) {
+      var on = (sec.getAttribute("data-section") || "record") === part;
+      sec.hidden = !on;
+      if (on && sec.tagName.toLowerCase() === "details") { sec.open = true; }
+    });
+  }
+  panels.forEach(function (p) {
+    p.addEventListener("click", function (ev) {
+      var b = ev.target.closest ? ev.target.closest(".panel-tabs [data-tab]") : null;
+      if (b) { showTab(p, b.getAttribute("data-tab")); }
+    });
+  });
+  var homeNode = null;
+  panels.forEach(function (p) { if (!p.hidden && homeNode === null) { homeNode = p.getAttribute("data-node"); } });
+
+  // F34-T16 (R16): the selected statement's path from the problem, drawn heavier. A line is on
+  // it when both its ends are, a route's junction standing for the statement it splits.
+  function stem(id) { return id ? id.replace(/@\d+$/, "") : id; }
+  function drawPath(panel) {
+    var el = panel ? panel.querySelector(".panel-path") : null;
+    var ids = el && panel.getAttribute("data-node") !== homeNode
+      ? (el.getAttribute("data-path") || "").split(" ").filter(Boolean) : [];
+    var on = {};
+    ids.forEach(function (i) { on[i] = true; });
+    edges.forEach(function (e) {
+      var k = (keyOf(e) || "").split(">");
+      var a = stem(k[0]), b = stem(k[1]);
+      e.classList.toggle("on-path", ids.length > 1 && k.length === 2 && !!on[a] && !!on[b]);
+    });
+  }
+
   function select(id) {
-    var found = false;
+    var found = false, shown = null;
     panels.forEach(function (p) {
       var on = p.getAttribute("data-node") === id;
       p.hidden = !on;
-      if (on) { found = true; }
+      if (on) { found = true; shown = p; }
     });
     if (!found) { return false; }
     pills.forEach(function (g) { g.classList.toggle("selected", idOf(g) === id); });
     state.node = id;
+    showTab(shown, "claim");
+    drawPath(shown);
     return true;
   }
 
@@ -716,7 +758,10 @@
   });
 
   document.addEventListener("keydown", function (ev) {
-    if (ev.key === "Escape" && state.view !== HOME) { transition(HOME); }
+    if (ev.key !== "Escape") { return; }
+    // F34-T16 (R16): Esc comes back to the problem's own statement first, then to the home route
+    if (homeNode && state.node !== homeNode) { select(homeNode); writeHash(); return; }
+    if (state.view !== HOME) { transition(HOME); }
   });
 
   // -- the view-toggle (R4): all <-> routes --------------------------------------------------------
@@ -822,7 +867,7 @@
     // The table moves up beside the tabs, so List shows where Tree was.
     var list = panesOf["sets-list"], tree = panesOf["sets-tree"];
     if (list && tree && tree.parentNode) { tree.parentNode.insertBefore(list, tree.nextSibling); }
-    var showTab = function (id) {
+    var showRouteTab = function (id) {
       tabButtons.forEach(function (b) {
         var on = b.getAttribute("aria-controls") === id;
         b.setAttribute("aria-selected", on ? "true" : "false");
@@ -830,9 +875,9 @@
       });
     };
     tabButtons.forEach(function (b) {
-      b.addEventListener("click", function () { showTab(b.getAttribute("aria-controls")); });
+      b.addEventListener("click", function () { showRouteTab(b.getAttribute("aria-controls")); });
     });
-    showTab("sets-tree");
+    showRouteTab("sets-tree");
     tabs.hidden = false;
   }
 

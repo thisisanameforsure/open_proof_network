@@ -169,10 +169,13 @@ def test_the_work_section_lists_the_plans_and_the_approach_records_on_the_root(
     assert "Each half is then a hole" not in shown
     assert "followed by " + sf.PARTIAL_NAME in shown
     assert sf.APPROACH in shown
-    assert "View the proof" in shown
-    hole = section(body(files, sf.H1), "work")
+    # F34-T16 (handoff §3.4.3): the action sits under the tabs, always visible, not in Work
+    always = re.search(r'<p class="panel-always">.*?</p>', body(files, sf.ROOT), re.S)
+    assert always is not None and "View the proof" in visible_text(always.group(0))
+    hole = body(files, sf.H1)
     assert sf.APPROACH not in hole  # a target's approach records name no node (Q47)
-    assert "Work on this statement" in visible_text(hole)
+    always = re.search(r'<p class="panel-always">.*?</p>', hole, re.S)
+    assert always is not None and "Work on this statement" in visible_text(always.group(0))
 
 
 @pytest.mark.parametrize("node_id", [sf.ROOT, sf.H1, sf.H2])

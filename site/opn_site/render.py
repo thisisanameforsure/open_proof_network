@@ -4334,6 +4334,7 @@ class Renderer:
             files.append(self.file_link(nv.proof_path, label="Proof.lean ↗"))
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
         title, id_line = self.panel_heading(tv, nv)
+        known, work = self.known_section(tv, nv), self.work_section(tv, nv)
         return _template("statement-panel.html").substitute(
             node_id=esc(nid),
             title=title,
@@ -4347,8 +4348,15 @@ class Renderer:
             role=self.panel_role(tv, nv),
             claim=self.claim_block(tv, nv),
             how=self.how_block(tv, nv),
-            known=self.known_section(tv, nv),
-            work=self.work_section(tv, nv),
+            known=known,
+            work=work,
+            tabs=self.panel_tabs(known, work),
+            path=self.panel_path(tv, nv),
+            always=(
+                f'<p class="panel-always">{self.panel_action(tv, nv)}'
+                f'<a class="panel-open" href="{esc(self.node_path(tv.target_id, nid))}">'
+                "Open its page →</a></p>"
+            ),
             glosses=self.gloss_slot(
                 tv, "statement", f"nodes/{nid}/Statement.lean", node=nid, ids=f"p-{nid}-"
             ),
@@ -4585,11 +4593,61 @@ class Renderer:
         """Work on it: the plans (stepped annexes, T45) by their first sentence, each saying which
         merged decomposition followed it; on the root, the target's approach records (D-14),
         which name no node (Q47); then the action."""
-        parts = [*self.work_parts(tv, nv), self.panel_action(tv, nv)]
+        # F34-T16 (handoff §3.4.3): the action is under the tabs, always visible, not in Work
+        parts = self.work_parts(tv, nv)
+        if not parts:
+            return ""
         return (
-            '<section class="panel-sec" data-section="work"><h3 class="kicker">Work on it</h3>'
-            f"{''.join(parts)}</section>\n"
+            '<section class="panel-sec" data-section="work">'
+            f'<h3 class="kicker">Work on it</h3>{"".join(parts)}</section>\n'
         )
+
+    def panel_tabs(self, known: str, work: str) -> str:
+        """F34-T16 (R16): the panel's tab row — Claim, Proof, Known, Work, Record, only the parts
+        the panel has — hidden until graph.js can switch it, so without it every part shows."""
+        tabs = [("claim", "Claim"), ("how", "Proof")]
+        if known:
+            tabs.append(("known", "Known"))
+        if work:
+            tabs.append(("work", "Work"))
+        tabs.append(("record", "Record"))
+        buttons = "".join(
+            f'<button type="button" role="tab" data-tab="{part}" aria-selected="false">{name}'
+            "</button>"
+            for part, name in tabs
+        )
+        return (
+            f'<div class="panel-tabs" role="tablist" aria-label="Its record" hidden>{buttons}</div>'
+        )
+
+    def panel_path(self, tv: TargetView, nv: NodeView) -> str:
+        """F34-T16 (R16): the statement and its path from the problem's own statement, as words
+        and as data (the ids along it, which graph.js draws heavier)."""
+        path = self.path_from_root(tv, nv.node_id)
+        words = " &rsaquo; ".join(
+            record_words(self.node_label(tv.nodes[n]) or n) if n in tv.nodes else esc(n)
+            for n in path
+        )
+        return f'<p class="panel-path cue" data-path="{esc(" ".join(path))}">{words}</p>'
+
+    @staticmethod
+    def path_from_root(tv: TargetView, nid: str) -> list[str]:
+        """The shortest path of dependencies from the root to ``nid``; just ``nid`` when none
+        reaches it (a variant, a proposed statement)."""
+        if nid == tv.root:
+            return [nid]
+        seen = {tv.root: [tv.root]}
+        queue = [tv.root]
+        while queue:
+            cur = queue.pop(0)
+            for dep in tv.nodes[cur].deps if cur in tv.nodes else []:
+                if dep in seen:
+                    continue
+                seen[dep] = [*seen[cur], dep]
+                if dep == nid:
+                    return seen[dep]
+                queue.append(dep)
+        return [nid]
 
     def work_parts(self, tv: TargetView, nv: NodeView) -> list[str]:
         """The plans and approach records of "Work on it", shared by the panel and the page."""

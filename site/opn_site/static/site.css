@@ -1561,3 +1561,13 @@ details.defs > summary, details.qa-fold > summary, details.known-fold > summary 
 .docs-results li { padding: var(--s2) 0; border-bottom: 1px solid var(--rule); }
 .docs-results a { font-family: var(--sans); font-size: 14px; }
 .docs-results .cue { margin: 2px 0 0; font-size: 12.5px; overflow-wrap: anywhere; }
+
+/* F34-T16 (R16): the panel's tabs, its path, its ways out; the selected path drawn heavier */
+.panel-tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--rule); margin: var(--s3) 0; font-family: var(--sans); }
+.panel-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: var(--s2) var(--s4); font-size: 14px; color: var(--muted); cursor: pointer; margin-bottom: -1px; min-height: 44px; }
+.panel-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.panel-path { margin: 0 0 var(--s2); font-size: 13px; }
+.panel-always { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: center; margin: var(--s3) 0; }
+.panel-always .btn-block { width: auto; }
+.panel-open { font-family: var(--sans); font-size: 14px; }
+svg.dag path.edge.on-path { stroke-width: 3.2; }
