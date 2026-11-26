@@ -3279,6 +3279,7 @@ class Renderer:
             stage_mark=self.stage_mark(tv),
             head_sentence=self.head_sentence(tv),
             needs=self.needs_card(tv),
+            review_card=self.review_card(tv),  # F34-T21
             not_on_route=off_route,
             outline=self.route_outline(tv, picture.outline),  # F34-T17
             not_on_route_link=(
@@ -3804,6 +3805,19 @@ class Renderer:
                 f"<strong>{esc(name)}</strong><span>{esc(words)}</span></li>"
             )
         return f'<ol class="review-progress">{"".join(items)}</ol>'
+
+    def review_card(self, tv: TargetView) -> str:
+        """F34-T21 (§3 in the mockup): the review as a card on the problem page — the question it
+        asks, the way in and its six stages; ``""`` for a problem with no review."""
+        rv = tv.review_records
+        if rv is None:
+            return ""
+        href = esc(self.target_path(tv.target_id) + "review/")
+        return (
+            '<div class="review-card"><p class="rc-head"><strong>Does the Lean say the '
+            f'conjecture?</strong> <a href="{href}">Open the review →</a></p>'
+            f"{self.review_progress(tv, rv)}</div>"
+        )
 
     def review_page(self, tv: TargetView) -> str:
         """F26-R16: one page per target with a review, from the record only."""

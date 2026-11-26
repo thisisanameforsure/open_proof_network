@@ -50,3 +50,8 @@ junction is no row), with "… n more statements" linking to the problem: erdos-
 splits and "… 92 more statements", as the mockup draws it. Red then green in test_f34_mockup_fixes.py (the
 first expected count in the test was wrong — 1, not 2 — and was corrected before the code was written).
 Capture task-21e-home-light-1440.png. Site fast suite green.
+
+---- then: §3's review card
+A problem with a review shows it in §3 as the mockup's card: "Does the Lean say the conjecture?", "Open the
+review →" and the review's six stages (the same strip as the review page). None on a problem with no review.
+Red then green in test_f34_mockup_fixes.py; site fast suite 1032 passed.

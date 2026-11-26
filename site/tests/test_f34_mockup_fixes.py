@@ -75,3 +75,19 @@ def test_figure_one_is_the_top_of_the_tree_with_the_rest_counted() -> None:
     assert 'viewBox="0 0 300 ' in cut and 'height="360"' not in cut
     whole, none = render.figure_top(svg, layouts, rows=9)
     assert (whole, none) == (svg, 0)
+
+
+def test_the_problem_page_shows_its_review_as_a_card(pages: dict[str, str]) -> None:  # noqa: F811
+    """§3, as the mockup: a card asking whether the Lean says the conjecture, the review's six
+    stages, and the way to open the review; none on a problem with no review."""
+    from test_review_page import PROBLEM  # noqa: PLC0415
+
+    problem = pages[PROBLEM]
+    card = re.search(r'<div class="review-card">(.*?)</ol></div>', problem, re.S)
+    assert card is not None
+    assert "Does the Lean say the conjecture?" in card.group(1)
+    assert 'href="/problems/' in card.group(1) and "/review/" in card.group(1)
+    assert '<ol class="review-progress">' in card.group(1)
+    assert problem.index('id="statement"') < problem.index('class="review-card"')
+    others = [p for rel, p in pages.items() if rel.startswith("problems/") and rel != PROBLEM]
+    assert any('class="review-card"' not in p for p in others)
