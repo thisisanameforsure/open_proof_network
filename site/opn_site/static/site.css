@@ -1607,11 +1607,17 @@ details.question-run > summary { cursor: pointer; font-family: var(--sans); font
 .mutant-variant > pre { overflow-x: auto; margin: 0; }
 @media (max-width: 760px) { .mutant-variant { display: block; } }
 
-/* F34-T21: the mockup's labels on the Docs callouts */
-.callout::before { content: "Note"; display: block; font-family: var(--sans); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--proved); margin: 0 0 2px; }
-.callout-warn::before { content: "Important"; color: var(--refuted); }
-
 /* F34-T21: §6 Record folded part by part, as the mockup */
 details.record-fold { border-bottom: 1px solid var(--rule); }
 details.record-fold > summary { cursor: pointer; padding: var(--s3) 0; }
 details.record-fold > summary h3 { display: inline; font-size: 16px; font-weight: 400; margin: 0; }
+
+/* F34-T21: the review's six stages, as the mockup's strip */
+.review-progress { list-style: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; padding: 0; margin: var(--s5) 0; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); font-family: var(--sans); }
+.review-progress li { padding: var(--s3) var(--s4); border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
+.review-progress li:last-child { border-right: 0; }
+.review-progress li strong { font-size: 14px; font-weight: 500; color: var(--ink); }
+.review-progress .rp-n { font-size: 11.5px; }
+.review-progress li.rp-now { box-shadow: inset 0 -2px 0 var(--ink); }
+.review-progress li.rp-later strong { color: var(--muted); }
+@media (max-width: 760px) { .review-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); } .review-progress li { border-bottom: 1px solid var(--rule); } }
