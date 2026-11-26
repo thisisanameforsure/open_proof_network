@@ -861,10 +861,33 @@
   var outline = document.querySelector("ol.route-outline");
   var phone = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
   var panelHome = panels.length ? panels[0].parentNode : null;
+  // F34-T24 (R15): proved siblings folded into one box naming how many it holds; it opens in place.
+  var foldOpen = {};
   function outlineFollows(view) {
     if (!outline || !layouts || !layouts[view]) { return; }
-    var lay = layouts[view];
-    slice(outline.children).forEach(function (li) { li.hidden = !nodeIn(lay, li.getAttribute("data-node")); });
+    var lay = layouts[view], inView = {};
+    slice(outline.children).forEach(function (li) {
+      var id = li.getAttribute("data-node");
+      if (!id) { return; }
+      var fold = li.getAttribute("data-in-fold");
+      var on = nodeIn(lay, id);
+      if (on && fold !== null) { inView[fold] = true; }
+      li.hidden = !on || (fold !== null && !foldOpen[fold]);
+    });
+    slice(outline.querySelectorAll("li.fold")).forEach(function (li) {
+      li.hidden = !inView[li.getAttribute("data-fold")];
+    });
+  }
+  if (outline) {
+    slice(outline.querySelectorAll("li.fold > .fold-box")).forEach(function (b) {
+      b.hidden = false;
+      b.addEventListener("click", function () {
+        var k = b.parentNode.getAttribute("data-fold");
+        foldOpen[k] = !foldOpen[k];
+        b.setAttribute("aria-expanded", foldOpen[k] ? "true" : "false");
+        outlineFollows(state.view);
+      });
+    });
   }
   function putBack() {
     panels.forEach(function (p) { if (p.parentNode !== panelHome && panelHome) { panelHome.appendChild(p); } });

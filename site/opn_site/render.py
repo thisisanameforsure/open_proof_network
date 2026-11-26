@@ -1185,6 +1185,38 @@ def topic_of(record: dict[str, Any] | None) -> str:
     return str(domains[0]) if domains else "other"
 
 
+def outline_folds(rows: list[tuple[str, int]], proved: set[str]) -> list[tuple[int, int]]:
+    """F34-T24 (R15): the folds of an outline, as row ranges [start, end) — each a run of
+    sibling statements whose subtrees are entirely proved, holding at least two statements. The
+    root (row 0) is never folded; a sibling not entirely proved is looked into."""
+    folds: list[tuple[int, int]] = []
+
+    def end(i: int) -> int:
+        j = i + 1
+        while j < len(rows) and rows[j][1] > rows[i][1]:
+            j += 1
+        return j
+
+    def walk(lo: int, hi: int) -> None:
+        run: list[int] = []  # [start, end) of the current run of proved siblings
+        i = lo
+        while i < hi:
+            j = end(i)
+            if all(rows[k][0] in proved for k in range(i, j)):
+                run = [run[0], j] if run else [i, j]
+            else:
+                if run and run[1] - run[0] >= 2:
+                    folds.append((run[0], run[1]))
+                run = []
+                walk(i + 1, j)
+            i = j
+        if run and run[1] - run[0] >= 2:
+            folds.append((run[0], run[1]))
+
+    walk(1, len(rows))
+    return sorted(folds)
+
+
 def question_groups(kinds: list[str]) -> list[tuple[int, int, str]]:
     """F34-T19: runs of one kind in a list of questions, as (first, last, kind), 1-based."""
     out: list[tuple[int, int, str]] = []
@@ -4610,14 +4642,25 @@ class Renderer:
         opens a statement's record under it. ``""`` when there is no route to outline."""
         if len(rows) < 2:
             return ""
+        rows = tuple((n, d) for n, d in rows if n in tv.nodes)
+        proved = {n for n, _d in rows if self.node_state(tv.nodes[n]) == "proved"}
+        folds = outline_folds(list(rows), proved)  # F34-T24 (R15)
+        fold_of = {i: k for k, (a, b) in enumerate(folds) for i in range(a, b)}
+        starts = {a: (k, b - a, rows[a][1]) for k, (a, b) in enumerate(folds)}
         items = []
-        for nid, depth in rows:
-            nv = tv.nodes.get(nid)
-            if nv is None:
-                continue
+        for i, (nid, depth) in enumerate(rows):
+            nv = tv.nodes[nid]
+            if i in starts:
+                k, n, d = starts[i]
+                items.append(
+                    f'<li class="fold depth-{min(d, 8)}" data-fold="{k}">'
+                    '<button type="button" class="fold-box" aria-expanded="false" hidden>'
+                    f"{n} proved statements &#9656;</button></li>"
+                )
+            in_fold = f' data-in-fold="{fold_of[i]}"' if i in fold_of else ""
             label = record_words(self.node_label(nv) or nid)
             items.append(
-                f'<li class="depth-{min(depth, 8)}" data-node="{esc(nid)}">'
+                f'<li class="depth-{min(depth, 8)}" data-node="{esc(nid)}"{in_fold}>'
                 f'<a href="{esc(self.node_path(tv.target_id, nid))}" data-node="{esc(nid)}">'
                 f"{self.dot(self.dot_state(self.node_state(nv)))}"
                 f'<span class="outline-label">{label}</span></a></li>'

@@ -1,0 +1,8 @@
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows0-proved0-folds0]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows1-proved1-folds1]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows2-proved2-folds2]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows3-proved3-folds3]
+FAILED site/tests/test_f34_folds.py::test_runs_of_proved_siblings_fold[rows4-proved4-folds4]
+FAILED site/tests/test_f34_folds.py::test_the_outline_boxes_the_proved_pair
+FAILED site/tests/test_f34_folds.py::test_the_fold_is_a_box_that_opens_in_place
+7 failed, 1 passed in 79.65s (0:01:19)
