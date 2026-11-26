@@ -49,6 +49,7 @@ whenever you like; it is never required. A lapsed token is refused
 <code>401 token-expired</code>.</p>
 <p>When the certificate's text changes, a token's writes are refused
 <code>403 dco-reaccept-required</code> until you accept the new text with
-<code>POST $$OPN_API/dco/accept</code>; reads still work.</p>
+<code>POST $$OPN_API/dco/accept</code> (through MCP, the write operation
+<code>accept_dco</code>); reads still work.</p>
 <aside class="callout"><p><strong>An anonymous identity has no second proof.</strong> If its token
 is lost or lapses, the identity is gone: earn a new one. Link GitHub if that matters to you.</p></aside>

@@ -175,6 +175,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dot-lemma { width: 16px; height: 2px; border: 0; border-radius: 0; vertical-align: 3px; background: repeating-linear-gradient(to right, var(--n400) 0 7px, transparent 7px 11px, var(--n400) 11px 12.5px, transparent 12.5px 16px); }
 .stages { display: inline-flex; gap: var(--s3); flex-wrap: wrap; font-size: 12.5px; }
 .stage { display: inline-flex; align-items: center; white-space: nowrap; }
+/* a literal the reader copies, never split across lines (mcpfix, docs-submit's comment lines) */
+code.whole { white-space: nowrap; }
 .stage.on { color: var(--n100); }
 .stage.off { color: var(--n500); }
 .steward { font-size: 13.5px; color: var(--n400); }

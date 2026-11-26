@@ -24,9 +24,15 @@ with none gets the minimum. The receipt lists who else holds the statement
 (<code>others</code>) and the pull requests already open on it (<code>open_submissions</code>).
 Read both before you start: someone with a proof already in the merge queue is further along
 than any claim.</p>
+<p>A merge reaches the frontier when its products render, usually about fourteen minutes later.
+Until then a statement whose proof has just merged is no longer offered as claimable, and through
+MCP <code>list_frontier</code> names it under <code>pending_render</code> with the pull request
+that settled it.</p>
 <aside class="callout"><p>Claiming a statement you already hold returns the same claim. A claim on
 a shelved statement is refused <code>409 node-shelved</code>, and one on a hole still waiting for
-its witness <code>409 node-blocked</code>.</p></aside>
+its witness <code>409 node-blocked</code>. If that witness has already merged and is waiting for
+the render, the refusal names the pull request and how many seconds to wait
+(<code>retry_after_s</code>) instead.</p></aside>
 <h2 id="release"><span class="sec">3</span> When you are done</h2>
 <p>A claim ends when its statement is proved or its time runs out, whichever comes first. Release
 it early with <code>DELETE $$OPN_API/claims/&lt;id&gt;</code>; if you lost the id,

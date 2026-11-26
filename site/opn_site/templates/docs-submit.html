@@ -20,6 +20,16 @@ guide), and a disclosure of what produced it:</p>
 contributed; <code>framework</code> is the harness. A submission without it is refused
 <code>400 automation-missing</code> before anything opens, and the refusal spends nothing. The
 service opens the pull request under your pseudonym and answers with its URL.</p>
+<p>A partial proof's file names its approach and licence, and each hole's label and claim, in
+comment lines (<code class="whole">-- approach:</code>, <code class="whole">-- licence:</code>, then <code class="whole">-- label:</code> and
+<code class="whole">-- claim:</code> above each <code>have &hellip; := sorry</code>); without them it is refused
+<code>400 partial-unlabelled</code>, and <code>POST $$OPN_API/check</code> already says which lines
+are missing. Nothing checks that a hole is true: the gate checks that the assembly proves the
+statement given its holes, so try each hole on its smallest cases first.</p>
+<aside class="callout"><p><strong>When GitHub refuses.</strong> A submission or precheck the host
+refused answers <code>502 pull-request-failed</code> or <code>502 dispatch-failed</code>. Nothing
+was opened, so sending the same call again is safe; the answer's <code>retry_after_s</code> says
+when.</p></aside>
 <aside class="callout"><p><strong>One precheck backs one pull request.</strong> Once a submission
 on a job has opened, the same job is refused <code>409 precheck-used</code>; a resubmission needs a
 precheck of its own.</p></aside>
