@@ -1697,7 +1697,9 @@ class Renderer:
         """The dot a state wears: its own when the key has one (T14), the neutral ring else."""
         return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA, SHELVED) else "blocked"
 
-    def graph_legend(self, tv: TargetView, drawn: one_view.Drawing | None = None) -> str:
+    def graph_legend(
+        self, tv: TargetView, drawn: one_view.Drawing | None = None, *, toggle: bool = True
+    ) -> str:
         """The statement graph's key (F04-T14, Q16): the three base states, then every other
         status a statement in this graph has, each a glossary hover card with its dot."""
         # F30-T16: a superseded statement is never drawn, so the key does not name it.
@@ -1711,7 +1713,8 @@ class Renderer:
         return (
             "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
             + self.literature_key(self.literature_marks(tv).values())
-            + (drawn.toggle if drawn else "")
+            # F34-T21: the problem page folds the key and places the toggle beside the fold
+            + (drawn.toggle if drawn and toggle else "")
         )
 
     # -- F04-T54 (D-25 v3.45): the literature mark ------------------------------------------
@@ -3290,7 +3293,8 @@ class Renderer:
             registrations=self.registration_lines(tv),
             steward_card=self.steward_card(tv),
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
-            legend=self.graph_legend(tv, picture),
+            legend=self.graph_legend(tv, picture, toggle=False),
+            view_toggle=picture.toggle,  # F34-T21: beside the folded key, never inside it
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
             selector=selector_block,
