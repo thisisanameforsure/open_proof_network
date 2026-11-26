@@ -45,3 +45,11 @@ On the live graph (graph main 4ee982bf75, rendered locally by this branch, 3092 
   an offered statement keeps its button: True
   Facts on erdos-1094--h2--h1--h1--h1:  status ◌ strictly harder
   Screenshot: task-15-node-1440.png
+
+Live 2026-11-27
+  network PR #125 merged as 350fa6a3 (fast and harness tiers green; site-only change), site-deploy
+  run 45909301730 green. Live:
+    /problems/erdos-1094/                       "Open for work: 18 statements are open", 18 work buttons
+    /problems/ erdos-1094 row                   data-open="18"
+    /nodes/erdos-1094/erdos-1094--h2--h1--h1--h1/  status "strictly harder", "Not offered: every route
+                                                through this statement is ...", no "Work on this statement"
