@@ -1,0 +1,9 @@
+../../../.cache/uv/archive-v0/-3-oUiRHVn01H8wb/lib/python3.13/site-packages/playwright/_impl/_connection.py:559: TimeoutError
+=========================== short test summary info ============================
+FAILED site/tests/test_f34_your_turn.py::test_the_review_page_carries_one_hidden_slot
+FAILED site/tests/test_f34_your_turn.py::test_the_intent_signer_sees_whose_turn_it_is
+FAILED site/tests/test_f34_your_turn.py::test_one_question_is_singular - play...
+FAILED site/tests/test_f34_your_turn.py::test_anyone_else_sees_nothing[signed-out]
+FAILED site/tests/test_f34_your_turn.py::test_anyone_else_sees_nothing[not-the-signer]
+FAILED site/tests/test_f34_your_turn.py::test_anyone_else_sees_nothing[waiting-elsewhere]
+6 failed in 162.31s (0:02:42)

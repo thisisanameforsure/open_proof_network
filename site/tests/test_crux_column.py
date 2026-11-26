@@ -94,7 +94,7 @@ def test_the_column_sits_beside_the_selector(tmp_path: Path) -> None:
 
     page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
     assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
-    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    group = re.search(r'<div class="off-group"[^>]*>(.*?)</div><!-- /off-group -->', page, re.S)
     assert group is not None and f'data-node="{CRUX}"' in group.group(1)
     assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 
@@ -160,7 +160,7 @@ def test_a_pinned_spec_is_marked_and_clears_on_a_click_elsewhere_or_escape(tmp_p
 
     page = render_tree(band_tree(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
     assert 'class="band-wrap"' not in page and '<svg class="dag band"' not in page
-    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', page, re.S)
+    group = re.search(r'<div class="off-group"[^>]*>(.*?)</div><!-- /off-group -->', page, re.S)
     assert group is not None and f'data-node="{CRUX}"' in group.group(1)
     assert f'href="/nodes/{TARGET}/{CRUX}/"' in group.group(1)
 

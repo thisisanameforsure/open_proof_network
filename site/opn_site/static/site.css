@@ -1008,6 +1008,9 @@ table.review-candidates, table.review-tests, table.review-screens, table.review-
 .answer { border-left: 2px solid var(--speculative); padding-left: var(--s4); margin: var(--s2) 0; }
 .answer-text { margin: var(--s2) 0; font-style: italic; overflow-wrap: anywhere; }
 .flag-inline { color: var(--warn); font-weight: 600; }
+/* F34-T28: "Your turn" on the review page, for the signed-in intent signer */
+.your-turn { border-left: 3px solid var(--ink); padding: 4px 0 4px 16px; margin: var(--s4) 0; font-size: 17px; }
+.your-turn strong { font-family: var(--sans); font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; margin-right: 8px; }
 p.waiting { color: var(--warn); }  /* the review page's "Waiting for the intent signer"; never the Problems table (F34-T21) */
 .review-answer-ctl { display: flex; flex-direction: column; gap: var(--s3); margin: var(--s4) 0; }
 .review-answer textarea.input { width: 100%; max-width: 100%; min-height: 96px; resize: vertical; }
@@ -1249,6 +1252,16 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dag .lit-mark rect { fill: none; stroke: var(--lit); stroke-width: 1.5; }
 .dag .lit-mark.proposed rect { stroke-dasharray: 2 1.5; }
 .dag .lit-mark.confirmed rect { fill: var(--lit); }
+/* F34-T27: "+ n speculative ↓" on a pill, pointing to its group in §2 */
+.dag .spec-chip { cursor: pointer; }
+.dag .spec-chip rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 1.5 2; }
+.dag .spec-chip text { font-family: var(--sans); font-size: 11px; fill: var(--muted); }
+/* an SVG child cannot undo its link's underline: on a pill with a chip, the label alone carries it */
+.dag a:has(.spec-chip) { text-decoration: none; }
+.dag a:has(.spec-chip) g.node > text { text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
+.route-outline > li > a.spec-more { display: inline-block; min-height: 0; margin: 0 0 6px 30px; padding: 2px 7px; font-family: var(--sans); font-size: 12.5px; color: var(--muted); border: 1px dotted var(--rule-strong); border-radius: 4px; text-decoration: none; }
+.dag .spec-chip:hover rect { stroke: var(--ink); }
+.off-group { scroll-margin-top: 16px; }
 .lit-badge { display: inline-block; width: 8px; height: 8px; border-radius: 1.5px; border: 1.5px solid var(--lit); vertical-align: 0; margin-left: var(--s2); flex: none; }
 .lit-badge.proposed { border-style: dashed; }
 .lit-badge.confirmed { background: var(--lit); }

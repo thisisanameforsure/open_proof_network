@@ -1,0 +1,26 @@
+F34-T27 — "+ n speculative ↓" (handoff §3.4.2), 2026-11-26
+
+What: with the speculative column gone from §1 (Q26), nothing in the drawing said a statement had
+proposals waiting. Each "Proposed for X" group in §2 now has an anchor (proposed-for-<X>); X's pill
+carries a dotted chip "+ n speculative ↓" (n = the statements the group lists), drawn inside the
+pill's own <g> so it moves with the pill through every transition; the phone outline carries the
+same words as a link under X's row. A click scrolls to the group; the hash and the view stay.
+
+Red first (task-27-red.txt): the anchor/chip test and the browser click test failed on the
+missing anchor and chip; the outline test failed on the missing link. Green:
+  uv run --frozen --with 'playwright==1.58.0' python -m pytest site/tests/test_f34_speculative_chips.py
+  -> 4 passed
+Restated, not deleted: four older tests matched '<div class="off-group">' exactly
+(test_crux_band, test_crux_column, test_proposed_for_site, test_f34_not_on_route); they match the
+group with its anchor now.
+Site fast suite: 1041 passed, 50 skipped. ruff and mypy clean.
+
+Live graph (c1bef1f19c) rendered by this tree (shoot_chips.py, output in task-27-live.txt):
+  12 chips on 5 problems; erdos-257 has 4.
+  1440: chip on erdos-257's root, click -> view sel/proves/erdos-257@1 unchanged, hash unchanged,
+        the group's top at 16px.  Captures task-27-chip-1440.png, task-27-after-click-1440.png.
+  390:  the outline row's link, click -> hash unchanged, group at 16px, scrollWidth 390.
+        Captures task-27-outline-390.png, task-27-after-click-390.png.
+Seen in the captures and fixed before commit: the chip's words inherited the pill link's
+underline (an SVG child cannot undo it; the link with a chip drops it and its label carries it),
+and the outline's 44px link rule stretched the phone chip.

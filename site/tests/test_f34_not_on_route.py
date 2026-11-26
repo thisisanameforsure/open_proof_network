@@ -95,7 +95,7 @@ def test_a_proposed_group_is_drawn_as_a_small_tree(tmp_path: Path) -> None:
     page = render_tree(root)[PAGE]
     body = section(page)
     assert body is not None
-    group = re.search(r'<div class="off-group">(.*?)</div><!-- /off-group -->', body, re.S)
+    group = re.search(r'<div class="off-group"[^>]*>(.*?)</div><!-- /off-group -->', body, re.S)
     assert group is not None
     tree = re.search(r'<svg class="dag mini-tree"[^>]*>(.*?)</svg>', group.group(1), re.S)
     assert tree is not None

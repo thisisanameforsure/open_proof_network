@@ -169,6 +169,27 @@
   // decision for a role: the intent role when the login holds it, else the independent one, and
   // either may be chosen, since the service decides (F26-R9) and its refusal is set as text.
   // Accept and split name a cluster; a send-back names no cluster and may name a question.
+  // F34-T28: the review page's "Your turn" note. GET /session names the questions waiting for
+  // this login as a review's intent signer (F26-T11); the note shows only when one of them is
+  // this page's, and says how many. Anyone else, or no session, leaves the slot hidden and empty.
+  var turn = document.querySelector("[data-your-turn]");
+  if (turn) {
+    session.then(function (s) {
+      if (!s.signed_in) { return; }
+      var here = turn.getAttribute("data-your-turn");
+      var mine = (Array.isArray(s.reviews) ? s.reviews : []).filter(function (r) {
+        return r && r.target === here;
+      });
+      if (!mine.length) { return; }
+      var n = mine.length;
+      turn.appendChild(el("strong", {}, "Your turn"));
+      turn.appendChild(document.createTextNode(
+        " " + (n === 1 ? "1 question waits" : String(n) + " questions wait") +
+        " for you below. Each answer, signed in your name, becomes an intent test."));
+      turn.hidden = false;
+    }).catch(function () { /* no session: no note */ });
+  }
+
   var signSlot = document.querySelector(".review-sign-ctl[data-review-sign]");
   if (signSlot) {
     var parse = function (name, fallback) {
