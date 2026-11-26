@@ -1,0 +1,47 @@
+F27-T15 — the site invites work only on what the frontier offers (R14, D-25 v3.52)
+2026-11-27, branch f27-t15-site-workable
+
+Found on the live erdos-1094 page after T14 (task-14.txt): the frontier went 69 → 18 entries, but
+the header still said "69 statements open", the Problems list sorted by 69, and every strictly
+harder open statement's panel and node page said "Work on this statement →" — a claim the service
+answers 409 node-dominated. F04-T17's test holds the site's workable set to the frontier's, but only
+on fixtures with no strictly harder route, so it stayed green.
+
+Fix
+  site/opn_site/model.py   NodeView.harder, set by the loader from the gate's routes.dominated(graph)
+                           (the function the frontier uses); derived at every build, never recorded.
+  site/opn_site/render.py  node_state reads HARDER ("strictly harder") for a statement the site would
+                           otherwise call open or needs-a-witness, as a shelved one reads "shelved";
+                           a proved one stays proved. So open_count, the panel's action, the row's
+                           action and the node page's Work section leave it out, and the Work section
+                           says why: "Not offered: every route through this statement is strictly
+                           harder than another, so a claim on it is refused. A proof of it is still
+                           accepted."
+
+Red first
+  site/tests/test_one_view_dominated.py::test_the_sites_workable_statements_are_still_the_frontiers
+  (harder_tree: two_routes with h3 proved, so [h1, h2] is strictly harder)
+  before the fix:
+    E  AssertionError: assert {'and-reassoc...ial-and-swap'} == set()
+  The test first compared against claimable entries; this fixture's target is not claimable itself
+  (no intake record), so every entry reads claimable: false and the comparison could never hold.
+  Restated to frontier membership (what the frontier lists is what it offers), which is F04-T17's
+  set.
+  Mutation (loader passes harder=False, the fix otherwise in place):
+    E  Extra items in the left set: 'and-swap-reassoc--h2', 'and-swap-reassoc--h1'
+  i.e. the test fails on exactly the two strictly harder holes.
+
+  uv run --frozen pytest site/tests/test_one_view_dominated.py site/tests/test_finding_needs_witness.py
+    17 passed, 1 skipped (the Playwright test; run separately with playwright)
+  make lint: 0; make types: Success: no issues found in 158 source files
+
+On the live graph (graph main 4ee982bf75, rendered locally by this branch, 3092 pages)
+  erdos-1094 header        "18 statements open"   (live site before the fix: 69)
+  Problems list data-open  18
+  frontier erdos-1094      18 entries
+  all 458 targets          site open count == frontier entries for that target: 0 mismatches
+  the 51 open strictly harder statements: 0 node pages with "Work on this statement",
+                                          51 with "Not offered: every route ..."
+  an offered statement keeps its button: True
+  Facts on erdos-1094--h2--h1--h1--h1:  status ◌ strictly harder
+  Screenshot: task-15-node-1440.png

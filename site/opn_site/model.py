@@ -26,6 +26,7 @@ from opn_gate import (
     literature,
     paths,
     records,
+    routes,
     schemas,
     sections,
     signed,
@@ -548,6 +549,10 @@ class NodeView:
     literature_proposed: LiteratureView | None = None
     #: F20-T8 (R13): a variant's ``Relation.lean``, shown with its gloss.
     relation: LeanFile | None = None
+    #: F27-T15 (R14, D-25 v3.52): only strictly harder routes reach the statement, so the
+    #: frontier does not offer it and the site does not invite work on it. Derived from the
+    #: target's ``graph.json`` by the gate's own ``routes.dominated``; never recorded.
+    harder: bool = False
 
     @property
     def status(self) -> str:
@@ -1063,7 +1068,9 @@ def _partials_for(
     return tuple(views)
 
 
-def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
+def load_node(
+    root: Path, target_id: str, entry: dict[str, Any], *, harder: bool = False
+) -> NodeView:
     node_id = str(entry["node_id"])
     node_dir = layout.graph_nodes_dir(root, target_id) / node_id
     loaded = layout.load_node(node_dir, target_id)
@@ -1131,6 +1138,7 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         supersedes=str(predecessor) if predecessor else None,
         literature=_literature_for(root, node_dir, entry.get("literature")),
         literature_proposed=_literature_for(root, node_dir, entry.get("literature_proposed")),
+        harder=harder,
     )
 
 
@@ -1596,7 +1604,11 @@ def load_site(root: Path, commit: str) -> Site:
         )
         spec = schemas.load_json(layout.gate_spec_path(root, target_id), "gate-spec/v1")
         _check_graph_rows(target_id, graph)
-        nodes = {str(e["node_id"]): load_node(root, target_id, e) for e in graph["nodes"]}
+        harder = routes.dominated(graph).statements  # F27-T15: what the frontier leaves off
+        nodes = {
+            str(e["node_id"]): load_node(root, target_id, e, harder=str(e["node_id"]) in harder)
+            for e in graph["nodes"]
+        }
         approaches_dir = target_dir / "approaches"
         approaches = (
             tuple(
