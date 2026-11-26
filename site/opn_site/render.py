@@ -2715,33 +2715,84 @@ class Renderer:
 
     # -- F23-T9: /me/ (R13) ---------------------------------------------------------------------
 
-    def waiting(self, tv: TargetView) -> list[tuple[str, str, str, str]]:
-        """R13: the sections of a problem's words that wait for a steward's or curator's
-        approval — each shown section not yet final and each edit awaiting review, under
-        ``glosses/v2``; under v1, each shown version no one has signed — as (page, what,
-        section, state), from the products the problem pages are rendered from."""
-        found: list[tuple[str, str, str, str]] = []
+    def waiting_groups(self, tv: TargetView) -> list[dict[str, Any]]:
+        """F34-T19 (R20), replacing R13's flat list: what waits for a steward on one problem, by
+        statement — each group its
+        page, its label, the rows ``waiting`` lists for it, and the approvals that clear it as
+        ``POST /approvals`` takes them, one per (kind, version) with its sections (``None``: a
+        whole version, under ``glosses/v1``). Most waiting first."""
+        by: dict[str, dict[str, Any]] = {}
         for subject in tv.subjects:
-            href = (
-                self.node_path(tv.target_id, subject.node)
-                if subject.node
-                else self.target_path(tv.target_id)
+            node = subject.node or ""
+            href = self.node_path(tv.target_id, node) if node else self.target_path(tv.target_id)
+            label = node or subject.module or tv.target_id
+            group = by.setdefault(
+                f"{node}|{subject.module or ''}",
+                {"node": node, "href": href, "label": label, "rows": [], "approvals": {}},
             )
-            what = (
-                f"{subject.node or subject.module or tv.target_id} · "
-                f"{subject.record} of the {subject.kind}"
-            )
+            what = f"{subject.record} of the {subject.kind}"
             for chain in subject.chains:
-                if chain.sectioned:
-                    found.extend(
-                        (href, what, p.key, p.state) for p in chain.shown if p.state != "verified"
-                    )
-                    found.extend((href, what, p.key, "pending") for p in chain.pending)
-                    continue
+                # Exactly what the statement's pages offer to approve (approve_slot): never words
+                # that describe since-changed Lean; for a gloss, its first shown section, as the
+                # gloss block carries; every section of an explainer; every edit awaiting review.
+                items: list[tuple[str, str, str]] = [
+                    (p.version, p.key, "pending") for p in chain.pending
+                ]
                 v = chain.words() if subject.record == "gloss" else chain.current_version
-                if v is not None and v.describes_current is not False and not v.signers:
-                    found.append((href, what, "", "written"))
-        return found
+                if v is None or v.describes_current is False:
+                    pass
+                elif chain.sectioned:
+                    shown = chain.shown[:1] if subject.record == "gloss" else chain.shown
+                    items[:0] = [
+                        (p.version, p.key, p.state) for p in shown if p.state != "verified"
+                    ]
+                elif not v.signers:
+                    items.insert(0, (v.hash, "", "written"))
+                for version, key, state in items:
+                    group["rows"].append((what, key, state))
+                    sections = group["approvals"].setdefault((subject.record, version), [])
+                    if key:
+                        sections.append(key)
+        out = []
+        for group in by.values():
+            if not group["rows"]:
+                continue
+            group["approvals"] = [
+                {"kind": kind, "version": version, "sections": sorted(set(keys)) or None}
+                for (kind, version), keys in group["approvals"].items()
+            ]
+            out.append(group)
+        out.sort(key=lambda g: (-len(g["rows"]), g["label"]))
+        return out
+
+    def waiting_block(self, tv: TargetView) -> str:
+        """F34-T19 (R20): the problem's waiting words on My problems, one section per statement
+        with how many wait and, as data, the approvals "Approve all" sends; hidden until me.js
+        shows it to a steward of the problem or a curator. ``""`` when nothing waits."""
+        groups = self.waiting_groups(tv)
+        if not groups:
+            return ""
+        parts = []
+        for g in groups:
+            n = len(g["rows"])
+            rows = "".join(
+                f"<li>{esc(what)}"
+                + (f" · <code>{esc(key)}</code>" if key else "")
+                + f" · {esc(WORDS_STATE_WORD.get(state, 'Pending'))}</li>"
+                for what, key, state in g["rows"]
+            )
+            approvals = json.dumps(g["approvals"], separators=(",", ":"))
+            parts.append(
+                f'<section class="waiting-statement" data-node="{esc(g["node"])}" '
+                f'data-approvals="{esc(approvals)}">'
+                f'<h4><a href="{esc(g["href"])}">{esc(g["label"])}</a> '
+                f'<span class="waiting-count">{n} section{"" if n == 1 else "s"} waiting</span>'
+                f"</h4><details><summary>Which</summary><ul>{rows}</ul></details></section>"
+            )
+        return (
+            f'<div class="waiting" data-target="{esc(tv.target_id)}" hidden>{"".join(parts)}'
+            "</div><!-- /waiting -->"
+        )
 
     def literature_waiting(self, tv: TargetView) -> str:
         """F04-T38 (D-25, D-32 v3.35): the target's unconfirmed literature records, one row per
@@ -2877,15 +2928,8 @@ class Renderer:
         open pull requests and Step down, once the service answers (R15). F04-T38: each
         problem's unconfirmed literature records are in it too, hidden the same way."""
         lists = []
-        for tid, tv in sorted(self.site.targets.items()):
-            rows = "".join(
-                f'<li><a href="{esc(href)}">{esc(what)}</a>'
-                + (f" · <code>{esc(key)}</code>" if key else "")
-                + f" · {esc(WORDS_STATE_WORD.get(state, 'Pending'))}</li>"
-                for href, what, key, state in self.waiting(tv)
-            )
-            if rows:
-                lists.append(f'<ul class="waiting" data-target="{esc(tid)}" hidden>{rows}</ul>')
+        for _tid, tv in sorted(self.site.targets.items()):
+            lists.append(self.waiting_block(tv))  # F34-T19 (R20): by statement
             lists.append(self.literature_waiting(tv))
         body = (
             '<section class="page-head"><div><h1>My problems</h1>'

@@ -95,6 +95,48 @@
     sec.appendChild(form);
   }
 
+  function approveAll(sec, target) {
+    var approvals;
+    try { approvals = JSON.parse(sec.getAttribute("data-approvals") || "[]"); } catch (e) { return; }
+    if (!approvals.length) { return; }
+    var count = sec.querySelector(".waiting-count");
+    var b = el("button", { type: "button", "class": "btn btn-ghost btn-small" },
+      "Approve all" + (count ? " " + count.textContent.split(" ")[0] : ""));
+    var out = el("span", { "class": "form-error", role: "alert" });
+    var node = sec.getAttribute("data-node") || null;
+    var filed = [], at = 0;  // a retry resumes at the approval that failed, never re-sends one
+    b.addEventListener("click", function () {
+      b.disabled = true;
+      out.textContent = "";
+      var step = function (i) {
+        at = i;
+        if (i >= approvals.length) {
+          b.parentNode.removeChild(b);
+          var p = el("p", { "class": "receipt" }, "Approved: ");
+          filed.forEach(function (d, k) {
+            if (k) { p.appendChild(document.createTextNode(", ")); }
+            if (d && typeof d.pr_url === "string" && d.pr_url.indexOf(pulls) === 0) {
+              p.appendChild(el("a", { href: d.pr_url }, "#" + String(d.pr_number)));
+            }
+          });
+          sec.appendChild(p);
+          return;
+        }
+        var a = approvals[i];
+        O.call("POST", "/approvals", {
+          target: target, node: node, kind: a.kind, version: a.version, sections: a.sections
+        }).then(function (r) {
+          if (r.status === 201) { filed.push(r.data); step(i + 1); return; }
+          out.textContent = O.errorText(r);
+          b.disabled = false;
+        }, function () { out.textContent = O.errorText(null); b.disabled = false; });
+      };
+      step(at);
+    });
+    sec.querySelector("h4").appendChild(b);
+    sec.appendChild(out);
+  }
+
   // F04-T54: Confirm is literature.js's (one function for /me/ and the node's page).
   var confirmButton = O.literature && O.literature.confirmButton;
 
@@ -125,6 +167,11 @@
       if (waiting) {
         waiting.hidden = false;
         mine.appendChild(waiting);
+        // F34-T19 (R20): each statement's waiting words approved in one act — one
+        // POST /approvals per version, carrying its sections, in turn.
+        Array.prototype.forEach.call(waiting.querySelectorAll(".waiting-statement"), function (sec) {
+          approveAll(sec, target);
+        });
       } else {
         mine.appendChild(el("p", { "class": "cue" }, "Nothing waits for your approval."));
       }
