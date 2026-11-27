@@ -1,0 +1,13 @@
+F34-T45 — §4 names each steward once (REMINDERS-erdos-257 item 20; handoff §3.4.1 item 7), 2026-11-27
+
+On erdos-257 each steward was named three times in §4: the steward card (its names line, then a
+sentence naming them again by login and date), the list beside it, and the panel's member list.
+Now the list is the one place: name, how they were admitted, login, the day they committed. The
+card keeps what a steward commits to and how to join, and names nobody; the panel box lists each
+member's login and last act, then its motions.
+
+Red (task-45-red.txt): the fixture steward's name 3 times in §4; the panel box repeated it. Green
+(task-45-green.txt, with test_steward_labels): 7 passed. Restated: test_steward_labels checked the
+admission labels in the card and the list; the list carries them now and the card names nobody.
+Full site suite with browser tests: green but the three known reds on main.
+Captures (live graph rendered by this tree): task-45-people-1440.png, task-45-people-390.png.
