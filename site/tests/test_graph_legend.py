@@ -108,7 +108,8 @@ def test_every_status_the_gate_can_derive_has_a_key_entry() -> None:
 
 def test_the_selected_statement_panel_wears_its_own_dot(tmp_path: Path) -> None:
     html = page(tmp_path, {ROOT: "stale"})
-    panel = re.search(rf'<div class="card panel" data-node="{ROOT}".*?</div>', html, re.S)
+    # F34-T34: the panel's header is a div of its own, so read to the facts list
+    panel = re.search(rf'<div class="card panel" data-node="{ROOT}".*?</dl>', html, re.S)
     assert panel is not None
     assert '<dd><span class="dot dot-stale"></span>stale</dd>' in panel.group(0)
 

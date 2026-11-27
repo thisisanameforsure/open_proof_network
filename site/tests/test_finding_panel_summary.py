@@ -35,8 +35,9 @@ BASELINE = json.loads(
 #: Visible words (outside closed details) on today's panel, measured on this tree before the
 #: change (task-48.txt): root 345, first hole 181, second hole 104. The budget is half, plus
 #: the four words of the heading line F29-T5 (R9) added: the id beneath the label and the
-#: "Rename or correct" link to the gloss's controls.
-BUDGET = {sf.ROOT: 176, sf.H1: 94, sf.H2: 56}
+#: "Rename or correct" link to the gloss's controls. F34-T34 (REMINDERS item 13): plus two for the
+#: dark header's "Selected in Figure 1", which replaced the two-word "Selected statement".
+BUDGET = {sf.ROOT: 178, sf.H1: 96, sf.H2: 58}
 SECTIONS = ("claim", "how", "known", "work")
 
 

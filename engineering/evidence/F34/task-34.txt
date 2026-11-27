@@ -1,0 +1,12 @@
+F34-T34 — the panel's dark header (REMINDERS-erdos-257 item 13; mockup New-Select-Side), 2026-11-27
+
+The light "Selected statement" label is replaced by a dark band across the card's top: "Selected in
+Figure 1" in small caps, then the path from the problem to the selection (T16's panel_path) with
+its last step bold, as the mockup draws it.
+
+Red (task-34-red.txt): 2 failed. Green (task-34-green.txt, with the restated tests and the golden):
+61 passed. Restated, not deleted: test_graph_legend's panel regex read to the first </div>, which is
+now the header's own (it reads to the facts list); test_finding_panel_summary's word budget gains
+the header's two extra words, the way F29-T5 raised it for the id line. Golden regenerated.
+Seen in the capture and fixed: the header shrank to its text (the panel aligns children to the
+start); it stretches now. Captures: task-34-panel-1440.png, task-34-panel-390.png.

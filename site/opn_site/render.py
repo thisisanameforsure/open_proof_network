@@ -4924,10 +4924,12 @@ class Renderer:
         """F34-T16 (R16): the statement and its path from the problem's own statement, as words
         and as data (the ids along it, which graph.js draws heavier)."""
         path = self.path_from_root(tv, nv.node_id)
-        words = " &rsaquo; ".join(
+        steps = [
             record_words(self.node_label(tv.nodes[n]) or n) if n in tv.nodes else esc(n)
             for n in path
-        )
+        ]
+        steps[-1] = f"<strong>{steps[-1]}</strong>"  # F34-T34: the selection itself, bold
+        words = " &rsaquo; ".join(steps)
         return f'<p class="panel-path cue" data-path="{esc(" ".join(path))}">{words}</p>'
 
     @staticmethod

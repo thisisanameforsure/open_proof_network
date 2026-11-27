@@ -27,3 +27,5 @@ Each item below: what changed, the commit, and whether it is deployed.
       selector and "Figure 1 · the selected route" above the drawing, kept current on every change.
       The whole selector now fits at 1440. Items 6 (opening route) and 7 (fold): 6 already met;
       7's single proved box is left unfolded under your Q28 rule (folds need two) — your call.
+03:35 F34-T34 — item 13: the panel opens with a dark "Selected in Figure 1" header and the path to
+      the statement, its last step bold. Committed.
