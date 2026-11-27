@@ -4393,13 +4393,13 @@ class Renderer:
                 "",
             )
         elif stewards:
-            names = ", ".join(self.steward_named(tv, s) for s in stewards)
-            since = ", ".join(
-                f"{esc(str(s['login']))} since {esc(str(s['since']))}" for s in stewards
-            )
+            # F34-T45 (REMINDERS item 20): the stewards are named once, in the list beside this
+            # card with how they were admitted and the day they committed; the card says what a
+            # steward commits to and how to join
+            names = ""
             words = (
                 "Committed to understand and write up whatever the network produces here, and "
-                f"to sign the explainer of the proof that closes it. {since}."
+                "to sign the explainer of the proof that closes it."
             )
             button = self.co_steward_cue(tv)
         elif tv.calibration:
@@ -4428,7 +4428,8 @@ class Renderer:
             button = self.become_button(tv)
         return (
             '<aside class="card steward-card"><span class="kicker">Steward</span>'
-            f'<span class="names">{names}</span><p>{words}</p>{button}</aside>'
+            + (f'<span class="names">{names}</span>' if names else "")
+            + f"<p>{words}</p>{button}</aside>"
         )
 
     def revision_note(self, tid: str, nv: NodeView, *, in_page: bool) -> str:
@@ -5467,9 +5468,8 @@ class Renderer:
                 '<p class="cue">The problem&rsquo;s stewards who have not lapsed. They decide '
                 f"together by motions, under {rules}.</p>"
             )
-            rows = "".join(
+            rows = "".join(  # F34-T45: a member by login and last act; named once, above
                 "<li>"
-                + (self.steward_link(by_login[m]) + " " if m in by_login else "")
                 + f"<code>{esc(m)}</code>"
                 + (
                     f" · last act {esc(by_login[m]['last_act'])}"

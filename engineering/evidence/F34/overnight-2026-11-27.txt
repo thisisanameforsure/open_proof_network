@@ -34,8 +34,10 @@ LIVE (merged and deployed with site-deploy.yml):
   06:53  PR #133  T43 item 17: §2's trees dotted with serif labels, the tree is the list, an unnamed
                   statement's id in mono (item 19 was already built by T18)
 
-COMMITTED, DEPLOYING NEXT:
-  06:58  T44 item 18: §2 headings 'For "every other infinite set (what is left)" (Route 2)'.
+  07:3x  PR #134  T44 item 18: §2 headings 'For "every other infinite set (what is left)" (Route 2)'
+                  (and this log's times corrected)
+  then   T45 item 20: §4 names each steward once (the list); the card names nobody; the panel box
+                  lists logins, last acts and motions — its PR and deploy are in task-45.txt's commit
 
 FOR YOU:
   * Item 9 not built, on purpose: the mockup's List (route cards: Draw · Statements · Retire) replaces
@@ -44,7 +46,7 @@ FOR YOU:
   * Item 7 held by your Q28 rule: erdos-257 Route 1's single proved statement is not folded (folds
     need two); "1 proved · show" would hide it and save nothing.
   * Item 8: tested signed in as a steward on a fake service; please check Retire on erdos-257 signed in.
-  * Item 20 (stewards named once) and item 18's "note where a member is also used elsewhere": not done.
+  * Item 18's "note where a member is also used elsewhere": not done.
   * Item 23's limit: the route selector's ends sit 26px apart and must fit a phone, so their hit areas
     are as big as their columns (~16px on erdos-257's phone selector), not 44px.
   * Noticed, not changed: box widths are still sized for the old mono labels (wider than needed);

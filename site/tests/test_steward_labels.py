@@ -113,9 +113,11 @@ def test_v2_labels_on_the_problem_page(pages: dict[str, str]) -> None:
     card = page[page.index('<aside class="card steward-card">') :]
     card = card[: card.index("</aside>")]
     section = page[page.index('<h3 id="steward">Steward</h3>') :]  # F34-T11
-    for where in (card, section):
-        assert label_after(where, "Self Steward") == "self-admitted"
-        assert label_after(where, "Reviewed Steward") == f"admitted by {CURATOR}"
+    # F34-T45 (REMINDERS item 20): a steward is named once, in the list with their label; the
+    # card says what a steward commits to and names nobody
+    assert "Self Steward" not in card and "Reviewed Steward" not in card
+    assert label_after(section, "Self Steward") == "self-admitted"
+    assert label_after(section, "Reviewed Steward") == f"admitted by {CURATOR}"
 
 
 def test_v1_reads_admitted_by_curator(pages: dict[str, str]) -> None:
