@@ -177,6 +177,11 @@ def _provenance_line(tmp_path: Path, title: str) -> str:
 def test_a_title_that_ends_a_sentence_gets_no_second_full_stop(
     tmp_path: Path, title: str, shown: str
 ) -> None:
+    """F34-T52 (ROUND-2 D6) restates where this is checked: the margin note no longer repeats the
+    title (the statement is the headline's, said once), so the rule is held on the helper that
+    closes a title as a sentence, and the note is held to open with its source."""
+    said = f"{render.sentence(title)} Imported"
+    assert said == shown, said
+    assert ".." not in said and "?." not in said and "!." not in said, said
     line = _provenance_line(tmp_path, title)
-    assert line.startswith(render.esc(shown)), line
-    assert ".." not in line and "?." not in line and "!." not in line, line
+    assert line.startswith("Imported") and render.esc(title) not in line, line

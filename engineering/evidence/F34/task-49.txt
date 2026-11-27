@@ -1,0 +1,54 @@
+F34-T49 (ROUND-2 D7): §2 is always there, and §1 and §2 place every statement
+2026-11-27; live graph at 86c7a7c445
+
+WHAT THE RECORD SAID
+  "On a route" had meant "in the all-routes layout", which no page draws any more. Measured on the
+  live graph before the change: union of what the picker's routes draw (harder ones included)
+  against the statements counted as placed —
+    erdos-1094: 96 statements, 96 counted on a route, 86 drawn by some route. The other 10 are
+      proved statements only the proof of a proved statement rests on.
+    erdos-257: 71 statements, 55 counted on a route, 51 drawn by some route. The other 4 are a
+      special case and its holes, and a second special case.
+  So erdos-1094 does have statements no route draws, and §2 lists them (it is not the one-line case).
+
+BUILT
+  * Drawing.on_route is what some numbered end of the picker draws (the harder picker's too); a
+    problem with no route to pick keeps its one layout.
+  * §2 always stands; when every statement is on a route it is one line, "Every statement is on a
+    route.", and "On this page" always lists it.
+  * A new group, "Inside a proof already complete": what only a finished proof rests on
+    (render.beneath_proved).
+  * "also used by Route n" (the rest of REMINDERS item 18): a §2 statement that a route's statement
+    uses says which routes, three named and the rest counted, each a link that draws that route.
+  * §2's list items name a statement by its words; its id shows only when it has no name.
+
+RED FIRST (against the committed code, site/tests; some of these fail there on a name that did
+not exist yet — statement_note, beneath_proved — the rest on the behaviour)
+  test_f34_section2_always.py::test_section_two_stands_when_every_statement_is_on_a_route
+  test_f34_section2_always.py::test_a_harder_routes_statements_are_on_a_route
+  test_f34_section2_always.py::test_on_a_route_is_what_some_route_of_the_picker_draws
+  test_f34_section2_always.py::test_pieces_of_a_finished_proof_are_told_apart
+  test_f34_section2_always.py::test_a_used_statement_says_which_route_uses_it
+  test_f34_not_on_route.py::test_a_statement_proposed_for_none_is_listed_once
+  test_f34_not_on_route.py::test_a_crux_is_grouped_under_the_statement_it_was_proposed_for
+  test_f34_not_on_route.py::test_a_dependency_no_route_needs_is_listed_once
+GREEN: test_f34_section2_always 5 passed, test_f34_not_on_route 5 passed (1 restated: T18's "every
+statement on a route means no section" is now "a dependency no route needs is listed once" — the
+fixture's root declares two dependencies neither split needs, which the old layout drew).
+
+LIVE RENDER
+  erdos-1094 §2: "Inside a proof already complete", 10 statements; two of them say e.g.
+    "also used by Route 1, Route 2, Route 3 and 19 more".
+  erdos-257 §2: the four "For …" groups, Related results, Special cases no split uses, Inside a
+    proof already complete (3), Superseded; "gap lemma: each term exceeds the sum of all later
+    terms is also used by Route 1."
+  Both pages: "Not on a route" in "On this page"; §1 to §6 in order.
+Captures: round2-erdos-1094-page-1440.png, round2-erdos-257-page-1440.png.
+
+FULL SITE SUITE, browser tests included (uv run --frozen --with 'playwright==1.58.0' python -m pytest
+site/tests -q -m "not lean and not docker"), on a snapshot of the tree as committed, 16:07–16:18:
+  3 failed, 1236 passed in 616.83s
+  the three are the ones that fail on main too: test_finding_lemma_edge::test_measured_in_a_browser,
+  test_web_flows::test_a_stranger_sees_edit_and_no_approve, test_web_flows::test_a_curator_sees_withdraw
+  (the run before it, 15:56–16:07, had six more red: tests that pinned the statement's title in the
+  margin note and a count of math marks in §3, restated in T52.)

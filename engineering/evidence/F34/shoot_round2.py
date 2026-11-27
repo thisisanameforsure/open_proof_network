@@ -6,7 +6,8 @@ round's decisions name, at 1440 and 390, with what the page says measured beside
 
 <rendered dir> is a site rendered from the live graph by this branch. States: tree (as the page
 opens), list (the List tab), harder (harder routes shown, Tree), harder-list, hard-route (a
-harder route drawn). Prints one JSON line per state and width.
+harder route drawn), page (the whole page), scrolled (1400px into the figure), tapped (a phone,
+a row of the outline tapped). Prints one JSON line per state and width.
 """
 
 import functools
@@ -81,15 +82,37 @@ with socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Quiet, directory
     with sync_playwright() as p:
         b = p.chromium.launch()
         for state in states:
-            for width in (1440, 390):
+            for width in {"tapped": (390,), "scrolled": (1440,)}.get(state, (1440, 390)):
                 pg = b.new_page(viewport={"width": width, "height": 1000})
                 pg.goto(base + f"/problems/{problem}/")
                 pg.wait_for_timeout(900)
                 enter(pg, state)
-                section = pg.locator(".statements-section").first
-                section.scroll_into_view_if_needed()
-                section.screenshot(path=str(out / f"round2-{problem}-{state}-{width}.png"))
-                print(json.dumps({"problem": problem, "state": state, "width": width,
-                                  **pg.evaluate(MEASURE)}))
+                shot = str(out / f"round2-{problem}-{state}-{width}.png")
+                if state == "page":  # the whole page as it opens
+                    pg.screenshot(path=shot, full_page=True)
+                elif state == "scrolled":  # 1400px into the figure: is the panel still beside it?
+                    top = pg.evaluate(
+                        "document.querySelector('.graph-grid').getBoundingClientRect().top"
+                        " + window.scrollY"
+                    )
+                    pg.evaluate("y => window.scrollTo(0, y)", top + 1400)
+                    pg.wait_for_timeout(400)
+                    pg.screenshot(path=shot)
+                elif state == "tapped":  # a phone: the second row of the outline tapped
+                    row = pg.locator("ol.route-outline > li:not([hidden]) > a[data-node]").nth(1)
+                    if row.count() and row.is_visible():
+                        row.click()
+                        pg.wait_for_timeout(400)
+                    pg.locator("ol.route-outline").scroll_into_view_if_needed()
+                    pg.screenshot(path=shot)
+                else:
+                    section = pg.locator(".statements-section").first
+                    section.scroll_into_view_if_needed()
+                    section.screenshot(path=shot)
+                print(
+                    json.dumps(
+                        {"problem": problem, "state": state, "width": width, **pg.evaluate(MEASURE)}
+                    )
+                )
                 pg.close()
         b.close()

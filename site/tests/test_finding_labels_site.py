@@ -99,14 +99,17 @@ def test_a_statement_is_drawn_by_its_label_and_the_id_stays_in_the_title(
 def test_the_panel_is_headed_by_the_label_with_the_id_beneath_and_a_rename_link(
     page: str,
 ) -> None:
-    """R9: the heading is the label, the id sits beneath it in the panel-id style, the claim
-    leads the body, and one link goes to the gloss's controls."""
+    """R9: the heading is the label, the claim leads the body, and one link goes to the
+    gloss's controls. F34 round 2 (the owner, 2026-11-27: no raw id outside the sidenotes and
+    the Record) moves the id from beneath the heading into the panel's Record tab, still in the
+    panel-id style."""
     p = panel(page, GLOSSED)
     title = re.search(r'<span class="panel-title[^"]*">(.*?)</span>', p, re.S)
     assert title is not None and title.group(1) == LABEL
-    assert p.index('class="panel-title') < p.index('class="panel-id"')
     assert f'<span class="panel-id">{GLOSSED}</span>' in p
-    assert p.index('class="panel-id"') < p.index('data-section="claim"')
+    record = p[p.index('<details class="record">') :]
+    assert f'<dt>id</dt><dd><span class="panel-id">{GLOSSED}</span>' in record
+    assert p.index('data-section="claim"') < p.index('class="panel-id"')
     assert "claim-math" in p and "frac{1}{n}" in p
     href = f"/nodes/{TARGET}/{GLOSSED}/#statement-words"
     assert re.search(rf'<a class="panel-rename" href="{re.escape(href)}">Rename or correct', p)

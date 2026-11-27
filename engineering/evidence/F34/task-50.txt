@@ -1,0 +1,36 @@
+F34-T50 (ROUND-2 D4): on a phone, a row of route buttons under the picker
+2026-11-27
+
+BUILT: one 44px button per route under the picker ("1 2 3 4"), drawing its route as its numbered
+end does; the one drawn is filled; a harder route's button joins the row when harder routes are
+shown; the row scrolls inside its own box. A wide screen does not show it. The picker's drawing is
+as it was (16px ends, fits 390px).
+
+RED FIRST (against the committed code)
+  test_f34_route_buttons.py::test_one_button_per_route_under_the_picker
+  test_f34_route_buttons.py::test_a_harder_routes_button_waits_for_the_harder_routes
+  test_f34_route_buttons.py::test_the_row_is_a_phones - asser...
+  test_f34_route_buttons.py::test_on_a_phone_a_button_draws_its_route
+GREEN: 4 passed (two in a browser: at 390 every visible button is at least 44 by 44, the page is
+no wider than 390 with harder routes shown, and a harder route's button draws it).
+
+LIVE RENDER
+  erdos-1094 tree 390 caption=19 statements, 2 open boxes= 19 ends= 4 numbered= 4 harder= 0 rows= 0 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-1094 list 390 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 4 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-1094 harder 390 caption=19 statements, 2 open boxes= 19 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=390 link=Hide harder routes
+  erdos-1094 harder-list 390 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 46 table=0 scrollWidth=390 link=Hide harder routes
+  erdos-1094 hard-route 390 caption=37 statements, 11 open boxes= 37 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=390 link=Hide harder routes
+  erdos-1094 page 390 caption=19 statements, 2 open boxes= 19 ends= 4 numbered= 4 harder= 0 rows= 0 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-1094 tapped 390 caption=19 statements, 2 open boxes= 19 ends= 4 numbered= 4 harder= 0 rows= 0 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-257 tree 390 caption=4 statements, 1 open boxes= 4 ends= 12 numbered= 12 harder= 0 rows= 0 table=0 scrollWidth=390 link=None
+  erdos-257 harder 390 caption=4 statements, 1 open boxes= 4 ends= 12 numbered= 12 harder= 0 rows= 0 table=0 scrollWidth=390 link=None
+  erdos-1094: 4 buttons, 46 with harder routes shown; erdos-257: 12 buttons.
+Captures: round2-erdos-1094-tree-390.png, round2-erdos-1094-harder-390.png, round2-erdos-257-tree-390.png.
+
+FULL SITE SUITE, browser tests included (uv run --frozen --with 'playwright==1.58.0' python -m pytest
+site/tests -q -m "not lean and not docker"), on a snapshot of the tree as committed, 16:07–16:18:
+  3 failed, 1236 passed in 616.83s
+  the three are the ones that fail on main too: test_finding_lemma_edge::test_measured_in_a_browser,
+  test_web_flows::test_a_stranger_sees_edit_and_no_approve, test_web_flows::test_a_curator_sees_withdraw
+  (the run before it, 15:56–16:07, had six more red: tests that pinned the statement's title in the
+  margin note and a count of math marks in §3, restated in T52.)

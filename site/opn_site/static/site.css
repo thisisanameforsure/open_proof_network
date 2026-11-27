@@ -357,8 +357,8 @@ code.whole { white-space: nowrap; }
 .dag .node.on-proof rect { stroke: var(--accent); stroke-width: 1.5; }
 .dag .edge.on-proof { stroke: var(--accent); stroke-width: 2; }
 .dag .edge.use { stroke-dasharray: 7 4; }
-.dag .outline-mark rect { fill: var(--bg); stroke: var(--accent-300); stroke-width: 1; }
-.dag .outline-mark text { fill: var(--accent-300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
+.dag .outline-mark rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; }
+.dag .outline-mark text { fill: var(--muted); font-family: var(--sans, inherit); font-size: 10.5px; text-anchor: middle; }
 .panel-outlines { width: 100%; font-size: 13px; }
 .panel-outlines ul, .panel-outlines ol { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
 .panel-outlines li { margin-bottom: var(--s2); overflow-wrap: anywhere; }
@@ -1223,6 +1223,10 @@ details.rec[open] > summary { color: var(--text); }
 .dag .lit-mark rect { fill: none; stroke: var(--lit); stroke-width: 1.5; }
 .dag .lit-mark.proposed rect { stroke-dasharray: 2 1.5; }
 .dag .lit-mark.confirmed rect { fill: var(--lit); }
+/* F34-T52 (ROUND-2 D6): the mark is a word tab ("lit: known?"), its status still its colour */
+.dag .lit-mark rect { fill: var(--surface); }
+.dag .lit-mark text { fill: var(--lit); font-family: var(--sans, inherit); font-size: 10.5px; text-anchor: middle; }
+.dag .lit-mark.confirmed text { fill: var(--surface); }
 /* F34-T27: "+ n speculative ↓" on a pill, pointing to its group in §2 */
 .dag .spec-chip { cursor: pointer; }
 .dag .spec-chip rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 1.5 2; }
@@ -1749,4 +1753,32 @@ svg.dag[data-view^="hard/"] .node.harder, svg.dag[data-view^="hard/"] .junction.
   .harder-scroll { flex: 1 0 100%; }
   .harder-scroll svg.selector { flex: none; max-width: none; }
 }
+
+/* — F34-T52 (ROUND-2 D6): on a wide screen the selected statement's panel stays in view beside a
+   long figure, scrolling inside itself when it is taller than the window — */
+@media (min-width: 761px) {
+  .graph-grid > .panels { position: sticky; top: var(--s5); max-height: calc(100vh - 2 * var(--s5)); overflow-y: auto; }
+}
+
+/* — F34-T50 (ROUND-2 D4): the phone's row of route buttons under the picker — */
+.route-buttons { display: none; }
+@media (max-width: 760px) {
+  .route-buttons { display: flex; gap: 8px; overflow-x: auto; margin: var(--s3) 0 0; padding: 2px 0 4px; }
+  .route-btn { flex: none; min-width: 44px; min-height: 44px; padding: 0; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .route-btn[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .route-btn.side-refutes { border-color: var(--refuted); color: var(--refuted); }
+  .route-btn.side-refutes[aria-pressed="true"] { background: var(--refuted); color: var(--surface); }
+  .route-btn[data-harder] { border-color: var(--rule-strong); color: var(--muted); }
+  .route-btn[data-harder][aria-pressed="true"] { background: var(--muted); color: var(--surface); }
+}
+/* — F34-T51 (ROUND-2 D8): on a phone a record opens under its row and takes the row's place:
+   the dark header is the one place the name shows; tapping it closes the record — */
+@media (max-width: 760px) {
+  .route-outline > li.selected > a[data-node] { display: none; }
+  .route-outline > li > .panel > .panel-head { cursor: pointer; }
+  .panels.phone-closed { display: none; }
+}
+/* — F34-T49 (ROUND-2 D7): "also used by Route n" in a §2 group — */
+.off-route .also-used { font-family: var(--sans); font-size: 13px; color: var(--muted); }
+.off-route p.also-used { margin: var(--s2) 0 0; }
 

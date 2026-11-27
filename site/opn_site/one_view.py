@@ -648,6 +648,9 @@ class Drawing:
     #: F34-T48: the picker with the harder routes added as numbered ends, shown in the main
     #: picker's place while the control is pressed; ``""`` when no route is strictly harder.
     harder_selector: str = ""
+    #: F34-T50 (ROUND-2 D4): one button per route, the phone's 44px way to pick one (the picker's
+    #: ends are about 16px there); a harder route's is hidden until the harder routes are shown.
+    route_buttons: str = ""
 
 
 #: F27-R14 (D-25 v3.52): the words a strictly harder statement or route carries on hover.
@@ -1720,6 +1723,18 @@ def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawi
     proved_n = {
         k: sum(1 for n in v.nodes if n in proved) for k, v in vs.items() if v.kind == "leaf"
     }
+    # F34-T49 (ROUND-2 D7): on a route means drawn by a route the picker offers, a harder one
+    # included; a problem with no route to pick draws its one layout
+    picked = {
+        n
+        for k, v in vs.items()
+        if v.kind == "leaf" and not k.startswith(FOLLOW)
+        for n in v.nodes
+        if n not in d.junctions
+    }
+    on_route = frozenset(
+        picked if d.junctions else (n for n in vs[ROUTES].nodes if n not in d.junctions)
+    )
     vs, boxes = with_folds(vs, root, d.junctions, proved)
     labels = {**(labels or {}), **{fid: words for fid, (_open, words) in boxes.items()}}
     lays = layouts(rows.values(), vs, root=root, prefix=prefix, labels=labels)
@@ -1890,10 +1905,26 @@ def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawi
         for sid, view in leaf_of.items()
         if view in named and view in drawn_n
     }
+    two_sided = len({s.settles for s in whole.sets}) > 1
+    buttons = "".join(
+        '<button type="button" class="route-btn'
+        + (" side-refutes" if two_sided and s.settles == routes.REFUTES else "")
+        + f'" data-view="{escape(leaf_of[s.id])}" '
+        f'aria-pressed="{"true" if leaf_of[s.id] == home else "false"}"'
+        + (' data-harder="true" hidden' if s.id in hard_ids else "")
+        + f' aria-label="Draw route {k}">{k}</button>'
+        for k, s in enumerate(whole.sets, start=1)
+        if s.id in leaf_of
+    )
     return Drawing(
         svg=svg,
         retire=retire,
         selector=selector,
+        route_buttons=(
+            f'<div class="route-buttons" role="group" aria-label="Routes">{buttons}</div>'
+            if selector and buttons
+            else ""
+        ),
         table=routes_view.route_list(
             whole,
             facts,
@@ -1922,10 +1953,7 @@ def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawi
         routes=route_rows,
         harder=harder_hidden,
         home=home,
-        # F27-R14: a strictly harder statement is on a route, drawn behind its toggle, so §2
-        # never lists it (F34-R18: each statement placed once)
-        on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions)
-        | (dom.statements & set(rows)),
+        on_route=on_route,
         outline=outline_rows(lays[ROUTES], root, d.junctions) if ROUTES in lays else (),
         mini=functools.partial(
             mini_tree, rows, href=href, names=names, labels=labels, titles=full_titles

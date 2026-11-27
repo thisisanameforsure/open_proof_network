@@ -52,6 +52,8 @@
   var notes = slice(document.querySelectorAll(".proof-note[data-view]"));
   // F34-T47 (ROUND-2 D1): the List is one row per route (li.route-row), the picker's other face
   var rows = slice(document.querySelectorAll("li.route-row[data-view]"));
+  // F34-T50 (ROUND-2 D4): the phone's row of 44px route buttons under the picker
+  var routeButtons = slice(document.querySelectorAll("button.route-btn[data-view]"));
   var viewToggle = document.querySelector("button.view-toggle[data-view]");
   var HARD = "hard/";  // F34-T48: a strictly harder route's own view
   var FOLLOW = "follow/";
@@ -71,7 +73,8 @@
     hover: null,
     follow: false,
     bandHover: null,
-    band: null
+    band: null,
+    open: null  // F34-T51: on a phone, the statement whose record is open under its row
   };
 
   function has(view) { return !!(view && layouts && layouts[view]); }
@@ -546,6 +549,9 @@
       if (n) { n.setAttribute("aria-pressed", on ? "true" : "false"); }
     });
     figureFolds(to);
+    routeButtons.forEach(function (b) {  // F34-T50
+      b.setAttribute("aria-pressed", b.getAttribute("data-view") === plain ? "true" : "false");
+    });
     notes.forEach(function (n) { n.hidden = n.getAttribute("data-view") !== to; });
     if (viewToggle) {
       var all = to === ALL;
@@ -650,7 +656,7 @@
       var uses = ev.target.closest ? ev.target.closest(".uses-chip") : null;
       if (uses) {
         ev.preventDefault();
-        if (select(uses.getAttribute("data-uses"))) { writeHash(); placePanel(); }
+        if (select(uses.getAttribute("data-uses"))) { state.open = state.node; writeHash(); placePanel(); }
         return;
       }
       var chip = ev.target.closest ? ev.target.closest(".spec-chip") : null;
@@ -805,6 +811,10 @@
     });
   });
 
+  routeButtons.forEach(function (b) {
+    b.addEventListener("click", function () { draw(b.getAttribute("data-view")); });
+  });
+
   // F34-T47: "Proved statements folded · unfold" in the figure's heading, for a route that folds
   // any: the route's layout with every fold open (<route>~open), and back.
   var foldsLine = document.querySelector(".figure-folds");
@@ -833,7 +843,7 @@
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape") { return; }
     // F34-T16 (R16): Esc comes back to the problem's own statement first, then to the home route
-    if (homeNode && state.node !== homeNode) { select(homeNode); writeHash(); return; }
+    if (homeNode && state.node !== homeNode) { select(homeNode); state.open = null; writeHash(); placePanel(); return; }
     if (state.view !== HOME) { transition(HOME); }
   });
 
@@ -865,6 +875,7 @@
     showHidden(selector, on);
     showHidden(hardSelector, !on);
     showHidden(harderRows, !on);
+    routeButtons.forEach(function (b) { if (b.hasAttribute("data-harder")) { showHidden(b, !on); } });
     harderLink.setAttribute("aria-pressed", on ? "true" : "false");
     harderLink.textContent = on ? harderWords.shown : harderWords.plain;
     if (!on && base(state.view).indexOf(HARD) === 0) { transition(HOME); }
@@ -938,22 +949,38 @@
   // F34-T39 (REMINDERS item 22; layout B): on a phone the selected statement's record sits directly
   // under its row of the outline, from the start, after a tap and after a tap closes it again (the
   // problem's own record, under its own row); anywhere else it goes back beside the drawing.
+  // F34-T51 (ROUND-2 D8): as the page opens no record is open, so the outline starts with the
+  // problem's own row and runs on from it; a tapped row's record takes the row's place under its
+  // dark header (the name shows once), and a tap on that header closes it.
   function placePanel() {
     putBack();
-    if (!outline || !(phone && phone.matches)) { return; }
-    var id = state.node, li = null;
-    slice(outline.children).forEach(function (x) { if (x.getAttribute("data-node") === id) { li = x; } });
-    var panel = panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0];
-    if (li && !li.hidden && panel) { li.appendChild(panel); li.classList.add("selected"); }
+    var onPhone = !!(outline && phone && phone.matches);
+    var id = onPhone ? state.open : null, li = null;
+    if (id) {
+      slice(outline.children).forEach(function (x) { if (x.getAttribute("data-node") === id) { li = x; } });
+    }
+    var panel = id ? panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0] : null;
+    var under = !!(li && !li.hidden && panel);
+    if (under) { li.appendChild(panel); li.classList.add("selected"); }
+    // beside the drawing there is nothing to show on a phone unless the open record has no row
+    if (panelHome) { panelHome.classList.toggle("phone-closed", onPhone && (under || !id || !panel)); }
   }
   if (outline) {
     outline.addEventListener("click", function (ev) {
-      var a = ev.target.closest ? ev.target.closest("a[data-node]") : null;
-      if (!a || !(phone && phone.matches)) { return; }
+      if (!(phone && phone.matches) || !ev.target.closest) { return; }
+      var head = ev.target.closest(".panel-head");
+      if (head && outline.contains(head) && !ev.target.closest("a")) {
+        state.open = null;
+        if (homeNode) { select(homeNode); }
+        writeHash();
+        placePanel();
+        return;
+      }
+      var a = ev.target.closest("a[data-node]");
+      if (!a || a.parentNode.parentNode !== outline) { return; }
       ev.preventDefault();
-      var id = a.getAttribute("data-node"), li = a.parentNode;
-      var open = li.classList.contains("selected") && id !== homeNode;
-      select(open ? homeNode : id);  // a second tap closes it: back to the problem's own record
+      var id = a.getAttribute("data-node");
+      if (select(id)) { state.open = id; }
       writeHash();
       placePanel();
     });
@@ -1019,11 +1046,26 @@
       if (!panel) { return; }
       ev.preventDefault();
       select(id);
+      state.open = id;
       writeHash();
       placePanel();  // F34-T39: under its outline row on a phone, if the route draws it
       panel.scrollIntoView({ block: "start" });
     });
   }
+
+  // -- F34-T49 (ROUND-2 D7): "also used by Route n" in §2 draws that route ---------------------------
+  slice(document.querySelectorAll("a.route-ref")).forEach(function (a) {
+    a.addEventListener("click", function (ev) {
+      var m = /view=([^&]+)/.exec(a.getAttribute("href") || "");
+      var view = m ? decodeURIComponent(m[1]) : null;
+      if (!has(view)) { return; }
+      ev.preventDefault();
+      if (base(view).indexOf(HARD) === 0) { showHarder(true); }
+      draw(view);
+      var figure = document.getElementById("proof");
+      if (figure) { figure.scrollIntoView({ block: "start" }); }
+    });
+  });
 
   // -- F34-T12 (R14): Tree and List -----------------------------------------------------------------
 
@@ -1057,6 +1099,7 @@
   if (!select(initial.node || (panels.length ? panels[0].getAttribute("data-node") : null)) && panels.length) {
     select(panels[0].getAttribute("data-node"));
   }
+  if (initial.node && initial.node === state.node) { state.open = initial.node; }  // a bookmarked record
   if (initial.band && pillOf(bandSvg, initial.band)) { state.band = initial.band; }
   var opening = has(initial.view) ? initial.view : (has(HOME) ? HOME : null);
   if (opening && base(opening).indexOf(HARD) === 0) { showHarder(true); }
@@ -1069,7 +1112,7 @@
   // without a pill being clicked.
   window.addEventListener("hashchange", function () {
     var h = fromHash();
-    if (h.node) { select(h.node); placePanel(); }
+    if (h.node) { if (select(h.node)) { state.open = h.node; } placePanel(); }
     var view = h.view || HOME;
     if (has(view) && view !== state.view) {
       if (isSetView(view) && (view.indexOf(FOLLOW) === 0) !== state.follow) { setFollow(view.indexOf(FOLLOW) === 0); }

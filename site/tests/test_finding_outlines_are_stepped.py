@@ -46,7 +46,7 @@ def pill(page: str, node_id: str) -> str:
 def test_the_tab_counts_only_stepped_annexes(tmp_path: Path) -> None:
     root, _ = stepped_and_note(tmp_path)
     mark = re.search(
-        r'<g class="outline-mark"[^>]*>.*?<text[^>]*>(\d+)</text>',
+        r'<g class="outline-mark"[^>]*>.*?<text[^>]*>(\d+) outlines?</text>',  # F34-T52: words
         pill(page_of(root), ROOT_NODE),
         re.S,
     )

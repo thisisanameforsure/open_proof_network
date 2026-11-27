@@ -97,11 +97,17 @@ def test_the_problem_page_shows_no_raw_tex_or_markers(pages: dict[str, str]) -> 
     assert "<em>abc</em> conjecture" in page
 
 
-def test_the_provenance_sentence_carries_its_tex_to_the_renderer(pages: dict[str, str]) -> None:
+def test_the_statements_tex_reaches_the_renderer_in_the_headline(pages: dict[str, str]) -> None:
+    """F34-T52 (ROUND-2 D6) restates T2's check of the provenance sentence: the margin note no
+    longer repeats the statement (its title), so the TeX the renderer must be handed is the
+    headline's, and the note carries none."""
     page = pages[f"problems/{TARGET}/index.html"]
+    head = re.search(r'<h1 class="informal-big">(.*?)</h1>', page, re.S)
+    assert head is not None
+    assert '<span class="math">' in head.group(1) and "\\varepsilon" in head.group(1)
     line = page[page.index('class="provenance-line"') :]
     line = line[: line.index("</p>")]
-    assert '<span class="math">' in line and "\\varepsilon" in line
+    assert "\\varepsilon" not in line
 
 
 def test_a_drawing_label_drops_the_markers(pages: dict[str, str]) -> None:

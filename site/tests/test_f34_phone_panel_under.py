@@ -52,28 +52,39 @@ def site_url(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
         srv.shutdown()
 
 
-def test_on_a_phone_the_record_is_under_its_statement_from_the_start(site_url: str) -> None:
+def test_on_a_phone_a_tapped_statements_record_is_under_it(site_url: str) -> None:
+    """F34-T51 (ROUND-2 D8) restates T39's "from the start": REMINDERS item 22 asks that
+    *tapping* a statement open its record under it, and the problem's own record open as the
+    page loaded buried the outline under it. Now no record is open until a row is tapped
+    (``test_f34_phone_head_once``); a tapped row's record is under it with the dark header, the
+    tabs and both buttons, the outline continuing below; its header closes it."""
     sync_api = pytest.importorskip("playwright.sync_api")
     with sync_api.sync_playwright() as p:
         b = p.chromium.launch()
         pg = b.new_page(viewport={"width": 390, "height": 900})
         pg.goto(site_url)
         pg.wait_for_timeout(400)
-        start: dict[str, Any] = pg.evaluate(WHERE)
-        other = pg.locator("ol.route-outline > li:not([hidden]) > a[data-node]").nth(1)
-        other_id = other.get_attribute("data-node")
-        other.click()
+        open_at_start = pg.evaluate(
+            "[...document.querySelectorAll('.panel[data-node]')]"
+            ".filter(p => !p.hidden && p.checkVisibility()).length"
+        )
+        first = pg.locator("ol.route-outline > li:not([hidden]) > a[data-node]").nth(0)
+        first_id = first.get_attribute("data-node")
+        first.click()
         pg.wait_for_timeout(400)
         tapped: dict[str, Any] = pg.evaluate(WHERE)
-        other.click()  # closes it: the problem's own record, under its own row
+        pg.locator("ol.route-outline > li.selected .panel-head").click()
         pg.wait_for_timeout(400)
-        closed: dict[str, Any] = pg.evaluate(WHERE)
+        closed = pg.evaluate(
+            "[...document.querySelectorAll('.panel[data-node]')]"
+            ".filter(p => !p.hidden && p.checkVisibility()).length"
+        )
         b.close()
-    assert start["under"] == start["node"], start
-    assert start["head"] and start["tabs"] and start["buttons"] >= 2, start
-    assert start["rowsAfter"] and start["rowsAfter"] > 0, "the outline continues below"
-    assert tapped["node"] == other_id and tapped["under"] == other_id, tapped
-    assert closed["node"] == start["node"] and closed["under"] == start["node"], closed
+    assert open_at_start == 0
+    assert tapped["node"] == first_id and tapped["under"] == first_id, tapped
+    assert tapped["head"] and tapped["tabs"] and tapped["buttons"] >= 2, tapped
+    assert tapped["rowsAfter"] and tapped["rowsAfter"] > 0, "the outline continues below"
+    assert closed == 0
 
 
 def test_on_a_wide_screen_the_record_stays_beside_the_drawing(site_url: str) -> None:
