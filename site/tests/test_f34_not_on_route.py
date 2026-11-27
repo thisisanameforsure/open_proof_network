@@ -45,9 +45,10 @@ def placed(page: str) -> Counter[str]:
 
 def on_route(page: str) -> set[str]:
     """Drawn on a route: in the routes view, or (F27-R14, D-25 v3.52) on a strictly harder route,
-    drawn in the ``harder`` view behind its own toggle — on a route either way, never in §2."""
+    drawn when the picker selects it (F34-T48: its own ``hard/`` view) — on a route either way,
+    never in §2."""
     lays = layouts_in(page)
-    views = [lays["routes"], *([lays["harder"]] if "harder" in lays else [])]
+    views = [lays["routes"], *(v for k, v in lays.items() if k.startswith("hard/"))]
     return {n for v in views for n in v["nodes"] if "@" not in n}
 
 

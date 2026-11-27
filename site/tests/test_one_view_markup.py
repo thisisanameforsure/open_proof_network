@@ -64,11 +64,12 @@ def test_one_drawing_with_junctions_and_no_routes_section(tmp_path: Path) -> Non
     svg = drawing_of(page)
     assert svg.count('<g class="junction live"') == 2 and 'class="or-mark"' in g_of(svg, ROOT_NODE)
     assert 'data-view="routes"' in svg[: svg.index(">")]
-    # T7: the selector sits in the drawing's card above the drawing; the table below the grid.
-    assert page.index('<div class="graph-grid">') < page.index('<div class="sets-grid">')
+    # T7: the selector sits in the drawing's card above the drawing; F34-T47 (ROUND-2 D1): the
+    # list of routes beside it, one row per set, each with its leaf view.
     assert page.index('<svg class="selector"') < page.index('<svg class="dag"')
-    assert page.count('<tr class="set-row') == 2
-    for row in re.findall(r'<tr class="set-row[^>]*>', page):
+    assert page.index('<ol class="route-list">') < page.index('<svg class="dag"')
+    assert page.count('<li class="route-row') == 2
+    for row in re.findall(r'<li class="route-row[^>]*>', page):
         assert 'data-view="sel' in row, row
     lays = layouts_in(page)
     assert {"all", "routes", "sel"} <= set(lays)
@@ -182,18 +183,17 @@ def test_the_follow_toggle_sits_in_the_selector_panel_with_both_counts(tmp_path:
     lays = layouts_in(page)
     set_keys = [k for k in lays if k == "sel" or k.startswith(("sel/", "edge/"))]
     assert set_keys and all(one_view.FOLLOW + k in lays for k in set_keys)
-    both = re.findall(
-        r'<td class="num" data-sort="(\d+)" data-sort-follow="(\d+)">'
-        r'<span class="v-stop">\1</span><span class="v-follow">\2</span></td>',
-        page,
-    )
-    assert len(both) == 3 * page.count('<tr class="set-row')  # Statements, Proved, Shared
+    # F34-T47 (ROUND-2 D1): the sets table and its two-reading count cells are gone with it; the
+    # list's rows carry the published reading alone. The followed layouts are still built.
+    assert "data-sort-follow" not in page and "v-follow" not in page
     # On a document whose proofs rest on something, the second reading differs.
     d = one_view.drawing(followed_doc(), [], href={})
     assert d.follow_toggle.startswith('<label class="sel-follow"')
-    assert 'data-sort="2" data-sort-follow="3"' in d.table  # set 1's statements: a, p (+ p--h1)
-    assert 'data-sort="1" data-sort-follow="3"' in d.table  # set 2's statements: q (+ both holes)
-    assert '<ul class="v-follow"><li><code>' in d.table
+    lays = layouts_in(d.layouts_json)
+    twins = [k for k in lays if k.startswith(one_view.FOLLOW + "sel/")]
+    assert twins and any(
+        len(lays[k]["nodes"]) > len(lays[k.removeprefix(one_view.FOLLOW)]["nodes"]) for k in twins
+    )
 
 
 # -- AC8: complete without the script -----------------------------------------------------------
@@ -206,11 +206,9 @@ def test_complete_without_the_script(tmp_path: Path) -> None:
         assert re.search(rf'<a href="/[^"]+"><g class="node [^"]*" data-node="{nid}"', svg), nid
         assert "off-view" not in classes_of(svg, nid)
     assert 'class="chip view-toggle"' not in page or " hidden>" in page
-    assert page.count("<table") == 1
-    assert (
-        '<span class="routes-showing" hidden>' in page
-    )  # the filter's count line waits for the script
-    assert 'class="routes-fewest" aria-pressed="false" hidden>' in page
+    # F34-T47 (ROUND-2 D1): no table; the list of routes is whole without the script
+    assert "<table" not in page[page.index('<div class="graph-grid">') : page.index("</section>")]
+    assert page.count('<li class="route-row') == 2
 
 
 @pytest.mark.parametrize("make", [doc, nested_doc])

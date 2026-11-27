@@ -159,15 +159,13 @@ def test_the_selector_forks_by_side_and_colours_the_refuting_branch(
 
 def test_the_table_says_which_way_each_set_settles(two_sides: dict[str, Any]) -> None:
     d = drawn(two_sides)
-    rows = re.findall(r'<tr class="set-row[^"]*"[^>]*>.*?</tr>', d.table, re.S)
+    # F34-T47 (ROUND-2 D1): the table is a list, one row per route; the same facts in its words
+    rows = re.findall(r'<li class="route-row[^"]*"[^>]*>.*?</li><!-- /route-row -->', d.table, re.S)
     assert len(rows) == 3
-    assert 'class="set-row side-proves"' in rows[0] and "refutes" not in rows[0]
-    assert (
-        'class="set-row side-refutes"' in rows[1]
-        and '<span class="set-side">refutes</span>' in rows[1]
-    )
-    assert "goes through the variant" in rows[1]
-    assert "3 ways to settle the problem" in d.table
+    assert 'class="route-row side-proves"' in rows[0] and "proves the problem" in rows[0]
+    assert "would disprove it" not in rows[0]
+    assert 'class="route-row side-refutes"' in rows[1] and "would disprove it" in rows[1]
+    assert re.search(r'<span class="route-through">through <code>v</code>', rows[1]), rows[1]
 
 
 def test_the_page_says_ways_to_settle_and_that_a_set_proves_or_refutes(tmp_path: Path) -> None:

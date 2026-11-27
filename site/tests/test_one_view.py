@@ -439,10 +439,6 @@ SELECTOR_AT = """() => {
   return out;
 }"""
 
-#: The visible table rows' cells as read (the first line of each cell: the count shown).
-ROW_TEXT = """() => [...document.querySelectorAll('tr.set-row')].filter(r => !r.hidden)
-  .map(r => [...r.cells].map(c => c.innerText.trim().split('\\n')[0]))"""
-
 #: Every node's box, translate, display and lit state; every line's ``d`` and state; the svg's
 #: view and size; the open panel; the pressed selector elements; the table's shown rows.
 SNAPSHOT = """() => {
@@ -458,9 +454,10 @@ SNAPSHOT = """() => {
       .map(p => p.getAttribute('data-node')),
     pressed: [...document.querySelectorAll('svg.selector [aria-pressed="true"]')]
       .map(e => e.getAttribute('data-view')),
-    rows: [...document.querySelectorAll('tr.set-row')].filter(r => !r.hidden)
+    rows: [...document.querySelectorAll('li.route-row')]
+      .filter(r => r.getAttribute('aria-selected') === 'true')
       .map(r => r.getAttribute('data-view')),
-    showing: (document.querySelector('.routes-showing') || {textContent: ''}).textContent,
+    listed: document.querySelectorAll('li.route-row:not([hidden])').length,
     toggle: (b => b ? b.getAttribute('aria-pressed') : null)(
       document.querySelector('button.view-toggle')),
     group: (t => t ? {y: parseFloat(t.getAttribute('y')), shown: vis(t)} : null)(
@@ -620,13 +617,13 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
         pg.keyboard.press("Escape")
         escaped = pg.evaluate(SNAPSHOT)
         show_list(pg)
-        fewest = pg.locator("button.routes-fewest")
-        assert fewest.is_visible()
-        fewest.click()
+        # F34-T47 (ROUND-2 D1): no "Fewest open first"; a row's number draws its route
+        assert pg.locator("button.routes-fewest").count() == 0
+        row = pg.locator("li.route-row").nth(0)
+        first_row_view = row.get_attribute("data-view")
+        row.locator("button.route-n").click()
         pg.mouse.move(5, 5)
-        first_row_view = pg.locator("tr.set-row").nth(0).get_attribute("data-view")
-        by_fewest = pg.evaluate(SNAPSHOT)
-        fewest_pressed = fewest.get_attribute("aria-pressed")
+        by_row = pg.evaluate(SNAPSHOT)
     with browser(
         two_routes(tmp_path / "g2"), tmp_path / "site2", reduced=False, view="routes"
     ) as pg:
@@ -647,19 +644,20 @@ def test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing(tmp_path: Path)
     assert f"view={leaf_key}" in unquoted(on_leaf["hash"])
     assert on_leaf["pressed"] == [leaf_key]
     assert on_leaf["panel"] == loaded["panel"] == [ROOT_NODE]
-    assert on_leaf["rows"] == [leaf_key] and on_leaf["showing"] == "showing 1 of 2"
+    assert on_leaf["rows"] == [leaf_key] and on_leaf["listed"] == 2  # marked, none hidden
     assert on_edge["view"] == edge_key
     assert_at_layout(on_edge, lays[edge_key])
     assert on_edge["pressed"] == [edge_key] and on_edge["panel"] == loaded["panel"]
     assert cleared["view"] == home and cleared["pressed"] == [home]
     assert "view=" not in cleared["hash"]
     assert_at_layout(cleared, lays[home])
-    assert cleared["rows"] == [home] and cleared["showing"] == "showing 1 of 2"
+    assert cleared["rows"] == [home] and cleared["listed"] == 2
     assert on_second["view"] == other_key and on_second["pressed"] == [other_key]
     assert escaped["view"] == home and escaped["pressed"] == [home]
     assert_at_layout(escaped, lays[home])
-    assert fewest_pressed == "true" and first_row_view and by_fewest["view"] == first_row_view
-    assert_at_layout(by_fewest, lays[first_row_view])
+    assert first_row_view and by_row["view"] == first_row_view
+    assert by_row["rows"] == [first_row_view]
+    assert_at_layout(by_row, lays[first_row_view])
     # Without reduced motion the drawing is still moving right after the click (the svg has not
     # taken the view yet) and arrives at the same place.
     assert mid["view"] != leaf_key
@@ -677,14 +675,14 @@ def test_hover_previews_without_moving(tmp_path: Path) -> None:
         loaded = pg.evaluate(SNAPSHOT)
         leaf_key = pg.locator(LEAF).nth(0).get_attribute("data-view")
         edge_key = pg.locator(SEL_EDGE).nth(1).get_attribute("data-view")
-        row_key = pg.locator("tr.set-row").nth(1).get_attribute("data-view")
+        row_key = pg.locator("li.route-row").nth(1).get_attribute("data-view")
         assert leaf_key and edge_key and row_key
         pg.locator(LEAF).nth(0).hover()
         on_leaf = pg.evaluate(SNAPSHOT)
         pg.locator(SEL_EDGE).nth(1).hover()
         on_edge = pg.evaluate(SNAPSHOT)
         show_list(pg)
-        pg.locator("tr.set-row").nth(1).hover()
+        pg.locator("li.route-row").nth(1).hover()
         on_row = pg.evaluate(SNAPSHOT)
         pg.mouse.move(5, 5)
         left = pg.evaluate(SNAPSHOT)

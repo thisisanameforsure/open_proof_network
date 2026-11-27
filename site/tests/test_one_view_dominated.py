@@ -5,9 +5,9 @@ needs everything the first needs and ``b`` besides, so it is dominated with ``b`
 
 Under F34 every statement is placed exactly once, drawn on a route or listed in "Not on a route"
 (§2). A strictly harder statement is on a route, so §2 never lists it; the drawing has a view of
-its own for it (``harder``: the routes view and the strictly harder routes), reached by a toggle
-of its own beside the key, which counts the routes and statements it adds and how many of those
-are proved. The general toggle appears only when something is on no route.
+its own for it (F34-T48, ROUND-2 D2: ``hard/<set>``, the harder route alone), drawn when the
+picker selects its numbered end; a quiet control under the picker adds those ends and counts
+them. The general toggle appears only when something is on no route.
 """
 
 from __future__ import annotations
@@ -44,12 +44,19 @@ def harder_doc(*, stray: bool = False) -> dict[str, Any]:
 
 def test_a_dominated_route_has_a_view_of_its_own_and_no_set() -> None:
     g = harder_doc()
-    vs = one_view.views(g, routes.read(g, []))
+    whole = routes.read(g, [], harder=True)
+    hard = [(k, s) for k, s in enumerate(whole.sets, start=1) if k > 1]
+    vs = one_view.views(g, routes.read(g, []), harder_sets=hard)
     harder = {"t--b", "t--p", "t@2"}
     assert harder <= set(vs[one_view.ALL].nodes)
     assert not harder & set(vs[one_view.ROUTES].nodes)
-    assert set(vs[one_view.HARDER].nodes) == set(vs[one_view.ROUTES].nodes) | harder
-    lines = {(s, t) for s, t, _k in vs[one_view.HARDER].lines}
+    # F34-T48 (ROUND-2 D2): the view is the harder route alone, a leaf like any route's; the
+    # ``harder`` view, every harder statement at once, is gone
+    assert one_view.HARDER not in vs
+    (key,) = [k for k in vs if k.startswith(one_view.HARD)]
+    assert vs[key].kind == "leaf" and vs[key].index == 2
+    assert set(vs[key].nodes) == {"t", "t--a", "t@2", *harder}
+    lines = {(s, t) for s, t, _k in vs[key].lines}
     assert ("t@2", "t") in lines and ("t--b", "t@2") in lines
     set_views = [v for k, v in vs.items() if k == one_view.TOP or k.startswith(("sel/", "edge/"))]
     assert set_views
@@ -60,18 +67,19 @@ def test_no_harder_view_when_nothing_is_dominated() -> None:
     g = harder_doc()
     g["nodes"][0] = node("t", origin="authored", routes=[["t--a"], ["t--b", "t--p"]])
     vs = one_view.views(g, routes.read(g, []))
-    assert one_view.HARDER not in vs
+    assert not [k for k in vs if k.startswith(one_view.HARD)]
     d = one_view.drawing(g, [], href={})
     assert d.harder == 0 and d.harder_toggle == "" and "harder" not in d.marks
+    assert d.harder_selector == ""
 
 
 def test_the_harder_toggle_counts_routes_statements_and_proved() -> None:
     d = one_view.drawing(harder_doc(), [], href={})
     assert d.harder == 2
-    assert 'class="chip harder-toggle"' in d.harder_toggle
-    assert 'data-view="harder"' in d.harder_toggle
-    assert "Show 1 strictly harder route (2 statements, 1 proved)" in d.harder_toggle
-    assert "Hide the strictly harder route" in d.harder_toggle
+    # F34-T48 (ROUND-2 D2): a quiet control that counts the ends it adds to the picker
+    assert 'class="harder-link"' in d.harder_toggle and "data-view" not in d.harder_toggle
+    assert "Show 1 harder route" in d.harder_toggle
+    assert "Hide harder route" in d.harder_toggle
     assert d.toggle == ""  # everything else is on a route: no general toggle
     assert "harder" in d.marks
     assert "harder" in render.ROUTE_MARK_KEYS and "harder" in render.GLOSSARY_BY_KEY
@@ -83,7 +91,7 @@ def test_the_general_toggle_appears_only_for_what_is_on_no_route() -> None:
     harder routes have their own toggle and the general one is absent."""
     d = one_view.drawing(harder_doc(stray=True), [], href={})
     assert "Show 3 more statements (1 on no route, 2 on strictly harder routes" in d.toggle
-    assert "Show 1 strictly harder route" in d.harder_toggle
+    assert "Show 1 harder route" in d.harder_toggle
     assert one_view.drawing(harder_doc(), [], href={}).toggle == ""
 
 
@@ -115,15 +123,14 @@ def harder_tree(tmp_path: Path) -> Path:
     return root
 
 
-def test_the_harder_toggle_draws_the_strictly_harder_route_and_back(tmp_path: Path) -> None:
-    """In a browser (Playwright): the toggle is shown beside the key; pressing it moves the
-    drawing to ``harder``, where the first route's holes are drawn (dimmed); pressing it again
-    returns to the routes view, where they are not."""
-    with browser(harder_tree(tmp_path / "g"), tmp_path / "site", view=one_view.ROUTES) as pg:
-        assert one_view.HARDER in layouts_in(pg)
-        toggle = pg.locator("button.harder-toggle")
-        assert toggle.is_visible()
-        assert "Show 1 strictly harder route (2 statements)" in toggle.inner_text()
+def test_showing_the_harder_route_draws_nothing_until_it_is_selected(tmp_path: Path) -> None:
+    """In a browser (Playwright). F34-T48 (ROUND-2 D2; the owner, 2026-11-27) restates F27-T13's
+    toggle: showing the harder route adds it to the picker and leaves the figure alone; selecting
+    its numbered end draws it, its holes among it; hiding the harder routes comes back."""
+    with browser(harder_tree(tmp_path / "g"), tmp_path / "site") as pg:
+        assert one_view.HARDER not in layouts_in(pg)
+        link = pg.locator("button.harder-link")
+        assert link.is_visible() and link.inner_text() == "Show 1 harder route"
 
         def drawn(nid: str) -> bool:
             found: bool = pg.evaluate(
@@ -133,16 +140,21 @@ def test_the_harder_toggle_draws_the_strictly_harder_route_and_back(tmp_path: Pa
             )
             return found
 
-        assert not drawn(HOLE_IDS[0]) and not drawn(HOLE_IDS[1])
-        toggle.click()
-        pg.wait_for_function("() => document.querySelector('svg.dag').dataset.view === 'harder'")
-        assert drawn(HOLE_IDS[0]) and drawn(HOLE_IDS[1]) and drawn(THIRD)
-        assert toggle.get_attribute("aria-pressed") == "true"
-        assert "Hide the strictly harder route" in toggle.inner_text()
-        toggle.click()
-        pg.wait_for_function("() => document.querySelector('svg.dag').dataset.view === 'routes'")
+        home = pg.evaluate("document.querySelector('svg.dag').dataset.view")
+        assert not drawn(HOLE_IDS[0]) and not drawn(HOLE_IDS[1]) and drawn(THIRD)
+        link.click()
+        pg.wait_for_selector("svg.harder-picker:not([hidden])")
+        assert not drawn(HOLE_IDS[0]) and not drawn(HOLE_IDS[1]) and drawn(THIRD)
+        assert link.get_attribute("aria-pressed") == "true"
+        end = pg.locator("svg.harder-picker g.sel-node.harder").first
+        view = end.get_attribute("data-view")
+        end.click()
+        pg.wait_for_function("v => document.querySelector('svg.dag').dataset.view === v", arg=view)
+        assert drawn(HOLE_IDS[0]) and drawn(HOLE_IDS[1]) and not drawn(THIRD)
+        link.click()
+        pg.wait_for_function("v => document.querySelector('svg.dag').dataset.view === v", arg=home)
         assert not drawn(HOLE_IDS[0]) and drawn(THIRD)
-        assert toggle.get_attribute("aria-pressed") == "false"
+        assert link.get_attribute("aria-pressed") == "false"
 
 
 # -- F27-T15 (R14): the site invites work only on what the frontier offers ------------------------

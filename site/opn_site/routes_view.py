@@ -18,7 +18,8 @@ in ``data-sets`` the sets beneath it, so the script lights a branch as it lights
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import re
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from html import escape
 from typing import Any
@@ -199,21 +200,6 @@ def closable_words(c: closing.Closable, found: Mapping[str, closing.Closable]) -
     return "closable once the closing proof of " + ", ".join(waiting) + " merges"
 
 
-def _ids(members: Sequence[str], names: dag.Prefix) -> str:
-    return "".join(f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in members)
-
-
-def _count(stop: int, follow: int | None) -> str:
-    """A count cell: its number in ``data-sort``; with a followed reading (F27-R13) that number
-    too, in ``data-sort-follow`` and a second span the stylesheet shows in its place."""
-    if follow is None:
-        return f'<td class="num" data-sort="{stop}">{stop}</td>'
-    return (
-        f'<td class="num" data-sort="{stop}" data-sort-follow="{follow}">'
-        f'<span class="v-stop">{stop}</span><span class="v-follow">{follow}</span></td>'
-    )
-
-
 @dataclass(frozen=True)
 class RouteRow:
     """F31-T11 (R8): one drawn route as the sets table names it — its id (``<node>@<k>``), the
@@ -230,146 +216,169 @@ class RouteRow:
     cut: bool = False
 
 
-def route_cell(
-    s: routes.SufficientSet, route_rows: Mapping[str, RouteRow], target_id: str, *, controls: bool
+def retire_controls(
+    s: routes.SufficientSet,
+    route_rows: Mapping[str, RouteRow],
+    target_id: str,
+    name_of: Callable[[str], str],
 ) -> str:
-    """F31-Q18 (the owner, 2026-10-25): the routes a set goes through, each named in the row
-    with its approach as the title and, with a service, its hidden ``.retire-act`` control
-    (``shelve.js`` shows Retire to a steward or curator) unless the route is already cut, in
-    which case what shelving did to it is said instead."""
+    """F34-T46 (ROUND-2 D3): the retire controls of the route Figure 1 draws, one per split the
+    route goes through, each named by its words — the statement split and the split's approach —
+    never by a raw id. A split already cut says what shelving did to it. ``shelve.js`` fills a
+    control for a steward or curator; the stylesheet shows a split's words only beside a filled
+    control or a shelving, so every other reader sees nothing here."""
     parts = []
     for rid in s.routes:
         r = route_rows.get(rid)
         if r is None:
-            parts.append(
-                f'<span class="set-route" data-route="{escape(rid)}">'
-                f"<code>{escape(rid)}</code></span>"
-            )
             continue
-        if r.cut or not controls:
+        words = f"Split of {name_of(r.node)}" + (f": {cut(r.approach, 60)}" if r.approach else "")
+        if r.cut:
             tail = f' <span class="route-state">{escape(r.shelving)}</span>' if r.shelving else ""
         else:
             tail = (
                 f'<span class="retire-act" data-target="{escape(target_id)}" '
                 f'data-node="{escape(r.node)}" data-partial="{escape(r.partial)}" hidden></span>'
             )
+        if not tail:
+            continue
         title = f' title="{escape(r.approach)}"' if r.approach else ""
         parts.append(
-            f'<span class="set-route" data-route="{escape(rid)}"{title}><code>{escape(rid)}</code>'
+            f'<span class="set-route"{title}><span class="split-words">{escape(words)}</span>'
             f"{tail}</span>"
         )
-    return f'<td class="set-routes" data-sort="{len(s.routes)}">{"".join(parts)}</td>'
+    return "".join(parts)
 
 
-def table(  # noqa: PLR0913 — the table's inputs
-    result: routes.Routes,
-    prefix: str | None,
-    views: Mapping[str, str] | None = None,
-    follow: routes.Routes | None = None,
-    *,
-    route_rows: Mapping[str, RouteRow] | None = None,
-    controls: bool = False,
+#: A partial's file name carries who wrote it: ``attempts/<stamp>Z-<who>-partial.lean``.
+_PARTIAL_BY = re.compile(r"\d{8}T\d{6}Z-(.+?)-partial")
+SIDE_ROW_WORDS = {PROVES: "proves the problem", routes.REFUTES: "would disprove it"}
+
+
+def split_by(partial: str) -> str | None:
+    """Who wrote a route's split, from its partial's file name; ``None`` when it names nobody."""
+    m = _PARTIAL_BY.search(partial)
+    return m.group(1) if m else None
+
+
+@dataclass(frozen=True)
+class RouteFacts:
+    """F34-T47: what a route's row says beyond its set — the view its number draws, its name
+    (the picker's, "Route n · <approach>"), and the statement boxes its drawing holds, in all and
+    proved (F34-T46: the count is the drawing's)."""
+
+    view: str
+    name: str
+    drawn: int
+    proved: int
+
+
+def _statement_links(
+    title: str, members: Sequence[str], name_of: Callable[[str], str], href: Mapping[str, str]
 ) -> str:
-    """One row per set in the record's order (R11). Each count cell carries its number in
-    ``data-sort``; the script adds the sorting and the toggle, which are rendered hidden.
-    ``follow`` (F27-R13), the same sets read past their proved statements, gives each row its
-    second reading: the statement, proved and shared counts and the list of proved statements
-    under ``v-follow``, shown when the page's toggle is unticked. ``route_rows`` (F31-Q18) adds
-    a Routes column naming the routes each set goes through, with the retire control when
-    ``controls`` (a build with a service address)."""
-    names: dag.Prefix = (prefix, result.root) if prefix else None
-    rows = []
-    any_notes = any(s.variant for s in result.sets)
-    twin = {s.id: s for s in follow.sets} if follow is not None else {}
+    if not members:
+        return ""
+    items = "".join(
+        f'<li><a href="{escape(href.get(m, "#"))}">{escape(name_of(m))}</a></li>' for m in members
+    )
+    return f"<p>{title}</p><ul>{items}</ul>"
+
+
+def route_list(  # noqa: PLR0913 — the list's inputs
+    result: routes.Routes,
+    facts: Mapping[str, RouteFacts],
+    *,
+    route_rows: Mapping[str, RouteRow],
+    name_of: Callable[[str], str],
+    href: Mapping[str, str],
+    home: str = "",
+    controls: bool = False,
+    harder: frozenset[str] = frozenset(),
+) -> str:
+    """F34-T47 (ROUND-2 D1; mockup ``New-Erdos257-List``; the owner, 2026-11-27: "Drop the table.
+    Keep what is shown in the problems design."): one row per route, in the picker's order — its
+    number in a circle, its name, which way it settles the problem and its counts, the statement
+    it goes through and who split it, and Draw, Statements and (a steward's or curator's, on a
+    build with a service) Retire. ``facts`` is keyed by set id; a set with no numbered end has no
+    row. ``harder`` (D2): the ids of the strictly harder sets, listed after the others under their
+    own subheading. The row of ``home`` is rendered marked; graph.js moves the mark."""
+    main: list[str] = []
+    more: list[str] = []
     for k, s in enumerate(result.sets, start=1):
-        f = twin.get(s.id)
-        side = settles(s)
-        notes = []
-        if s.variant:
-            notes.append(
-                f"goes through the variant <code>{escape(dag.label_of(s.variant, names))}</code>"
-            )
-        open_ids = _ids(s.open, names)
-        proved_ids = _ids(s.proved, names)
-        asm_ids = _ids(s.assemblies, names)
+        f = facts.get(s.id)
         if f is None:
-            proved_list = f"<p>Proved</p><ul>{proved_ids}</ul>" if proved_ids else ""
-        else:
-            proved_list = (
-                f'<p>Proved</p><ul class="v-stop">{proved_ids}</ul>' if proved_ids else ""
-            ) + f'<ul class="v-follow">{_ids(f.proved, names)}</ul>'
+            continue
+        side = settles(s)
+        _head, _, gist = f.name.partition(" · ")
+        name = gist[:1].upper() + gist[1:] if gist else f.name
+        split = max(f.drawn - f.proved - s.remaining, 0)
+        noun = "statement" if f.drawn == 1 else "statements"
+        counts = (
+            f"{SIDE_ROW_WORDS.get(side, side)} · {f.drawn} {noun} · {f.proved} proved · "
+            + (
+                '<span title="statements this route splits into the others">'
+                f"{split} split further</span> · "
+                if split
+                else ""
+            )
+            + f"<strong>{s.remaining} open</strong>"
+        )
+        first = route_rows.get(s.routes[0]) if s.routes else None
+        through_id = s.variant or (first.node if first is not None else result.root)
+        label = name_of(through_id)
+        through = f"through <code>{escape(through_id)}</code>" + (
+            f" ({escape(label)})" if through_id not in (result.root, label) else ""
+        )
+        who = split_by(first.partial) if first is not None else None
+        if who:
+            through += f", split by <code>{escape(who)}</code>"
+        elif first is None:
+            through += ", taken directly"
         listing = (
-            '<details class="set-which"><summary>which</summary>'
-            + (f"<p>Open</p><ul>{open_ids}</ul>" if open_ids else "")
-            + proved_list
-            + (f"<p>Assemblies</p><ul>{asm_ids}</ul>" if asm_ids else "")
+            '<details class="route-statements"><summary>Statements</summary>'
+            + _statement_links("Open", s.open, name_of, href)
+            + _statement_links("Proved", s.proved, name_of, href)
+            + _statement_links("Split further", s.assemblies, name_of, href)
             + "</details>"
         )
-        # F04-T55 (D-25 v3.46): a refuting set says so beside its number.
-        word = f' <span class="set-side">{escape(side)}</span>' if side != PROVES else ""
-        cells = [
-            f'<td data-sort="{k}"><span class="set-swatch {hue(k)}"></span>Set {k}{word}'
-            f"{listing}</td>",
-            _count(s.total, f.total if f else None),
-            _count(s.closed, f.closed if f else None),
-            f'<td class="num" data-sort="{s.remaining}">{s.remaining}</td>',
-            _count(s.shared, f.shared if f else None),
-            f'<td class="num" data-sort="{len(s.assemblies)}">{len(s.assemblies)}</td>',
-        ]
-        if route_rows is not None:
-            cells.append(route_cell(s, route_rows, result.target_id, controls=controls))
-        if any_notes:
-            cells.append(f"<td>{'; '.join(notes)}</td>")
-        rows.append(
-            f'<tr class="set-row side-{escape(side)}" data-set="{escape(s.id)}" data-index="{k}" '
-            f'data-remaining="{s.remaining}"'
-            + (f' data-view="{escape(views[s.id])}"' if views and s.id in views else "")
-            + ">"
-            + "".join(cells)
-            + "</tr>"
+        retire = (
+            '<details class="route-retire"><summary>Retire…</summary>'
+            f"{retire_controls(s, route_rows, result.target_id, name_of)}</details>"
+            if controls
+            else ""
         )
-    heads = [
-        ("Set", "the sets in the record's order"),
-        ("Statements", "statements in the set, proved and open"),
-        ("Proved", "statements of the set already proved"),
-        ("Open", "statements of the set still to prove"),
-        ("Shared", "statements of the set that another set also holds"),
-        ("Assemblies", "closing proofs of decomposed statements still to submit"),
-        *(
-            [
-                (
-                    "Routes",
-                    "the merged decompositions the set goes through; a steward or curator "
-                    "may retire one",
-                )
-            ]
-            if route_rows is not None
-            else []
-        ),
-        *([("Notes", "")] if any_notes else []),
-    ]
-    th = "".join(
-        f'<th scope="col" data-col="{i}"' + (f' title="{escape(t)}"' if t else "") + f">{h}</th>"
-        for i, (h, t) in enumerate(heads)
-    )
+        on = f.view == home
+        row = (
+            f'<li class="route-row side-{escape(side)}" data-set="{escape(s.id)}" '
+            f'data-index="{k}" data-view="{escape(f.view)}" '
+            f'aria-selected="{"true" if on else "false"}"'
+            + (' data-harder="true"' if s.id in harder else "")
+            + ">"
+            f'<button type="button" class="route-n" aria-pressed="{"true" if on else "false"}" '
+            f'aria-label="Draw route {k}">{k}</button>'
+            '<div class="route-body">'
+            f'<span class="route-name">{escape(name)}</span>'
+            f'<span class="route-counts">{counts}</span>'
+            f'<span class="route-through">{through}</span>'
+            '<span class="route-acts"><a href="#proof" class="route-draw">Draw</a>'
+            f"{listing}{retire}</span>"
+            "</div></li><!-- /route-row -->"
+        )
+        (more if s.id in harder else main).append(row)
+    if not main and not more:
+        return ""
     truncated = (
         '<p class="cue">The list was cut short at the enumeration&rsquo;s cap.</p>'
         if result.truncated
         else ""
     )
-    count = len(result.sets)
+    harder_block = (
+        '<div class="harder-routes" hidden><h4 class="harder-head">Harder routes</h4>'
+        f'<ol class="route-list">{"".join(more)}</ol></div>'
+        if more
+        else ""
+    )
     return (
-        '<div class="routes-table-wrap">'
-        f'<p class="routes-count">{count} way{"" if count == 1 else "s"} to settle the '
-        "problem, in the record&rsquo;s order. "
-        '<span class="routes-showing" hidden></span>'
-        '<button type="button" class="routes-fewest" aria-pressed="false" hidden>'
-        "Fewest open first</button></p>"
-        f'<table class="routes-table"><thead><tr>{th}</tr></thead>'
-        f"<tbody>{''.join(rows)}</tbody></table>{truncated}"
-        '<p class="routes-hint" hidden>Hover a set, a branch or an edge of the tree, or a row, to '
-        "light what it holds on the drawing; select it and the drawing becomes that tree. A "
-        "branch is every set beneath it, an edge the part a route choice commits to. The table "
-        "shows the selected sets; select again, or press Escape, to come back.</p>"
-        "</div>"
+        '<div class="route-list-wrap">'
+        f'<ol class="route-list">{"".join(main)}</ol>{harder_block}{truncated}</div>'
     )

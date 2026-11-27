@@ -1802,7 +1802,7 @@ class Renderer:
             "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
             + self.literature_key(self.literature_marks(tv).values())
             # F34-T21: the problem page folds the key and places the toggle beside the fold
-            + (drawn.toggle + drawn.harder_toggle if drawn and toggle else "")
+            + (drawn.toggle if drawn and toggle else "")
         )
 
     # -- F04-T54 (D-25 v3.45): the literature mark ------------------------------------------
@@ -3339,24 +3339,41 @@ class Renderer:
             # F34-Q7: the follow-the-proof toggle is off the page (the owner, 2026-11-25)
             "</div>"
             f"{picture.selector}"
+            # F34-T48: the picker with the harder routes, in a box of its own that scrolls
+            + (
+                f'<div class="harder-scroll">{picture.harder_selector}</div>'
+                if picture.harder_selector
+                else ""
+            )
+            +
             # F34-T38 (REMINDERS item 21): the phone's one line of help under the selector
             '<p class="sel-tap">Tap a numbered end to draw that route below.</p>'
-            f"{drawn_below}{self.proof_notes(tv)}"
+            f"{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
             else ""
         )
         # F31-T11 (R8): the drawn routes, each with its Retire control, beside the sets table.
         # F31-Q18: the retire control is in the sets table's Routes column; no routes list.
-        sets_block = (
-            f'<div class="sets-grid">{picture.table}</div>' if picture.table else ""
-        ) + picture.layouts_json
-        # F34-T12 (R14): Tree and List, two tabs over the selector and the table, each pane in a
+        sets_block = picture.layouts_json
+        # F34-T12 (R14): Tree and List, two tabs over the selector and the list, each pane in a
         # wrapper of its own; the tabs are hidden until the script can switch them, so without it
-        # both stay on the page.
+        # both stay on the page. F34-T47 (ROUND-2 D1): the List is one row per route, beside the
+        # tree in the drawing's card, and "Drawn below" stands under whichever is shown.
         if picture.selector and picture.table:
-            selector_block = f'{ROUTE_TABS}<div id="sets-tree">{selector_block}</div>'
-            sets_block = f'<div id="sets-list">{sets_block}</div>'
+            selector_block = (
+                f'{ROUTE_TABS}<div id="sets-tree">{selector_block}</div>'
+                f'<div id="sets-list">{picture.table}</div>'
+            )
+        # F34-T48 (ROUND-2 D2): the harder routes' quiet control, under the picker
+        selector_block += picture.harder_toggle + drawn_below
+        # F34-T47: the figure's heading says its proved statements are folded and unfolds them
+        figure_folds = (
+            '<p class="figure-folds" hidden>Proved statements folded · '
+            '<button type="button" class="unfold-all" aria-pressed="false">unfold</button></p>'
+            if opening
+            else ""
+        )
         n = len(tv.nodes)
         if tv.approaches:
             approaches = (
@@ -3410,8 +3427,8 @@ class Renderer:
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv, picture, toggle=False),
             # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
-            view_toggle=picture.toggle + picture.harder_toggle,
-            figure_cap=figure_cap,  # F34-T33
+            view_toggle=picture.toggle,
+            figure_cap=figure_cap + figure_folds,  # F34-T33, T47
             figure_retire=picture.retire,  # F34-T41
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
@@ -3454,7 +3471,7 @@ class Renderer:
             + ('<script src="/panel.js"></script>' if self.api_url else "")
             + (
                 SHELVE_SCRIPT.replace("$repo", esc(self.repo_url))
-                if self.api_url and 'class="retire-act"' in picture.table
+                if self.api_url and 'class="retire-act"' in picture.table + picture.retire
                 else ""
             ),
         )

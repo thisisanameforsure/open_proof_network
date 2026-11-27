@@ -1,0 +1,57 @@
+F34-T48 (ROUND-2 D2): every end of the picker is a route; harder routes join the picker
+2026-11-27. The owner: "Clicking show harder routes should update the tree view where you select
+routes. The selected route view should just show the route selected in the route picker."
+
+WHAT THE RECORD SAID (F34-Q31)
+  * The six unnumbered squares on erdos-1094 were not harder routes' choice points. Each was a
+    fold's own layout (sel/…~fold0, kind "fold-open") that the picker took for a child of the tree,
+    because it kept its route's parent and its key starts with "sel/". They showed with harder
+    routes hidden or shown. Listed from the live page before the change: 4 kind-leaf, 9 kind-node
+    (3 real choice points + 6 folds), 1 kind-root.
+  * "35 strictly harder routes" counted splits (junctions only harder ways go through). A numbered
+    end is a way of settling the problem. routes._enumerate on the live erdos-1094: 46 finest sets,
+    4 offered, 42 left out by F27-R14. So the control reads "Show 42 harder routes".
+
+BUILT
+  * _selector_svg leaves fold layouts out: every end is a numbered route.
+  * routes.read(harder=True) lists the left-out sets after the offered ones (default unchanged).
+  * One leaf view per harder set (hard/<set id>), folded and whole; a second picker over all the
+    sets, shown in the main one's place, its harder ends numbered after the main ones and drawn
+    lighter, only an end pressable; the harder rows of the List under "Harder routes".
+  * "Show n harder routes" is a text control under the picker. It never changes Figure 1. Hiding
+    them while one is drawn comes back to the home route.
+  * The "harder" layout (every harder statement at once, about 60 boxes) is gone.
+
+RED FIRST (site/tests/test_f34_harder_picker.py)
+  test_every_end_of_the_picker_is_a_numbered_route: [('kind-leaf','sel/t@1'), ('kind-leaf','sel/t@2'),
+    ('kind-node','sel/t@1~open'), ('kind-node','sel/t@1~fold0')]  assert 4 == 2
+  the other six failed after the seams (read(harder=), Drawing.harder_selector) went in at today's
+  behaviour. GREEN: 7 passed. Restated: test_one_view_dominated (4, one browser), test_f34_not_on_route (1).
+
+LIVE RENDER (shoot_round2.py: ends = nodes of the visible picker no line leaves)
+  erdos-1094 tree 1440 caption=19 statements, 2 open boxes= 19 ends= 4 numbered= 4 harder= 0 rows= 0 table=0 scrollWidth=1440 link=Show 42 harder routes
+  erdos-1094 tree 390 caption=19 statements, 2 open boxes= 19 ends= 4 numbered= 4 harder= 0 rows= 0 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-1094 list 1440 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 4 table=0 scrollWidth=1440 link=Show 42 harder routes
+  erdos-1094 list 390 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 4 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-1094 harder 1440 caption=19 statements, 2 open boxes= 19 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=1440 link=Hide harder routes
+  erdos-1094 harder 390 caption=19 statements, 2 open boxes= 19 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=390 link=Hide harder routes
+  erdos-1094 harder-list 1440 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 46 table=0 scrollWidth=1440 link=Hide harder routes
+  erdos-1094 harder-list 390 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 46 table=0 scrollWidth=390 link=Hide harder routes
+  erdos-1094 hard-route 1440 caption=37 statements, 11 open boxes= 37 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=1440 link=Hide harder routes
+  erdos-1094 hard-route 390 caption=37 statements, 11 open boxes= 37 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=390 link=Hide harder routes
+  Harder routes off: 4 ends, all numbered. On: 46 ends, all numbered, 42 of them harder (5–46).
+  Figure 1: one route in every state (boxes = the caption's count). No sideways scroll at 390.
+  erdos-257 has no harder route: no control, 12 ends, all numbered (9 choice points; before: 16
+  kind-node, 7 of them folds).
+
+COST: erdos-1094's page 2,153,898 → 3,395,135 bytes (84 more layouts, two per harder route).
+
+Captures: task-48-erdos-1094-harder-1440.png, -harder-390.png, -harder-list-390.png, -hard-route-1440.png.
+
+FULL SITE SUITE, browser tests included (uv run --frozen --with 'playwright==1.58.0' python -m pytest
+site/tests -q -m "not lean and not docker"), on a snapshot of the tree as committed, 14:46–14:55:
+  3 failed, 1219 passed in 544.03s
+  the three are the ones that fail on main too: test_finding_lemma_edge::test_measured_in_a_browser,
+  test_web_flows::test_a_stranger_sees_edit_and_no_approve, test_web_flows::test_a_curator_sees_withdraw
+  (an earlier snapshot, taken before the phone fix of T47, also had three phone tests red: the
+  regression named there.)
