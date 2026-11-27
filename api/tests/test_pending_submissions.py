@@ -314,7 +314,13 @@ def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     harness.clock.advance(seconds=1)
     annex(harness, token)
     first = harness.client.get("/submissions.json").json()
-    assert set(first) == {"snapshot_at", "open", "host", "queue"}  # host: F07-T47
+    assert set(first) == {  # host: F07-T47; awaiting_render: F31-T16
+        "snapshot_at",
+        "open",
+        "awaiting_render",
+        "host",
+        "queue",
+    }
     assert first["snapshot_at"] == clockmod.render(harness.clock.now())
     assert [e["pr_number"] for e in first["open"]] == [1, 2]
 

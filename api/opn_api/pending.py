@@ -1273,6 +1273,8 @@ def waiting_on_products(
         waits = _witness_unrendered
     elif found.expected_nodes:
         waits = _holes_unrendered
+    elif found.kind == "shelving":
+        waits = _merge_unrendered  # F31-T16: the drawing changes only when the products do
     else:
         return pull
     try:
@@ -1336,6 +1338,13 @@ def awaits_render(ctx: Context, found: Submission) -> bool:
         except Exception as exc:  # any store failure: the window still bounds the entry
             log.warning("pull request #%d: not forgotten: %s", found.pr_number, type(exc).__name__)
     return rendered is False
+
+
+def _merge_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    """F31-T16: the target's products were rendered from a commit that does not carry this
+    merge. A merge that cannot be compared is not said to wait (C7)."""
+    merge = pull.get("merge_commit_sha")
+    return isinstance(merge, str) and bool(merge) and merge_rendered(ctx, found, merge) is False
 
 
 def _node_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
@@ -1596,7 +1605,8 @@ def hand_opened(ctx: Context, raw: str, number: int | None) -> dict[str, Any]:
 
 async def get_submission(ctx: Context, request: Request) -> Response:
     doc = answer(ctx, str(request.path_params["submission_id"]))
-    return JSONResponse(doc, headers=retry_after(ctx))
+    # F31-T16: the site's page follows a record it filed, as it reads the listing (F22-T8)
+    return JSONResponse(doc, headers=retry_after(ctx) | site_headers(ctx))
 
 
 # --- GET /submissions.json ------------------------------------------------------------------------
@@ -1649,9 +1659,13 @@ def listed_state(entry: OpenPullRequest) -> PullRequestState:
     )
 
 
-def snapshot(ctx: Context) -> dict[str, Any]:
+def snapshot(ctx: Context, filters: dict[str, str] | None = None) -> dict[str, Any]:
     """The open records, each the ``submission`` document its own route carries, and ``host``:
     when the queue was last reconciled against the host and whether that is stale.
+
+    F31-T16: and ``awaiting_render``, the merged records the products do not show yet, which a
+    page that filed one follows until it is drawn. ``filters`` (the route's own) narrow that
+    list before any of it is compared with the products; ``open`` is narrowed by the route.
 
     Each is reconciled against the host first, so "open" means the host still calls it open and
     not merely that nobody has asked; a record the host cannot describe stays listed (C7).
@@ -1705,8 +1719,23 @@ def snapshot(ctx: Context) -> dict[str, Any]:
         "snapshot_at": clockmod.render(ctx.clock.now()),
         "queue": {"order": order, "description": QUEUE_ORDER, "note": QUEUE_NOTE},
         "open": open_now,
+        "awaiting_render": awaiting_render(ctx, filters or {}),
         "host": {"read_at": read_at, "stale": error is not None, "error": error},
     }
+
+
+def awaiting_render(ctx: Context, filters: dict[str, str]) -> list[dict[str, Any]]:
+    """F31-T16: the merged records the products do not show yet (``awaits_render``), each as
+    ``open`` gives a record with ``queue`` null, in pull-request order. Read from the service's
+    own index of recent merges, so a pull request opened by hand, or one nobody has read since
+    it merged, is not known here. The filters are applied first, so a page asking about one
+    target's shelvings costs the host a comparison for those alone."""
+    out: list[dict[str, Any]] = []
+    for found in recent_merges(ctx):
+        doc = {**document(found), "queue": None}  # merged: no place in the queue
+        if matches(doc, filters) and awaits_render(ctx, found):
+            out.append(doc)
+    return out
 
 
 #: F22-T8: the filters ``GET /submissions.json`` takes, equality only; ``kind=words`` is a gloss
@@ -1827,7 +1856,7 @@ async def get_submissions(ctx: Context, request: Request) -> Response:
     filters = submission_filters(request)
     if "target" in filters:
         known_filter_target(ctx, filters["target"])
-    doc = snapshot(ctx)
+    doc = snapshot(ctx, filters)
     if filters:
         doc["open"] = [e for e in doc["open"] if matches(e, filters)]
     return JSONResponse(doc, headers=retry_after(ctx) | site_headers(ctx))

@@ -322,12 +322,17 @@ def test_a_steward_shelves_unshelves_and_retires_from_the_site(served: str) -> N
             "route": partial,
             "cause": "A distraction.",
         }
-        # Signed out: nothing is drawn.
+        # Signed out, in a browser that filed nothing: nothing is drawn. (The browser that
+        # filed keeps following its own record, signed in or not: F31-T17.)
         FakeService.session = {**FakeService.session, "signed_in": False}
         try:
+            other = browser.new_context().new_page()
+            other.goto(served + f"/nodes/{TARGET}/{OPEN}/")
+            other.wait_for_timeout(300)
+            assert other.locator(".shelve-act").evaluate("e => e.hidden")
+            assert other.locator(".shelve-act button").count() == 0
             page.goto(served + f"/nodes/{TARGET}/{OPEN}/")
-            page.wait_for_timeout(300)
-            assert page.locator(".shelve-act").evaluate("e => e.hidden")
+            page.wait_for_selector(".shelve-act .act-progress")
             assert page.locator(".shelve-act button").count() == 0
         finally:
             FakeService.session = {**FakeService.session, "signed_in": True}

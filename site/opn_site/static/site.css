@@ -724,6 +724,25 @@ main table.ledger { display: block; max-width: 100%; overflow-x: auto; }
 .shelve-act { display: block; margin: var(--s4) 0; }
 .shelve-act .shelve-form, .retire-act .shelve-form { margin-top: var(--s2); }
 .retire-act .shelve-form { display: flex; }
+/* F31-T17: a filed shelving, followed until the page is drawn with it. */
+.act-progress { display: flex; flex-direction: column; gap: var(--s2); align-items: flex-start; margin-top: var(--s2); padding: var(--s3) var(--s4); border: 1px solid var(--rule-strong); border-radius: var(--radius-md); background: var(--surface); max-width: 46em; }
+.act-progress .act-head, .act-progress .act-words { margin: 0; }
+.act-progress .act-head { color: var(--ink); }
+.act-steps { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+.act-steps li { display: flex; align-items: center; gap: 6px; }
+.act-steps li::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; }
+.act-steps li.done { color: var(--ink); }
+.act-steps li.done::before { background: currentColor; }
+.act-steps li.now { color: var(--ink); font-weight: 600; }
+.act-steps li.now::before { animation: act-pulse 1.4s ease-in-out infinite; }
+.act-steps li.now.bad { color: var(--warn); }
+.act-steps li.now.bad::before { animation: none; }
+@keyframes act-pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .act-steps li.now::before { animation: none; } }
+.act-others { margin: var(--s2) 0 0; font-size: 13px; }
+/* What a pending record will change, in the drawing: marked, never drawn as done. */
+svg.dag g.node.act-pending rect.pill, svg g.node.act-pending rect.pill { stroke: var(--ink); stroke-width: 1.75; stroke-dasharray: 6 3; }
+svg.dag g.junction.act-pending .and-mark, svg g.junction.act-pending .and-mark { stroke: var(--ink); stroke-width: 1.75; stroke-dasharray: 3 2; fill: var(--surface); }
 .shelved-note { margin: var(--s4) 0; }
 .lit-act { margin: var(--s4) 0; font-size: 14px; color: var(--n300); }
 .lit-act .cue { margin: 0 0 var(--s2); font-size: 13px; }

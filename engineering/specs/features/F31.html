@@ -254,8 +254,32 @@ naming each set's routes (<code>span.set-route[data-route]</code>, approach as t
 <code>.retire-act</code> beside each, so a route a set goes through is retired on the row that shows why it
 matters; a route no live set rests on is in no row, and its holes are shelved from their own pages.</p>
 
+<p><strong>F31-Q19 &mdash; A filed record is followed on the page until it is drawn (the owner, 2026-11-27).</strong>
+The owner retired a route of <code>variant-6b364d2b--h1</code> on erdos-257 (graph #2078) and read the page as
+broken: &ldquo;the display did not change&rdquo;, then &ldquo;right now it just feels broken&rdquo;. Nothing was
+broken. Measured on that record: filed 20:43:14Z, merged 20:44:19Z, products committed 20:54:22Z, site deployed
+by about 20:58Z, so fifteen minutes in which the page said &ldquo;Retirement filed: #2078&rdquo; until the next
+reload and then offered the same Retire button again. His ruling was all three of the things proposed.
+(1) The filing is remembered in the browser (<code>localStorage</code>, the pull request and what it names,
+nothing a person wrote) and replaces the control across reloads. (2) The slot shows where the record is, Filed,
+Checked, Merged, On this page, with what happens next in words, the wait stated as it was measured
+(&ldquo;usually about a quarter of an hour after the merge&rdquo;, which is also
+<code>pending.PRODUCTS_MEDIAN_S</code>). &ldquo;On this page&rdquo; is decided by the page: a fresh copy of the
+same address must show the change before the note offers a reload. (3) The drawing marks what the record will
+change (the route's junction and its holes, or the statement's pill) with a class of its own,
+<code>act-pending</code>. It is never drawn as shelved before the render says so, because the gate may still
+refuse the record and the first of the owner's four principles is that published state is actual state.
+Three judgment calls. The service already knew &ldquo;merged, not rendered&rdquo; (<code>awaits_render</code>)
+and published it for no shelving: <code>GET /submissions/{id}</code> now says <code>waiting_on: products</code>
+for one, and <code>GET /submissions.json</code> carries <code>awaiting_render</code>, which adds a key to an
+existing answer and to the <code>list_submissions</code> result schema, as F05-T18 added <code>queue</code>; no
+route or tool is new. A listing row does not say which route or which action a record names, so a viewer who
+did not file it is told only that a shelving record on the statement is pending, and the control stays. And a
+retired route that keeps a hole another live route needs (Q12) keeps its Retire control, so the page test alone
+would never say drawn; ten minutes after the service first reports the render, the note says drawn regardless.</p>
+
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> built 2026-10-24 on branch <code>f31-shelving</code> (decisions v3.47; three worktree agents, gate / service / site, merged by the lead) · <strong>Tasks:</strong> T0&ndash;T1 done (contract; <code>engineering/evidence/F31/task-0.txt</code>, <code>task-1.txt</code>: full verify 6662 passed) · T2&ndash;T6 done (gate: 17 + 18 + 5 + 6 + 3 new tests, <code>task-2.txt</code>&ndash;<code>task-6.txt</code>) · T7&ndash;T9 done (service: 31 + 13 + 9, <code>task-7.txt</code>&ndash;<code>task-9.txt</code>) · T10&ndash;T12 done (site: 5 + 7 + 1, six captures, <code>task-10.txt</code>&ndash;<code>task-12.txt</code>) · merged tree: see <code>task-merge.txt</code> · T13 built 2026-10-25 (network PR #89 merged as 512df592, api-deploy and image-publish green, the service serves <code>POST /shelvings</code>; the graph re-pin b9d668eeb is committed on a detached worktree and its push is the owner's, refused to the session as a production deploy; <code>task-13.txt</code>; live 2026-10-25 on the owner's word: b9d668eeb pushed to graph <code>main</code> at 09:22Z, gate run 40180361665 green, render.yml dispatched by the gate itself and committed products 4282b486c (<code>graph/v15</code>, <code>shelved</code> on every row, frontier unchanged at 104), site-deploy 40180487696 serving that commit; the graph's <code>AGENTS.md</code> copy now equals the network's, so <code>test_graph_copy_is_identical</code> passes again) · T14 blocked on T15's re-pin (the owner's first try was refused <code>node-root</code>, Q18) · T15 built 2026-10-25 (Q18: route-scope records on the root pass the service and the gate; Retire moved into the sets table; <code>task-15.txt</code>) — its gate half binds the graph only at a re-pin, the owner's push</div>
+<div class="rule"><strong>status:</strong> built 2026-10-24 on branch <code>f31-shelving</code> (decisions v3.47; three worktree agents, gate / service / site, merged by the lead) · <strong>Tasks:</strong> T0&ndash;T1 done (contract; <code>engineering/evidence/F31/task-0.txt</code>, <code>task-1.txt</code>: full verify 6662 passed) · T2&ndash;T6 done (gate: 17 + 18 + 5 + 6 + 3 new tests, <code>task-2.txt</code>&ndash;<code>task-6.txt</code>) · T7&ndash;T9 done (service: 31 + 13 + 9, <code>task-7.txt</code>&ndash;<code>task-9.txt</code>) · T10&ndash;T12 done (site: 5 + 7 + 1, six captures, <code>task-10.txt</code>&ndash;<code>task-12.txt</code>) · merged tree: see <code>task-merge.txt</code> · T13 built 2026-10-25 (network PR #89 merged as 512df592, api-deploy and image-publish green, the service serves <code>POST /shelvings</code>; the graph re-pin b9d668eeb is committed on a detached worktree and its push is the owner's, refused to the session as a production deploy; <code>task-13.txt</code>; live 2026-10-25 on the owner's word: b9d668eeb pushed to graph <code>main</code> at 09:22Z, gate run 40180361665 green, render.yml dispatched by the gate itself and committed products 4282b486c (<code>graph/v15</code>, <code>shelved</code> on every row, frontier unchanged at 104), site-deploy 40180487696 serving that commit; the graph's <code>AGENTS.md</code> copy now equals the network's, so <code>test_graph_copy_is_identical</code> passes again) · T14 blocked on T15's re-pin (the owner's first try was refused <code>node-root</code>, Q18) · T15 built 2026-10-25 (Q18: route-scope records on the root pass the service and the gate; Retire moved into the sets table; <code>task-15.txt</code>) — its gate half binds the graph only at a re-pin, the owner's push &middot; <strong>T16 built 2026-11-27</strong> (Q19; red 4 failed with 6 guards green once the listing's seam stood at today's behaviour, green 10; <code>engineering/evidence/F31/task-16.txt</code>; live at the next api deploy) &middot; <strong>T17 built 2026-11-27</strong> (Q19; red 6 failed, green 6 with <code>test_shelving_controls.py</code>'s 8, browser tests run under Playwright; seven screenshots at 1280 and 390; <code>engineering/evidence/F31/task-17.txt</code>; live at the next site deploy, and its merged half needs T16 deployed first)</div>
 
 <h2>Tasks</h2>
 <table>
@@ -314,6 +338,17 @@ matters; a route no live set rests on is in no row, and its holes are shelved fr
     list goes.</td><td><code>api/opn_api/shelvings.py</code>, <code>gate/opn_gate/modes.py</code>,
     <code>site/opn_site/{routes_view,one_view,render}.py</code></td><td>T13</td>
     <td><code>uv run --frozen pytest api/tests/test_shelvings_route.py gate/tests/test_shelving_mode.py gate/tests/test_shelving.py site/tests/test_shelving_controls.py -k "root or sets_table"</code></td></tr>
+  <tr><td>F31-T16</td><td>Q19: the service says a merged shelving waits on the products
+    (<code>GET /submissions/{id}</code>, which also answers the site's origin), and
+    <code>GET /submissions.json</code> lists the merged records not rendered yet
+    (<code>awaiting_render</code>).</td><td><code>api/opn_api/pending.py</code>,
+    <code>api/opn_api/mcp/schemas/list_submissions/v1.json</code></td><td>T13</td>
+    <td><code>uv run --frozen pytest api/tests/test_finding_shelving_pending.py</code></td></tr>
+  <tr><td>F31-T17</td><td>Q19: the page follows a filed shelving until it is drawn: remembered across reloads,
+    its progress in the slot, what it will change marked in the drawing, and another viewer told a record is
+    pending.</td><td><code>site/opn_site/static/{shelve.js,site.css}</code>,
+    <code>site/opn_site/{routes_view,one_view}.py</code></td><td>T16</td>
+    <td><code>uv run --with 'playwright==1.58.0' python -m pytest site/tests/test_shelving_progress.py site/tests/test_shelving_controls.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F31 · specs are authored in HTML</footer>

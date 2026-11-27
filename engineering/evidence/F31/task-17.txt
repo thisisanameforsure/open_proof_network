@@ -1,0 +1,33 @@
+F31-T17: the page follows a filed shelving until it is drawn (Q19)
+Fri Nov 27 21:22:04 UTC 2026
+
+red (before shelve.js changed; uv run --with 'playwright==1.58.0' python -m pytest site/tests/test_shelving_progress.py):
+  6 failed: KeyError 'data-holes'; 'act-pending' not in the script; three timeouts waiting for
+  .act-progress after filing (once the test's own row locator was fixed); one waiting for .act-others.
+
+green:
+14 passed in 8.89s
+  (browser tests ran under Playwright 1.58, none skipped)
+
+one older test restated, not deleted: test_shelving_controls' signed-out check now uses a browser
+that filed nothing, and asserts the browser that filed keeps following its record.
+
+whole service and site suites with browser tests (api site, -m "not lean and not docker"):
+  3953 passed, 4 failed. One was this change (tools/list budget, fixed in T16, see task-16.txt).
+  Three fail on origin/main 7651066c as well, run there in a detached worktree:
+    site/tests/test_finding_lemma_edge.py::test_measured_in_a_browser
+    site/tests/test_web_flows.py::test_a_stranger_sees_edit_and_no_approve
+    site/tests/test_web_flows.py::test_a_curator_sees_withdraw
+make lint: clean. make types: clean.
+
+screenshots (the fixture's two-route problem page, a fake service moved through the states):
+  task-17-1-checking-{1280,390}.png   filed, being checked
+  task-17-2-merged-{1280,390}.png     merged, waiting for the render
+  task-17-3-drawing-mark-1280.png     the route's hole and junction marked pending in Figure 1
+  task-17-4-drawn-{1280,390}.png      drawn, with "Reload to see it"
+looked at: the note sits in the route's row and under the figure's header; at 390 the steps wrap
+to two lines and nothing overflows. The first capture showed the pending pill in the grey of an
+ordinary pill (a more specific rule won); fixed and recaptured.
+
+not shown: the live page. T17's merged step needs T16 deployed (the service does not yet say
+waiting_on: products for a shelving, nor answer the site's origin on GET /submissions/{id}).
