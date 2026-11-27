@@ -214,6 +214,8 @@ class RouteRow:
     shelving: str | None
     #: Every hole of it is shelved (retired, or shelved one by one): nothing is left to retire.
     cut: bool = False
+    #: F31-T17: the holes beneath it, which a pending retirement marks in the drawing.
+    holes: tuple[str, ...] = ()
 
 
 def retire_controls(
@@ -238,7 +240,9 @@ def retire_controls(
         else:
             tail = (
                 f'<span class="retire-act" data-target="{escape(target_id)}" '
-                f'data-node="{escape(r.node)}" data-partial="{escape(r.partial)}" hidden></span>'
+                f'data-node="{escape(r.node)}" data-partial="{escape(r.partial)}" '
+                f'data-route="{escape(r.id)}" data-holes="{escape(" ".join(r.holes))}" '
+                "hidden></span>"
             )
         if not tail:
             continue

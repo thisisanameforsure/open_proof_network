@@ -1834,6 +1834,7 @@ def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawi
             shelving_words(r, rows, d.below.get(rid, [])),
             cut=bool(d.below.get(rid))
             and all(rows.get(h, {}).get("shelved") for h in d.below.get(rid, [])),
+            holes=tuple(d.below.get(rid, [])),  # F31-T17
         )
         for rid, r in d.junctions.items()
         if r.node not in set(band)
