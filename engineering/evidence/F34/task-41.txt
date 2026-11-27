@@ -1,0 +1,16 @@
+F34-T41 — Retire on the drawn route's header (REMINDERS-erdos-257 item 8; handoff §3.4.2), 2026-11-27
+
+Retire was already on each route of the list (the table's Routes column, F31-Q18). The drawn
+route's header now carries it too: under "Figure 1 · the selected route", one hidden group per
+numbered end holds the same .retire-act controls as that set's row (one per decomposition the
+route goes through, built by routes_view.route_cell, so the two can never differ); graph.js shows
+the drawn route's group; shelve.js fills the controls for a signed-in steward of the problem or a
+curator only, as for the table. No service address, no group.
+
+Red (task-41-red.txt): no group; a steward saw no Retire on the header. Green (task-41-green.txt):
+3 passed — a group per numbered end; none without a service; in a browser, signed in as a steward
+through test_shelving_controls' fake service, the drawn route's group alone is shown, with "Retire
+this route". Full site suite with browser tests: green but the three known reds on main.
+Capture (the fixture, signed in as a steward): task-41-header-steward-1440.png. The live site
+cannot be captured signed in from here: "verify signed in as a steward" on erdos-257 is the
+owner's, and the button is the one the table already shows him.

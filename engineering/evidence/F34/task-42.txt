@@ -1,0 +1,18 @@
+F34-T42 — "uses: …" chips (REMINDERS-erdos-257 item 10, second half; mockup New-Erdos257-Route1),
+2026-11-27
+
+A statement whose merged proof uses another (graph.json's uses) carries a dashed chip per used
+statement on its pill — "uses: <label>", cut at 28 characters — inside the pill's group (it moves
+with the pill), over the pill's lower left (the "+ n speculative" chip is lower right). A click
+selects the used statement into the panel. On erdos-257's Route 1, "a representation of a rational
+is greedy" now says "uses: gap lemma: each term exceed…", as the mockup draws it. Only uses (what
+the gate measured the proof to use); a root's lemmas (holes restated as special cases) are already
+drawn as its route.
+
+Red (task-42-red.txt): no chip; nothing to click. Green (task-42-green.txt): 3 passed.
+Capture: task-42-tree-1440.png (live graph rendered by this tree).
+
+Item 9 (the list as route cards with Draw · Statements · Retire, the old sets table removed) is not
+built: the table carries the owner's F27 rulings (Shared and Assemblies columns, sort, "Fewest open
+first") and F31-Q18's Retire per route, and removing it is a decision for the owner, not a fix to
+make unattended. Retire is on each route of today's list (F31-Q18) and on the header (T41).

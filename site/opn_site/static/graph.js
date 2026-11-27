@@ -514,7 +514,6 @@
   var drawnBelow = document.querySelector(".drawn-below strong");
   var figureCap = document.querySelector(".figure-cap strong");
   function routeCaption(to) {
-    if (!drawnBelow && !figureCap) { return; }
     var plain = base(to), end = null;
     if (selector) {
       slice(selector.querySelectorAll("g.kind-leaf[data-route]")).forEach(function (g) {
@@ -525,6 +524,10 @@
     var count = end ? " · " + end.getAttribute("data-count") : "";
     if (drawnBelow) { drawnBelow.textContent = name + count; }
     if (figureCap) { figureCap.textContent = name; }
+    // F34-T41: the drawn route's retire controls (shelve.js fills them for a steward or curator)
+    slice(document.querySelectorAll(".figure-retire")).forEach(function (g) {
+      g.hidden = g.getAttribute("data-view") !== plain;
+    });
   }
 
   // The view is shown: data-view on the svg, the pressed element, the table's rows and count
@@ -661,6 +664,13 @@
     var link = g.parentNode;
     g.addEventListener("click", function (ev) {
       // F34-T27: "+ n speculative ↓" scrolls to its group in §2; the view and the hash stay
+      // F34-T42: "uses: …" selects the statement it names into the panel
+      var uses = ev.target.closest ? ev.target.closest(".uses-chip") : null;
+      if (uses) {
+        ev.preventDefault();
+        if (select(uses.getAttribute("data-uses"))) { writeHash(); placePanel(); }
+        return;
+      }
       var chip = ev.target.closest ? ev.target.closest(".spec-chip") : null;
       if (chip) {
         ev.preventDefault();

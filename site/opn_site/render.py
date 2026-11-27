@@ -1202,6 +1202,12 @@ def route_of_view(selector: str, view: str | None) -> tuple[str, str] | None:
     return (unescape(m.group(1)), unescape(m.group(2))) if m else None
 
 
+def plain_label(label: str) -> str:
+    """F34-T42: a label as plain text for an SVG chip: TeX delimiters and markdown emphasis
+    dropped, since the chip's text is never rendered as markup."""
+    return re.sub(r"[$*_`]", "", label).strip()
+
+
 def problem_name(title: str) -> str | None:
     """F34-T29 (REMINDERS item 2): the problem's name, the head of a record title before its
     colon ("Erdős problem 257: Let A ..." names "Erdős problem 257"); ``None`` for a title with
@@ -3268,6 +3274,7 @@ class Renderer:
         off_route = self.not_on_route(tv, picture.on_route, picture.mini)  # F34-T18, T26
         chips = self.speculative_chips(tv, picture.on_route)  # F34-T27
         svg = one_view.with_spec_chips(svg, chips)
+        svg = one_view.with_uses_chips(svg, self.uses_chips(tv))  # F34-T42
         # F34-T33 (REMINDERS item 5): which route is drawn, under the selector and as the
         # figure's caption; rendered for the opening route, rewritten by graph.js on a change.
         opening = route_of_view(picture.selector, picture.home)
@@ -3369,6 +3376,7 @@ class Renderer:
             # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
             view_toggle=picture.toggle + picture.harder_toggle,
             figure_cap=figure_cap,  # F34-T33
+            figure_retire=picture.retire,  # F34-T41
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
             selector=selector_block,
@@ -4220,6 +4228,15 @@ class Renderer:
             if k.startswith("for:")
         )
         return {t: (n, proposed_anchor(t)) for t, n in counts.items()}
+
+    def uses_chips(self, tv: TargetView) -> dict[str, list[tuple[str, str]]]:
+        """F34-T42: each statement's used statements (graph.json's ``uses``), by id and label."""
+        out: dict[str, list[tuple[str, str]]] = {}
+        for nid, nv in tv.nodes.items():
+            used = [str(u) for u in nv.graph_entry.get("uses") or [] if str(u) in tv.nodes]
+            if used:
+                out[nid] = [(u, plain_label(self.node_label(tv.nodes[u]) or u)) for u in used]
+        return out
 
     @staticmethod
     def off_route_group(nv: NodeView) -> str:
