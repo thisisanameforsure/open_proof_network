@@ -1,0 +1,22 @@
+F34-T40 — touch targets and one phone width (REMINDERS-erdos-257 item 23; handoff §3.4.6), 2026-11-27
+
+"Every touch target ≥ 44px; one media query for the switch."
+* One width: the stylesheet switched to its phone layout at 700px in twelve blocks and at 760px in
+  seven, and graph.js at 760px, so between 701 and 760 the script and the styles disagreed. All
+  twelve now use 760px (none were Docs rules). Read as one breakpoint value, not one @media block:
+  merging nineteen blocks into one would move a lot of CSS for no change in behaviour.
+* On a phone (probe_touch.py, before → after on erdos-257 at 390): the four record folds' summaries
+  21px → 44, "Work on this statement" 36 → 44, the "+ n speculative" link 26 → 44, and every
+  button (the harder-toggle chip, from another session's F27-T15, was 40: its .chip rule
+  outranked a plain button rule, hence :is()).
+* The route selector's marks are 26px apart (SEL_COL), so each carries an invisible hit square
+  filling its column — 26px at the selector's size, about 16px on erdos-257's scaled-down phone
+  selector — rather than 44px targets that would cover their neighbours. A square, not a circle,
+  so a fork still holds no circle (F30-T10's rule, which the first version broke). Edges are not
+  enlarged. This is the geometry's limit while the whole selector must fit 324px (item 21).
+
+Red (task-40-red.txt): 3 failed. Green (task-40-green.txt): with test_one_view_markup, 19 passed.
+Restated, not deleted: test_f22_reader (media(700) → media(760), twice), test_finding_mobile_scroll
+(its phone-rules helper reads the 760px blocks). Full site suite with browser tests: green but the
+three known reds on main (test_web_flows ×2, test_finding_lemma_edge).
+Live graph probe after (task-40-live.txt): only the selector's own marks and edges are under 44px.

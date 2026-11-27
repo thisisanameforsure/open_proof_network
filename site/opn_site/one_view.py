@@ -1233,6 +1233,11 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
             side_cls = f" side-{escape(nv.side)}" if nv.side else ""
         # T10 (the owner): a set is a numbered circle; a fork is a small square and the root a
         # dashed one, so no mark here is the circle the drawing uses for a statement.
+        # F34-T40 (REMINDERS item 23): an invisible hit square filling the mark's column, the most
+        # a touch target can have here without covering its neighbours (a square, so a fork holds
+        # no circle at all: T10)
+        h = SEL_COL // 2
+        hit = f'<rect class="hit" x="-{h}" y="-{h}" width="{SEL_COL}" height="{SEL_COL}"/>'
         if key in glyph:
             mark = f'<circle class="dot" r="{SEL_R}"/><text y="3.5">{escape(glyph[key])}</text>'
         elif kinds[key] == "kind-root":
@@ -1248,7 +1253,7 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
                 else ""
             )
             + f'transform="translate({x:g},{y:g})"><title>{escape(words[key])}</title> '
-            f"{mark}</g></a>"
+            f"{hit}{mark}</g></a>"
         )
     parts.append("</svg>")
     return "\n".join(parts)

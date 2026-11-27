@@ -1,0 +1,11 @@
+E       AssertionError: ({700, 760}, {760})
+E       assert ({700, 760} == {760}
+E         
+E         Extra items in the left set:
+E         700
+E         Use -v to get more diff)
+>       assert m["small"] == [], m["small"]
+FAILED site/tests/test_f34_touch_targets.py::test_the_phone_layout_switches_at_one_width
+FAILED site/tests/test_f34_touch_targets.py::test_every_selector_mark_has_a_hit_circle_filling_its_column
+FAILED site/tests/test_f34_touch_targets.py::test_on_a_phone_every_control_is_at_least_44px
+3 failed in 45.04s

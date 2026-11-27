@@ -59,10 +59,11 @@ def css_rule(selector: str) -> str:
 
 
 def phone_rules() -> str:
-    """Every rule inside ``@media (max-width: 700px)``, joined."""
+    """Every rule inside the phone's ``@media (max-width: 760px)``, joined (F34-T40: the one
+    width the site switches at; it was 700px)."""
     text = (render.STATIC / "site.css").read_text(encoding="utf-8")
     out = []
-    for m in re.finditer(r"@media \(max-width: 700px\) \{", text):
+    for m in re.finditer(r"@media \(max-width: 760px\) \{", text):
         depth, i = 1, m.end()
         while depth:
             depth += {"{": 1, "}": -1}.get(text[i], 0)

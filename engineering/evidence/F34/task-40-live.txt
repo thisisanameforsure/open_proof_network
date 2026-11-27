@@ -1,0 +1,12 @@
+{
+ "path.sel-edge (svg:selector)": {
+  "n": 17,
+  "h": 18,
+  "w": 8
+ },
+ "g.sel-node (svg:selector)": {
+  "n": 28,
+  "h": 16,
+  "w": 16
+ }
+}

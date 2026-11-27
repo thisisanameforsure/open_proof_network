@@ -1,0 +1,4 @@
+E       AssertionError: {'selRight': 944.984375, 'wrapRight': 357.203125, 'wrapScroll': 600, 'page': 390, ...}
+E       assert 944.984375 <= (357.203125 + 0.5)
+E       AssertionError: {'selRight': 1068.984375, 'wrapRight': 818.40625, 'wrapScroll': 262, 'page': 1440, ...}
+E       assert (None is not None)

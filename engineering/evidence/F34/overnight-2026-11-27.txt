@@ -42,3 +42,14 @@ Each item below: what changed, the commit, and whether it is deployed.
       panel) is next.
 05:50 F34-T37 — item 15: with the panel beside the drawing, a line runs from the selected box to
       the panel and follows the selection (and Esc); none on a phone. Committed. Items 13–16 done.
+06:05 PR #130 (items 15, 16) merged and deployed.
+06:30 F34-T38 — item 21: on a phone the route selector fits its box (scaled, never clipped) with
+      "Tap a numbered end to draw that route below." Committed. The ends get small on erdos-257
+      (~9px) — item 23 next gives them bigger tap areas, though 44px each can't fit side by side.
+06:50 F34-T39 — item 22: on a phone the record opens directly under its statement in the outline,
+      from the start (it used to sit after the whole drawing), with its dark header, tab counts and
+      buttons. Committed.
+07:20 F34-T40 — item 23: one phone width (760px) for styles and script; on a phone the folds,
+      buttons and the speculative link are 44px to touch. The route selector's ends can't be:
+      they're 26px apart and the selector must fit the phone, so each gets an invisible hit square
+      as big as its column (~16px on erdos-257's phone selector). Committed. Items 21–23 done.

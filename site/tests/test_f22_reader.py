@@ -179,11 +179,11 @@ def media(width: int) -> str:
 
 
 def test_on_a_phone_the_words_come_before_the_steps() -> None:
-    assert re.search(r"\.ex-prose\s*\{[^}]*order:\s*-1", media(700))
+    assert re.search(r"\.ex-prose\s*\{[^}]*order:\s*-1", media(760))
 
 
 def test_on_a_phone_the_graph_keeps_its_size_and_scrolls() -> None:
-    assert re.search(r"\.dag\s*\{[^}]*max-width:\s*none", media(700))
+    assert re.search(r"\.dag\s*\{[^}]*max-width:\s*none", media(760))
 
 
 def test_touch_screens_read_tap_not_hover(pages: dict[str, str]) -> None:
