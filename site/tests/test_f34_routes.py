@@ -22,20 +22,24 @@ PAGE = f"problems/{TARGET}/index.html"
 
 
 def set_rows(page: str) -> list[dict[str, str]]:
-    """Each row of the sets table: its set, side, view and the Open column's count."""
+    """Each row of the list of routes (F34-T47): its set, side, view, and how many statements it
+    says it has and how many are open."""
     out = []
     for m in re.finditer(
-        r'<tr class="set-row side-([a-z]+)" data-set="([^"]+)"[^>]*>(.*?)</tr>', page, re.S
+        r'<li class="route-row side-([a-z]+)" data-set="([^"]+)"[^>]*>(.*?)</li><!-- /route-row',
+        page,
+        re.S,
     ):
         view = re.search(r'data-view="([^"]+)"', m.group(0))
-        cells = re.findall(r'<td class="num" data-sort="(\d+)"', m.group(3))
+        total = re.search(r"· (\d+) statements? ·", m.group(3))
+        open_ = re.search(r"<strong>(\d+) open</strong>", m.group(3))
         out.append(
             {
                 "side": m.group(1),
                 "set": m.group(2),
                 "view": view.group(1) if view else "",
-                "statements": cells[0] if cells else "",
-                "open": cells[2] if len(cells) > 2 else "",
+                "statements": total.group(1) if total else "",
+                "open": open_.group(1) if open_ else "",
             }
         )
     return out
@@ -73,7 +77,7 @@ def test_tree_and_list_are_two_tabs_over_the_selector_and_the_table(tmp_path: Pa
     )
     assert buttons == [("sets-tree", "true", "Tree"), ("sets-list", "false", "List")]
     assert '<div id="sets-tree"><div class="selector-wrap">' in page
-    assert '<div id="sets-list"><div class="sets-grid">' in page
+    assert '<div id="sets-list"><div class="route-list-wrap">' in page
 
 
 def test_no_tabs_without_routes(tmp_path: Path) -> None:

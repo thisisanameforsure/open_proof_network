@@ -34,7 +34,7 @@ import re
 import textwrap
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from html import escape
+from html import escape, unescape
 from typing import Any
 
 from opn_gate import closing, routes
@@ -46,6 +46,8 @@ ALL = "all"
 ROUTES = "routes"
 #: F27-R14 (D-25 v3.52): the routes view with the strictly harder routes added, its own toggle's.
 HARDER = "harder"
+#: F34-T48 (ROUND-2 D2): the prefix of a strictly harder route's own view, ``hard/<set id>``.
+HARD = "hard/"
 #: F30-T11: the band's own view (never in the layouts JSON: the script does not move it).
 BAND = "band"
 TOP = "sel"
@@ -228,13 +230,14 @@ def _segment(
     return out
 
 
-def views(
+def views(  # noqa: PLR0913 — the target's readings, one keyword each
     graph: Mapping[str, Any],
     result: routes.Routes,
     *,
     proofs: Sequence[dag.ProofMarks] = (),
     follow: routes.Routes | None = None,
     dominated: routes.Dominated | None = None,
+    harder_sets: Sequence[tuple[int, routes.SufficientSet]] = (),
 ) -> dict[str, View]:
     """Every view of a target, keyed (see the module), the selector's in depth-first order.
     ``follow`` (F27-R13), the same target read with ``at_proved: follow``, adds a ``follow/``
@@ -278,21 +281,24 @@ def views(
         ]
         or [root],
     )
-    if harder:
-        # F27-R14: the routes view with the strictly harder routes added, the harder toggle's
-        out[HARDER] = _view(
-            HARDER,
-            HARDER,
-            merged,
-            [
-                i
-                for i in (*d.statements, *d.junctions)
-                if i not in band and i not in shelved and i not in cut
-            ],
-        )
     if band:
         out[BAND] = _view(BAND, BAND, merged, band)
     out.update(_set_views(graph, result, d, merged, prefix=""))
+    # F34-T48 (ROUND-2 D2; the owner, 2026-11-27): a strictly harder route is drawn as any route
+    # is, alone, when the picker selects it — one leaf view per harder set, numbered after the
+    # offered ones. The ``harder`` view, every harder statement at once, is gone.
+    two_sided = len({s.settles for s in result.sets} | {s.settles for _k, s in harder_sets}) > 1
+    for k, s in harder_sets:
+        key = f"{HARD}{s.id}"
+        out[key] = _view(
+            key,
+            "leaf",
+            merged,
+            sorted(_on(s, root, d)),
+            sets=(s.id,),
+            index=k,
+            side=s.settles if two_sided else None,
+        )
     if follow is not None:
         out.update(_set_views(graph, follow, d, merged, prefix=FOLLOW))
     if band:
@@ -636,8 +642,15 @@ class Drawing:
     mini: Callable[[Sequence[str]], str] | None = None
     #: F27-R14: how many of ``hidden`` lie only on strictly harder routes.
     harder: int = 0
-    #: F27-R14: the toggle between the routes view and ``harder``; ``""`` when nothing is.
+    #: F34-T48 (ROUND-2 D2): the quiet "Show n harder routes" control under the picker; ``""``
+    #: when no route is strictly harder.
     harder_toggle: str = ""
+    #: F34-T48: the picker with the harder routes added as numbered ends, shown in the main
+    #: picker's place while the control is pressed; ``""`` when no route is strictly harder.
+    harder_selector: str = ""
+    #: F34-T50 (ROUND-2 D4): one button per route, the phone's 44px way to pick one (the picker's
+    #: ends are about 16px there); a harder route's is hidden until the harder routes are shown.
+    route_buttons: str = ""
 
 
 #: F27-R14 (D-25 v3.52): the words a strictly harder statement or route carries on hover.
@@ -1133,6 +1146,34 @@ def _tidy(
 ROUTE_GIST_MAX = 60
 
 
+def named_ids(
+    text: str, rows: Mapping[str, Mapping[str, Any]], name_of: Callable[[str], str]
+) -> str:
+    """F34-T47 (ROUND-2: no raw ids outside the sidenotes and the Record): an approach written
+    with a statement's id ("iterate the window statement of spec-a70fcca4--h4--h1--h2") reads
+    with that statement's name instead, the longest id first; an id with no name stays."""
+    for nid in sorted((n for n in rows if n in text), key=len, reverse=True):
+        label = name_of(nid)
+        if label and label != nid:
+            text = re.sub(
+                rf"(?<![\w-]){re.escape(nid)}(?![\w@-])", label.replace("\\", r"\\"), text
+            )
+    return text
+
+
+#: F34-T47: the longest an earlier choice's words run in a name that needs them to be told apart.
+ROUTE_ABOVE_MAX = 32
+#: …and how many choices up a name goes before the route's number is left to tell it apart.
+ROUTE_ABOVE_LEVELS = 2
+
+
+def cut_words(text: str, width: int) -> str:
+    """``text`` cut at a word to ``width`` characters, "…" in place of the rest."""
+    if len(text) <= width:
+        return text
+    return text[:width].rsplit(" ", 1)[0].rstrip(" ,") + "…"
+
+
 def route_gist(approach: str) -> str:
     """F34-T33: a route's approach as a name, the way the mockup names one ("fifteen special
     cases plus the rest"): the approach up to its first semicolon, cut at a word with "…" if it
@@ -1152,12 +1193,28 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
     names: dag.Prefix,
     labels: dag.Labels,
     proof_labels: Sequence[str],
+    drawn: Mapping[str, int] | None = None,
+    view_of: Callable[[str], str | None] | None = None,
+    harder: frozenset[str] = frozenset(),
+    fixed: Mapping[str, str] | None = None,
+    cls: str = "selector",
 ) -> str:
     """R5, restated by T7 (the owner, 2026-10-18): the selector tree as a small, typical tree
     diagram — a dot per node, straight lines, leaves numbered, the root statement above the top
     split when they differ, one leaf per proof — with every node's words (what it is, the route
-    its edge chose) in ``data-words`` and its ``<title>`` for the hover, none drawn."""
-    sel = {k: v for k, v in vs.items() if k == SEL_PREFIX or k.startswith(SEL_PREFIX + "/")}
+    its edge chose) in ``data-words`` and its ``<title>`` for the hover, none drawn.
+
+    F34-T48 (ROUND-2 D2), for the picker with the harder routes added: ``view_of`` gives each
+    numbered end the view it draws (and makes every choice point and line a plain mark: only an
+    end draws a route there); ``harder`` are the ends drawn lighter; ``fixed`` the route names
+    the offered ends already carry in the main picker; ``cls`` the svg's class."""
+    # F34-T48 (ROUND-2 D2): a fold's own layout is a state of its route's drawing, never a choice
+    # point; taken for one, each drew a dead-end square under the numbered ends
+    sel = {
+        k: v
+        for k, v in vs.items()
+        if (k == SEL_PREFIX or k.startswith(SEL_PREFIX + "/")) and v.kind != "fold-open"
+    }
     proofs = [k for k in vs if k.startswith(PROOF)]
     if not sel and not proofs:
         return ""
@@ -1179,6 +1236,7 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
     words: dict[str, str] = {}
     glyph: dict[str, str] = {}
     route: dict[str, str] = {}  # F34-T33: a numbered end's route name and counts
+    gists: dict[str, str] = {}  # each choice's approach as a name, by the view it leads to
     count: dict[str, str] = {}
     forked = {
         v.parent
@@ -1197,7 +1255,10 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
             words[key] = f"Set {v.index} ({way}): {s.remaining} open {noun} of {s.total}"
             glyph[key] = str(v.index)
             route[key] = f"Route {v.index}"
-            count[key] = f"{s.total} statement{'' if s.total == 1 else 's'}, {s.remaining} open"
+            # F34-T46 (ROUND-2 D3): the count is the boxes the route draws — its statements
+            # and the ones it splits on the way — so the caption and the drawing agree
+            n_drawn = (drawn or {}).get(key, s.total)
+            count[key] = f"{n_drawn} statement{'' if n_drawn == 1 else 's'}, {s.remaining} open"
         else:
             split = v.split or root
             label = dag.label_of(split, names, labels)
@@ -1225,8 +1286,35 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
                 else f"{at_label}: taken directly"
             )
             words[key] += f" — via {how}"
+            gists[key] = route_gist(named_ids(how, rows, lambda n: dag.label_of(n, names, labels)))
             if key in route:
-                route[key] += f" · {route_gist(how)}"
+                route[key] += f" · {gists[key]}"
+    # F34-T47: two routes never share a name. A name is the route's last choice; where another
+    # route made the same last choice, each says the choice above it too, two choices up at most.
+    above = {key: sel[key].parent for key in route}
+    for _depth in range(ROUTE_ABOVE_LEVELS):
+        said: dict[str, list[str]] = {}
+        for key, name in route.items():
+            said.setdefault(name.partition(" · ")[2], []).append(key)
+        clash = [key for gist, keys in said.items() if gist and len(keys) > 1 for key in keys]
+        if not clash:
+            break
+        moved = False
+        for key in clash:
+            up = above.get(key)
+            while up is not None and up not in gists:
+                up = sel[up].parent if up in sel else None
+            if up is None:
+                continue
+            head, _, gist = route[key].partition(" · ")
+            route[key] = f"{head} · {cut_words(gists[up], ROUTE_ABOVE_MAX)} → {gist}"
+            above[key] = sel[up].parent
+            moved = True
+        if not moved:
+            break
+    for key in list(route):
+        if fixed and key in fixed:
+            route[key] = fixed[key]
     if has_root:
         kinds["root"] = "kind-root"
         words["root"] = f"{dag.label_of(root, names, labels)}: the problem's own statement"
@@ -1236,7 +1324,8 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
         glyph[k] = "P"
     pos, width, height = _tidy(children, hang)
     parts = [
-        f'<svg class="selector" viewBox="0 0 {width:g} {height:g}" width="{width:g}" '
+        f'<svg class="{cls}"{" hidden" if view_of is not None else ""} '
+        f'viewBox="0 0 {width:g} {height:g}" width="{width:g}" '
         f'height="{height:g}" role="img" aria-label="sufficient sets">'
     ]
     for parent, kids in children.items():
@@ -1246,7 +1335,7 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
             ev = vs.get(view_key)
             attrs = ""
             inner = ""
-            if ev is not None:
+            if ev is not None and view_of is None:
                 attrs = (
                     f' data-view="{escape(view_key)}" data-sets="{escape(" ".join(ev.sets))}" '
                     'role="button" tabindex="0" aria-pressed="false"'
@@ -1264,11 +1353,15 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
         own = ""
         side_cls = ""
         if nv is not None:
-            own = (
-                f' data-view="{escape(key)}" data-sets="{escape(" ".join(nv.sets))}" '
-                'role="button" tabindex="0" aria-pressed="false"'
-            )
+            target = key if view_of is None else view_of(key)
+            if target is not None:
+                own = (
+                    f' data-view="{escape(target)}" data-sets="{escape(" ".join(nv.sets))}" '
+                    'role="button" tabindex="0" aria-pressed="false"'
+                )
             side_cls = f" side-{escape(nv.side)}" if nv.side else ""
+            if key in harder:
+                side_cls += " harder"
         # T10 (the owner): a set is a numbered circle; a fork is a small square and the root a
         # dashed one, so no mark here is the circle the drawing uses for a statement.
         # F34-T40 (REMINDERS item 23): an invisible hit square filling the mark's column, the most
@@ -1353,20 +1446,17 @@ def _shelved_titles(
     return found
 
 
-def _harder_toggle(routes_n: int, statements: int, proved: int) -> str:
-    """F27-R14: the toggle between the routes view and ``harder`` — how many strictly harder
-    routes it draws, the statements only they reach and how many of those are proved. Hidden
-    until the script runs, as the general toggle is; ``""`` when nothing is strictly harder."""
+def _harder_toggle(routes_n: int) -> str:
+    """F34-T48 (ROUND-2 D2): the quiet control under the picker — how many harder routes it adds
+    to the picker and the list. It never changes Figure 1 by itself. Hidden until the script
+    runs; ``""`` when no route is strictly harder."""
     if not routes_n:
         return ""
     noun = "route" if routes_n == 1 else "routes"
-    detail = f"{statements} statement{'' if statements == 1 else 's'}" + (
-        f", {proved} proved" if proved else ""
-    )
     return (
-        f'<button type="button" class="chip harder-toggle" data-view="{HARDER}" '
-        f'aria-pressed="false" data-shown-label="Hide the strictly harder {noun}" hidden>'
-        f"Show {routes_n} strictly harder {noun} ({detail})</button>"
+        '<p class="harder-line" hidden><button type="button" class="harder-link" '
+        f'aria-pressed="false" data-shown-label="Hide harder {noun}">'
+        f"Show {routes_n} harder {noun}</button></p>"
     )
 
 
@@ -1429,6 +1519,8 @@ def outline_rows(
 #: F34-T24 (R15): a fold's id in the drawing, and the suffix of the view with that fold open.
 FOLD = "fold:"
 FOLD_OPEN = "~fold"
+#: F34-T47: the suffix of the view with every fold of a route open.
+ALL_OPEN = "~open"
 
 
 def outline_folds(rows: list[tuple[str, int]], proved: set[str]) -> list[tuple[int, int]]:
@@ -1554,10 +1646,18 @@ def with_folds(
             return replace(v, nodes=tuple(nodes), lines=tuple(lines))
 
         out[key] = closed(None)
+        # F34-T47 (ROUND-2 D1): the route with every fold open, the figure heading's "unfold"
+        whole = f"{key}{ALL_OPEN}"
+        out[whole] = replace(v, key=whole, kind="fold-open")
         for i, (_parent, _kids, hidden) in enumerate(folds):
             n = sum(1 for x in hidden if x not in joins)
             opened = f"{key}{FOLD_OPEN}{i}"
-            out[opened] = replace(closed(i), key=opened, kind="fold-open")
+            if key.startswith(HARD):
+                # F34-T48: a harder route keeps two layouts, folded and whole, so the 42 of
+                # erdos-1094 add 84 layouts to the page, not 124; any of its folds opens them all
+                opened = whole
+            else:
+                out[opened] = replace(closed(i), key=opened, kind="fold-open")
             boxes[f"{FOLD}{key}:{i}"] = (opened, f"{n} proved statements \u25b8")
     return out, boxes
 
@@ -1574,7 +1674,7 @@ def opening_view(sets: Sequence[routes.SufficientSet], leaf_of: Mapping[str, str
     return min(proving)[3] if proving else ""
 
 
-def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
+def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawing
     graph: Mapping[str, Any],
     frontier_entries: Iterable[Mapping[str, Any]],
     *,
@@ -1604,12 +1704,37 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
     d = routes_view.drawn(drawn_graph, result)
     # F27-R14: read from the real rows, as the sets are, never from the drawn ones
     dom = routes.dominated(graph)
-    vs = views(drawn_graph, result, proofs=proofs, follow=follow, dominated=dom)
+    # F34-T48 (ROUND-2 D2): the strictly harder routes, numbered after the offered ones
+    whole = routes.read(graph, entries, harder=True) if dom.routes or dom.statements else result
+    offered_ids = {s.id for s in result.sets}
+    hard = [(k, s) for k, s in enumerate(whole.sets, start=1) if s.id not in offered_ids]
+    vs = views(drawn_graph, result, proofs=proofs, follow=follow, dominated=dom, harder_sets=hard)
     labels = dag.labels_of(rows.values())
     root = str(graph.get("root"))
     names: dag.Prefix = (prefix, root) if prefix else None
     # F34-T24 (R15): proved statements folded, each fold a box the tree is laid out round
     proved = {nid for nid, r in rows.items() if r.get("status") == routes.PROVED}
+    # F34-T46: the statements each route draws, counted before any is folded away
+    drawn_n = {
+        k: sum(1 for n in v.nodes if n not in d.junctions)
+        for k, v in vs.items()
+        if v.kind == "leaf"
+    }
+    proved_n = {
+        k: sum(1 for n in v.nodes if n in proved) for k, v in vs.items() if v.kind == "leaf"
+    }
+    # F34-T49 (ROUND-2 D7): on a route means drawn by a route the picker offers, a harder one
+    # included; a problem with no route to pick draws its one layout
+    picked = {
+        n
+        for k, v in vs.items()
+        if v.kind == "leaf" and not k.startswith(FOLLOW)
+        for n in v.nodes
+        if n not in d.junctions
+    }
+    on_route = frozenset(
+        picked if d.junctions else (n for n in vs[ROUTES].nodes if n not in d.junctions)
+    )
     vs, boxes = with_folds(vs, root, d.junctions, proved)
     labels = {**(labels or {}), **{fid: words for fid, (_open, words) in boxes.items()}}
     lays = layouts(rows.values(), vs, root=root, prefix=prefix, labels=labels)
@@ -1652,6 +1777,7 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         }
         result = replace(result, sets=())
         follow = replace(follow, sets=())
+        whole, hard = result, []
     leaf_of = {v.sets[0]: k for k, v in vs.items() if v.kind == "leaf" and not k.startswith(FOLLOW)}
     home = opening_view(result.sets, leaf_of)
     if home:
@@ -1718,29 +1844,96 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
     retire = (
         "".join(
             f'<div class="figure-retire" data-view="{escape(leaf_of[s.id])}" hidden>'
-            + (cell := routes_view.route_cell(s, by_id, prefix or "", controls=True))[
-                cell.index(">") + 1 : cell.rindex("</td>")
-            ]
+            + routes_view.retire_controls(
+                s, by_id, prefix or "", lambda n: dag.label_of(n, names, labels)
+            )
             + "</div>"
-            for s in result.sets
+            for s in whole.sets
             if s.id in leaf_of
         )
         if controls
         else ""
     )
+    selector = _selector_svg(
+        vs, result, rows, names=names, labels=labels, proof_labels=proof_labels, drawn=drawn_n
+    )
+    # F34-T47 (ROUND-2 D1): the List is one row per numbered end, named as the picker names it
+    named = {
+        unescape(m.group(1)): unescape(m.group(2))
+        for m in re.finditer(
+            r'<g class="sel-node kind-leaf[^"]*" data-view="([^"]+)"[^>]*data-route="([^"]+)"',
+            selector,
+        )
+    }
+    # F34-T48: the picker with the harder routes added — the same tree builder over every set,
+    # each end drawing its route's own view (an offered one's is the main picker's)
+    harder_selector = ""
+    hard_ids = frozenset(s.id for _k, s in hard)
+    if hard:
+        hvs = _set_views(drawn_graph, whole, d, merged_nodes(rows.values(), d, root), prefix="")
+        ends = {k: v.sets[0] for k, v in hvs.items() if v.kind == "leaf"}
+        harder_selector = _selector_svg(
+            hvs,
+            whole,
+            rows,
+            names=names,
+            labels=labels,
+            proof_labels=(),
+            drawn={k: drawn_n[leaf_of[sid]] for k, sid in ends.items() if sid in leaf_of},
+            view_of=lambda k: leaf_of.get(ends[k]) if k in ends else None,
+            harder=frozenset(k for k, sid in ends.items() if sid in hard_ids),
+            fixed={
+                k: named[leaf_of[sid]]
+                for k, sid in ends.items()
+                if sid in leaf_of and leaf_of[sid] in named
+            },
+            cls="selector harder-picker",
+        )
+        named.update(
+            {
+                unescape(m.group(1)): unescape(m.group(2))
+                for m in re.finditer(
+                    r'<g class="sel-node kind-leaf[^"]*" data-view="([^"]+)"[^>]*'
+                    r'data-route="([^"]+)"',
+                    harder_selector,
+                )
+                if unescape(m.group(1)) not in named
+            }
+        )
+    facts = {
+        sid: routes_view.RouteFacts(view, named[view], drawn_n[view], proved_n[view])
+        for sid, view in leaf_of.items()
+        if view in named and view in drawn_n
+    }
+    two_sided = len({s.settles for s in whole.sets}) > 1
+    buttons = "".join(
+        '<button type="button" class="route-btn'
+        + (" side-refutes" if two_sided and s.settles == routes.REFUTES else "")
+        + f'" data-view="{escape(leaf_of[s.id])}" '
+        f'aria-pressed="{"true" if leaf_of[s.id] == home else "false"}"'
+        + (' data-harder="true" hidden' if s.id in hard_ids else "")
+        + f' aria-label="Draw route {k}">{k}</button>'
+        for k, s in enumerate(whole.sets, start=1)
+        if s.id in leaf_of
+    )
     return Drawing(
         svg=svg,
         retire=retire,
-        selector=_selector_svg(
-            vs, result, rows, names=names, labels=labels, proof_labels=proof_labels
+        selector=selector,
+        route_buttons=(
+            f'<div class="route-buttons" role="group" aria-label="Routes">{buttons}</div>'
+            if selector and buttons
+            else ""
         ),
-        table=routes_view.table(
-            result,
-            prefix,
-            views=leaf_of,
-            follow=follow,
-            route_rows={r.id: r for r in route_rows},
+        table=routes_view.route_list(
+            whole,
+            facts,
+            route_rows=by_id,
+            name_of=lambda n: dag.label_of(n, names, labels),
+            href=href,
+            home=home,
             controls=controls,
+            harder=hard_ids,
         )
         if result.sets
         else "",
@@ -1749,9 +1942,8 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         toggle=_toggle(hidden, shelved_hidden, harder_hidden, harder_proved)
         if hidden > harder_hidden
         else "",
-        harder_toggle=_harder_toggle(
-            len(dom.routes & set(d.junctions)), harder_hidden, harder_proved
-        ),
+        harder_toggle=_harder_toggle(len(hard)) if harder_selector else "",
+        harder_selector=harder_selector,
         marks=frozenset(marks),
         sets=len(result.sets),
         hidden=hidden,
@@ -1761,10 +1953,7 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         routes=route_rows,
         harder=harder_hidden,
         home=home,
-        # F27-R14: a strictly harder statement is on a route, drawn behind its toggle, so §2
-        # never lists it (F34-R18: each statement placed once)
-        on_route=frozenset(n for n in vs[ROUTES].nodes if n not in d.junctions)
-        | (dom.statements & set(rows)),
+        on_route=on_route,
         outline=outline_rows(lays[ROUTES], root, d.junctions) if ROUTES in lays else (),
         mini=functools.partial(
             mini_tree, rows, href=href, names=names, labels=labels, titles=full_titles

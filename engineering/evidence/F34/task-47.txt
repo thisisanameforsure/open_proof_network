@@ -1,0 +1,45 @@
+F34-T47 (ROUND-2 D1): the List is one row per route, not a table
+2026-11-27. The owner: "Drop the table. Keep what is shown in the problems design."
+
+BUILT
+  * routes_view.route_list replaces routes_view.table: one <li class="route-row"> per numbered end,
+    in the picker's order — number in a circle (rust for a route that would disprove the problem),
+    name, "proves the problem · n statements · p proved · s split further · k open" (the counts add
+    up to n, F34-Q29), "through <statement id>, split by <who wrote the split>", Draw · Statements,
+    and Retire… (one control per split, behind a fold shown only to a steward or curator).
+  * The selected row is tinted with --tint; no row is ever hidden. "Drawn below ↓ Route n · …" is
+    under Tree and List alike.
+  * Gone: the sets table, its sorting, "showing n of m", "Fewest open first", the swatches, the
+    raw-id Routes column, and their styles (42 rules).
+  * Figure 1's heading: "Proved statements folded · unfold" for a route that folds any; the route
+    has a layout with every fold open (<route>~open).
+  * A route's name never carries a statement's id (an approach written with one reads with the
+    statement's name), and two routes never share a name: erdos-1094's Routes 1 and 3 both read
+    "Baker, Harman and Pintz (2001)…" until each said the choice above it.
+
+RED FIRST (site/tests/test_f34_route_list.py: 7 failed before the change; then two more written
+red: test_two_routes_never_share_a_name ['By sieve', 'By descent', 'By sieve', 'By descent'], and
+test_the_pickers_box_does_not_widen_a_phone (568, 567.5) with the fix taken out)
+GREEN: 11 passed. Restated to the rows, not deleted: test_routes_view (2), test_one_view_markup
+(3), test_one_view (2, browser), test_refutes_site (1), test_shelving_controls (2, one browser),
+test_f34_routes (2).
+
+FOUND ON THE WAY: moving "Drawn below" out of the picker's box stopped the box wrapping on a phone,
+and its one line of help ran to 568px at 390 (live erdos-257; the full suite's three phone tests
+went red on it too). Fixed and pinned by the test above. Never deployed.
+
+LIVE RENDER
+  erdos-1094 list 1440 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 4 table=0 scrollWidth=1440 link=Show 42 harder routes
+  erdos-1094 list 390 caption=19 statements, 2 open boxes= 19 ends= 0 numbered= 0 harder= 0 rows= 4 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-257 list 1440 caption=4 statements, 1 open boxes= 4 ends= 0 numbered= 0 harder= 0 rows= 12 table=0 scrollWidth=1440 link=None
+  erdos-257 list 390 caption=4 statements, 1 open boxes= 4 ends= 0 numbered= 0 harder= 0 rows= 12 table=0 scrollWidth=390 link=None
+
+Captures: task-48-erdos-1094-list-1440.png, task-48-erdos-257-list-1440.png, task-48-erdos-257-list-390.png.
+
+FULL SITE SUITE, browser tests included (uv run --frozen --with 'playwright==1.58.0' python -m pytest
+site/tests -q -m "not lean and not docker"), on a snapshot of the tree as committed, 14:46–14:55:
+  3 failed, 1219 passed in 544.03s
+  the three are the ones that fail on main too: test_finding_lemma_edge::test_measured_in_a_browser,
+  test_web_flows::test_a_stranger_sees_edit_and_no_approve, test_web_flows::test_a_curator_sees_withdraw
+  (an earlier snapshot, taken before the phone fix of T47, also had three phone tests red: the
+  regression named there.)

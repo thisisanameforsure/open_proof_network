@@ -992,10 +992,26 @@ def outline_mark(count: int, width: int) -> str:
     says which skeleton followed each."""
     if count <= 0:
         return ""
+    # F34-T52 (ROUND-2 D6): the tab says what it counts; a bare number on a corner said nothing
+    words = f"{count} outline{'' if count == 1 else 's'}"
+    cw = tab_width(words)
     return (
-        f'<g class="outline-mark" transform="translate({width - 8},-7)">'
-        f'<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">{count}</text></g> '
+        f'<g class="outline-mark" transform="translate({width + TAB_OVER - cw},{-TAB_H // 2})">'
+        f'<rect width="{cw}" height="{TAB_H}" rx="3"/>'
+        f'<text x="{cw / 2:g}" y="{TAB_H - 4.5:g}">{words}</text></g> '
     )
+
+
+#: F34-T52: a word tab on a pill's top edge — its height, how far it overhangs the pill's right
+#: edge, the width a character of its 10.5px label takes, and its padding.
+TAB_H = 16
+TAB_OVER = 7
+TAB_CHAR_W = 5.7
+TAB_PAD = 10
+
+
+def tab_width(words: str) -> int:
+    return round(len(words) * TAB_CHAR_W) + TAB_PAD
 
 
 @dataclass(frozen=True)
@@ -1021,12 +1037,10 @@ class LitMark:
         return f"Literature: {self.status} (proposed by {self.by}, awaits confirmation)"
 
 
-#: The literature mark's geometry: a 7px square inside the pill's top-right corner, clear of
-#: the label (which ends at ``w - 18`` and starts below ``y = 11``), the halo (``y`` 15 to 21
-#: at ``w - 14``) and the outline tab (``x`` from ``w - 8``, ``y`` -7 to 7, outside the pill).
-LIT_MARK = 7
-LIT_MARK_TOP = 4
-LIT_MARK_RIGHT = 9
+#: The literature mark's geometry (F34-T52: a word tab now): on the pill's top edge from this
+#: far in from its left, half above the pill, clear of the label (which starts below ``y = 11``)
+#: and of the outline tab, which hangs from the pill's right end.
+LIT_MARK_LEFT = 24
 #: What the mark may carry as data: the statuses ``graph.json`` can publish (D-25 v3.35).
 Literature = Mapping[str, LitMark] | None
 
@@ -1038,13 +1052,17 @@ def literature_mark(mark: LitMark | None, width: int) -> str:
     layout never reads it."""
     if mark is None:
         return ""
-    x = width - LIT_MARK_RIGHT - LIT_MARK
+    # F34-T52 (ROUND-2 D6): the mark says its status in words, "?" while it awaits confirmation;
+    # a word tab on the pill's top edge at its left, the outline tab being at its right
+    words = f"lit: {mark.status}{'' if mark.confirmed else '?'}"
+    cw = tab_width(words)
     return (
         f'<g class="lit-mark lit-{escape(mark.status)} {mark.phase}" '
         f'data-literature="{escape(mark.status)}" data-phase="{mark.phase}" '
-        f'transform="translate({x},{LIT_MARK_TOP})">'
+        f'transform="translate({LIT_MARK_LEFT},{-TAB_H // 2})">'
         f"<title>{escape(mark.words)}</title> "
-        f'<rect width="{LIT_MARK}" height="{LIT_MARK}" rx="1.5"/></g> '
+        f'<rect width="{cw}" height="{TAB_H}" rx="3"/>'
+        f'<text x="{cw / 2:g}" y="{TAB_H - 4.5:g}">{escape(words)}</text></g> '
     )
 
 

@@ -2050,3 +2050,19 @@ The law of the project:
   Also: a `.chip { min-height: 40px }` outranks `main button`, so a phone touch-target rule needed
   `main :is(button, .btn, a.act)`; and an invisible hit *circle* in the route selector broke F30-T10's
   "a fork holds no circle" test — a square did the same job.
+
+- 2026-11-27 — Round 2 of the problem page (F34-T46–T52) from the owner's written decisions, and
+  what the decisions' text had differently from the record. Four of eight items rested on a guess
+  about what the page was showing: the "dead-end squares" were fold layouts leaking into the
+  picker, not harder routes; "35 harder routes" counted splits where the picker's ends are ways
+  (42); the boxed number on a pill counted outlines, not attempts; and erdos-1094 does have
+  statements on no route. Each took one measurement on the live graph to settle, before any code.
+  When a decision names a thing on the page, find the element and read what builds it before
+  building to the name. Three mechanics. **Run the full browser suite on a snapshot, not the
+  tree**: `git worktree add --detach`, apply `git diff HEAD --binary`, copy the untracked files,
+  share the venv with `UV_PROJECT_ENVIRONMENT`; the tree stays free and the evidence images the
+  browser tests rewrite stay out of it. **A wall-clock budget is a load test**: two lifecycle
+  tests with a 10-second limit failed the commit hook because I ran other tests beside it (27
+  minutes for a 13-minute suite); nothing heavy beside a hook. **`pgrep -f` on a commit's command
+  line matches every stale wait loop that quotes it** (2026-09-17's lesson, paid again): wait on a
+  marker the command writes.

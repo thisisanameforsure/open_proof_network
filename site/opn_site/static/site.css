@@ -357,8 +357,8 @@ code.whole { white-space: nowrap; }
 .dag .node.on-proof rect { stroke: var(--accent); stroke-width: 1.5; }
 .dag .edge.on-proof { stroke: var(--accent); stroke-width: 2; }
 .dag .edge.use { stroke-dasharray: 7 4; }
-.dag .outline-mark rect { fill: var(--bg); stroke: var(--accent-300); stroke-width: 1; }
-.dag .outline-mark text { fill: var(--accent-300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
+.dag .outline-mark rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; }
+.dag .outline-mark text { fill: var(--muted); font-family: var(--sans, inherit); font-size: 10.5px; text-anchor: middle; }
 .panel-outlines { width: 100%; font-size: 13px; }
 .panel-outlines ul, .panel-outlines ol { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
 .panel-outlines li { margin-bottom: var(--s2); overflow-wrap: anywhere; }
@@ -725,10 +725,6 @@ main table.ledger { display: block; max-width: 100%; overflow-x: auto; }
 .shelve-act .shelve-form, .retire-act .shelve-form { margin-top: var(--s2); }
 .retire-act .shelve-form { display: flex; }
 .shelved-note { margin: var(--s4) 0; }
-.routes-table .set-routes { font-size: 13px; }
-.routes-table .set-route { display: block; margin-bottom: var(--s1); overflow-wrap: anywhere; }
-.routes-table .set-route .retire-act { margin-left: var(--s2); }
-.routes-table .route-state { color: var(--n500); font-style: italic; }
 .lit-act { margin: var(--s4) 0; font-size: 14px; color: var(--n300); }
 .lit-act .cue { margin: 0 0 var(--s2); font-size: 13px; }
 .lit-act .literature-waiting { margin: 0; }
@@ -1141,45 +1137,14 @@ details.rec[open] > summary { color: var(--text); }
 .routes-svg.picking .rline.lit { stroke: var(--accent-300); stroke-width: 2.25; }
 .routes-svg .wedge.off { opacity: .15; }
 /* the table */
-.routes-table-wrap { min-width: 0; position: sticky; top: var(--s6); }
 .routes-closable { font-size: 13.5px; color: var(--n300); margin: var(--s3) 0 0; }
-.routes-count { font-size: 13.5px; color: var(--n400); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s4); }
-.routes-fewest { font: inherit; font-size: 12.5px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 12px; cursor: pointer; }
-.routes-fewest:hover, .routes-fewest:focus-visible { border-color: var(--accent); }
-.routes-fewest[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: rgba(145, 132, 217, .14); }
-.routes-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.routes-table th { padding: var(--s2); white-space: nowrap; }
-.routes-table td { padding: var(--s2); border-bottom: 1px solid var(--divider); vertical-align: top; overflow-wrap: anywhere; }
-.routes-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
-.routes-table td:first-child { white-space: nowrap; overflow-wrap: normal; }
-.routes-table th[data-col="1"], .routes-table th[data-col="2"], .routes-table th[data-col="3"], .routes-table th[data-col="4"], .routes-table th[data-col="5"] { text-align: right; }
-.routes-sort { font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-.routes-sort:hover { color: var(--text); }
-th[aria-sort="ascending"] .routes-sort::after { content: " ↑"; }
-th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
-.set-row { cursor: pointer; }
-.set-row:hover, .set-row.previewed { background: rgba(233, 233, 237, 0.05); }
-.set-row[aria-selected="true"] { background: rgba(145, 132, 217, .16); }
-.set-swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: var(--s2); vertical-align: -1px; }
-.set-swatch.set-1 { background: var(--set-1); } .set-swatch.set-2 { background: var(--set-2); }
-.set-swatch.set-3 { background: var(--set-3); } .set-swatch.set-4 { background: var(--set-4); }
-.set-swatch.set-5 { background: var(--set-5); } .set-swatch.set-6 { background: var(--set-6); }
-.set-swatch.set-7 { background: var(--set-7); } .set-swatch.set-8 { background: var(--set-8); }
-.set-swatch.set-more { background: var(--set-more); }
-.set-which { font-size: 12px; color: var(--n400); }
-.set-which summary { cursor: pointer; color: var(--accent-300); }
-.set-which p { margin: var(--s2) 0 0; color: var(--n500); }
-.set-which ul { margin: 0; padding-left: 1.1em; }
-.routes-hint { font-size: 12.5px; color: var(--n400); margin-top: var(--s3); }
 @media (max-width: 1100px) {
   .routes-grid { grid-template-columns: minmax(0, 1fr); }
-  .routes-table-wrap { position: static; }
 }
 @media (max-width: 760px) {
   /* the drawing keeps its drawn size and scrolls in its own box, as the statement graph does */
   .routes-svg { max-width: none; }
   .routes-wrap { padding: var(--s4); }
-  .routes-table-wrap { overflow-x: auto; }
 }
 /* F27-T7, F29-T6: the "Sufficient sets" box inside the routes drawing, down its left edge: the
    selector tree, one row per branch or set. A pressed row is outlined; a row whose sets are all
@@ -1258,6 +1223,10 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dag .lit-mark rect { fill: none; stroke: var(--lit); stroke-width: 1.5; }
 .dag .lit-mark.proposed rect { stroke-dasharray: 2 1.5; }
 .dag .lit-mark.confirmed rect { fill: var(--lit); }
+/* F34-T52 (ROUND-2 D6): the mark is a word tab ("lit: known?"), its status still its colour */
+.dag .lit-mark rect { fill: var(--surface); }
+.dag .lit-mark text { fill: var(--lit); font-family: var(--sans, inherit); font-size: 10.5px; text-anchor: middle; }
+.dag .lit-mark.confirmed text { fill: var(--surface); }
 /* F34-T27: "+ n speculative ↓" on a pill, pointing to its group in §2 */
 .dag .spec-chip { cursor: pointer; }
 .dag .spec-chip rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 1.5 2; }
@@ -1273,7 +1242,6 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .view-toggle { font: inherit; font-size: 12px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
 .view-toggle:hover, .view-toggle:focus-visible { border-color: var(--accent); }
 .view-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
-.sets-grid { margin-top: var(--s6); }
 /* T7: the selector is a small tree pinned at the top of the drawing's card, so it is in view
    while the drawing scrolls past; words on hover only (the tooltip), a dot per node. */
 .selector-wrap { position: sticky; top: 0; z-index: 3; display: flex; align-items: flex-start; gap: var(--s4); margin: var(--s4) 0 0; padding: var(--s3) var(--s4); background: var(--surface); border: 1px solid var(--divider); border-radius: var(--radius-sm); width: max-content; max-width: 100%; overflow-x: auto; }
@@ -1286,10 +1254,6 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
    follow/ twin. */
 .selector-wrap .sel-follow { display: block; margin: var(--s2) 0 0; font-size: 12px; line-height: 1.45; color: var(--n300); cursor: pointer; white-space: nowrap; }
 .selector-wrap .sel-follow input { margin: 0 var(--s2) 0 0; vertical-align: -1px; accent-color: var(--accent); }
-.sets-grid .v-follow { display: none; }
-.sets-grid.follow-proved .v-follow { display: inline; }
-.sets-grid.follow-proved ul.v-follow { display: block; }
-.sets-grid.follow-proved .v-stop { display: none; }
 .selector { display: block; flex: none; }
 .selector .dot { fill: var(--bg); stroke: var(--n500); stroke-width: 1.5; }
 .selector text { fill: var(--text); font-family: var(--sans, inherit); font-size: 9.5px; font-weight: 600; text-anchor: middle; pointer-events: none; }
@@ -1322,8 +1286,6 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dag.picking .node:not(.lit), .dag.picking .junction:not(.lit) { opacity: .25; }
 .dag.picking .edge:not(.lit) { opacity: .12; }
 .dag.hovering .junction:not(.lit) { opacity: .35; }
-tr.set-row { cursor: pointer; }
-tr.set-row.previewed td { background: rgba(128, 128, 128, .12); }
 
 /* — F34-T5 (R7): Problems — the filter bar, the rows with work, the waiting table — */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -1686,8 +1648,7 @@ svg.dag g.node.selected.proved circle:not(.halo) { fill: var(--surface); }
 svg.dag a:hover g.node:not(.selected) rect.pill, svg.dag a:focus-visible g.node:not(.selected) rect.pill { stroke: var(--ink); }
 svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
 /* F34-T33 (REMINDERS item 5): which route is drawn — under the selector, and the figure's caption */
-.selector-wrap:has(.drawn-below) { flex-wrap: wrap; }
-.selector-wrap .drawn-below { flex: 1 0 100%; }
+/* F34-T47: "Drawn below" stands under the Tree and the List alike, outside the picker's box */
 .drawn-below { margin: var(--s3) 0 0; padding-top: 10px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; }
 .figure-cap { margin: var(--s4) 0 var(--s3); font-family: var(--sans); font-size: 14px; }
 .figure-cap .figure-n { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
@@ -1725,7 +1686,10 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
 }
 /* F34-T41 (REMINDERS item 8): the drawn route's retire controls, under its caption */
 .figure-retire { margin: 0 0 var(--s3); font-family: var(--sans); font-size: 13px; }
-.figure-retire .set-route { display: inline-flex; gap: var(--s2); align-items: center; margin-right: var(--s4); }
+.figure-retire .set-route { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin: 0 0 var(--s1); }
+/* F34-T46 (ROUND-2 D3): a split is named only beside a control a steward or curator was given,
+   or beside what shelving did to it; every other reader sees no line here at all */
+.figure-retire .set-route:has(> .retire-act[hidden]) { display: none; }
 /* F34-T42 (REMINDERS item 10): "uses: …" on a pill, dashed like the mockup's lemma box */
 .dag .uses-chip { cursor: pointer; }
 .dag .uses-chip rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 4 3; }
@@ -1736,3 +1700,85 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
 svg.mini-tree g.node rect.pill { stroke-dasharray: 2 3; }
 svg.mini-tree g.node:not(.fold) > text { font-family: var(--serif); font-size: 13.5px; }
 svg.dag text.is-id { font-family: var(--mono); font-size: 12px; }
+
+/* — F34-T47 (ROUND-2 D1; mockup New-Erdos257-List): the List, one row per route — */
+.route-list-wrap { margin: var(--s4) 0 0; font-family: var(--sans); }
+.route-list { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--rule); }
+.route-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 4px; border-top: 1px solid var(--rule); }
+.route-row[aria-selected="true"] { background: var(--tint); }
+.route-row.previewed { background: var(--tint); }
+.route-row .route-n { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; min-height: 0; }
+.route-row .route-n[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.route-row.side-refutes .route-n { border-color: var(--refuted); color: var(--refuted); }
+.route-row.side-refutes .route-n[aria-pressed="true"] { background: var(--refuted); color: var(--surface); }
+.route-row[data-harder] .route-n { border-color: var(--rule-strong); color: var(--muted); }
+.route-row .route-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.route-row .route-name { font-size: 14px; font-weight: 500; }
+.route-row .route-counts { font-size: 12.5px; color: var(--muted); }
+.route-row .route-counts strong { color: var(--ink); }
+.route-row .route-through { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.route-row .route-through code { font-family: var(--mono); font-size: 11.5px; background: none; padding: 0; }
+.route-row .route-acts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; align-items: baseline; }
+.route-row .route-statements summary { cursor: pointer; text-decoration: underline; list-style: none; }
+.route-row .route-statements summary::-webkit-details-marker { display: none; }
+.route-row .route-statements[open] { flex: 1 0 100%; order: 3; }
+.route-row .route-statements p { margin: var(--s2) 0 0; color: var(--muted); }
+.route-row .route-statements ul { margin: 0; padding-left: 1.1em; }
+/* Retire… is a steward's or curator's: the fold shows only once shelve.js has filled a control */
+.route-row .route-retire:not(:has(.retire-act:not([hidden]))) { display: none; }
+.route-row .route-retire summary { cursor: pointer; text-decoration: underline; color: var(--refuted); list-style: none; }
+.route-row .route-retire summary::-webkit-details-marker { display: none; }
+.route-row .route-retire[open] { flex: 1 0 100%; order: 4; }
+.route-row .route-retire .set-route { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-top: var(--s2); }
+.route-row .route-retire .set-route:has(> .retire-act[hidden]) { display: none; }
+.harder-routes .harder-head { margin: var(--s5) 0 var(--s2); font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.figure-folds { margin: 0 0 var(--s3); font-family: var(--sans); font-size: 13px; color: var(--muted); }
+.figure-folds .unfold-all { font: inherit; color: var(--ink); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; min-height: 0; }
+
+/* — F34-T48 (ROUND-2 D2): the harder routes join the picker — */
+.harder-line { margin: var(--s3) 0 0; font-family: var(--sans); font-size: 13px; }
+.harder-link { font: inherit; color: var(--muted); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; min-height: 0; }
+.harder-link:hover, .harder-link:focus-visible { color: var(--ink); }
+.harder-scroll { flex: 1 1 0; min-width: 0; overflow-x: auto; }
+.harder-scroll:has(> svg[hidden]) { display: none; }
+.selector .sel-node.harder .dot { stroke: var(--rule-strong); }
+.selector .sel-node.harder text { fill: var(--muted); }
+.selector .sel-node.harder.selected .dot { stroke: var(--ink); }
+/* the route the figure draws is drawn whole, harder or not: the dimming was the old all-at-once view's */
+svg.dag[data-view^="hard/"] .node.harder, svg.dag[data-view^="hard/"] .junction.harder { opacity: 1; }
+@media (max-width: 760px) {
+  /* the picker's box wraps on a phone: the one line of help, and the harder picker, each take a
+     row of their own (F34-T47 moved "Drawn below" out, which had been what made it wrap) */
+  .selector-wrap { flex-wrap: wrap; }
+  .harder-scroll { flex: 1 0 100%; }
+  .harder-scroll svg.selector { flex: none; max-width: none; }
+}
+
+/* — F34-T52 (ROUND-2 D6): on a wide screen the selected statement's panel stays in view beside a
+   long figure, scrolling inside itself when it is taller than the window — */
+@media (min-width: 761px) {
+  .graph-grid > .panels { position: sticky; top: var(--s5); max-height: calc(100vh - 2 * var(--s5)); overflow-y: auto; }
+}
+
+/* — F34-T50 (ROUND-2 D4): the phone's row of route buttons under the picker — */
+.route-buttons { display: none; }
+@media (max-width: 760px) {
+  .route-buttons { display: flex; gap: 8px; overflow-x: auto; margin: var(--s3) 0 0; padding: 2px 0 4px; }
+  .route-btn { flex: none; min-width: 44px; min-height: 44px; padding: 0; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .route-btn[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .route-btn.side-refutes { border-color: var(--refuted); color: var(--refuted); }
+  .route-btn.side-refutes[aria-pressed="true"] { background: var(--refuted); color: var(--surface); }
+  .route-btn[data-harder] { border-color: var(--rule-strong); color: var(--muted); }
+  .route-btn[data-harder][aria-pressed="true"] { background: var(--muted); color: var(--surface); }
+}
+/* — F34-T51 (ROUND-2 D8): on a phone a record opens under its row and takes the row's place:
+   the dark header is the one place the name shows; tapping it closes the record — */
+@media (max-width: 760px) {
+  .route-outline > li.selected > a[data-node] { display: none; }
+  .route-outline > li > .panel > .panel-head { cursor: pointer; }
+  .panels.phone-closed { display: none; }
+}
+/* — F34-T49 (ROUND-2 D7): "also used by Route n" in a §2 group — */
+.off-route .also-used { font-family: var(--sans); font-size: 13px; color: var(--muted); }
+.off-route p.also-used { margin: var(--s2) 0 0; }
+

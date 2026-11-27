@@ -1,0 +1,56 @@
+F34 round 2 of the problem page, 2026-11-27 (for Mike)
+
+Working list: site/docs/design_handoff_2026-11/ROUND-2-2026-11-27.md, in its order (D3, D1, D2, D7,
+D4, D8, D6), on erdos-257 and erdos-1094. Times are local (IST), read from git and the logs. Every
+item: a test first, seen red, then green; the whole site suite with the browser tests before each
+commit, run on a snapshot of the tree; `make verify` as the commit hook; captures and measurements
+from the live graph (86c7a7c445) rendered by the branch.
+
+COMMITS
+  15:24  572ec481  T46 (D3), T47 (D1), T48 (D2) (its hook ended 15:37)
+           full suite 14:46–14:55: 1219 passed, 3 failed (the three that fail on main)
+           hook: 8049 passed. A first hook run, 14:56–15:23, failed on two lifecycle tests with a
+           10-second wall-clock budget while I ran other tests beside it; both pass alone (6.7 s).
+  (this commit)    T49 (D7), T50 (D4), T51 (D8), T52 (D6 and "Done means")
+           full suite 16:07–16:18: 1236 passed, 3 failed (the same three)
+
+WHAT THE PAGES SAY NOW (shoot_round2.py and scan_ids.py on the live render; the numbers are in
+task-46.txt to task-52.txt)
+  * Figure 1 draws one route in every state; its caption's count is its boxes (erdos-1094 Route 1:
+    19 over 19; it said 8).
+  * List: one row per route, no table. erdos-1094 4 rows (46 with harder routes), erdos-257 12.
+  * Picker: every end a numbered route. erdos-1094: 4 ends; "Show 42 harder routes" adds 42.
+  * §2 on both pages; erdos-1094's holds 10 statements, "Inside a proof already complete".
+  * Phone: route buttons 44px; the outline starts with the problem; a tapped statement's name once.
+  * No sideways scroll at 390 in any state of either page.
+
+WHERE THE RECORD DIFFERED FROM THE ROUND'S TEXT (each is a Q entry in the spec)
+  Q29  D3. The drawing was already only the route. The caption left out the statements a route
+       splits (11 of erdos-1094 Route 1's 19). No statement on either page is reached only through
+       a lemma, so the dashed "uses" box has no new case.
+  Q31  D2. The dead-end squares were fold layouts taken for choice points, not harder routes.
+       "35" counted splits; the harder ways number 42, and the test asks for 42 ends.
+       In the main picker a branch or a line still draws the part of the proof under it (several
+       routes at once, F30-R5). Only numbered ends are pressable in the harder picker. Yours to
+       remove from the main one.
+  Q32  D7. erdos-1094 is not the "every statement is on a route" case: 10 are on none.
+       D8. Read with REMINDERS item 22: on a phone nothing is open until a row is tapped.
+       D6.3. The number counted outlines and the dotted square a proposed literature status;
+       neither was "speculative" or "attempts".
+       Done means. A named statement's id moved from under its panel heading to the panel's
+       Record tab (it had been placed there by F29-R9). 425 visible ids on the two pages became
+       66; those are contributors' own words and Lean, shown as written.
+  Q30  D1. "through erdos-257, split by t1023-f1" shows an id in mono, as D1 and the mockup ask.
+
+NOT DONE, OR YOURS
+  * "Match the mockups at 1440 and 390": compared by eye on the captures, not pixel for pixel. Known
+    differences: the Tree | List control is the tabs already live, not the mockup's two-button
+    switch; a route's name is its split's recorded approach, which reads longer than the mockup's
+    hand-written names; the List's counts add "split further" so they sum.
+  * Retire on the live erdos-257 page, signed in as a steward: still yours to check. It is now in
+    two places, under Figure 1's caption and behind "Retire…" in a route's row.
+  * erdos-1094's page is 3.4 MB before compression (2.2 MB before round 2): two layouts per harder
+    route.
+  * The words a picker end shows on hover still say "Set n".
+
+Captures: round2-<problem>-<state>-<width>.png (page, tree, list, harder, scrolled, tapped).

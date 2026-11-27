@@ -71,7 +71,10 @@ def test_a_node_with_outlines_is_marked_on_the_graph(tmp_path: Path) -> None:
     page = page_of(two_outlines(tmp_path))
     pill = re.search(rf'<g class="node[^"]*" data-node="{ROOT_NODE}".*?</g></a>', page, re.S)
     assert pill is not None
-    assert re.search(r'<g class="outline-mark"[^>]*>.*?<text[^>]*>2</text>', pill.group(0), re.S)
+    # F34-T52 (ROUND-2 D6): the tab says what it counts
+    assert re.search(
+        r'<g class="outline-mark"[^>]*>.*?<text[^>]*>2 outlines</text>', pill.group(0), re.S
+    )
     hole = re.search(rf'<g class="node[^"]*" data-node="{HOLE_IDS[0]}".*?</g></a>', page, re.S)
     assert hole is not None and "outline-mark" not in hole.group(0)
 

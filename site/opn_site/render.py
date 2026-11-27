@@ -1187,6 +1187,8 @@ def collection_label(record: dict[str, Any] | None) -> str:
 
 #: F34-T29: the longest title head the kicker takes as the problem's name.
 PROBLEM_NAME_MAX = 40
+#: F34-T49: how many routes "also used by" names before it counts the rest.
+ALSO_USED_MAX = 3
 
 
 def route_of_view(selector: str, view: str | None) -> tuple[str, str] | None:
@@ -1220,23 +1222,67 @@ def group_heading(named: str, routes: Sequence[str]) -> str:
     return f"{head} (Routes {nums})"
 
 
+def routes_drawing(selector: str, layouts_json: str) -> dict[str, list[tuple[str, str]]]:
+    """F34-T49: each statement's routes as (name, view) — "Route n" and the view its numbered end
+    draws — from the pickers' numbered ends (T33; the harder picker's too, each end once) and the
+    statements each one's layout draws, a fold's among them (the route's whole layout)."""
+    ends = list(
+        dict.fromkeys(
+            (unescape(m.group(1)), unescape(m.group(2)).split(" · ", 1)[0])
+            for m in re.finditer(
+                r'<g class="sel-node kind-leaf[^"]*" data-view="([^"]+)"[^>]*data-route="([^"]+)"',
+                selector,
+            )
+        )
+    )
+    body = re.search(r">(.*)</script>", layouts_json, re.S)
+    lays = json.loads(body.group(1).replace("<\\/", "</")) if body else {}
+    out: dict[str, list[tuple[str, str]]] = {}
+    for view, name in sorted(ends, key=lambda e: int(e[1].split()[-1])):
+        whole = lays.get(f"{view}{one_view.ALL_OPEN}") or lays.get(view) or {}
+        for nid in whole.get("nodes") or {}:
+            out.setdefault(nid, []).append((name, view))
+    return out
+
+
 def routes_holding(selector: str, layouts_json: str) -> dict[str, list[str]]:
     """F34-T44: each statement's routes ("Route n"), from the selector's numbered ends (T33) and
     the statements each one's layout draws; a statement on every route maps to none."""
-    ends = [
-        (unescape(m.group(1)), unescape(m.group(2)).split(" · ", 1)[0])
-        for m in re.finditer(
-            r'<g class="sel-node kind-leaf[^"]*" data-view="([^"]+)"[^>]*data-route="([^"]+)"',
-            selector,
-        )
-    ]
-    body = re.search(r">(.*)</script>", layouts_json, re.S)
-    lays = json.loads(body.group(1).replace("<\\/", "</")) if body else {}
-    out: dict[str, list[str]] = {}
-    for view, name in ends:
-        for nid in (lays.get(view) or {}).get("nodes") or {}:
-            out.setdefault(nid, []).append(name)
-    return {n: (r if len(r) < len(ends) else []) for n, r in out.items()}
+    drawn = routes_drawing(selector, layouts_json)
+    total = len({view for held in drawn.values() for _name, view in held})
+    return {n: ([name for name, _v in r] if len(r) < total else []) for n, r in drawn.items()}
+
+
+#: A file link labelled with its whole path in the graph (``Renderer.file_link``'s default).
+_FILE_PATH_LABEL = re.compile(r'(<a class="file" href="[^"]*">)targets/[^<]*/([^/<]+)</a>')
+
+
+def short_file_labels(html: str) -> str:
+    """F34 round 2 (no raw id outside the sidenotes and the Record): in a statement's panel a
+    link to a file of the record is labelled with the file's name; its whole path, which spells
+    out the statement's id, is where the link goes."""
+    return _FILE_PATH_LABEL.sub(r"\1\2</a>", html)
+
+
+def beneath_proved(
+    off: Iterable[str], deps: Mapping[str, Sequence[str]], proved: Iterable[str]
+) -> set[str]:
+    """F34-T49 (ROUND-2 D7): of the statements no route draws (``off``), those only a finished
+    proof rests on — a dependency of a proved statement, or of another such piece."""
+    off, done = set(off), set(proved)
+    users: dict[str, list[str]] = {}
+    for user, needs in deps.items():
+        for n in needs:
+            users.setdefault(n, []).append(user)
+    out: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        for n in off - out:
+            if any(u in done or u in out for u in users.get(n, [])):
+                out.add(n)
+                changed = True
+    return out
 
 
 def problem_name(title: str) -> str | None:
@@ -1802,7 +1848,7 @@ class Renderer:
             "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
             + self.literature_key(self.literature_marks(tv).values())
             # F34-T21: the problem page folds the key and places the toggle beside the fold
-            + (drawn.toggle + drawn.harder_toggle if drawn and toggle else "")
+            + (drawn.toggle if drawn and toggle else "")
         )
 
     # -- F04-T54 (D-25 v3.45): the literature mark ------------------------------------------
@@ -3146,6 +3192,28 @@ class Renderer:
             )
         return "No informal statement is recorded for this target yet (D-6 intake, F11)."
 
+    def statement_note(self, tv: TargetView) -> str:
+        """F34-T52 (ROUND-2 D6): what §3 opens with besides the review. The statement is the
+        page's headline and is said once, so a record with its own informal wording adds nothing
+        here; a paraphrase adds its note (why the wording is the network's), and a problem with
+        no record says so."""
+        if tv.record is None:
+            return (
+                '<p class="informal">No informal statement is recorded for this target yet '
+                "(D-6 intake, F11).</p>"
+            )
+        if tv.record.get("informal"):
+            return ""
+        if tv.record.get("paraphrase"):
+            return (
+                '<p class="informal note">The statement above is the network\'s own paraphrase: '
+                "the source states no licence, so its wording is cited rather than reproduced.</p>"
+            )
+        return (
+            '<p class="informal">No informal statement is recorded for this target yet '
+            "(D-6 intake, F11).</p>"
+        )
+
     def why_not_claimable(self, tv: TargetView, *, detail: bool = True) -> str:
         """R10: the reason a listed target is not claimable, named rather than implied. The node
         page (F04-T10) shows the reasons without the target's signatures and posting."""
@@ -3307,6 +3375,7 @@ class Renderer:
             picture.on_route,
             picture.mini,
             routes_holding(picture.selector, picture.layouts_json),
+            routes_drawing(picture.selector + picture.harder_selector, picture.layouts_json),
         )
         chips = self.speculative_chips(tv, picture.on_route)  # F34-T27
         svg = one_view.with_spec_chips(svg, chips)
@@ -3339,24 +3408,43 @@ class Renderer:
             # F34-Q7: the follow-the-proof toggle is off the page (the owner, 2026-11-25)
             "</div>"
             f"{picture.selector}"
+            # F34-T48: the picker with the harder routes, in a box of its own that scrolls
+            + (
+                f'<div class="harder-scroll">{picture.harder_selector}</div>'
+                if picture.harder_selector
+                else ""
+            )
+            +
             # F34-T38 (REMINDERS item 21): the phone's one line of help under the selector
             '<p class="sel-tap">Tap a numbered end to draw that route below.</p>'
-            f"{drawn_below}{self.proof_notes(tv)}"
+            f"{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
             else ""
         )
         # F31-T11 (R8): the drawn routes, each with its Retire control, beside the sets table.
         # F31-Q18: the retire control is in the sets table's Routes column; no routes list.
-        sets_block = (
-            f'<div class="sets-grid">{picture.table}</div>' if picture.table else ""
-        ) + picture.layouts_json
-        # F34-T12 (R14): Tree and List, two tabs over the selector and the table, each pane in a
+        # F34-T50 (ROUND-2 D4): the phone's row of route buttons, under the picker
+        selector_block += picture.route_buttons if picture.selector else ""
+        sets_block = picture.layouts_json
+        # F34-T12 (R14): Tree and List, two tabs over the selector and the list, each pane in a
         # wrapper of its own; the tabs are hidden until the script can switch them, so without it
-        # both stay on the page.
+        # both stay on the page. F34-T47 (ROUND-2 D1): the List is one row per route, beside the
+        # tree in the drawing's card, and "Drawn below" stands under whichever is shown.
         if picture.selector and picture.table:
-            selector_block = f'{ROUTE_TABS}<div id="sets-tree">{selector_block}</div>'
-            sets_block = f'<div id="sets-list">{sets_block}</div>'
+            selector_block = (
+                f'{ROUTE_TABS}<div id="sets-tree">{selector_block}</div>'
+                f'<div id="sets-list">{picture.table}</div>'
+            )
+        # F34-T48 (ROUND-2 D2): the harder routes' quiet control, under the picker
+        selector_block += picture.harder_toggle + drawn_below
+        # F34-T47: the figure's heading says its proved statements are folded and unfolds them
+        figure_folds = (
+            '<p class="figure-folds" hidden>Proved statements folded · '
+            '<button type="button" class="unfold-all" aria-pressed="false">unfold</button></p>'
+            if opening
+            else ""
+        )
         n = len(tv.nodes)
         if tv.approaches:
             approaches = (
@@ -3379,7 +3467,6 @@ class Renderer:
             else "<p>No state-of-the-problem note yet (D-32).</p>"
         )
         e = tv.index_entry
-        title = str(tv.record.get("title") or "") if tv.record else ""
         resolved = str(tv.index_entry["status"]) == "resolved"
         body = _template("target.html").substitute(
             agents_href=esc(self.agents_href),  # F34-T6: the fast check is in AGENTS.md
@@ -3389,8 +3476,9 @@ class Renderer:
             status_head=self.status_head(tv),  # F34-T29
             review_note=self.review_note(tv),  # F34-T29: the check and the review, one note
             informal=self.informal_words(tv),
-            provenance=(f"{record_words(sentence(title))} " if title else "")
-            + self.source_line(tv),
+            # F34-T52 (ROUND-2 D6): the note keeps the id and the source; the statement is the
+            # headline's, said once
+            provenance=self.source_line(tv),
             stages=self.stage_marks(tv),
             # F34-T11 (handoff §3.4.1): the head's kicker, mark and one sentence; the needs card
             kicker=self.problem_kicker(tv),
@@ -3400,9 +3488,7 @@ class Renderer:
             review_card=self.review_card(tv),  # F34-T21
             not_on_route=off_route,
             outline=self.route_outline(tv, picture.outline, chips),  # F34-T17, T27
-            not_on_route_link=(
-                ' · <a href="#not-on-route">Not on a route</a>' if off_route else ""
-            ),
+            not_on_route_link=' · <a href="#not-on-route">Not on a route</a>',
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
             registrations=self.registration_lines(tv),
@@ -3410,8 +3496,8 @@ class Renderer:
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv, picture, toggle=False),
             # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
-            view_toggle=picture.toggle + picture.harder_toggle,
-            figure_cap=figure_cap,  # F34-T33
+            view_toggle=picture.toggle,
+            figure_cap=figure_cap + figure_folds,  # F34-T33, T47
             figure_retire=picture.retire,  # F34-T41
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
@@ -3425,7 +3511,7 @@ class Renderer:
             writeup=self.writeup_section(tv),
             sources=self.sources_block(tv),
             qa_block=self.qa_block(tv),
-            informal_full=self.informal_line(tv),
+            informal_full=self.statement_note(tv),
             approaches=approaches,
             definitions=self.definitions_section(tv),
             note=note,
@@ -3454,7 +3540,7 @@ class Renderer:
             + ('<script src="/panel.js"></script>' if self.api_url else "")
             + (
                 SHELVE_SCRIPT.replace("$repo", esc(self.repo_url))
-                if self.api_url and 'class="retire-act"' in picture.table
+                if self.api_url and 'class="retire-act"' in picture.table + picture.retire
                 else ""
             ),
         )
@@ -4183,6 +4269,7 @@ class Renderer:
         on_route: frozenset[str],
         mini: Callable[[Sequence[str]], str] | None = None,
         routes_of: Mapping[str, Sequence[str]] | None = None,
+        drawn_by: Mapping[str, Sequence[tuple[str, str]]] | None = None,
     ) -> str:
         """F34-T18 (R18; handoff §3.4.4): every statement no route uses, so the page places each
         statement of the problem exactly once — drawn on a route, or listed here. Proposed
@@ -4191,31 +4278,40 @@ class Renderer:
         replaced them, and anything else no route reaches. ``""`` when every statement is on a
         route."""
         groups: dict[str, list[str]] = {}
-        order = ("proposed", "unattached", "related", "special", "superseded", "other")
+        order = ("proposed", "unattached", "related", "special", "pieces", "superseded", "other")
         heads = {
             "unattached": "Proposed for no statement",
             "related": "Related results",
             "special": "Special cases no split uses",
+            # F34-T49 (ROUND-2 D7): what only the proof of a proved statement rests on
+            "pieces": "Inside a proof already complete",
             "superseded": "Superseded",
             "other": "On no route",
         }
         by_target: dict[str, list[str]] = {}
         members: dict[str, list[str]] = {}  # F34-T26: each group's statements, for its tree
         where = self.off_route_places(tv, on_route)
+        used_by = self.also_used(tv, on_route, drawn_by or {})  # F34-T49
         for nid in where:
-            key, item = where[nid], self.off_route_item(tv, tv.nodes[nid])
+            key, item = where[nid], self.off_route_item(tv, tv.nodes[nid], used_by.get(nid, ""))
             if key.startswith("for:"):
                 by_target.setdefault(key.removeprefix("for:"), []).append(item)
                 members.setdefault(key.removeprefix("for:"), []).append(nid)
             else:
                 groups.setdefault(key, []).append(item)
         if not groups and not by_target:
-            return ""
+            # F34-T49 (ROUND-2 D7): the section always stands, so the numbering never skips
+            return (
+                '<section class="off-route">'
+                '<h2 id="not-on-route"><span class="sec">§2</span> Not on a route</h2>'
+                '<p class="cue">Every statement is on a route.</p></section>'
+            )
         parts = [
             '<section class="off-route">'
             '<h2 id="not-on-route"><span class="sec">§2</span> Not on a route</h2>'
             '<p class="cue">Statements no way of settling the problem uses yet: proposed ones, '
-            "related results, special cases, and statements a revision replaced.</p>"
+            "related results, special cases, the pieces of proofs already complete, and "
+            "statements a revision replaced.</p>"
         ]
         for key in order:
             if key == "proposed":
@@ -4232,6 +4328,14 @@ class Renderer:
                     # F34-T43 (REMINDERS item 17): a group drawn as a tree prints no list; the
                     # tree is the list. With no tree (no drawing to hand), the list stays.
                     listed = "" if drawn else f"<ul>{''.join(by_target[target])}</ul>"
+                    if drawn:  # the tree is the list: its used statements say so under it
+                        listed = "".join(
+                            '<p class="also-used">'
+                            f"{record_words(self.node_label(tv.nodes[m]) or m)} is "
+                            f"{used_by[m]}.</p>"
+                            for m in members[target]
+                            if m in used_by
+                        )
                     parts.append(
                         f'<div class="off-group" id="{esc(proposed_anchor(target))}">'
                         f"<h3>{group_heading(named, (routes_of or {}).get(target, []))}</h3>"
@@ -4259,7 +4363,47 @@ class Renderer:
                         where[nid] = where[m]
                         changed = True
                         break
+        # F34-T49 (ROUND-2 D7): what is left that only a finished proof rests on
+        pieces = beneath_proved(
+            (n for n in off if where[n] == "other"),
+            {n: list(nv.deps) for n, nv in tv.nodes.items()},
+            (n for n, nv in tv.nodes.items() if nv.status == "proved"),
+        )
+        for nid in pieces:
+            where[nid] = "pieces"
         return where
+
+    def also_used(
+        self,
+        tv: TargetView,
+        on_route: frozenset[str],
+        drawn_by: Mapping[str, Sequence[tuple[str, str]]],
+    ) -> dict[str, str]:
+        """F34-T49 (ROUND-2 D7; the rest of REMINDERS item 18): for each statement no route draws
+        that a route's statement uses (graph.json's ``uses``), the words saying so — "also used
+        by Route 1", each route a link that draws it. Three routes are named, the rest counted.
+        Beside the statement's own line they stand as they are; under a group's small tree the
+        statement's name leads them."""
+        out: dict[str, str] = {}
+        for nid in tv.nodes:
+            if nid in on_route:
+                continue
+            held: dict[str, str] = {}
+            for user in tv.nodes.values():
+                if user.node_id in on_route and nid in (user.graph_entry.get("uses") or []):
+                    for name, view in drawn_by.get(user.node_id, []):
+                        held.setdefault(name, view)
+            if not held:
+                continue
+            names = sorted(held, key=lambda n: int(n.split()[-1]))
+            links = [
+                f'<a href="#view={esc(quote(held[n], safe="/@:~"))}" class="route-ref">{esc(n)}</a>'
+                for n in names[:ALSO_USED_MAX]
+            ]
+            more = len(names) - ALSO_USED_MAX
+            tail = f" and {more} more" if more > 0 else ""
+            out[nid] = f"also used by {', '.join(links)}{tail}"
+        return out
 
     def speculative_chips(
         self, tv: TargetView, on_route: frozenset[str]
@@ -4299,24 +4443,33 @@ class Renderer:
             return "unattached"
         return "other"
 
-    def off_route_item(self, tv: TargetView, nv: NodeView) -> str:
-        """One statement in "Not on a route": its label (or id) linked, its status, and for a
-        superseded one what replaced it."""
+    def off_route_item(self, tv: TargetView, nv: NodeView, used: str = "") -> str:
+        """One statement in "Not on a route": its label linked (its id only when it has no name
+        of its own: ROUND-2, no raw id outside the sidenotes and the Record), its status, for a
+        superseded one what replaced it, and (F34-T49) the routes that also use it."""
         label = self.node_label(nv)
         href = esc(self.node_path(tv.target_id, nv.node_id))
         name = (
-            f'<a href="{href}">{record_words(label)}</a> '
-            f'<span class="mono">{esc(nv.node_id)}</span>'
+            f'<a href="{href}">{record_words(label)}</a>'
             if label
             else f'<a href="{href}" class="mono">{esc(nv.node_id)}</a>'
         )
         words = status_words(nv.status, nv.graph_entry.get("cause"))
         after = ""
         if nv.status == "superseded" and nv.superseded_by:
-            after = f" · replaced by {self.node_link(tv.target_id, nv.superseded_by)}"
+            by = tv.nodes.get(nv.superseded_by)
+            by_label = self.node_label(by) if by is not None else None
+            # by its name when it has one (ROUND-2: no raw id outside the sidenotes and Record)
+            after = " · replaced by " + (
+                f'<a href="{esc(self.node_path(tv.target_id, nv.superseded_by))}">'
+                f"{record_words(by_label)}</a>"
+                if by_label
+                else self.node_link(tv.target_id, nv.superseded_by)
+            )
+        also = f' <span class="also-used">{used}</span>' if used else ""
         return (
             f'<li data-node="{esc(nv.node_id)}">{name} '
-            f'<span class="status-word">{esc(words)}</span>{after}</li>'
+            f'<span class="status-word">{esc(words)}</span>{after}{also}</li>'
         )
 
     def problem_kicker(self, tv: TargetView) -> str:
@@ -4444,7 +4597,9 @@ class Renderer:
             if nid not in known:
                 return f"<code>{esc(nid)}</code>"
             href = f"#node={nid}" if in_page else self.node_path(tid, nid)
-            return f'<a href="{esc(href)}">{esc(nid)}</a>'
+            # by its name when it has one (ROUND-2: no raw id outside the sidenotes and Record)
+            named = self.node_label(known[nid]) if in_page else None
+            return f'<a href="{esc(href)}">{record_words(named) if named else esc(nid)}</a>'
 
         parts: list[str] = []
         if nv.status == "superseded":
@@ -4655,10 +4810,12 @@ class Renderer:
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
         title, id_line = self.panel_heading(tv, nv)
         known, work = self.known_section(tv, nv), self.work_section(tv, nv)
-        return _template("statement-panel.html").substitute(
+        markup = _template("statement-panel.html").substitute(
             node_id=esc(nid),
             title=title,
-            id_line=id_line,
+            # ROUND-2 ("no raw ids outside the sidenotes and the Record"): a named statement's id
+            # is in the panel's Record tab; an unnamed one is headed by its id, as before
+            id_row=f"<dt>id</dt><dd>{id_line}</dd>" if id_line else "",
             rename=esc(self.statement_words_href(tv, nv)),
             hidden="" if nid == tv.root else " hidden",
             dot=self.dot(self.dot_state(state)),
@@ -4697,6 +4854,7 @@ class Renderer:
             mathlib=esc(str(tv.index_entry.get("mathlib_sha") or "")[:12] or "Lean core only"),
             files=" · ".join(files),
         )
+        return short_file_labels(markup)
 
     # --- F04-T48 (Q47): the panel's sections, each a helper so the layout can move them ---------
 
@@ -4855,7 +5013,9 @@ class Renderer:
                 line += f" (merged in <code>{esc(str(e['proof_commit'])[:12])}</code>)"
             if nv.attestation_path:
                 stem = Path(nv.attestation_path).stem
-                line += " · " + self.file_link(nv.attestation_path, label=f"attestation {stem}")
+                line += " · " + self.file_link(
+                    nv.attestation_path, label=f"attestation {stem.split('.')[0]}"
+                )
             line += "."
         elif state == "open":
             line = esc(self.open_line(has_holes=bool(self.holes_of(tv, nv))))
@@ -5126,7 +5286,9 @@ class Renderer:
             merged += f" in <code>{esc(pv.merge_commit[:12])}</code>"
         if pv is not None and pv.attestation_path:
             stem = Path(pv.attestation_path).stem
-            merged += ", " + self.file_link(pv.attestation_path, label=f"attestation {stem}")
+            merged += ", " + self.file_link(
+                pv.attestation_path, label=f"attestation {stem.split('.')[0]}"
+            )
         holes = [h for h in d.get("holes") or [] if isinstance(h, dict)]
         rows = "".join(self.split_hole_row(tv, h, page=page) for h in holes)
         noun = "hole" if len(holes) == 1 else "holes"
@@ -5151,11 +5313,15 @@ class Renderer:
                 "no statement on the record</li>"
             )
         state = self.node_state(child)
+        # ROUND-2 (no raw id outside the sidenotes and the Record): the hole's statement by its
+        # name; its id only when it has none
+        label = self.node_label(child)
+        shown = record_words(label) if label else esc(child.node_id)
         return (
             f'<li class="split-hole" data-node="{esc(child.node_id)}">'
             f'<span class="split-name">{name} → '
             f'<a href="{esc(self.node_href(tv.target_id, child.node_id, page=page))}">'
-            f"{esc(child.node_id)}</a> ({self.dot(self.dot_state(state))}"
+            f"{shown}</a> ({self.dot(self.dot_state(state))}"
             f"{esc(self.state_label(state))})</span>"
             f"{self.hole_statement(tv, child)}</li>"
         )
@@ -5206,9 +5372,11 @@ class Renderer:
                         else "Restated as hole"
                     )
                     href = self.node_href(tv.target_id, parent.node_id, page=page)
+                    of = self.node_label(parent)
+                    shown = record_words(of) if of else esc(parent.node_id)
                     lines.append(
                         f'<p class="hole-of">{what} <code>{esc(str(h.get("name") or ""))}</code> '
-                        f'of <a href="{esc(href)}">{esc(parent.node_id)}</a> '
+                        f'of <a href="{esc(href)}">{shown}</a> '
                         f"(split by {self.file_link(rel, label=Path(partial).name)}).</p>"
                     )
         return "".join(lines)

@@ -1,0 +1,38 @@
+F34-T46 (ROUND-2 D3): Figure 1 draws only its route, and says how many statements that is
+2026-11-27, branch f34-site-redesign at eebb0c5f + this commit; live graph at 86c7a7c445
+
+WHAT WAS WRONG (measured on the live render before the change, erdos-1094, Route 1)
+  caption: "Route 1 · Baker, Harman and Pintz (2001)… · 8 statements, 2 open"
+  boxes drawn: 19. Every one is the route's own: 8 statements to prove or proved
+  (SufficientSet.statements) and 11 statements the route splits on the way (its assemblies, the
+  problem's own statement among them). The caption counted the 8. Checked for all four routes of
+  erdos-1094 and all twelve of erdos-257: drawn = statements + assemblies (+ the root when the
+  route goes through a variant), and no box is reached only through a lemma line (F34-Q29).
+  Under the caption: the retire controls' raw route ids ("erdos-1094@1 erdos-1094--h2@1 …").
+
+RED FIRST (site/tests/test_f34_route_count.py, before the change)
+  test_the_caption_counts_the_boxes_the_route_draws   ('sel/and-swap-reassoc@1', '2 statements, 2 open', 3)
+  test_a_fold_counts_for_the_statements_it_holds      ('sel', '2 statements, 0 open', 3)
+  test_the_figures_retire_line_carries_no_raw_id      '<code>and-swap-reassoc@2</code>' in the group
+GREEN: 3 passed.
+
+AFTER (live render, engineering/evidence/F34/shoot_round2.py; caption vs boxes in the drawn layout,
+a fold counted for the statements it holds)
+  erdos-1094 tree 1440 caption=19 statements, 2 open boxes= 19 ends= 4 numbered= 4 harder= 0 rows= 0 table=0 scrollWidth=1440 link=Show 42 harder routes
+  erdos-1094 tree 390 caption=19 statements, 2 open boxes= 19 ends= 4 numbered= 4 harder= 0 rows= 0 table=0 scrollWidth=390 link=Show 42 harder routes
+  erdos-1094 hard-route 1440 caption=37 statements, 11 open boxes= 37 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=1440 link=Hide harder routes
+  erdos-1094 hard-route 390 caption=37 statements, 11 open boxes= 37 ends= 46 numbered= 46 harder= 42 rows= 0 table=0 scrollWidth=390 link=Hide harder routes
+  erdos-257 tree 1440 caption=4 statements, 1 open boxes= 4 ends= 12 numbered= 12 harder= 0 rows= 0 table=0 scrollWidth=1440 link=None
+  erdos-257 tree 390 caption=4 statements, 1 open boxes= 4 ends= 12 numbered= 12 harder= 0 rows= 0 table=0 scrollWidth=390 link=None
+  The retire line names each split by its words ("Split of <statement>: <approach>") and shows
+  only beside a control shelve.js gave a steward or curator; every other reader sees no line.
+
+Captures: task-48-erdos-1094-tree-1440.png, task-48-erdos-257-tree-1440.png (and -390).
+
+FULL SITE SUITE, browser tests included (uv run --frozen --with 'playwright==1.58.0' python -m pytest
+site/tests -q -m "not lean and not docker"), on a snapshot of the tree as committed, 14:46–14:55:
+  3 failed, 1219 passed in 544.03s
+  the three are the ones that fail on main too: test_finding_lemma_edge::test_measured_in_a_browser,
+  test_web_flows::test_a_stranger_sees_edit_and_no_approve, test_web_flows::test_a_curator_sees_withdraw
+  (an earlier snapshot, taken before the phone fix of T47, also had three phone tests red: the
+  regression named there.)

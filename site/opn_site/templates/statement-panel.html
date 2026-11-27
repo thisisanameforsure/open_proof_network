@@ -1,7 +1,7 @@
 <div class="card panel" data-node="$node_id"$hidden>
 <div class="panel-head"><span class="panel-head-k">Selected in Figure 1</span>$path</div>
 $title
-<p class="panel-sub">$id_line<a class="panel-rename" href="$rename">Rename or correct →</a></p>
+<p class="panel-sub"><a class="panel-rename" href="$rename">Rename or correct →</a></p>
 <dl class="panel-facts"><dt>status</dt><dd>$dot$state_word</dd><dt>attempts</dt><dd>$attempts</dd>$proof_row</dl>
 $role
 $tabs
@@ -9,7 +9,7 @@ $always
 <section class="panel-sec" data-section="claim"><h3 class="kicker">What is claimed</h3>$claim</section>
 <section class="panel-sec" data-section="how"><h3 class="kicker">How it is being proved</h3>$how</section>
 $known$work<details class="record"><summary>Record details (words, files)</summary>
-<dl class="record-grid"><dt>hash</dt><dd>$hash</dd><dt>origin</dt><dd>$origin</dd><dt>mathlib</dt><dd>$mathlib</dd><dt>files</dt><dd>$files</dd></dl>
+<dl class="record-grid">$id_row<dt>hash</dt><dd>$hash</dd><dt>origin</dt><dd>$origin</dd><dt>mathlib</dt><dd>$mathlib</dd><dt>files</dt><dd>$files</dd></dl>
 $glosses$outlines<div class="how-to-read">$boilerplate</div>
 </details>
 </div>

@@ -158,26 +158,32 @@ def test_routes_marks_and_table_structure() -> None:
     for m in re.finditer(r"<path class=\"edge[^\"]*\"([^>]*)>", drawing):
         assert 'data-from="' in m.group(1) and 'data-to="' in m.group(1), m.group(0)
         assert 'data-key="' in m.group(1)
-    # The table: one row per set, in the record's order, with its counts and its leaf view.
-    rows = re.findall(r'<tr class="set-row[^"]*"[^>]*>.*?</tr>', table, re.S)
+    # The list (F34-T47, ROUND-2 D1: the table's rows restated): one row per set, in the
+    # record's order, with its counts and its leaf view.
+    rows = re.findall(r'<li class="route-row[^"]*"[^>]*>.*?</li><!-- /route-row -->', table, re.S)
     assert len(rows) == 3
 
     def counts(row: str) -> list[int]:
-        return [int(x) for x in re.findall(r'<td class="num" data-sort="(\d+)"', row)]
+        m = re.search(
+            r"· (\d+) statements? · (\d+) proved · "
+            r'(?:<span title="[^"]*">(\d+) split further</span> · )?<strong>(\d+) open</strong>',
+            row,
+        )
+        assert m is not None, row
+        return [int(x or 0) for x in m.groups()]
 
-    # total, proved, open, shared, assemblies
-    assert counts(rows[0]) == [2, 1, 1, 1, 1]
-    assert counts(rows[1]) == [2, 1, 1, 1, 2]
-    assert counts(rows[2]) == [1, 0, 1, 0, 0]
+    # drawn (statements and the ones split on the way), proved, split further, open
+    assert counts(rows[0]) == [3, 1, 1, 1]
+    assert counts(rows[1]) == [4, 1, 2, 1]
+    assert counts(rows[2]) == [2, 0, 1, 1]
     assert all('data-view="sel' in r for r in rows)
     assert "circular" not in rows[1]  # F04-T53 (D-12 v3.43): no label, no note
-    assert "goes through the variant" in rows[2]
+    assert "through <code>v</code>" in rows[2]
     # The key terms the drawing asks for (F30-R2).
     # F04-T55: the resolves variant's trunk is drawn and keyed too.
     assert picture.marks == frozenset({"route-and", "route-or", "route-dead", "relation-resolves"})
-    # The controls that need the script are rendered hidden.
-    assert re.search(r'<button[^>]*class="routes-fewest"[^>]*hidden', table)
-    assert "Fewest open first" in table
+    # F34-T47: no sorting and no "Fewest open first"; D-25 still forbids a ranking word.
+    assert "routes-fewest" not in table and "Fewest open first" not in table
     for word in ("closest", "easiest", "best"):
         assert word not in table.lower(), word
 
@@ -205,9 +211,10 @@ def test_more_than_eight_sets_are_listed_in_the_table() -> None:
         ],
     }
     picture = drawn(d)
-    assert picture.table.count('<tr class="set-row') == 10
-    assert 'class="set-swatch set-8"' in picture.table
-    assert 'class="set-swatch set-more"' in picture.table
+    assert picture.table.count('<li class="route-row') == 10
+    assert re.findall(r'class="route-n"[^>]*>(\d+)<', picture.table) == [
+        str(k) for k in range(1, 11)
+    ]
     assert picture.selector.count('class="sel-node kind-leaf"') == 10
 
 

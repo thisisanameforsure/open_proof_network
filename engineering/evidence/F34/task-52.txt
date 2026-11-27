@@ -1,0 +1,67 @@
+F34-T52 (ROUND-2 D6): the panel stays in view; the statement once; words, not marks
+2026-11-27
+
+1. STICKY PANEL. On a screen wider than 760px the selected statement's panel is position: sticky
+   beside the figure, scrolling inside itself when taller than the window. Browser test: a figure
+   2600px tall, scrolled 1400px in, the panel's top is within 200px of the window's top; on a phone
+   the panel is not sticky. The line from the selected box is redrawn on scroll (T37) and still
+   ends on the panel. Capture: round2-erdos-1094-scrolled-1440.png.
+
+2. THE STATEMENT ONCE. The margin note is the id and the source; it no longer repeats the title.
+   §3 opens with the review; a record whose wording is the network's paraphrase keeps one line
+   saying so, and a problem with no record says so (Renderer.statement_note).
+
+3. WORDS, NOT MARKS. What the two marks were (F34-Q32): the boxed number counted the statement's
+   informal outlines (never attempts, and never proposals: "+ n speculative ↓" is its own chip,
+   T27); the small dotted square was the literature status a contributor proposed. Now the tab
+   reads "1 outline" / "2 outlines" and the mark reads "lit: known?" ("?" until a steward or
+   curator confirms it; filled, without it, after). Both were, and are, in "Key to the drawing".
+
+ALSO, FROM THE ROUND'S "DONE MEANS" (no raw ids outside the sidenotes and the Record)
+  engineering/evidence/F34/scan_ids.py on the live render, every statement's panel counted as seen:
+    before these changes: erdos-1094 276 text runs with a statement id, erdos-257 149.
+    after:                erdos-1094 36, erdos-257 30 (and 6 ids of statements with no name, shown in the name's place).
+  Changed: a named statement's id is in its panel's Record tab, not under its heading; a hole and
+  its parent are named by their words in "Split into" and "Hole … of …"; a file link in a panel
+  is labelled with the file's name; an attestation by its number; "replaced by" and "Superseded
+  by" by the replacement's name.
+  What is left, by where it is (erdos-1094 / erdos-257):
+     13  panel-sec > p.
+     11  panel-sec > li.
+      5  split-into > pre.lean
+      4  panel-sec > code.
+      2  panel-sec > span.math
+      1  panel-sec > strong.
+    --
+      8  split-into > pre.lean
+      7  panel-sec > p.
+      6  panel-sec > code.
+      3  panel-sec > span.math
+      3  card panel > strong.
+      1  panel-sec > span.why
+      1  card panel > a.
+      1  panel-sec > a.
+  (erdos-257's five under "card panel" and "panel-sec > a" are statements with no name of their
+  own, named by id in a panel's path or a link.)
+  These are the record's own words: contributors' notes, approach and literature text that name a
+  statement by its id, and Lean (import lines, theorem names). The site shows them as written.
+  Allowed and not counted: the breadcrumb and a List row's "through …" line (the round's D1).
+
+RED FIRST (against the committed code)
+  test_f34_round2_small.py::test_the_corner_tab_says_what_it_counts
+  test_f34_round2_small.py::test_the_literature_mark_says_its_status
+  test_f34_round2_small.py::test_both_marks_are_in_the_key - ...
+  test_f34_round2_small.py::test_the_statement_is_the_headline_and_nowhere_else
+  test_f34_round2_small.py::test_a_paraphrase_keeps_its_note_in_section_three
+  test_f34_round2_small.py::test_the_panel_stays_in_view_beside_a_long_figure
+GREEN: 6 passed. Restated: test_finding_literature_marks (the mark's geometry), test_outline_links
+and test_finding_outlines_are_stepped (the tab's text), test_finding_labels_site (the id's place),
+test_f34_inline_text (the statement's TeX is checked in the headline).
+
+FULL SITE SUITE, browser tests included (uv run --frozen --with 'playwright==1.58.0' python -m pytest
+site/tests -q -m "not lean and not docker"), on a snapshot of the tree as committed, 16:07–16:18:
+  3 failed, 1236 passed in 616.83s
+  the three are the ones that fail on main too: test_finding_lemma_edge::test_measured_in_a_browser,
+  test_web_flows::test_a_stranger_sees_edit_and_no_approve, test_web_flows::test_a_curator_sees_withdraw
+  (the run before it, 15:56–16:07, had six more red: tests that pinned the statement's title in the
+  margin note and a count of math marks in §3, restated in T52.)

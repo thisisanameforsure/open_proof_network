@@ -131,23 +131,24 @@ def test_the_cause_reaches_the_page_as_text(
 # --- the problem page -------------------------------------------------------------------------
 
 
-def test_the_sets_table_offers_retire_per_route(site: model.Site, pages: dict[str, str]) -> None:
-    """F31-Q18 (the owner, 2026-10-25: "incorporated into the sufficient sets table"): each set
-    row names the routes it goes through, each with its retire control; no separate list. The
-    fixture's route 1 has a shelved unproved hole, so no set rests on it (F31-R4) and it is in
-    no row: a retire control belongs to a route a set still goes through."""
+def test_the_list_of_routes_offers_retire_per_route(
+    site: model.Site, pages: dict[str, str]
+) -> None:
+    """F31-Q18 as restated by F34-T47 (the owner, 2026-11-27: "Drop the table"): each route's
+    row of the List carries the retire control of each split it goes through, behind "Retire…".
+    The fixture's route 1 has a shelved unproved hole, so no set rests on it (F31-R4) and it is
+    in no row: a retire control belongs to a route a set still goes through."""
     page = pages[PROBLEM]
-    assert "routes-list" not in page and "route-row" not in page
-    table = re.search(r'<table class="routes-table">.*?</table>', page, re.S)
-    assert table is not None
-    cells = re.findall(r'<span class="set-route" data-route="([^"]*)"', table.group(0))
-    assert sorted(set(cells)) == [f"{ROOT_NODE}@2"], cells
-    controls = [attrs(m) for m in RETIRE.findall(table.group(0))]
+    assert "routes-table" not in page
+    listed = re.search(r'<ol class="route-list">.*?</ol>', page, re.S)
+    assert listed is not None
+    rows = re.findall(r'<li class="route-row[^>]*>', listed.group(0))
+    assert len(rows) == 1, rows
+    controls = [attrs(m) for m in RETIRE.findall(listed.group(0))]
     assert len(controls) == 1
     assert controls[0]["data-partial"] in partials_of(site)
     assert controls[0]["data-target"] == TARGET and controls[0]["data-node"] == ROOT_NODE
-    head = re.search(r"<thead>.*?</thead>", table.group(0), re.S)
-    assert head is not None and "Routes" in head.group(0)
+    assert '<details class="route-retire"><summary>Retire…</summary>' in listed.group(0)
 
 
 # --- the script ---------------------------------------------------------------------------------
@@ -304,10 +305,11 @@ def test_a_steward_shelves_unshelves_and_retires_from_the_site(served: str) -> N
         assert POSTED[-1]["body"]["node_id"] == SHELVED
         # Retire a route from the problem page.
         page.goto(served + f"/problems/{TARGET}/")
-        # F34-T12 (R14): the table is the List tab's, filtered to the route the page opens on.
+        # F34-T12 (R14), T47: the List tab's row of the route, its control behind "Retire…".
         page.locator('.route-tabs [aria-controls="sets-list"]').click()
-        page.wait_for_selector("tr.set-row:not([hidden]) .retire-act button")
-        first = page.locator("tr.set-row:not([hidden]) .retire-act").nth(0)
+        page.locator("li.route-row .route-retire summary").first.click()
+        page.wait_for_selector("li.route-row .retire-act button")
+        first = page.locator("li.route-row .retire-act").nth(0)
         partial = first.get_attribute("data-partial")
         first.locator("button").click()
         first.locator("textarea").fill("A distraction.")

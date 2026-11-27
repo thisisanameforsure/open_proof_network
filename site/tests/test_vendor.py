@@ -89,9 +89,10 @@ def test_only_the_informal_text_is_marked_for_math(pages: dict[str, str]) -> Non
     assert render.esc(fixture.PARAPHRASE) in page
     assert page.count('class="math"') == 0
     detail = pages[f"problems/{fixture.LISTED_TARGET}/index.html"]
-    # The header, the record section, and (F20-T8, R13) the root's selected-statement card, whose
-    # gloss slot opens with the curated words (Q11).
-    assert detail.count('class="math"') == 3
+    # The header and (F20-T8, R13) the root's selected-statement card, whose gloss slot opens with
+    # the curated words (Q11). F34-T52 (ROUND-2 D6): the statement is shown once, so §3 no longer
+    # repeats it and marks nothing.
+    assert detail.count('class="math"') == 2
     assert '<pre class="lean statement' in detail and "math" not in detail.split("<pre", 1)[1][:200]
 
 

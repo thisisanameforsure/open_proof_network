@@ -126,6 +126,7 @@ def test_tapping_a_statement_opens_its_record_under_it(phone: Any) -> None:
     panel = phone.locator(f'{row} > .panel[data-node="{THIRD}"]')
     panel.wait_for(state="visible")
     assert phone.evaluate("document.documentElement.scrollWidth") <= 390
-    item.click()
+    # F34-T51 (ROUND-2 D8): the record's dark header stands in the row's place and closes it
+    panel.locator(".panel-head").click()
     phone.wait_for_selector(f'.panel[data-node="{THIRD}"]', state="hidden")
     assert phone.locator(f'.route-outline > li[data-node="{THIRD}"] > .panel').count() == 0

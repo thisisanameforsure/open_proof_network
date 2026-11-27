@@ -11,10 +11,11 @@
 //     (view=<key>); under prefers-reduced-motion the drawing changes in one step (R7);
 //   - hovering or focusing a selector node, edge or table row previews it: the view's nodes
 //     and lines lit, the rest dimmed, no coordinate changed (R8);
-//   - F27-R14: the harder-toggle shows the strictly harder routes (the harder layout) and back;
+//   - F34-T48: "Show n harder routes" adds the strictly harder routes to the picker and the List,
+//     each a numbered end; the figure always draws the one route selected;
 //   - the view-toggle shows the statements on no route (the all layout); superseded statements
-//     are not drawn (F30-T16); the table sorts, filters to the shown view's sets
-//     ("showing n of m") and "Fewest open first" selects the first row's view (R4, R9);
+//     are not drawn (F30-T16); F34-T47: the List is one row per route, the drawn one marked,
+//     its number or "Draw" drawing it (the sets table, its sorting and filter are gone);
 //   - F27-R13: "Stop at proved statements" (in the selector's panel, ticked by default) unticked
 //     swaps every set view for its follow/ twin, which also holds what each proved statement's
 //     proof rests on, and the table shows its followed counts; the hash carries the twin's key.
@@ -44,18 +45,17 @@
   var pills = slice(svg.querySelectorAll("g.node"));
   var marks = slice(svg.querySelectorAll("[data-node]"));  // statements and junctions
   var edges = slice(svg.querySelectorAll("path.edge"));
-  var selector = document.querySelector("svg.selector");
-  var choices = selector ? slice(selector.querySelectorAll("[data-view]")) : [];
+  var selector = document.querySelector("svg.selector:not(.harder-picker)");
+  // F34-T48 (ROUND-2 D2): the picker with the harder routes added, shown in the main one's place
+  var hardSelector = document.querySelector("svg.selector.harder-picker");
+  var choices = slice(document.querySelectorAll("svg.selector [data-view]"));
   var notes = slice(document.querySelectorAll(".proof-note[data-view]"));
-  var table = document.querySelector("table.routes-table");
-  var tbody = table && table.tBodies.length ? table.tBodies[0] : null;
-  var rows = tbody ? slice(tbody.querySelectorAll("tr.set-row")) : [];
-  var showing = document.querySelector(".routes-showing");
-  var fewest = document.querySelector("button.routes-fewest");
+  // F34-T47 (ROUND-2 D1): the List is one row per route (li.route-row), the picker's other face
+  var rows = slice(document.querySelectorAll("li.route-row[data-view]"));
+  // F34-T50 (ROUND-2 D4): the phone's row of 44px route buttons under the picker
+  var routeButtons = slice(document.querySelectorAll("button.route-btn[data-view]"));
   var viewToggle = document.querySelector("button.view-toggle[data-view]");
-  // F27-R14 (D-25 v3.52): the strictly harder routes' own toggle: routes <-> harder
-  var harderToggle = document.querySelector("button.harder-toggle[data-view]");
-  var HARDER = "harder";
+  var HARD = "hard/";  // F34-T48: a strictly harder route's own view
   var FOLLOW = "follow/";
   var followBox = document.querySelector("input.follow-proved");
   var setsGrid = document.querySelector(".sets-grid");
@@ -71,12 +71,10 @@
     node: null,
     view: svg.getAttribute("data-view") || ROUTES,
     hover: null,
-    fewestView: null,
-    col: null,
-    desc: false,
     follow: false,
     bandHover: null,
-    band: null
+    band: null,
+    open: null  // F34-T51: on a phone, the statement whose record is open under its row
   };
 
   function has(view) { return !!(view && layouts && layouts[view]); }
@@ -85,11 +83,11 @@
   function base(view) {
     if (!view) { return view; }
     var b = view.indexOf(FOLLOW) === 0 ? view.slice(FOLLOW.length) : view;
-    return b.replace(/~fold\d+$/, "");  // F34-T24: an open fold is still its route
+    return b.replace(/~(fold\d+|open)$/, "");  // F34-T24, T47: an open fold is still its route
   }
   function isSetView(view) {
     var b = base(view);
-    return !!b && (b === "sel" || b.indexOf("sel/") === 0 || b.indexOf("edge/") === 0);
+    return !!b && (b === "sel" || b.indexOf("sel/") === 0 || b.indexOf("edge/") === 0 || b.indexOf(HARD) === 0);
   }
   function withMode(view) {
     var b = base(view);
@@ -515,11 +513,9 @@
   var figureCap = document.querySelector(".figure-cap strong");
   function routeCaption(to) {
     var plain = base(to), end = null;
-    if (selector) {
-      slice(selector.querySelectorAll("g.kind-leaf[data-route]")).forEach(function (g) {
-        if (g.getAttribute("data-view") === plain) { end = g; }
-      });
-    }
+    slice(document.querySelectorAll("svg.selector g.kind-leaf[data-route]")).forEach(function (g) {
+      if (!end && g.getAttribute("data-view") === plain) { end = g; }
+    });
     var name = end ? end.getAttribute("data-route") : "the statements of your selection";
     var count = end ? " · " + end.getAttribute("data-count") : "";
     if (drawnBelow) { drawnBelow.textContent = name + count; }
@@ -539,36 +535,28 @@
     routeCaption(to);  // F34-T33
     drawLink();  // F34-T37: the boxes have moved
     placePanel();  // F34-T39: on a phone, the record under its row of the outline
-    var sets = setsOf(to), shown = 0, plain = base(to);
+    var plain = base(to);
     choices.forEach(function (c) {
       var on = c.getAttribute("data-view") === plain;
       c.setAttribute("aria-pressed", on ? "true" : "false");
       c.classList.toggle("selected", on);
     });
+    // F34-T47: the row of the route drawn is marked; no row is ever hidden
     rows.forEach(function (r) {
-      var mine = !sets || sets.indexOf(r.getAttribute("data-set")) !== -1;
-      r.hidden = !mine;
-      r.setAttribute("aria-selected", sets && mine ? "true" : "false");
-      if (mine) { shown++; }
+      var on = r.getAttribute("data-view") === plain;
+      r.setAttribute("aria-selected", on ? "true" : "false");
+      var n = r.querySelector("button.route-n");
+      if (n) { n.setAttribute("aria-pressed", on ? "true" : "false"); }
     });
-    if (showing) {
-      showing.hidden = !sets;
-      showing.textContent = sets ? "showing " + shown + " of " + rows.length : "";
-    }
+    figureFolds(to);
+    routeButtons.forEach(function (b) {  // F34-T50
+      b.setAttribute("aria-pressed", b.getAttribute("data-view") === plain ? "true" : "false");
+    });
     notes.forEach(function (n) { n.hidden = n.getAttribute("data-view") !== to; });
     if (viewToggle) {
       var all = to === ALL;
       viewToggle.setAttribute("aria-pressed", all ? "true" : "false");
       viewToggle.textContent = all ? toggleWords.shown : toggleWords.plain;
-    }
-    if (harderToggle) {
-      var hard = to === HARDER;
-      harderToggle.setAttribute("aria-pressed", hard ? "true" : "false");
-      harderToggle.textContent = hard ? harderWords.shown : harderWords.plain;
-    }
-    if (fewest && to !== state.fewestView) {
-      state.fewestView = null;
-      fewest.setAttribute("aria-pressed", "false");
     }
     if (!keepHash) { writeHash(); }
     refreshLit();
@@ -668,7 +656,7 @@
       var uses = ev.target.closest ? ev.target.closest(".uses-chip") : null;
       if (uses) {
         ev.preventDefault();
-        if (select(uses.getAttribute("data-uses"))) { writeHash(); placePanel(); }
+        if (select(uses.getAttribute("data-uses"))) { state.open = state.node; writeHash(); placePanel(); }
         return;
       }
       var chip = ev.target.closest ? ev.target.closest(".spec-chip") : null;
@@ -763,34 +751,36 @@
   // T8 (the owner, 2026-10-18): the selector has the drawing's own hover — the node, its lines
   // and the nodes they join lit, the rest of the selector dimmed — and its words in a tooltip,
   // since the tree draws none. The preview on the drawing (above) runs beside it.
-  var selNodes = selector ? slice(selector.querySelectorAll("g.sel-node")) : [];
-  var selEdges = selector ? slice(selector.querySelectorAll("path.sel-edge")) : [];
+  var selNodes = slice(document.querySelectorAll("svg.selector g.sel-node"));
+  var selEdges = slice(document.querySelectorAll("svg.selector path.sel-edge"));
   var selWrap = selector ? selector.parentNode : null;
   var tip = selWrap ? selWrap.querySelector(".sel-tip") : null;
   function selKey(g) { return g.getAttribute("data-key"); }
   function selLight(keys, words, anchor) {
-    var near = {};
+    var near = {}, own = anchor.ownerSVGElement;
     keys.forEach(function (k) { near[k] = true; });
     selEdges.forEach(function (e) {
+      if (e.ownerSVGElement !== own) { return; }
       var from = e.getAttribute("data-from"), to = e.getAttribute("data-to");
       var on = keys.indexOf(from) !== -1 || keys.indexOf(to) !== -1;
       e.classList.toggle("lit", on);
       if (on) { near[from] = true; near[to] = true; }
     });
-    selNodes.forEach(function (g) { g.classList.toggle("lit", !!near[selKey(g)]); });
-    selector.classList.add("hovering");
+    selNodes.forEach(function (g) { g.classList.toggle("lit", g.ownerSVGElement === own && !!near[selKey(g)]); });
+    own.classList.add("hovering");
     if (tip && words) {
       tip.textContent = words;
       tip.hidden = false;
       // To the right of the tree, level with the node, so it never covers the tree itself.
       var w = selWrap.getBoundingClientRect(), a = anchor.getBoundingClientRect();
-      var sv = selector.getBoundingClientRect();
-      tip.style.left = (sv.right - w.left + 10) + "px";
+      var sv = own.getBoundingClientRect();
+      tip.style.left = Math.max(0, Math.min(sv.right - w.left + 10, w.width - 260)) + "px";
       tip.style.top = Math.max(0, a.top - w.top - 4) + "px";
     }
   }
   function selUnlight() {
-    selector.classList.remove("hovering");
+    if (selector) { selector.classList.remove("hovering"); }
+    if (hardSelector) { hardSelector.classList.remove("hovering"); }
     selNodes.forEach(function (g) { g.classList.remove("lit"); });
     selEdges.forEach(function (e) { e.classList.remove("lit"); });
     if (tip) { tip.hidden = true; }
@@ -805,31 +795,55 @@
   // T9 (the owner): the neighbour lighting is for nodes only; an edge keeps its own hover
   // stroke and the preview it casts on the drawing.
 
+  // F34-T47: a row's number, or its "Draw", draws the route (and never undraws it); hovering the
+  // row previews it on the drawing, as hovering its numbered end does.
+  function draw(view) {
+    view = withMode(view);
+    if (has(view) && base(state.view) !== base(view)) { transition(view); }
+  }
   rows.forEach(function (r) {
     var view = r.getAttribute("data-view");
     if (!has(view)) { return; }
-    r.tabIndex = 0;
-    r.setAttribute("aria-selected", "false");
     r.addEventListener("mouseenter", function () { preview(view); });
     r.addEventListener("mouseleave", function () { preview(null); });
-    r.addEventListener("focusin", function () { preview(view); });
-    r.addEventListener("focusout", function () { preview(null); });
-    r.addEventListener("click", function (ev) {
-      if (ev.target.closest && ev.target.closest("details, a")) { return; }
-      choose(view);
-    });
-    r.addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter" || ev.key === " ") {
-        ev.preventDefault();
-        choose(view);
-      }
+    slice(r.querySelectorAll("button.route-n, a.route-draw")).forEach(function (b) {
+      b.addEventListener("click", function (ev) { ev.preventDefault(); draw(view); });
     });
   });
+
+  routeButtons.forEach(function (b) {
+    b.addEventListener("click", function () { draw(b.getAttribute("data-view")); });
+  });
+
+  // F34-T47: "Proved statements folded · unfold" in the figure's heading, for a route that folds
+  // any: the route's layout with every fold open (<route>~open), and back.
+  var foldsLine = document.querySelector(".figure-folds");
+  var unfoldAll = foldsLine ? foldsLine.querySelector("button.unfold-all") : null;
+  function figureFolds(to) {
+    if (!foldsLine) { return; }
+    var route = base(to), any = has(route + "~open");
+    var open = any && to === route + "~open";
+    foldsLine.hidden = !any;
+    if (unfoldAll) {
+      unfoldAll.textContent = open ? "fold" : "unfold";
+      unfoldAll.setAttribute("aria-pressed", open ? "true" : "false");
+    }
+    if (foldsLine.firstChild && foldsLine.firstChild.nodeType === 3) {
+      foldsLine.firstChild.nodeValue = open ? "Proved statements shown · " : "Proved statements folded · ";
+    }
+  }
+  if (unfoldAll) {
+    unfoldAll.addEventListener("click", function () {
+      var route = base(state.view);
+      if (!has(route + "~open")) { return; }
+      transition(state.view === route + "~open" ? route : route + "~open");
+    });
+  }
 
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape") { return; }
     // F34-T16 (R16): Esc comes back to the problem's own statement first, then to the home route
-    if (homeNode && state.node !== homeNode) { select(homeNode); writeHash(); return; }
+    if (homeNode && state.node !== homeNode) { select(homeNode); state.open = null; writeHash(); placePanel(); return; }
     if (state.view !== HOME) { transition(HOME); }
   });
 
@@ -845,75 +859,33 @@
     });
   }
 
-  // -- F27-R14: the strictly harder routes' toggle: harder <-> routes --------------------------------
-
+  // -- F34-T48 (ROUND-2 D2): "Show n harder routes" ------------------------------------------------
+  // The quiet control under the picker swaps the picker for the one that also numbers the harder
+  // routes, and shows their rows of the List. It never changes Figure 1 by itself; hiding them
+  // while one is drawn comes back to the home route.
+  var harderLink = document.querySelector("button.harder-link");
+  var harderRows = document.querySelector(".harder-routes");
   var harderWords = { plain: "", shown: "" };
-  if (harderToggle && has(HARDER)) {
-    harderWords.plain = harderToggle.textContent;
-    harderWords.shown = harderToggle.getAttribute("data-shown-label") || harderWords.plain;
-    harderToggle.hidden = false;
-    harderToggle.addEventListener("click", function () {
-      transition(state.view === HARDER ? ROUTES : HARDER);
-    });
+  function showHidden(el, hide) {
+    if (!el) { return; }
+    if (hide) { el.setAttribute("hidden", ""); } else { el.removeAttribute("hidden"); }
   }
-
-  // -- the table (F27-R11, R9): sorting, and "Fewest open first" -----------------------------------
-
-  function sortKey(cell) {
-    // F27-R13: a count cell carries its followed reading too, used while the toggle is unticked.
-    var attr = state.follow && cell.hasAttribute("data-sort-follow") ? "data-sort-follow" : "data-sort";
-    return parseFloat(cell.getAttribute(attr));
+  function showHarder(on) {
+    if (!harderLink || !hardSelector) { return; }
+    showHidden(selector, on);
+    showHidden(hardSelector, !on);
+    showHidden(harderRows, !on);
+    routeButtons.forEach(function (b) { if (b.hasAttribute("data-harder")) { showHidden(b, !on); } });
+    harderLink.setAttribute("aria-pressed", on ? "true" : "false");
+    harderLink.textContent = on ? harderWords.shown : harderWords.plain;
+    if (!on && base(state.view).indexOf(HARD) === 0) { transition(HOME); }
   }
-
-  function sortBy(col, desc) {
-    var sorted = rows.slice().sort(function (a, b) {
-      var x = sortKey(a.cells[col]);
-      var y = sortKey(b.cells[col]);
-      if (x !== y) { return desc ? y - x : x - y; }
-      return parseInt(a.getAttribute("data-index"), 10) - parseInt(b.getAttribute("data-index"), 10);
-    });
-    sorted.forEach(function (r) { tbody.appendChild(r); });
-    state.col = col;
-    state.desc = desc;
-    Array.prototype.forEach.call(table.tHead.rows[0].cells, function (th, i) {
-      if (i === col) { th.setAttribute("aria-sort", desc ? "descending" : "ascending"); }
-      else { th.removeAttribute("aria-sort"); }
-    });
-  }
-
-  if (table && table.tHead && rows.length) {
-    Array.prototype.forEach.call(table.tHead.rows[0].cells, function (th, i) {
-      if (!rows[0].cells[i] || !rows[0].cells[i].hasAttribute("data-sort")) { return; }
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "routes-sort";
-      while (th.firstChild) { b.appendChild(th.firstChild); }
-      th.appendChild(b);
-      b.addEventListener("click", function () {
-        sortBy(i, state.col === i ? !state.desc : false);
-        if (fewest) { state.fewestView = null; fewest.setAttribute("aria-pressed", "false"); }
-      });
-    });
-  }
-
-  if (fewest && tbody) {
-    fewest.hidden = false;
-    fewest.addEventListener("click", function () {
-      var on = fewest.getAttribute("aria-pressed") !== "true";
-      if (on) {
-        sortBy(3, false);  // the Open column
-        var first = tbody.rows.length ? withMode(tbody.rows[0].getAttribute("data-view")) : null;
-        if (has(first)) {
-          state.fewestView = first;
-          fewest.setAttribute("aria-pressed", "true");
-          transition(first);
-        }
-      } else {
-        sortBy(0, false);  // the record's order
-        state.fewestView = null;
-        fewest.setAttribute("aria-pressed", "false");
-        transition(HOME);
-      }
+  if (harderLink && hardSelector) {
+    harderWords.plain = harderLink.textContent;
+    harderWords.shown = harderLink.getAttribute("data-shown-label") || harderWords.plain;
+    showHidden(harderLink.parentNode, false);
+    harderLink.addEventListener("click", function () {
+      showHarder(harderLink.getAttribute("aria-pressed") !== "true");
     });
   }
 
@@ -923,7 +895,6 @@
     state.follow = !!on;
     if (followBox) { followBox.checked = !state.follow; }
     if (setsGrid) { setsGrid.classList.toggle("follow-proved", state.follow); }
-    if (state.col !== null) { sortBy(state.col, state.desc); }
     if (isSetView(state.view)) { transition(withMode(state.view)); }
     else { refreshLit(); }
   }
@@ -978,22 +949,38 @@
   // F34-T39 (REMINDERS item 22; layout B): on a phone the selected statement's record sits directly
   // under its row of the outline, from the start, after a tap and after a tap closes it again (the
   // problem's own record, under its own row); anywhere else it goes back beside the drawing.
+  // F34-T51 (ROUND-2 D8): as the page opens no record is open, so the outline starts with the
+  // problem's own row and runs on from it; a tapped row's record takes the row's place under its
+  // dark header (the name shows once), and a tap on that header closes it.
   function placePanel() {
     putBack();
-    if (!outline || !(phone && phone.matches)) { return; }
-    var id = state.node, li = null;
-    slice(outline.children).forEach(function (x) { if (x.getAttribute("data-node") === id) { li = x; } });
-    var panel = panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0];
-    if (li && !li.hidden && panel) { li.appendChild(panel); li.classList.add("selected"); }
+    var onPhone = !!(outline && phone && phone.matches);
+    var id = onPhone ? state.open : null, li = null;
+    if (id) {
+      slice(outline.children).forEach(function (x) { if (x.getAttribute("data-node") === id) { li = x; } });
+    }
+    var panel = id ? panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0] : null;
+    var under = !!(li && !li.hidden && panel);
+    if (under) { li.appendChild(panel); li.classList.add("selected"); }
+    // beside the drawing there is nothing to show on a phone unless the open record has no row
+    if (panelHome) { panelHome.classList.toggle("phone-closed", onPhone && (under || !id || !panel)); }
   }
   if (outline) {
     outline.addEventListener("click", function (ev) {
-      var a = ev.target.closest ? ev.target.closest("a[data-node]") : null;
-      if (!a || !(phone && phone.matches)) { return; }
+      if (!(phone && phone.matches) || !ev.target.closest) { return; }
+      var head = ev.target.closest(".panel-head");
+      if (head && outline.contains(head) && !ev.target.closest("a")) {
+        state.open = null;
+        if (homeNode) { select(homeNode); }
+        writeHash();
+        placePanel();
+        return;
+      }
+      var a = ev.target.closest("a[data-node]");
+      if (!a || a.parentNode.parentNode !== outline) { return; }
       ev.preventDefault();
-      var id = a.getAttribute("data-node"), li = a.parentNode;
-      var open = li.classList.contains("selected") && id !== homeNode;
-      select(open ? homeNode : id);  // a second tap closes it: back to the problem's own record
+      var id = a.getAttribute("data-node");
+      if (select(id)) { state.open = id; }
       writeHash();
       placePanel();
     });
@@ -1059,11 +1046,26 @@
       if (!panel) { return; }
       ev.preventDefault();
       select(id);
+      state.open = id;
       writeHash();
       placePanel();  // F34-T39: under its outline row on a phone, if the route draws it
       panel.scrollIntoView({ block: "start" });
     });
   }
+
+  // -- F34-T49 (ROUND-2 D7): "also used by Route n" in §2 draws that route ---------------------------
+  slice(document.querySelectorAll("a.route-ref")).forEach(function (a) {
+    a.addEventListener("click", function (ev) {
+      var m = /view=([^&]+)/.exec(a.getAttribute("href") || "");
+      var view = m ? decodeURIComponent(m[1]) : null;
+      if (!has(view)) { return; }
+      ev.preventDefault();
+      if (base(view).indexOf(HARD) === 0) { showHarder(true); }
+      draw(view);
+      var figure = document.getElementById("proof");
+      if (figure) { figure.scrollIntoView({ block: "start" }); }
+    });
+  });
 
   // -- F34-T12 (R14): Tree and List -----------------------------------------------------------------
 
@@ -1074,9 +1076,6 @@
     tabButtons.forEach(function (b) {
       panesOf[b.getAttribute("aria-controls")] = document.getElementById(b.getAttribute("aria-controls"));
     });
-    // The table moves up beside the tabs, so List shows where Tree was.
-    var list = panesOf["sets-list"], tree = panesOf["sets-tree"];
-    if (list && tree && tree.parentNode) { tree.parentNode.insertBefore(list, tree.nextSibling); }
     var showRouteTab = function (id) {
       tabButtons.forEach(function (b) {
         var on = b.getAttribute("aria-controls") === id;
@@ -1100,8 +1099,10 @@
   if (!select(initial.node || (panels.length ? panels[0].getAttribute("data-node") : null)) && panels.length) {
     select(panels[0].getAttribute("data-node"));
   }
+  if (initial.node && initial.node === state.node) { state.open = initial.node; }  // a bookmarked record
   if (initial.band && pillOf(bandSvg, initial.band)) { state.band = initial.band; }
   var opening = has(initial.view) ? initial.view : (has(HOME) ? HOME : null);
+  if (opening && base(opening).indexOf(HARD) === 0) { showHarder(true); }
   if (opening && opening !== state.view) {
     transition(opening, true);
   } else if (has(state.view)) {
@@ -1111,7 +1112,7 @@
   // without a pill being clicked.
   window.addEventListener("hashchange", function () {
     var h = fromHash();
-    if (h.node) { select(h.node); placePanel(); }
+    if (h.node) { if (select(h.node)) { state.open = h.node; } placePanel(); }
     var view = h.view || HOME;
     if (has(view) && view !== state.view) {
       if (isSetView(view) && (view.indexOf(FOLLOW) === 0) !== state.follow) { setFollow(view.indexOf(FOLLOW) === 0); }

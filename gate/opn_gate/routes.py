@@ -700,17 +700,20 @@ def _set_id(o: _Option) -> str:
     return "s-" + hashlib.sha256(body.encode("utf-8")).hexdigest()[:10]
 
 
-def read(
+def read(  # noqa: PLR0913 — one keyword per way of reading the products
     graph: Mapping[str, Any],
     frontier_entries: Iterable[Mapping[str, Any]] = (),
     *,
     cut: str = "finest",
     max_sets: int = DEFAULT_MAX_SETS,
     at_proved: str = "stop",
+    harder: bool = False,
 ) -> Routes:
     """A target's routes and sufficient sets from its ``graph.json`` and its frontier entries.
     ``at_proved`` (R13): ``stop`` ends a cut at a proved statement; ``follow`` also lists what
-    its proof rests on."""
+    its proof rests on. ``harder`` (F34-T48, for the problem page's picker alone): the finest
+    sets F27-R14 leaves out are listed too, after the offered ones of their side's turn, in the
+    record's order; what is offered, and its order, is the same either way."""
     if cut not in CUTS:
         msg = f"unknown cut {cut!r}: expected one of {', '.join(CUTS)}"
         raise ValueError(msg)
@@ -722,9 +725,15 @@ def read(
     proving, refuting = e.proving, e.refuting
     # F27-R14 (D-25 v3.52): a finest set that needs strictly more than another of its side is
     # not offered; an enumeration already cut short leaves nothing out (it cannot know).
+    left_out: list[tuple[_Option, str]] = []
     if cut == "finest" and not walker.truncated:
-        proving = _undominated(proving, rows)
-        refuting = _undominated(refuting, rows)
+        kept_p = _undominated(proving, rows)
+        kept_r = _undominated(refuting, rows)
+        if harder:  # F34-T48: what R14 leaves out, kept to be listed after what it offers
+            offered = {id(o) for o in (*kept_p, *kept_r)}
+            left_out = [(o, PROVES) for o in proving if id(o) not in offered]
+            left_out += [(o, REFUTES) for o in refuting if id(o) not in offered]
+        proving, refuting = kept_p, kept_r
     # Domination (cut: any) is judged within a side: a refuting set is never dropped for a
     # proving set it contains, or the other way round. The cap is overall, the proving sets
     # first: the refuting side gets the room the proving side left.
@@ -733,6 +742,16 @@ def read(
         walker.bounded(refuting, cap=walker.max_sets - len(kept_proving)) if refuting else []
     )
     minimal = [(o, PROVES) for o in kept_proving] + [(o, REFUTES) for o in kept_refuting]
+    # F34-T48: the harder sets after every offered one, each once, inside the same overall cap
+    listed_keys = {o.key() for o, _ in minimal}
+    for o, side in left_out:
+        if o.key() in listed_keys:
+            continue
+        if len(minimal) >= walker.max_sets:
+            walker.truncated = True
+            break
+        listed_keys.add(o.key())
+        minimal.append((o, side))
     # R13: a set's statements are its members and, when followed, what their proofs rest on;
     # its id is its members' alone, so a set has one id whichever way it was read.
     listed = {id(o): o.members | o.beneath for o, _ in minimal}

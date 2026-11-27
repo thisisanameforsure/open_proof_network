@@ -1,0 +1,32 @@
+F34-T51 (ROUND-2 D8): on a phone the outline starts with the problem; a name shows once
+2026-11-27
+
+WHAT WAS WRONG (live erdos-1094 at 390, before): as the page loaded the problem's own record was
+open under its row — a dark bar "Erdős problem 1094", the dark "Selected in Figure 1" header with
+the same name, then about 1500px of record before the next row, so the outline read as starting
+at "Fixed k: …". T39 had opened it "from the start"; REMINDERS item 22 asks only that *tapping* a
+statement open its record under it (F34-Q32).
+
+BUILT
+  * As the page opens on a phone no record is open: the outline runs from the problem's own row.
+  * A tapped row's record opens under it and takes the row's place: the row's bar is not shown,
+    the record's dark header is the one place the name shows.
+  * Tapping that header closes the record; the row is back.
+  * A wide screen is unchanged (the problem's record beside the drawing).
+
+RED FIRST (against the committed code)
+  test_f34_phone_head_once.py::test_the_outline_starts_with_the_problem_and_nothing_is_open
+  test_f34_phone_head_once.py::test_a_tapped_rows_name_shows_once_and_its_header_closes_it
+GREEN: 2 passed. Restated: test_f34_phone_panel_under (the record under its row "from the start"
+is now "of a tapped row"), test_f34_phone_outline (a second tap on the row is a tap on the header).
+
+Captures: round2-erdos-1094-tree-390.png (as it opens), round2-erdos-1094-tapped-390.png,
+round2-erdos-257-tapped-390.png.
+
+FULL SITE SUITE, browser tests included (uv run --frozen --with 'playwright==1.58.0' python -m pytest
+site/tests -q -m "not lean and not docker"), on a snapshot of the tree as committed, 16:07–16:18:
+  3 failed, 1236 passed in 616.83s
+  the three are the ones that fail on main too: test_finding_lemma_edge::test_measured_in_a_browser,
+  test_web_flows::test_a_stranger_sees_edit_and_no_approve, test_web_flows::test_a_curator_sees_withdraw
+  (the run before it, 15:56–16:07, had six more red: tests that pinned the statement's title in the
+  margin note and a count of math marks in §3, restated in T52.)

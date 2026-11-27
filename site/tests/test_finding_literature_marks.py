@@ -121,20 +121,22 @@ def test_the_marks_title_says_the_status_who_and_whether_it_awaits(pages: dict[s
     assert "<title>Literature: open (proposed by t1009-c, awaits confirmation)</title>" in svg
 
 
-def test_the_mark_is_inside_the_pill_and_clear_of_the_label_halo_and_outline_tab() -> None:
-    """In the SVG's own units: the square's box lies within the rect; the label ends at
-    ``w - 18`` (F04-T12), the halo is centred at ``(w - 14, 18)`` with radius 3, the outline
-    tab hangs outside the rect (``y`` from -7)."""
-    for w in (80, 120, 300):
+def test_the_mark_is_a_word_tab_clear_of_the_label_and_the_outline_tab() -> None:
+    """F34-T52 (ROUND-2 D6) restates T54's geometry: the mark is words now ("lit: known?"), a
+    tab on the pill's top edge. In the SVG's own units it starts inside the pill's left end,
+    lies half above the pill and wholly above the label (whose text starts below ``y = 11``),
+    and on a pill wide enough for both it ends left of the outline tab, which hangs from the
+    pill's right end."""
+    for w in (180, 240, 300):
         out = dag.literature_mark(dag.LitMark("known", False, "x"), w)
-        m = re.search(r'transform="translate\((\d+),(\d+)\)"', out)
-        assert m is not None
+        m = re.search(r'transform="translate\((\d+),(-?\d+)\)"', out)
+        box = re.search(r'<rect width="(\d+)" height="(\d+)"', out)
+        assert m is not None and box is not None
         x, y = int(m.group(1)), int(m.group(2))
-        assert x > 0 and x + dag.LIT_MARK < w
-        assert y > 0 and y + dag.LIT_MARK < dag.NODE_H
-        assert x >= w - 18, "the mark sits past the label's end"
-        assert y + dag.LIT_MARK < 18 - 3, "the mark sits above the halo"
-        assert x + dag.LIT_MARK < w - 8, "the mark sits left of the outline tab"
+        width, height = int(box.group(1)), int(box.group(2))
+        assert x > 0 and y < 0 < y + height <= 11, "on the top edge, above the label"
+        tab = re.search(r'transform="translate\((\d+),', dag.outline_mark(2, w))
+        assert tab is not None and x + width < int(tab.group(1)), "left of the outline tab"
     assert dag.literature_mark(None, 100) == ""
 
 
