@@ -1,0 +1,18 @@
+F34-T44 — §2 group headings (REMINDERS-erdos-257 item 18; handoff §3.4.4), 2026-11-27
+
+"Proposed for erdos-257--h18" now reads 'For "<the statement's words>" (Route n)': the statement by
+its label (linked to its page), then the routes it lies on, taken from the selector's numbered ends
+(T33's data-route) and the statements each route's layout draws (render.routes_holding). A
+statement on every route — the problem's own — names none. "Proposed for no statement" and the
+other groups keep their headings.
+
+Live erdos-257 (task-44-live.txt; the quotes print as &ldquo; there because the check prints HTML):
+  For "Erdős problem 257"
+  For "every other infinite set (what is left)" (Route 2)
+  For "some 2^-j: no early stall, then calm points" (Route 12)
+  For "a calm point in every dyadic interval" (Route 11)
+
+Red (task-44-red.txt): the heading said "Proposed for <id>" (the helper test failed on a missing
+name, which proves nothing; the page test is the honest red). Green (task-44-green.txt).
+Restated: test_f34_not_on_route and test_f34_speculative_chips read the group by its new heading.
+Not built: the reminder's "note where a member is also used elsewhere" — left for a later pass.

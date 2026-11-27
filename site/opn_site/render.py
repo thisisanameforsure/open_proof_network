@@ -1208,6 +1208,37 @@ def plain_label(label: str) -> str:
     return re.sub(r"[$*_`]", "", label).strip()
 
 
+def group_heading(named: str, routes: Sequence[str]) -> str:
+    """F34-T44 (REMINDERS item 18): a §2 group's heading — 'For "<the statement>"', then the
+    routes it lies on ("(Route 2)", "(Routes 2, 5)"); none named for a statement on every route."""
+    head = f"For &ldquo;{named}&rdquo;"
+    if not routes:
+        return head
+    if len(routes) == 1:
+        return f"{head} ({esc(routes[0])})"
+    nums = ", ".join(esc(r.removeprefix("Route ")) for r in routes)
+    return f"{head} (Routes {nums})"
+
+
+def routes_holding(selector: str, layouts_json: str) -> dict[str, list[str]]:
+    """F34-T44: each statement's routes ("Route n"), from the selector's numbered ends (T33) and
+    the statements each one's layout draws; a statement on every route maps to none."""
+    ends = [
+        (unescape(m.group(1)), unescape(m.group(2)).split(" · ", 1)[0])
+        for m in re.finditer(
+            r'<g class="sel-node kind-leaf[^"]*" data-view="([^"]+)"[^>]*data-route="([^"]+)"',
+            selector,
+        )
+    ]
+    body = re.search(r">(.*)</script>", layouts_json, re.S)
+    lays = json.loads(body.group(1).replace("<\\/", "</")) if body else {}
+    out: dict[str, list[str]] = {}
+    for view, name in ends:
+        for nid in (lays.get(view) or {}).get("nodes") or {}:
+            out.setdefault(nid, []).append(name)
+    return {n: (r if len(r) < len(ends) else []) for n, r in out.items()}
+
+
 def problem_name(title: str) -> str | None:
     """F34-T29 (REMINDERS item 2): the problem's name, the head of a record title before its
     colon ("Erdős problem 257: Let A ..." names "Erdős problem 257"); ``None`` for a title with
@@ -3271,7 +3302,12 @@ class Renderer:
         picture = self.problem_drawing(tv)
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
-        off_route = self.not_on_route(tv, picture.on_route, picture.mini)  # F34-T18, T26
+        off_route = self.not_on_route(  # F34-T18, T26, T44
+            tv,
+            picture.on_route,
+            picture.mini,
+            routes_holding(picture.selector, picture.layouts_json),
+        )
         chips = self.speculative_chips(tv, picture.on_route)  # F34-T27
         svg = one_view.with_spec_chips(svg, chips)
         svg = one_view.with_uses_chips(svg, self.uses_chips(tv))  # F34-T42
@@ -4146,6 +4182,7 @@ class Renderer:
         tv: TargetView,
         on_route: frozenset[str],
         mini: Callable[[Sequence[str]], str] | None = None,
+        routes_of: Mapping[str, Sequence[str]] | None = None,
     ) -> str:
         """F34-T18 (R18; handoff §3.4.4): every statement no route uses, so the page places each
         statement of the problem exactly once — drawn on a route, or listed here. Proposed
@@ -4183,8 +4220,12 @@ class Renderer:
         for key in order:
             if key == "proposed":
                 for target in sorted(by_target):
+                    # F34-T44 (REMINDERS item 18): the statement by its words, and its routes
                     named = (
-                        self.node_link(tv.target_id, target) if target in tv.nodes else esc(target)
+                        f'<a href="{esc(self.node_path(tv.target_id, target))}">'
+                        f"{record_words(self.node_label(tv.nodes[target]) or target)}</a>"
+                        if target in tv.nodes
+                        else esc(target)
                     )
                     # F34-T26 (Q26 closed): the group drawn as a small tree, then listed
                     drawn = mini(members[target]) if mini is not None else ""
@@ -4193,7 +4234,7 @@ class Renderer:
                     listed = "" if drawn else f"<ul>{''.join(by_target[target])}</ul>"
                     parts.append(
                         f'<div class="off-group" id="{esc(proposed_anchor(target))}">'
-                        f"<h3>Proposed for {named}</h3>"
+                        f"<h3>{group_heading(named, (routes_of or {}).get(target, []))}</h3>"
                         f"{drawn}{listed}</div><!-- /off-group -->"
                     )
             elif groups.get(key):

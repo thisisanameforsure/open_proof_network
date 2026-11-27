@@ -65,3 +65,6 @@ Each item below: what changed, the commit, and whether it is deployed.
 08:40 PR #132 (items 8, 10) merged and deployed (run 45939161960).
 08:45 F34-T43 — item 17: §2's trees with dotted boxes and serif labels; no duplicate list under a
       tree; an unnamed statement shows its id in mono. Item 19 was already there (T18). Committing.
+09:05 F34-T44 — item 18: §2 headings read 'For "every other infinite set (what is left)" (Route 2)'
+      instead of "Proposed for erdos-257--h18". Committing. Not done: "note where a member is also
+      used elsewhere".
