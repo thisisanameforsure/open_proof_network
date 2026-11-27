@@ -1,0 +1,27 @@
+F34-T33 — which route is drawn (REMINDERS-erdos-257 item 5; handoff §3.4.2, mockup New-Erdos257),
+2026-11-27
+
+Each numbered end of the route selector carries data-route ("Route n · <gist of the approach its
+last choice took>") and data-count ("m statements, k open"). The page is rendered with the opening
+route's words in "Drawn below ↓ Route 1 · greedy walk · 2 statements, 1 open" under the selector
+and "Figure 1 · the selected route / Route 1 · greedy walk" above the drawing; graph.js rewrites
+both on every view change (a view that is not one route reads "the statements of your selection").
+A route's name is the approach up to its first semicolon, at most 60 characters, cut at a word with
+"…" (one_view.route_gist): the live approaches are paragraphs, the mockup's names are phrases.
+
+Red first (task-33-red.txt): 3 failed, then the gist test 1 failed. Green (task-33-green.txt):
+with test_refutes_site, 16 passed. Restated: none deleted; one ordering fix — the new attributes go
+after data-words, because test_refutes_site reads data-key and data-words as neighbours.
+Site fast suite 1067 passed.
+Seen in the capture and fixed: the line was a flex item squeezed beside the selector and made its
+box tall; it takes its own row now (the selector box wraps), which also lets the whole selector fit
+at 1440 (all twelve ends, where it was clipped before).
+Captures (live graph rendered by this tree): task-33-card-1440.png, task-33-card-390.png.
+
+Items 6 and 7 of the reminder, checked with this capture:
+ 6. The page opens on the proving route with the fewest open statements, drawn, its end filled
+    (T12 built it; erdos-257 opens on Route 1, filled black) — and now says so in words.
+ 7. The proved statement drawn alone on erdos-257's Route 1 ("a representation of a rational is
+    greedy") is one proved sibling. Q28 (the owner, 2026-11-26) folds runs of at least two; a box
+    saying "1 proved · show" in place of the statement would hide it and save nothing. Kept; for
+    the owner to overrule if wanted.

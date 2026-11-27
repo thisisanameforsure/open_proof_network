@@ -1685,3 +1685,15 @@ svg.dag g.node.selected circle:not(.halo) { stroke: var(--surface); }
 svg.dag g.node.selected.proved circle:not(.halo) { fill: var(--surface); }
 svg.dag a:hover g.node:not(.selected) rect.pill, svg.dag a:focus-visible g.node:not(.selected) rect.pill { stroke: var(--ink); }
 svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
+/* F34-T33 (REMINDERS item 5): which route is drawn — under the selector, and the figure's caption */
+.selector-wrap:has(.drawn-below) { flex-wrap: wrap; }
+.selector-wrap .drawn-below { flex: 1 0 100%; }
+.drawn-below { margin: var(--s3) 0 0; padding-top: 10px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; }
+.figure-cap { margin: var(--s4) 0 var(--s3); font-family: var(--sans); font-size: 14px; }
+.figure-cap .figure-n { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+/* F34-T34 (REMINDERS item 13; New-Select-Side): the panel's dark header names the selection by its
+   path, bleeding to the card's edges */
+.panel-head { align-self: stretch; background: var(--ink); color: var(--surface); display: flex; flex-direction: column; gap: 4px; margin: calc(-1 * var(--s6)) calc(-1 * var(--s6)) 0; padding: 12px var(--s6); border-radius: var(--radius-md) var(--radius-md) 0 0; font-family: var(--sans); }
+.panel-head .panel-head-k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+.panel-head .panel-path { margin: 0; font-size: 13px; color: var(--surface); }
+.panel-head .panel-path a { color: inherit; }

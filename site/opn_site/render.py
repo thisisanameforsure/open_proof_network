@@ -1189,6 +1189,19 @@ def collection_label(record: dict[str, Any] | None) -> str:
 PROBLEM_NAME_MAX = 40
 
 
+def route_of_view(selector: str, view: str | None) -> tuple[str, str] | None:
+    """F34-T33: the route name and counts the selector's numbered end for ``view`` carries, or
+    ``None`` when no end draws that view (no routes, or a view that is not one route)."""
+    if not view:
+        return None
+    m = re.search(
+        rf'<g class="sel-node kind-leaf[^"]*" data-view="{re.escape(escape(view))}"[^>]*'
+        r'data-route="([^"]+)" data-count="([^"]+)"',
+        selector,
+    )
+    return (unescape(m.group(1)), unescape(m.group(2))) if m else None
+
+
 def problem_name(title: str) -> str | None:
     """F34-T29 (REMINDERS item 2): the problem's name, the head of a record title before its
     colon ("Erdős problem 257: Let A ..." names "Erdős problem 257"); ``None`` for a title with
@@ -3255,6 +3268,21 @@ class Renderer:
         off_route = self.not_on_route(tv, picture.on_route, picture.mini)  # F34-T18, T26
         chips = self.speculative_chips(tv, picture.on_route)  # F34-T27
         svg = one_view.with_spec_chips(svg, chips)
+        # F34-T33 (REMINDERS item 5): which route is drawn, under the selector and as the
+        # figure's caption; rendered for the opening route, rewritten by graph.js on a change.
+        opening = route_of_view(picture.selector, picture.home)
+        drawn_below = (
+            f'<p class="drawn-below">Drawn below ↓ <strong>{esc(opening[0])} · '
+            f"{esc(opening[1])}</strong></p>"
+            if opening
+            else ""
+        )
+        figure_cap = (
+            '<p class="figure-cap"><span class="figure-n">Figure 1 · the selected route</span> '
+            f"<strong>{esc(opening[0])}</strong></p>"
+            if opening
+            else ""
+        )
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
         # keeps its place beneath the drawing.
         selector_block = (
@@ -3267,7 +3295,7 @@ class Renderer:
             "back.</p>"
             # F34-Q7: the follow-the-proof toggle is off the page (the owner, 2026-11-25)
             "</div>"
-            f"{picture.selector}{self.proof_notes(tv)}"
+            f"{picture.selector}{drawn_below}{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
             else ""
@@ -3337,6 +3365,7 @@ class Renderer:
             legend=self.graph_legend(tv, picture, toggle=False),
             # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
             view_toggle=picture.toggle + picture.harder_toggle,
+            figure_cap=figure_cap,  # F34-T33
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
             selector=selector_block,
@@ -4895,10 +4924,12 @@ class Renderer:
         """F34-T16 (R16): the statement and its path from the problem's own statement, as words
         and as data (the ids along it, which graph.js draws heavier)."""
         path = self.path_from_root(tv, nv.node_id)
-        words = " &rsaquo; ".join(
+        steps = [
             record_words(self.node_label(tv.nodes[n]) or n) if n in tv.nodes else esc(n)
             for n in path
-        )
+        ]
+        steps[-1] = f"<strong>{steps[-1]}</strong>"  # F34-T34: the selection itself, bold
+        words = " &rsaquo; ".join(steps)
         return f'<p class="panel-path cue" data-path="{esc(" ".join(path))}">{words}</p>'
 
     @staticmethod
