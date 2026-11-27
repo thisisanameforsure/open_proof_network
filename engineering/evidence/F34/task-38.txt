@@ -1,0 +1,15 @@
+F34-T38 — the route selector on a phone (REMINDERS-erdos-257 item 21; mockup New-Phone-Select),
+2026-11-27
+
+At 760px and narrower the selector is scaled down to its box (max-width 100%, height auto, shrink
+only: a small one keeps its size), so it is never clipped or scrolled sideways; the desktop cue
+gives way to the mockup's one line, "Tap a numbered end to draw that route below."
+
+Red (task-38-red.txt): at 390 a 900px selector ran 600px past its box; no hint. Green
+(task-38-green.txt): 2 passed. Full site suite with browser tests: green but the three known reds.
+Live graph (task-38-live.txt): erdos-257's selector fits at 390 (scrollWidth 390); capture
+task-38-selector-390.png, and task-38-selector-1440.png unchanged at 1440.
+Noticed, for item 23: erdos-257's selector has about twenty columns of ends and splits, so at 324px
+each numbered end is drawn about 9px across. The mockup's 22px circles fit because its tree is
+narrower. The ends are hard to tap until item 23 gives them a larger hit area; 44px each cannot
+fit side by side at this width.

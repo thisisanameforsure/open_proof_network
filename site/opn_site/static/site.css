@@ -1704,3 +1704,12 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
 .graph-grid { position: relative; }
 .panel-link { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 2; }
 .panel-link path { fill: none; stroke: var(--ink); stroke-width: 2; }
+/* F34-T38 (REMINDERS item 21; New-Phone-Select): on a phone the selector is scaled to its box,
+   never clipped or scrolled, with one line of help under it in place of the desktop cue */
+.sel-tap { display: none; }
+@media (max-width: 760px) {
+  .selector-wrap { width: auto; overflow-x: visible; }
+  .selector-wrap svg.selector { flex: 0 1 auto; max-width: 100%; height: auto; }
+  .selector-wrap .sel-cue { display: none; }
+  .selector-wrap .sel-tap { display: block; flex: 1 0 100%; margin: var(--s2) 0 0; font-family: var(--sans); font-size: 13px; color: var(--muted); }
+}

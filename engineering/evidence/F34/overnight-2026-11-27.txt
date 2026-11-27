@@ -42,3 +42,7 @@ Each item below: what changed, the commit, and whether it is deployed.
       panel) is next.
 05:50 F34-T37 — item 15: with the panel beside the drawing, a line runs from the selected box to
       the panel and follows the selection (and Esc); none on a phone. Committed. Items 13–16 done.
+06:05 PR #130 (items 15, 16) merged and deployed.
+06:30 F34-T38 — item 21: on a phone the route selector fits its box (scaled, never clipped) with
+      "Tap a numbered end to draw that route below." Committed. The ends get small on erdos-257
+      (~9px) — item 23 next gives them bigger tap areas, though 44px each can't fit side by side.

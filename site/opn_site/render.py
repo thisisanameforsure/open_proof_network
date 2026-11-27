@@ -3295,7 +3295,10 @@ class Renderer:
             "back.</p>"
             # F34-Q7: the follow-the-proof toggle is off the page (the owner, 2026-11-25)
             "</div>"
-            f"{picture.selector}{drawn_below}{self.proof_notes(tv)}"
+            f"{picture.selector}"
+            # F34-T38 (REMINDERS item 21): the phone's one line of help under the selector
+            '<p class="sel-tap">Tap a numbered end to draw that route below.</p>'
+            f"{drawn_below}{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
             else ""
