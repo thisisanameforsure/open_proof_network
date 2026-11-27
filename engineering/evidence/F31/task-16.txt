@@ -1,0 +1,33 @@
+F31-T16 red run (the seam added at today's behaviour: awaiting_render always empty)
+Fri Nov 27 20:51:41 UTC 2026
+E       AssertionError: assert None == 'products'
+E       KeyError: 'access-control-allow-origin'
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E       assert [] == [31, 32]
+E         
+E         Right contains 2 more items, first extra item: 31
+E         Use -v to get more diff
+FAILED api/tests/test_finding_shelving_pending.py::test_a_merged_shelving_not_yet_rendered_waits_on_the_products
+FAILED api/tests/test_finding_shelving_pending.py::test_one_submission_answers_the_site_origin
+FAILED api/tests/test_finding_shelving_pending.py::test_the_listing_names_a_merged_record_awaiting_render
+FAILED api/tests/test_finding_shelving_pending.py::test_the_filters_reach_the_merged_records_too
+4 failed, 6 passed, 2 warnings in 0.44s
+
+green run
+Fri Nov 27 21:22:03 UTC 2026
+10 passed, 2 warnings in 0.36s
+
+whole service suite (uv run --frozen pytest api -m "not lean and not docker"): 2712 passed
+  first run after the change: 9 failed, all one cause: list_submissions' result schema is closed and
+  two tests pin the listing's key set. The schema gained awaiting_render (items: the record open
+  gives, queue null); the two key-set tests were restated to name the new key.
+  second finding: tools/list grew to 125,578 against a pin of 125,000 when the schema carried a
+  copy of the record without queue; reusing the record with queue null keeps it under the pin.
+
+the live record this answers (graph #2078, the owner's retirement on erdos-257, 2026-11-27):
+  20:43:14Z pull request opened by the service
+  20:44:19Z merged by the merge actor
+  20:54:22Z products committed ("gate: #2078 pass")
+  20:54:29Z site-deploy dispatched; page live by about 20:58Z
+  GET /submissions/2078 at 20:49:10Z, merged and not rendered: state "merged", waiting_on null,
+  and no Access-Control-Allow-Origin for the site's origin. Both are what T16 changes.

@@ -10,6 +10,7 @@
       "required": [
         "snapshot_at",
         "open",
+        "awaiting_render",
         "host",
         "queue"
       ],
@@ -20,6 +21,13 @@
         },
         "open": {
           "type": "array",
+          "items": {
+            "$ref": "#/$defs/submission"
+          }
+        },
+        "awaiting_render": {
+          "type": "array",
+          "description": "The merged pull requests whose work the products do not show yet (F31-T16): each as open gives a record, with closed set and queue null; a page that filed one follows it here until it is drawn",
           "items": {
             "$ref": "#/$defs/submission"
           }
@@ -177,7 +185,10 @@
           "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
         },
         "queue": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes in this one's lane: its own target's, and any the service cannot place in one target (F07-T69) (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
           "required": [
             "position",

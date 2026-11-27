@@ -387,7 +387,13 @@ def test_submissions_json_lists_open_work_and_drops_the_merged(
     r = harness.client.get("/submissions.json")
     assert r.status_code == 200, f"GET /submissions.json: {r.status_code} {r.text}"
     snapshot = json_of(r)
-    assert set(snapshot) == {"snapshot_at", "open", "host", "queue"}, sorted(snapshot)
+    assert set(snapshot) == {  # awaiting_render: F31-T16
+        "snapshot_at",
+        "open",
+        "awaiting_render",
+        "host",
+        "queue",
+    }, sorted(snapshot)
     assert snapshot["snapshot_at"] == clockmod.render(harness.clock.now())
     assert sorted(e["pr_number"] for e in snapshot["open"]) == [1, 2]
     assert {e["id"] for e in snapshot["open"]} == {proof["submission_id"], annex["id"]}
