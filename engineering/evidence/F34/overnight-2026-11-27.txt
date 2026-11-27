@@ -35,3 +35,8 @@ Each item below: what changed, the commit, and whether it is deployed.
       a problem whose statement is one wide formula scrolled sideways; a browser test still
       measured the removed review pill). Both are in this commit; the live site has the scroll
       bug until it deploys.
+04:55 PR #129 (item 14 + the two T29 repairs) merged and deployed (run 45922240906): the phone
+      sideways-scroll bug from T29 is fixed on the live site.
+05:20 F34-T36 — item 16: a statement in §2 (its line or its small-tree box) selects into the
+      panel, which comes into view. Committed. Item 15 (a drawn line from the selected box to the
+      panel) is next.

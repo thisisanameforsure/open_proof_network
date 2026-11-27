@@ -1,0 +1,4 @@
+E           playwright._impl._errors.Error: Page.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')
+E           playwright._impl._errors.Error: Page.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')
+E           playwright._impl._errors.Error: Page.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')
+3 failed in 7.06s

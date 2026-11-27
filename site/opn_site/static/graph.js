@@ -978,6 +978,29 @@
     });
   }
 
+  // -- F34-T36 (REMINDERS item 16): a statement in "Not on a route" selects too -----------------------
+  // Its line in a group's list, or its box in the group's small tree, selects it into the same
+  // panel as a statement of the drawing and brings the panel into view; the page stays. Without the
+  // script, or for a statement with no panel here, the link goes to the statement's own page.
+  var offRoute = document.querySelector("section.off-route");
+  if (offRoute) {
+    offRoute.addEventListener("click", function (ev) {
+      var t = ev.target;
+      if (!t.closest) { return; }
+      var box = t.closest("svg.mini-tree g.node[data-node]");
+      var li = box ? null : t.closest("li[data-node]");
+      if (li && t.closest("a") !== li.querySelector("a")) { return; }  // "replaced by" stays a link
+      var id = box ? box.getAttribute("data-node") : (li ? li.getAttribute("data-node") : null);
+      var panel = id ? panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0] : null;
+      if (!panel) { return; }
+      ev.preventDefault();
+      putBack();
+      select(id);
+      writeHash();
+      panel.scrollIntoView({ block: "start" });
+    });
+  }
+
   // -- F34-T12 (R14): Tree and List -----------------------------------------------------------------
 
   var tabs = document.querySelector(".route-tabs");
