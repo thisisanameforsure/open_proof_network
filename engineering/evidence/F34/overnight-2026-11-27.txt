@@ -49,3 +49,7 @@ Each item below: what changed, the commit, and whether it is deployed.
 06:50 F34-T39 — item 22: on a phone the record opens directly under its statement in the outline,
       from the start (it used to sit after the whole drawing), with its dark header, tab counts and
       buttons. Committed.
+07:20 F34-T40 — item 23: one phone width (760px) for styles and script; on a phone the folds,
+      buttons and the speculative link are 44px to touch. The route selector's ends can't be:
+      they're 26px apart and the selector must fit the phone, so each gets an invisible hit square
+      as big as its column (~16px on erdos-257's phone selector). Committed. Items 21–23 done.
