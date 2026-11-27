@@ -1723,3 +1723,6 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
   main :is(button, .btn, a.act) { min-height: 44px; }
   .route-outline > li > a.spec-more { min-height: 44px; display: inline-flex; align-items: center; }
 }
+/* F34-T41 (REMINDERS item 8): the drawn route's retire controls, under its caption */
+.figure-retire { margin: 0 0 var(--s3); font-family: var(--sans); font-size: 13px; }
+.figure-retire .set-route { display: inline-flex; gap: var(--s2); align-items: center; margin-right: var(--s4); }

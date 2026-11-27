@@ -1,0 +1,4 @@
+E       AssertionError: ([], ['sel'])
+E       assert (['sel'] and set() == {'sel'}
+E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+2 failed, 1 passed in 13.27s

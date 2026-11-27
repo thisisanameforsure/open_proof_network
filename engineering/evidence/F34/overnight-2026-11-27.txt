@@ -53,3 +53,7 @@ Each item below: what changed, the commit, and whether it is deployed.
       buttons and the speculative link are 44px to touch. The route selector's ends can't be:
       they're 26px apart and the selector must fit the phone, so each gets an invisible hit square
       as big as its column (~16px on erdos-257's phone selector). Committed. Items 21–23 done.
+07:35 PR #131 (items 21–23) merged and deployed (run 45934210550).
+07:55 F34-T41 — item 8: Retire on the drawn route's header for a steward or curator (the same
+      control as the route's row in the list). Tested signed in as a steward on a fake service;
+      please check it on erdos-257 signed in — I can't sign in from here.

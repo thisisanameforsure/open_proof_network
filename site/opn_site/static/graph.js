@@ -514,7 +514,6 @@
   var drawnBelow = document.querySelector(".drawn-below strong");
   var figureCap = document.querySelector(".figure-cap strong");
   function routeCaption(to) {
-    if (!drawnBelow && !figureCap) { return; }
     var plain = base(to), end = null;
     if (selector) {
       slice(selector.querySelectorAll("g.kind-leaf[data-route]")).forEach(function (g) {
@@ -525,6 +524,10 @@
     var count = end ? " · " + end.getAttribute("data-count") : "";
     if (drawnBelow) { drawnBelow.textContent = name + count; }
     if (figureCap) { figureCap.textContent = name; }
+    // F34-T41: the drawn route's retire controls (shelve.js fills them for a steward or curator)
+    slice(document.querySelectorAll(".figure-retire")).forEach(function (g) {
+      g.hidden = g.getAttribute("data-view") !== plain;
+    });
   }
 
   // The view is shown: data-view on the svg, the pressed element, the table's rows and count

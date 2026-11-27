@@ -627,6 +627,8 @@ class Drawing:
     #: F34-T18 (R18): the statements the routes drawing holds (junctions left out); the page
     #: places every other statement in "Not on a route".
     on_route: frozenset[str] = frozenset()
+    #: F34-T41 (REMINDERS item 8): per numbered end, its set's retire controls for the header
+    retire: str = ""
     #: F34-T17 (R17): the routes drawing as an outline for a phone — each statement on a route
     #: once, top to bottom from the problem, with its depth (a route's junction adds none).
     outline: tuple[tuple[str, int], ...] = ()
@@ -1674,8 +1676,25 @@ def drawing(  # noqa: PLR0913, PLR0915 — the page's inputs, one drawing
         for rid, r in d.junctions.items()
         if r.node not in set(band)
     )
+    # F34-T41 (REMINDERS item 8): the drawn route's header carries the same retire controls as its
+    # row of the table, one group per numbered end; graph.js shows the drawn route's group.
+    by_id = {r.id: r for r in route_rows}
+    retire = (
+        "".join(
+            f'<div class="figure-retire" data-view="{escape(leaf_of[s.id])}" hidden>'
+            + (cell := routes_view.route_cell(s, by_id, prefix or "", controls=True))[
+                cell.index(">") + 1 : cell.rindex("</td>")
+            ]
+            + "</div>"
+            for s in result.sets
+            if s.id in leaf_of
+        )
+        if controls
+        else ""
+    )
     return Drawing(
         svg=svg,
+        retire=retire,
         selector=_selector_svg(
             vs, result, rows, names=names, labels=labels, proof_labels=proof_labels
         ),

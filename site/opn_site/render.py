@@ -3369,6 +3369,7 @@ class Renderer:
             # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
             view_toggle=picture.toggle + picture.harder_toggle,
             figure_cap=figure_cap,  # F34-T33
+            figure_retire=picture.retire,  # F34-T41
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
             selector=selector_block,
