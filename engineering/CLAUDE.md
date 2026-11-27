@@ -2036,3 +2036,17 @@ The law of the project:
   ones: `pin_image --check` on the tutorial always reports the graph's one devcontainer running the Mathlib image
   (expected, not a defect); and a tag guessed by hand (`gate-0b54e7c6c3a2`) is a tag on the right commit with the
   wrong name — derive it with `git rev-parse --short=12`, never type it.
+
+- 2026-11-27 — Overnight on Mike's REMINDERS-erdos-257 list (F34-T29–T45, PRs #124–#135, each item test
+  first, deployed in batches). Three things worth keeping. **`make verify` skips every browser test, so a
+  layout change can pass the hook and break a phone**: T29's headline got `max-width: 30ch`, which at a
+  phone's 28px is ~420px, and a wide-formula problem scrolled sideways for two and a half hours until the
+  full Playwright run (`uv run --frozen --with 'playwright==1.58.0' python -m pytest site/tests …`) found
+  it. Run the browser suite before any commit that touches a page's layout. **Read the clock, do not
+  estimate it**: the overnight log's first draft carried times I had guessed, all wrong; the fix was to
+  rebuild it from `git log --date=format` and the PRs' `mergedAt` (here IST is UTC+2). **Count in a file,
+  not in a shell variable**: a 1.9 MB page read with `p=$(curl …)` looked truncated three times at the
+  same length and every count came out wrong; `curl -o` plus `grep -c` on the file showed it complete.
+  Also: a `.chip { min-height: 40px }` outranks `main button`, so a phone touch-target rule needed
+  `main :is(button, .btn, a.act)`; and an invisible hit *circle* in the route selector broke F30-T10's
+  "a fork holds no circle" test — a square did the same job.
