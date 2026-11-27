@@ -4188,10 +4188,13 @@ class Renderer:
                     )
                     # F34-T26 (Q26 closed): the group drawn as a small tree, then listed
                     drawn = mini(members[target]) if mini is not None else ""
+                    # F34-T43 (REMINDERS item 17): a group drawn as a tree prints no list; the
+                    # tree is the list. With no tree (no drawing to hand), the list stays.
+                    listed = "" if drawn else f"<ul>{''.join(by_target[target])}</ul>"
                     parts.append(
                         f'<div class="off-group" id="{esc(proposed_anchor(target))}">'
                         f"<h3>Proposed for {named}</h3>"
-                        f"{drawn}<ul>{''.join(by_target[target])}</ul></div><!-- /off-group -->"
+                        f"{drawn}{listed}</div><!-- /off-group -->"
                     )
             elif groups.get(key):
                 parts.append(f"<h3>{heads[key]}</h3>\n<ul>{''.join(groups[key])}</ul>")

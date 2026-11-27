@@ -1,0 +1,4 @@
+E       assert '<ul>' not in '<h3>Propose...n></li></ul>'
+E       assert (None is not None)
+E       assert 'class="is-id"' in 'x="28" y="23"'
+3 failed in 0.84s

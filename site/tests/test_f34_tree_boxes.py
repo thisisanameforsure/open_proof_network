@@ -45,7 +45,9 @@ STYLES = """() => {
     size: cs(g.querySelector('text')).fontSize,
     underline: cs(g.parentNode).textDecorationLine,
   });
-  const all = [...document.querySelectorAll('svg.dag g.node:not(.fold):not(.off-view)')];
+  // §2's small trees have their own look (F34-T43): dotted boxes, serif labels
+  const all = [...document.querySelectorAll(
+    'svg.dag:not(.mini-tree) g.node:not(.fold):not(.off-view)')];
   return {
     proved: all.filter(g => g.classList.contains('proved')).map(pill),
     open: all.filter(g => !g.classList.contains('proved')

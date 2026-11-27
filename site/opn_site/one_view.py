@@ -878,21 +878,23 @@ def mini_tree(  # noqa: PLR0913 — one group's drawing, every input it is drawn
     )
     for p in lay.placed:
         status = _status_of(rows, p.node_id)
-        parts.append(
-            _pill_markup(
-                p.node_id,
-                p,
-                status=status,
-                label=dag.label_of(p.node_id, names, labels),
-                title=titles.get(p.node_id, f"{p.node_id}: {status}"),
-                href=href.get(p.node_id, "#"),
-                hidden=False,
-                proved=status == routes.PROVED,
-                closable=False,
-                or_mark=False,
-                outline=0,
-            )
+        markup = _pill_markup(
+            p.node_id,
+            p,
+            status=status,
+            label=dag.label_of(p.node_id, names, labels),
+            title=titles.get(p.node_id, f"{p.node_id}: {status}"),
+            href=href.get(p.node_id, "#"),
+            hidden=False,
+            proved=status == routes.PROVED,
+            closable=False,
+            or_mark=False,
+            outline=0,
         )
+        if not (labels and p.node_id in labels):
+            # F34-T43: a statement with no name of its own shows its id, marked for mono
+            markup = markup.replace("<text ", '<text class="is-id" ', 1)
+        parts.append(markup)
     parts.append("</svg>")
     return "\n".join(parts)
 

@@ -1,0 +1,18 @@
+F34-T43 — §2's small trees (REMINDERS-erdos-257 item 17; handoff §3.4.4), 2026-11-27
+
+* A "Proposed for" group drawn as a small tree prints no list under it: the tree is the list, its
+  boxes linked to their pages and selectable (T36). A group with no tree keeps its list, as do
+  related results, special cases and superseded statements.
+* The small trees' boxes are dotted (stroke-dasharray 2 3) with serif labels (13.5px), apart from
+  the drawing's solid sans boxes (T32); the blue proved dot is the same.
+* A statement with no name of its own (no label in graph.json) shows its id in mono (text.is-id).
+
+Red (task-43-red.txt): 3 failed. Green (task-43-green.txt): 3 passed.
+Restated, not deleted (all read §2's list, which a tree group no longer has): test_f34_not_on_route
+(placement counts a group's tree boxes as well as list lines; the crux test reads the group),
+test_f34_speculative_chips (the chip's count is the group's boxes), test_f34_select_off_route (the
+list-line case now uses the off-route fixture's "Proposed for no statement" list; the tree-box case
+is unchanged), test_f34_tree_boxes (the drawing's sans-label rule excludes §2's trees).
+Capture (live graph rendered by this tree): task-43-section2-1440.png, task-43-section2-390.png.
+Item 19 ("Special cases no split uses") was built by T18 and shows whenever such statements exist;
+erdos-257 has none today.
