@@ -265,7 +265,13 @@ def test_without_a_prefix_a_label_is_the_id_as_before() -> None:
 
 def test_the_problem_page_draws_short_labels(tmp_path: Path) -> None:
     html = page(tmp_path)
-    assert "drop the problem" in html  # the caption says so
+    # F34-T31 (REMINDERS item 12): the caption no longer explains it; what it explained still
+    # holds — a pill's label is short, and its title carries the full id
+    pills = re.findall(
+        r'<g class="node[^"]*" data-node="([^"]+)"[^>]*><title>([^<]*)</title>', html
+    )
+    assert pills
+    assert all(title.startswith(nid) for nid, title in pills), pills
 
 
 # --- 5. superseded statements ---------------------------------------------------------------------

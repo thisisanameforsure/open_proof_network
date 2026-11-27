@@ -1,0 +1,4 @@
+E           assert 'rgb(27, 27, 26)' == 'rgb(255, 255, 255)'
+E           assert ('rgb(27, 27, 26)' == 'rgb(42, 77, 143)'
+E       assert ('rgb(250, 249, 246)' == 'rgb(27, 27, 26)'
+3 failed, 1 passed in 47.96s

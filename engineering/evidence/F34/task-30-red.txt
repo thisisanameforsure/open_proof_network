@@ -1,0 +1,4 @@
+FAILED site/tests/test_f34_selector_colours.py::test_no_selector_edge_is_rust
+FAILED site/tests/test_f34_selector_colours.py::test_an_edge_is_an_ink_hairline
+FAILED site/tests/test_f34_selector_colours.py::test_only_a_disproving_end_is_rust
+3 failed in 0.03s

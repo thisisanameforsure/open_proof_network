@@ -73,8 +73,10 @@ def test_the_refuting_colour_is_its_own_token() -> None:
     assert refuted not in others.values(), others
     assert re.search(r"^\.dag \.edge\.relation\.refutes \{[^}]*var\(--refute\)", CSS, re.M)
     assert re.search(r"^\.dag \.edge\.relation\.resolves \{", CSS, re.M)
-    assert re.search(r"\.selector \.sel-edge\.side-refutes[^{]*\{[^}]*var\(--refute\)", CSS)
-    assert re.search(r"\.selector \.side-refutes \.dot[^{]*\{[^}]*var\(--refute\)", CSS)
+    # F34-T30 (REMINDERS item 4): in the selector only a disproving route's numbered end is rust;
+    # its edges are grey hairlines like every other
+    assert not re.search(r"\.selector \.sel-edge\.side-refutes[^{]*\{[^}]*var\(--refute\)", CSS)
+    assert re.search(r"\.selector \.kind-leaf\.side-refutes \.dot[^{]*\{[^}]*var\(--refute\)", CSS)
     for key in ("relation-refutes", "relation-resolves"):
         assert f".dot-{key}" in CSS, key
     assert re.search(r"\.dot-relation-refutes \{[^}]*var\(--refute\)", CSS)
