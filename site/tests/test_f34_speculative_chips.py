@@ -46,11 +46,14 @@ def pill(page: str, nid: str) -> str:
 def test_a_statement_with_proposals_carries_a_chip_naming_its_group(tmp_path: Path) -> None:
     page = render_tree(band_tree(tmp_path / "g"))[PAGE]
     group = re.search(
-        r'<div class="off-group" id="([^"]+)"><h3>Proposed for .*?<ul>(.*?)</ul>', page, re.S
+        r'<div class="off-group" id="([^"]+)"><h3>Proposed for .*?</h3>(.*?)</div><!-- /off-group',
+        page,
+        re.S,
     )
     assert group is not None, "the group carries an anchor"
     anchor, items = group.group(1), group.group(2)
-    n = items.count("<li ")
+    # F34-T43: the group's statements are its tree's boxes (the tree is the list)
+    n = len(re.findall(r'<g class="node[^"]*" data-node="', items)) + items.count("<li ")
     assert f'data-node="{CRUX}"' in items
     chip = re.search(
         r'<g class="spec-chip" data-to="([^"]+)"[^>]*>.*?<text[^>]*>([^<]+)</text>',

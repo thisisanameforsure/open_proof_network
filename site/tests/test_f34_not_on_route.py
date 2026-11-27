@@ -33,8 +33,14 @@ def section(page: str) -> str | None:
 
 
 def placed(page: str) -> Counter[str]:
-    body = section(page)
-    return Counter(re.findall(r'<li data-node="([^"]+)"', body or ""))
+    """Each statement §2 places: a line of a group's list, or (F34-T43: the tree is the list) a
+    box of a group's small tree."""
+    body = section(page) or ""
+    trees = "".join(re.findall(r'<svg class="dag mini-tree".*?</svg>', body, re.S))
+    return Counter(
+        re.findall(r'<li data-node="([^"]+)"', body)
+        + re.findall(r'<g class="node[^"]*" data-node="([^"]+)"', trees)
+    )
 
 
 def on_route(page: str) -> set[str]:
@@ -74,8 +80,8 @@ def test_a_crux_is_grouped_under_the_statement_it_was_proposed_for(tmp_path: Pat
     page = render_tree(root)[PAGE]
     body = section(page)
     assert body is not None
-    # F34-T26: the group's small tree sits between its heading and its list
-    group = re.search(r"<h3>Proposed for (.*?)</h3>.*?<ul>(.*?)</ul>", body, re.S)
+    # F34-T26, T43: the group's small tree under its heading is its list
+    group = re.search(r"<h3>Proposed for (.*?)</h3>(.*?)</div><!-- /off-group -->", body, re.S)
     assert group is not None
     assert f'href="/nodes/{TARGET}/{ROOT_NODE}/"' in group.group(1)
     assert f'data-node="{CRUX}"' in group.group(2)

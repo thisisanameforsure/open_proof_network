@@ -62,3 +62,6 @@ Each item below: what changed, the commit, and whether it is deployed.
       Item 9 NOT built, on purpose: the mockup's List replaces the sets table, which carries your
       F27 rulings (Shared, Assemblies, sorting, Fewest open first) and F31-Q18's Retire. That's your
       call — say the word and I'll build the route cards.
+08:40 PR #132 (items 8, 10) merged and deployed (run 45939161960).
+08:45 F34-T43 — item 17: §2's trees with dotted boxes and serif labels; no duplicate list under a
+      tree; an unnamed statement shows its id in mono. Item 19 was already there (T18). Committing.
