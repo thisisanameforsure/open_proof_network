@@ -1726,3 +1726,8 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
 /* F34-T41 (REMINDERS item 8): the drawn route's retire controls, under its caption */
 .figure-retire { margin: 0 0 var(--s3); font-family: var(--sans); font-size: 13px; }
 .figure-retire .set-route { display: inline-flex; gap: var(--s2); align-items: center; margin-right: var(--s4); }
+/* F34-T42 (REMINDERS item 10): "uses: …" on a pill, dashed like the mockup's lemma box */
+.dag .uses-chip { cursor: pointer; }
+.dag .uses-chip rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 4 3; }
+.dag .uses-chip text { font-family: var(--sans); font-size: 11px; fill: var(--muted); }
+.dag .uses-chip:hover rect { stroke: var(--ink); }

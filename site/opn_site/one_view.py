@@ -803,6 +803,40 @@ def with_spec_chips(svg: str, chips: Mapping[str, tuple[int, str]]) -> str:
     return svg
 
 
+#: F34-T42: the longest label a "uses:" chip carries before it is cut with "…".
+USES_LABEL_MAX = 28
+
+
+def with_uses_chips(svg: str, uses: Mapping[str, Sequence[tuple[str, str]]]) -> str:
+    """F34-T42 (REMINDERS item 10; mockup New-Erdos257-Route1): a dashed "uses: <label>" chip on
+    the pill of each statement in ``uses`` for every statement it uses (its id and label), over
+    the pill's lower left corner, inside the pill's own group so it moves with it. A statement the
+    drawing does not draw gets none. Markup only: the layout never reads it."""
+    for nid, used in sorted(uses.items()):
+        m = re.search(
+            rf'<g class="node[^"]*" data-node="{re.escape(escape(nid))}" data-w="(\d+)"[^>]*>', svg
+        )
+        if m is None or not used:
+            continue
+        end = svg.index("</g></a>", m.end())
+        x, chips = 8, []
+        for uid, label in used:
+            short = label if len(label) <= USES_LABEL_MAX else label[: USES_LABEL_MAX - 1] + "…"
+            words = f"uses: {short}"
+            cw = round(len(words) * CHIP_CHAR_W) + CHIP_PAD
+            chips.append(
+                f'<g class="uses-chip" data-uses="{escape(uid)}" '
+                f'transform="translate({x},{dag.NODE_H - CHIP_H // 2})">'
+                f"<title>Uses {escape(label)}: select it to read its record</title> "
+                f'<rect width="{cw}" height="{CHIP_H}" rx="4"/>'
+                f'<text x="{cw / 2:g}" y="{CHIP_H // 2 + 4}" text-anchor="middle">'
+                f"{escape(words)}</text></g>"
+            )
+            x += cw + 6
+        svg = svg[:end] + "".join(chips) + svg[end:]
+    return svg
+
+
 def mini_tree(  # noqa: PLR0913 — one group's drawing, every input it is drawn from
     rows: Mapping[str, Mapping[str, Any]],
     ids: Sequence[str],

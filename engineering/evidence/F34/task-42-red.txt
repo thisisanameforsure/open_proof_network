@@ -1,0 +1,4 @@
+E       AssertionError: []
+E       assert [] == ['spec-crux1']
+E           playwright._impl._errors.TimeoutError: Locator.scroll_into_view_if_needed: Timeout 30000ms exceeded.
+2 failed, 1 passed in 33.95s
