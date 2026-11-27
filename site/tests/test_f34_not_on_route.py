@@ -81,7 +81,8 @@ def test_a_crux_is_grouped_under_the_statement_it_was_proposed_for(tmp_path: Pat
     body = section(page)
     assert body is not None
     # F34-T26, T43: the group's small tree under its heading is its list
-    group = re.search(r"<h3>Proposed for (.*?)</h3>(.*?)</div><!-- /off-group -->", body, re.S)
+    # F34-T44: the heading names the statement by its words ('For "…"')
+    group = re.search(r"<h3>For &ldquo;(.*?)</h3>(.*?)</div><!-- /off-group -->", body, re.S)
     assert group is not None
     assert f'href="/nodes/{TARGET}/{ROOT_NODE}/"' in group.group(1)
     assert f'data-node="{CRUX}"' in group.group(2)

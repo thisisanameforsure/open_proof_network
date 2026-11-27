@@ -1,0 +1,4 @@
+For &ldquo;Erdős problem 257&rdquo;
+For &ldquo;every other infinite set (what is left)&rdquo; (Route 2)
+For &ldquo;some 2^-j: no early stall, then calm points&rdquo; (Route 12)
+For &ldquo;a calm point in every dyadic interval&rdquo; (Route 11)

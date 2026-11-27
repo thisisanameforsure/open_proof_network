@@ -1,0 +1,4 @@
+E       AttributeError: module 'opn_site.render' has no attribute 'group_heading'
+E       AssertionError: ['Proposed for <a href="/nodes/propositional/and-swap-reassoc/">and-swap-reassoc</a>']
+E       assert False
+2 failed in 0.86s

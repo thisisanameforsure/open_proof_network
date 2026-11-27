@@ -46,7 +46,7 @@ def pill(page: str, nid: str) -> str:
 def test_a_statement_with_proposals_carries_a_chip_naming_its_group(tmp_path: Path) -> None:
     page = render_tree(band_tree(tmp_path / "g"))[PAGE]
     group = re.search(
-        r'<div class="off-group" id="([^"]+)"><h3>Proposed for .*?</h3>(.*?)</div><!-- /off-group',
+        r'<div class="off-group" id="([^"]+)"><h3>For &ldquo;.*?</h3>(.*?)</div><!-- /off-group',
         page,
         re.S,
     )
