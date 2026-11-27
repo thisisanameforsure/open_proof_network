@@ -1700,3 +1700,7 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
 /* F34-T35 (REMINDERS item 14): a tab's count, quieter than its name */
 .panel-tabs .tab-n { font-weight: 400; color: var(--muted); }
 @media (max-width: 700px) { .panel-tabs button { padding: var(--s2) 6px; font-size: 13.5px; } }
+/* F34-T37 (REMINDERS item 15): the line from the selected box to the panel, over the grid */
+.graph-grid { position: relative; }
+.panel-link { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 2; }
+.panel-link path { fill: none; stroke: var(--ink); stroke-width: 2; }

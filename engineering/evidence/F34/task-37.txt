@@ -1,0 +1,15 @@
+F34-T37 — the line from the selected box to the panel (REMINDERS-erdos-257 item 15; handoff
+§3.4.3 layout A, mockup New-Select-Side), 2026-11-27
+
+graph.js draws one path over the drawing-and-panel grid: out from the selected box's right side,
+to beside the panel, up or down to the panel's height, into its left edge. It is redrawn on every
+selection, at the end of every transition (the boxes move), and on scroll and resize (one frame at
+a time). It is hidden whenever the panel is not beside the drawing (a phone puts it under the
+statement, T17) or the selection is not drawn (a §2 statement). Esc already returned to the
+problem's own statement (T16); the line follows it.
+
+Red (task-37-red.txt): no line. Green (task-37-green.txt): 2 passed — the line starts at the
+selected box and ends on the panel's left edge, follows a new selection and Esc; none at 390.
+Full site suite with browser tests: green but the three known reds on main.
+Live graph (task-37-live.txt): line shown at rest (root) and after selecting erdos-257--h2 at 1440;
+none at 390, scrollWidth 390. Captures: task-37-link-root-1440.png, task-37-link-other-1440.png.

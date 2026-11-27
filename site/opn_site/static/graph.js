@@ -158,6 +158,7 @@
     state.node = id;
     showTab(shown, "claim");
     drawPath(shown);
+    drawLink();  // F34-T37
     return true;
   }
 
@@ -533,6 +534,7 @@
     svg.setAttribute("data-view", to);
     outlineFollows(to);  // F34-T17
     routeCaption(to);  // F34-T33
+    drawLink();  // F34-T37: the boxes have moved
     var sets = setsOf(to), shown = 0, plain = base(to);
     choices.forEach(function (c) {
       var on = c.getAttribute("data-view") === plain;
@@ -977,6 +979,48 @@
       if (panel) { li.appendChild(panel); li.classList.add("selected"); }
     });
   }
+
+  // -- F34-T37 (REMINDERS item 15): layout A — a line from the selected box to the panel ------------
+  // Drawn over the drawing-and-panel grid whenever the panel stands beside the drawing (its left
+  // edge right of the box): out from the box's right side, down or up beside the panel, into its
+  // left edge. Hidden when the panel is under the statement (a phone) or the selection is not drawn.
+  var linkGrid = document.querySelector(".graph-grid");
+  var linkSvg = null;
+  function drawLink() {
+    if (!linkGrid) { return; }
+    if (!linkSvg) {
+      linkSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      linkSvg.setAttribute("class", "panel-link");
+      linkSvg.setAttribute("aria-hidden", "true");
+      linkSvg.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "path"));
+      linkGrid.appendChild(linkSvg);
+    }
+    var g = svg.querySelector("g.node.selected");
+    var panel = panels.filter(function (p) { return !p.hidden; })[0];
+    var rect = g && !g.classList.contains("off-view") ? g.querySelector("rect.pill") : null;
+    var inGrid = panel && panel.parentNode && panel.parentNode.classList.contains("panels");
+    if (!rect || !inGrid) { linkSvg.style.display = "none"; return; }
+    var gr = linkGrid.getBoundingClientRect(), a = rect.getBoundingClientRect();
+    var b = panel.getBoundingClientRect();
+    if (!a.width || b.left < a.right + 16) { linkSvg.style.display = "none"; return; }
+    var x0 = a.right - gr.left, y0 = a.top + a.height / 2 - gr.top;
+    var x2 = b.left - gr.left;
+    var y2 = Math.min(Math.max(y0, b.top - gr.top + 30), b.bottom - gr.top - 30);
+    var xm = x2 - 14;
+    linkSvg.style.display = "";
+    linkSvg.setAttribute("width", String(Math.ceil(gr.width)));
+    linkSvg.setAttribute("height", String(Math.ceil(gr.height)));
+    linkSvg.firstChild.setAttribute("d", "M" + x0 + " " + y0 + "H" + xm + "V" + y2 + "H" + x2);
+  }
+  var linkQueued = false;
+  function queueLink() {
+    if (linkQueued) { return; }
+    linkQueued = true;
+    window.requestAnimationFrame(function () { linkQueued = false; drawLink(); });
+  }
+  window.addEventListener("scroll", queueLink, { passive: true });
+  window.addEventListener("resize", queueLink);
+  queueLink();
 
   // -- F34-T36 (REMINDERS item 16): a statement in "Not on a route" selects too -----------------------
   // Its line in a group's list, or its box in the group's small tree, selects it into the same
