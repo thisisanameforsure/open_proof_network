@@ -171,10 +171,12 @@ def test_the_table_says_which_way_each_set_settles(two_sides: dict[str, Any]) ->
 def test_the_page_says_ways_to_settle_and_that_a_set_proves_or_refutes(tmp_path: Path) -> None:
     from test_routes_view import render_tree, two_routes  # noqa: PLC0415
 
+    # F34-T53 restates this to the mockup's words: the picker is headed "Routes", and its line
+    # names the two colours when a route of each is there (render.picker_hint).
     page = render_tree(two_routes(tmp_path))[f"problems/{TARGET}/index.html"]
-    wrap = page[page.index('<div class="selector-wrap">') : page.index('<svg class="selector"')]
-    assert "Ways to settle the problem" in wrap and "Sufficient sets" not in page
-    assert "proves" in wrap and "refutes" in wrap
+    assert '<h3 class="picker-title">Routes</h3>' in page and "Sufficient sets" not in page
+    both = render.picker_hint(refutes=True)
+    assert "proves the problem" in both and "would disprove it" in both
     _label, meaning, proto = render.GLOSSARY_BY_KEY["sufficient-set"]
     assert "refut" in meaning and "v3.46" in proto
 

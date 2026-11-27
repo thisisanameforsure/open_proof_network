@@ -1363,6 +1363,42 @@ ROUTE_TABS = (
     '<button type="button" role="tab" aria-controls="sets-list" aria-selected="false">List'
     "</button></div>"
 )
+#: F34-T53: §1's opening sentence and the figure's caption, as the mockups word them; a problem
+#: with no route keeps the plain ones.
+ROUTES_CUE = (
+    "The problem is taken apart into Lean statements along routes: each route is a set of "
+    "statements that would settle it. Choose a route to draw it as a tree; select any statement "
+    "to read it in the panel."
+)
+PLAIN_CUE = (
+    "The problem's own statement is the one selected when the page opens. A statement is drawn "
+    "above the statements it depends on, so the pieces of its proof are below it and a variant "
+    "that uses it is above it. Select one to see its record."
+)
+FIGURE_CAPTION = (
+    "<strong>Figure 1.</strong> The selected route as a tree: each statement above the "
+    'statements its proof needs; a dot <span class="cap-dot" aria-hidden="true"></span> joins '
+    "statements proved together. Proved statements fold into one box. Select a statement to read "
+    "it in the panel."
+)
+PLAIN_CAPTION = "Select a statement to see its record."
+
+
+def picker_hint(*, refutes: bool) -> str:
+    """F34-T53: the one line under the picker's tree. The colours are named only when a route
+    of the other colour is there to tell apart."""
+    sides = (
+        ' <strong>Black</strong>: proves the problem. <strong class="hint-rust">Rust</strong>: '
+        "would disprove it, through a counterexample statement."
+        if refutes
+        else ""
+    )
+    return (
+        '<p class="picker-hint"><span class="hint-ends">Each numbered end is a route; click one '
+        f"to draw it below.</span>{sides}</p>"
+    )
+
+
 REDIRECTS = (("targets/index.html", PROBLEMS_PATH), ("frontier/index.html", PROBLEMS_PATH))
 #: F24-R9 (D-32 v3.34): the rules page, every panel setting with its value, day and reason.
 RULES_PATH = "/rules/"
@@ -3391,22 +3427,16 @@ class Renderer:
         )
         figure_cap = (
             '<p class="figure-cap"><span class="figure-n">Figure 1 · the selected route</span> '
-            f"<strong>{esc(opening[0])}</strong></p>"
+            f"<strong>{esc(opening[0])} · {esc(opening[1])}</strong></p>"
             if opening
             else ""
         )
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
         # keeps its place beneath the drawing.
         selector_block = (
-            '<div class="selector-wrap"><div class="sel-head">'
-            # F04-T55 (D-25 v3.46): a set settles the problem either way.
-            '<span class="kicker">'
-            f"{self.term('sufficient-set', label='Ways to settle the problem')}</span>"
-            '<p class="sel-cue">Each set proves the problem or refutes it. Select a node or an '
-            "edge to filter the drawing to that part of the proof; select it again to come "
-            "back.</p>"
-            # F34-Q7: the follow-the-proof toggle is off the page (the owner, 2026-11-25)
-            "</div>"
+            # F34-T53: the picker is the tree alone, as the mockup draws it; what a numbered
+            # end is, and which colour settles which way, is one line under it (picker_hint)
+            '<div class="selector-wrap">'
             f"{picture.selector}"
             # F34-T48: the picker with the harder routes, in a box of its own that scrolls
             + (
@@ -3419,6 +3449,7 @@ class Renderer:
             '<p class="sel-tap">Tap a numbered end to draw that route below.</p>'
             f"{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
+            + picker_hint(refutes="side-refutes" in picture.table)
             if picture.selector
             else ""
         )
@@ -3431,13 +3462,19 @@ class Renderer:
         # wrapper of its own; the tabs are hidden until the script can switch them, so without it
         # both stay on the page. F34-T47 (ROUND-2 D1): the List is one row per route, beside the
         # tree in the drawing's card, and "Drawn below" stands under whichever is shown.
-        if picture.selector and picture.table:
+        # F34-T53: the picker is a card of its own, headed "Routes" with the switch at its right;
+        # the harder routes' quiet control (F34-T48) and "Drawn below" close it.
+        if picture.selector:
             selector_block = (
-                f'{ROUTE_TABS}<div id="sets-tree">{selector_block}</div>'
-                f'<div id="sets-list">{picture.table}</div>'
+                '<div class="picker-card card"><div class="picker-head">'
+                '<h3 class="picker-title">Routes</h3>'
+                f"{ROUTE_TABS if picture.table else ''}</div>"
+                f'<div id="sets-tree">{selector_block}</div>'
+                + (f'<div id="sets-list">{picture.table}</div>' if picture.table else "")
+                + picture.harder_toggle
+                + drawn_below
+                + "</div>"
             )
-        # F34-T48 (ROUND-2 D2): the harder routes' quiet control, under the picker
-        selector_block += picture.harder_toggle + drawn_below
         # F34-T47: the figure's heading says its proved statements are folded and unfolds them
         figure_folds = (
             '<p class="figure-folds" hidden>Proved statements folded · '
@@ -3493,7 +3530,10 @@ class Renderer:
             calibration=self.calibration_label(tv),
             registrations=self.registration_lines(tv),
             steward_card=self.steward_card(tv),
-            count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
+            cue=ROUTES_CUE
+            if picture.selector
+            else esc(f"{n} statement{'' if n == 1 else 's'}") + ". " + PLAIN_CUE,
+            dag_caption=FIGURE_CAPTION if picture.selector else PLAIN_CAPTION,
             legend=self.graph_legend(tv, picture, toggle=False),
             # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
             view_toggle=picture.toggle,

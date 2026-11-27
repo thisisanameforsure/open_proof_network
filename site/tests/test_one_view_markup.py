@@ -228,7 +228,8 @@ def test_the_selector_is_a_small_tree_above_the_drawing(tmp_path: Path) -> None:
     """The selector sits in the drawing's card before the drawing, is a compact tree (dots and
     straight lines, no pills, no visible words), and every node carries its words for the hover."""
     page = render_tree(two_routes(tmp_path))[PAGE]
-    card = page.index('<div class="dag-wrap card">')
+    # F34-T53: the picker's card stands above the figure's, both in the drawing's column
+    card = page.index('<div class="dag-wrap">')
     assert card < page.index('<svg class="selector"') < page.index('<svg class="dag"')
     assert "sets-grid" not in page or page.index("sets-grid") > page.index(
         "</svg>", page.index('<svg class="dag"')
@@ -285,13 +286,16 @@ def test_selector_leaves_are_numbered_in_record_order_under_their_parents() -> N
 def test_the_selector_says_it_is_the_navigation_and_explains_a_sufficient_set(
     tmp_path: Path,
 ) -> None:
-    """T9 (the owner, 2026-10-18): a short line tells the reader to select a node or an edge to
-    filter the drawing, and the heading's words carry a hover card defining a sufficient set."""
+    """T9 (the owner, 2026-10-18) asked for a line saying how to use the selector and a hover
+    card defining a sufficient set. F34-T53 restates it to the mockup the owner asked to match
+    (2026-11-27): §1's opening sentence says what a route is ("a set of statements that would
+    settle it"), and the line under the tree says what a numbered end does. The glossary keeps
+    the term."""
     page = render_tree(two_routes(tmp_path))[PAGE]
-    wrap = page[page.index('<div class="selector-wrap">') : page.index('<svg class="selector"')]
-    assert "Select a node or an edge" in wrap and "filter" in wrap.lower()
-    assert 'class="term' in wrap and "sufficient set" in wrap.lower()
-    assert render.esc(render.GLOSSARY_BY_KEY["sufficient-set"][1]) in wrap
+    cue = page[page.index('<p class="cue">') : page.index('<div class="graph-grid">')]
+    assert "each route is a set of statements that would settle it" in cue
+    hint = page[page.index('<p class="picker-hint">') :]
+    assert "click one to draw it below" in hint[: hint.index("</p>")]
     assert (
         "sufficient-set" in render.GLOSSARY_BY_KEY
         and "sufficient set" in render.GLOSSARY_BY_KEY["sufficient-set"][0]

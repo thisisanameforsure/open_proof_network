@@ -65,8 +65,10 @@ def test_the_key_is_inside_the_graph_card(tmp_path: Path) -> None:
     assert head is not None
     assert "dot-proved" not in head.group(1), "the key still sits above the selected statement"
     assert "mini-legend" not in html
-    card = html.index('<div class="dag-wrap card">')
-    assert card < html.index('<div class="dag-legend">') < html.index("<svg")
+    # F34-T53: the key folds under the figure's card and its caption, inside the drawing's column
+    wrap = html.index('<div class="dag-wrap">')
+    assert wrap < html.index('class="dag-caption"') < html.index('<div class="dag-legend">')
+    assert html.index('<div class="dag-legend">') < html.index('<div class="panels">')
 
 
 def test_the_key_always_names_the_three_base_states(tmp_path: Path) -> None:
