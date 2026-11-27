@@ -1,0 +1,16 @@
+F34-T39 — on a phone the record opens under its statement (REMINDERS-erdos-257 item 22; layout B,
+mockups New-Phone-Select, New-Phone-Every-Tab), 2026-11-27
+
+T17 moved a statement's record under its outline row when tapped, but the record the page opens
+on (the problem's own statement) stayed after the whole drawing, and closing a record put the
+problem's back there. Now graph.js places the selected statement's record under its row whenever
+the view settles, on a tap, on a hash change and on a §2 selection; a second tap on a row closes
+it back to the problem's own record, under the problem's own row; crossing the phone width puts
+it back beside the drawing. The panel carries T34's dark header, T35's tab counts and both buttons.
+
+Red (task-39-red.txt): on load the record was not under its row. Green (task-39-green.txt): 3
+passed (from the start, a tap, a closing tap; none on a wide screen; the chip rule below).
+Full site suite with browser tests: green but the three known reds on main.
+Seen in the capture and fixed: the selected row's dark link style also matched its "+ n
+speculative" link (T27), which turned dark; the style is the statement link's alone.
+Captures: task-39-outline-390.png (erdos-257, the record under its row).

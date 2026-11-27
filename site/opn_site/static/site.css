@@ -1713,3 +1713,5 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
   .selector-wrap .sel-cue { display: none; }
   .selector-wrap .sel-tap { display: block; flex: 1 0 100%; margin: var(--s2) 0 0; font-family: var(--sans); font-size: 13px; color: var(--muted); }
 }
+/* F34-T39: a selected row's dark style is its statement's link alone, never the speculative chip */
+.route-outline > li.selected > a.spec-more { background: none; color: var(--muted); }

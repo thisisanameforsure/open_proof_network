@@ -535,6 +535,7 @@
     outlineFollows(to);  // F34-T17
     routeCaption(to);  // F34-T33
     drawLink();  // F34-T37: the boxes have moved
+    placePanel();  // F34-T39: on a phone, the record under its row of the outline
     var sets = setsOf(to), shown = 0, plain = base(to);
     choices.forEach(function (c) {
       var on = c.getAttribute("data-view") === plain;
@@ -964,20 +965,29 @@
     panels.forEach(function (p) { if (p.parentNode !== panelHome && panelHome) { panelHome.appendChild(p); } });
     if (outline) { slice(outline.children).forEach(function (li) { li.classList.remove("selected"); }); }
   }
+  // F34-T39 (REMINDERS item 22; layout B): on a phone the selected statement's record sits directly
+  // under its row of the outline, from the start, after a tap and after a tap closes it again (the
+  // problem's own record, under its own row); anywhere else it goes back beside the drawing.
+  function placePanel() {
+    putBack();
+    if (!outline || !(phone && phone.matches)) { return; }
+    var id = state.node, li = null;
+    slice(outline.children).forEach(function (x) { if (x.getAttribute("data-node") === id) { li = x; } });
+    var panel = panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0];
+    if (li && !li.hidden && panel) { li.appendChild(panel); li.classList.add("selected"); }
+  }
   if (outline) {
     outline.addEventListener("click", function (ev) {
       var a = ev.target.closest ? ev.target.closest("a[data-node]") : null;
       if (!a || !(phone && phone.matches)) { return; }
       ev.preventDefault();
       var id = a.getAttribute("data-node"), li = a.parentNode;
-      var open = li.classList.contains("selected");
-      putBack();
-      if (open) { select(homeNode); writeHash(); return; }  // closes: the problem's own record, in its place
-      select(id);
+      var open = li.classList.contains("selected") && id !== homeNode;
+      select(open ? homeNode : id);  // a second tap closes it: back to the problem's own record
       writeHash();
-      var panel = panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0];
-      if (panel) { li.appendChild(panel); li.classList.add("selected"); }
+      placePanel();
     });
+    if (phone && phone.addEventListener) { phone.addEventListener("change", placePanel); }
   }
 
   // -- F34-T37 (REMINDERS item 15): layout A — a line from the selected box to the panel ------------
@@ -1038,9 +1048,9 @@
       var panel = id ? panels.filter(function (p) { return p.getAttribute("data-node") === id; })[0] : null;
       if (!panel) { return; }
       ev.preventDefault();
-      putBack();
       select(id);
       writeHash();
+      placePanel();  // F34-T39: under its outline row on a phone, if the route draws it
       panel.scrollIntoView({ block: "start" });
     });
   }
@@ -1091,7 +1101,7 @@
   // without a pill being clicked.
   window.addEventListener("hashchange", function () {
     var h = fromHash();
-    if (h.node) { select(h.node); }
+    if (h.node) { select(h.node); placePanel(); }
     var view = h.view || HOME;
     if (has(view) && view !== state.view) {
       if (isSetView(view) && (view.indexOf(FOLLOW) === 0) !== state.follow) { setFollow(view.indexOf(FOLLOW) === 0); }

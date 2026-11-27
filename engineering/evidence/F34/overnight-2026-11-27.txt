@@ -46,3 +46,6 @@ Each item below: what changed, the commit, and whether it is deployed.
 06:30 F34-T38 — item 21: on a phone the route selector fits its box (scaled, never clipped) with
       "Tap a numbered end to draw that route below." Committed. The ends get small on erdos-257
       (~9px) — item 23 next gives them bigger tap areas, though 44px each can't fit side by side.
+06:50 F34-T39 — item 22: on a phone the record opens directly under its statement in the outline,
+      from the start (it used to sit after the whole drawing), with its dark header, tab counts and
+      buttons. Committed.
