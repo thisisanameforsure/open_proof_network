@@ -1,0 +1,2 @@
+{"width": 1440, "clicked": "spec-5e2e0890", "shown": ["spec-5e2e0890"], "path": "/problems/erdos-257/", "top": 0}
+{"width": 390, "clicked": "spec-5e2e0890", "shown": ["spec-5e2e0890"], "path": "/problems/erdos-257/", "top": 0}

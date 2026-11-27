@@ -1,0 +1,17 @@
+F34-T36 — §2 statements select into the panel (REMINDERS-erdos-257 item 16; handoff §3.4.3),
+2026-11-27
+
+Before: a statement's line in "Not on a route", and its box in the group's small tree, were plain
+links to its own page, so §2 never reached the panel. Now (graph.js) a click on either selects the
+statement into the same panel as a statement of the drawing and scrolls the panel into view; the
+page does not navigate and the hash records the selection as for any other. A "replaced by" link
+on a superseded line stays a link; a statement with no panel, or no script, keeps the plain link.
+
+Red (task-36-red.txt): 3 failed (the click navigated away; no panel). Green (task-36-green.txt):
+3 passed — list line at 1440 and 390, small-tree box at 1440. Full site suite with browser tests:
+green but the three known reds on main.
+Live graph rendered by this tree (task-36-live.txt): clicking erdos-257's first §2 line
+(spec-5e2e0890) shows only its panel, path unchanged, panel top at 0 at both widths.
+Captures: task-36-after-click-1440.png, task-36-after-click-390.png.
+Noticed: the panel's header says "Selected in Figure 1" for a §2 statement too, which is drawn in
+§2's small tree, not Figure 1. Left as the mockup has it; worth a word if the owner minds.
