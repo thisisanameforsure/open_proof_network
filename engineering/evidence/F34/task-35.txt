@@ -1,0 +1,20 @@
+F34-T35 — the panel's tab counts (REMINDERS-erdos-257 item 14; mockup New-Select-Side), 2026-11-27
+
+As the mockup's "Proof 1" and "Work 3": Proof counts the ways the statement is being proved (its
+decompositions, plus its own proof if it is proved by one), Work its attempts (the same number as
+the panel's "n attempts"). A zero carries no number; Claim, Known and Record carry none. On the
+live erdos-257 root: "Proof 2", "Work 4". On a phone the tabs take the mockup's 6px padding at
+13.5px, so all five fit on one row with their counts (they wrapped before the change).
+
+Red (task-35-red.txt): 1 failed (a statement with two decompositions showed no count). Green
+(task-35-green.txt): the count test plus the panel and phone browser tests.
+Restated: test_f34_select_browser read a tab's name up to the first "<", now the count's span.
+Golden regenerated. Captures: task-35-tabs-1440.png, task-35-tabs-390.png.
+
+Two repairs to T29 (already live), found by running the whole site suite with Playwright, which
+make verify does not: the headline was given max-width 30ch, about 420px at the phone's 28px,
+so a statement of one wide formula scrolled the page sideways (now min(30ch, 100%));
+test_finding_mobile_scroll still measured the review pill T29 removed (now the review note and
+the status row). Lesson: run the browser tests for any change to a page's head or layout.
+Full site suite with browser tests after the fixes: green but the three known reds on main
+(test_web_flows ×2, test_finding_lemma_edge).

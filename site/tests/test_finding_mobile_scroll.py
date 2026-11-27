@@ -191,12 +191,14 @@ def test_no_sideways_page_scroll_at_390_with_a_review_state_pill(tmp_path: Path)
     page, pill, tags = serve_and_measure(
         out,
         f"/problems/{TARGET}/",
-        "(() => { const r = document.querySelector('.problem-id-row .review-state')"
+        # F34-T29: the review state is a sentence of the head's note, no longer a pill; the note
+        # and whatever the status row holds must still stay inside the viewport
+        "(() => { const r = document.querySelector('.problem-head .review-note')"
         ".getBoundingClientRect();"
-        " const tags = [...document.querySelectorAll('.problem-id-row .tag')]"
+        " const tags = [...document.querySelectorAll('.problem-id-row > *')]"
         ".map(e => Math.round(e.getBoundingClientRect().right));"
         " return [document.documentElement.scrollWidth, [r.left, r.right], tags]; })()",
     )
     assert page == 390, f"the page scrolls sideways: {page}"
-    assert pill[0] >= 0 and pill[1] <= 390, f"the review pill leaves the viewport: {pill}"
+    assert pill[0] >= 0 and pill[1] <= 390, f"the review note leaves the viewport: {pill}"
     assert all(right <= 390 for right in tags), f"a header pill leaves the viewport: {tags}"

@@ -29,3 +29,9 @@ Each item below: what changed, the commit, and whether it is deployed.
       7's single proved box is left unfolded under your Q28 rule (folds need two) — your call.
 03:35 F34-T34 — item 13: the panel opens with a dark "Selected in Figure 1" header and the path to
       the statement, its last step bold. Committed.
+04:00 PR #128 (items 5, 13) merged and deployed (run 45919409798).
+04:35 F34-T35 — item 14: the panel's Proof and Work tabs carry counts ("Proof 2", "Work 4" on the
+      erdos-257 root). Also repaired two T29 regressions the full browser suite found (on a phone,
+      a problem whose statement is one wide formula scrolled sideways; a browser test still
+      measured the removed review pill). Both are in this commit; the live site has the scroll
+      bug until it deploys.
