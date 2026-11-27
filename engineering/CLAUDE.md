@@ -2066,3 +2066,12 @@ The law of the project:
   minutes for a 13-minute suite); nothing heavy beside a hook. **`pgrep -f` on a commit's command
   line matches every stale wait loop that quotes it** (2026-09-17's lesson, paid again): wait on a
   marker the command writes.
+- 2026-11-27 — The owner retired a route on erdos-257 and read the page as broken; nothing was
+  (F31-T16, T17, Q19). The record merged in one minute and reached the page in fifteen, and for
+  those fifteen the page said nothing and offered the same button again. A write that takes a
+  quarter of an hour to show needs its own progress on the page: remembered across reloads, the
+  wait stated as measured, and the change marked as pending, never drawn as done. Two things from
+  the build. "Is this schema closed?" was answered wrong by a script that read the top level of a
+  `oneOf`, and nine tests said so ten minutes later: read a schema's branches before pricing a
+  field. And a full browser run rewrites other tasks' committed screenshots; restore them before
+  the commit.
