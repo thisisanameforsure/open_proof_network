@@ -19,10 +19,10 @@ $registrations
 <h2 id="proof"><span class="sec">§1</span> Proof</h2>
 $needs
 <div class="statements-head">
-<p class="cue">$count_words. The problem's own statement is the one selected when the page opens. A statement is drawn above the statements it depends on, so the pieces of its proof are below it and a variant that uses it is above it. Select one to see its record.</p>
+<p class="cue">$cue</p>
 </div>
 <div class="graph-grid">
-<div class="dag-wrap card"><details class="dag-key"><summary>Key to the drawing</summary><div class="dag-legend">$legend</div></details>$view_toggle<div class="graph-body"><div class="graph-main">$selector$figure_cap$figure_retire<div class="dag-scroll">$dag</div>$outline</div></div><p class="dag-caption">Select a statement to see its record.</p></div>
+<div class="dag-wrap">$selector<div class="figure-card card">$figure_cap$figure_retire$view_toggle<div class="graph-body"><div class="graph-main"><div class="dag-scroll">$dag</div>$outline</div></div></div><p class="dag-caption">$dag_caption</p><details class="dag-key"><summary>Key to the drawing</summary><div class="dag-legend">$legend</div></details></div>
 <div class="panels">
 $panels
 </div>

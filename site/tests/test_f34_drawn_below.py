@@ -64,7 +64,8 @@ def test_the_page_opens_saying_which_route_is_drawn(tmp_path: Path) -> None:
         r"<strong>(.*?)</strong></p>",
         page,
     )
-    assert cap is not None and unescape(cap.group(1)) == route
+    # F34-T53: the figure's heading carries the count too, as the mockup's does
+    assert cap is not None and unescape(cap.group(1)) == f"{route} · {count}"
     assert page.index('class="drawn-below"') < page.index('class="figure-cap"')
 
 
@@ -108,7 +109,8 @@ def test_choosing_another_route_rewrites_both_lines(site_url: str) -> None:
             " document.querySelector('.figure-cap strong').textContent]"
         )
         b.close()
-    assert got == [f"{want[0]} · {want[1]}", want[0]], (got, want)
+    # F34-T53: both lines carry the count
+    assert got == [f"{want[0]} · {want[1]}"] * 2, (got, want)
 
 
 def test_a_route_is_named_by_the_gist_of_its_approach() -> None:

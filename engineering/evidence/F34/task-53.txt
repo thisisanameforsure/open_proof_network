@@ -1,0 +1,53 @@
+F34-T53 — §1 matched to the List and Tree mockups (the owner, 2026-11-27: "yes do matching";
+"dont touch main picker")
+=====================================================================================
+
+Compared, crop by crop: screenshots/New-Erdos257-desktop.png, New-Erdos257-List-desktop.png and
+New-Erdos257-phone.png against captures of this branch's render of the live graph (graph
+origin/main 86c7a7c445) at 1440 and 390.
+
+Differences found, and what was done
+  one card holding picker and figure        -> two cards: picker, then Figure 1
+  "Key to the drawing" at the card's top    -> folded under the figure's caption (kept: D6.3)
+  underlined Tree | List tabs               -> "Routes" at left, a filled two-button switch at right
+  "Ways to settle the problem" + cue beside -> one line under the tree: "Each numbered end is a
+    the tree, in a bordered box                route; click one to draw it below." and, when a
+                                               disproving route exists, what black and rust mean
+  figure heading "Route 1 · greedy walk"    -> "Route 1 · greedy walk · 4 statements, 1 open"
+  "71 statements. The problem's own …"      -> the mockup's sentence about routes
+  "Select a statement to see its record."   -> "Figure 1. The selected route as a tree: …"
+  fold line as plain text                   -> a bordered control, as the mockup's
+
+Left as they are, each by an earlier decision (F34-Q33): the panel's dark header (D8), the phone's
+outline (T17), route names from the recorded approaches, the site's typefaces, the speculative
+chip on its box's lower edge (T27), the main picker's behaviour.
+
+Red first
+  uv run --frozen --with 'playwright==1.58.0' python -m pytest site/tests/test_f34_round2_match.py
+  before: 6 failed (KeyError 'picker-head'; figure heading without the count; the old sentence;
+          no picker_hint; no .picker-card in the browser)
+  after:  6 passed in 20.40s
+
+Restated (they pinned the old layout): test_f34_drawing_caption, test_f34_drawn_below (two),
+test_graph_legend, test_one_view_markup (two), test_refutes_site. Goldens regenerated: one page,
+two lines (the card split on a problem with no routes).
+
+Full site suite with browser tests, on a snapshot of the tree (23:05): 1241 passed, 4 failed —
+the three that fail on main (test_web_flows x2, test_finding_lemma_edge) and
+test_f34_drawn_below::test_choosing_another_route_rewrites_both_lines, which pinned the old
+heading; restated, and it passes with the new tests (below).
+
+Measured on the live render (shoot_round2.py), both widths, no sideways scroll anywhere:
+  erdos-257   tree/list   caption "Route 1 · greedy walk · 4 statements, 1 open", 4 boxes, 12 ends, 12 rows
+  erdos-1094  tree/list   caption "Route 1 · … · 19 statements, 2 open", 19 boxes, 4 ends, 4 rows
+  erdos-1094  harder      46 ends, Figure 1 unchanged
+  scrollWidth 1440 at 1440 and 390 at 390 in every state
+
+Captures: task-53-<problem>-{tree,list,page}-{1440,390}.png, task-53-erdos-1094-harder-1440.png
+
+Raw ids still visible (scan_ids.py, unchanged by this task): erdos-1094 36, erdos-257 30.
+  - contributors' prose naming a statement by id (notes, literature summaries, references): about 48
+  - Lean source (import lines, theorem names): about 15
+  - three erdos-257 statements with no name on the record, shown by id: spec-23231427,
+    spec-5e932b4b (both proved), spec-a70fcca4 (superseded)
+10 passed in 23.82s

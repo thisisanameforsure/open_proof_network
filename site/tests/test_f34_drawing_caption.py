@@ -16,4 +16,6 @@ def test_the_caption_is_one_plain_hint(tmp_path: Path) -> None:
     page = render_tree(two_routes(tmp_path / "g"))[f"problems/{TARGET}/index.html"]
     assert "labels drop the problem" not in page and "full id" not in page
     caption = re.findall(r'<p class="dag-caption">(.*?)</p>', page, re.S)
-    assert caption == ["Select a statement to see its record."], caption
+    # F34-T53: on a problem with routes the one caption is the figure's, as the mockup words it
+    assert len(caption) == 1 and caption[0].startswith("<strong>Figure 1.</strong>"), caption
+    assert caption[0].endswith("Select a statement to read it in the panel."), caption

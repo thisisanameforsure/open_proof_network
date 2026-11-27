@@ -519,7 +519,7 @@
     var name = end ? end.getAttribute("data-route") : "the statements of your selection";
     var count = end ? " · " + end.getAttribute("data-count") : "";
     if (drawnBelow) { drawnBelow.textContent = name + count; }
-    if (figureCap) { figureCap.textContent = name; }
+    if (figureCap) { figureCap.textContent = name + count; }
     // F34-T41: the drawn route's retire controls (shelve.js fills them for a steward or curator)
     slice(document.querySelectorAll(".figure-retire")).forEach(function (g) {
       g.hidden = g.getAttribute("data-view") !== plain;
