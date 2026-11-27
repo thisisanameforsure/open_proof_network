@@ -4605,7 +4605,17 @@ class Renderer:
             how=self.how_block(tv, nv),
             known=known,
             work=work,
-            tabs=self.panel_tabs(known, work),
+            # F34-T35 (REMINDERS item 14): Proof counts the ways it is being proved, Work its
+            # attempts, as the mockup's "Proof 1" and "Work 3"
+            tabs=self.panel_tabs(
+                known,
+                work,
+                {
+                    "how": len(e.get("decompositions") or [])
+                    + (1 if nv.proof_path and state == "proved" else 0),
+                    "work": nv.attempts.count,
+                },
+            ),
             path=self.panel_path(tv, nv),
             always=(
                 f'<p class="panel-always">{self.panel_action(tv, nv)}'
@@ -4902,9 +4912,11 @@ class Renderer:
             f"{''.join(items)}</ol>"
         )
 
-    def panel_tabs(self, known: str, work: str) -> str:
+    def panel_tabs(self, known: str, work: str, counts: Mapping[str, int] | None = None) -> str:
         """F34-T16 (R16): the panel's tab row — Claim, Proof, Known, Work, Record, only the parts
-        the panel has — hidden until graph.js can switch it, so without it every part shows."""
+        the panel has — hidden until graph.js can switch it, so without it every part shows.
+        F34-T35: a tab with a count above zero in ``counts`` carries it."""
+        counts = counts or {}
         tabs = [("claim", "Claim"), ("how", "Proof")]
         if known:
             tabs.append(("known", "Known"))
@@ -4913,7 +4925,8 @@ class Renderer:
         tabs.append(("record", "Record"))
         buttons = "".join(
             f'<button type="button" role="tab" data-tab="{part}" aria-selected="false">{name}'
-            "</button>"
+            + (f' <span class="tab-n">{counts[part]}</span>' if counts.get(part) else "")
+            + "</button>"
             for part, name in tabs
         )
         return (

@@ -53,7 +53,9 @@ def test_each_panel_has_its_tabs_hidden_naming_its_parts(pages: dict[str, str]) 
         )
         assert tabs is not None, nid
         buttons = re.findall(
-            r'<button type="button" role="tab" data-tab="([a-z]+)"[^>]*>([^<]+)</button>',
+            # F34-T35: a tab may carry its count after its name
+            r'<button type="button" role="tab" data-tab="([a-z]+)"[^>]*>([^<]+?)'
+            r'(?: <span class="tab-n">\d+</span>)?</button>',
             tabs.group(1),
         )
         present = [
