@@ -1,70 +1,52 @@
 F34 overnight log, 2026-11-26 → 2026-11-27 (for Mike in the morning)
 
-Live as of 2026-11-26 23:30 IST (PR #123, merge f4691370, site-deploy run 45897341534 green):
-  * F34-T27: "+ n speculative ↓" on a statement with proposals (pill chip in §1, a link under its
-    phone-outline row), scrolling to its §2 group, which now has an anchor (REMINDERS item 10, first half).
-  * F34-T28: the review page's "Your turn" note for the signed-in intent signer.
+Times are local (IST, UTC+2): commit times from git, merge times from GitHub. An earlier version of
+this file carried times I estimated rather than read; they were wrong and are replaced here.
 
-Working list: site/docs/design_handoff_2026-11/REMINDERS-erdos-257.md, in its order
-(1–3, 4–7 + 11–12, 13–16, 21–23, 8–10, 17–20). Docs is another session's and stays out of this.
-Each item below: what changed, the commit, and whether it is deployed.
+Working list: site/docs/design_handoff_2026-11/REMINDERS-erdos-257.md, in its order (1–3, 4–7 + 11–12,
+13–16, 21–23, 8–10, 17–20). Docs is another session's and stayed out of this. Every item: test
+first (red, then green), one F34-Tn commit with evidence in engineering/evidence/F34/task-NN.txt and
+captures of the live graph rendered by the branch, and from T35 on the whole site suite run with
+the browser tests before each commit (make verify skips them). The only failures in every run are
+the three that also fail on main (test_web_flows ×2, test_finding_lemma_edge).
 
-00:55 F34-T29 — items 1–3 (the head): words as the headline, id a sidenote, status dot + word, one
-      note for the check and the review ("Open the review →"), kicker "Erdős problem 257 · number
-      theory", "Open for work" folded into the steward sentence. Two real defects found on the way
-      (raw *markdown* in a kicker; the guide link lost) and fixed. Committed; see task-29.txt.
-      Noticed, not changed: the stage mark is bare dots where the mockup labels them.
-01:35 T29 (items 1–3) merged as PR #124 and deployed (site-deploy run 45907096617).
-01:40 F34-T30 — item 4: selector edges grey hairlines; rust only on a disproving route's numbered
-      end; the chosen end filled in the owner's selection colour (F30-T10 kept). Committed.
-01:30 F34-T31 — item 12: the drawing's developer caption is now "Select a statement to see its
-      record." Committed.
-02:20 F34-T32 — item 11: the tree's boxes white, sans 12.5px, no underline; proved = blue dot,
-      open = ink ring, selected filled ink with its path heavier. Committed. Noticed: box widths
-      still sized for the old mono labels (wider than needed) — layout, left for a separate change.
-02:40 PR #127 (items 4, 11, 12) merged and deployed (run 45915218728).
-03:05 F34-T33 — item 5: "Drawn below ↓ Route 1 · greedy walk · 2 statements, 1 open" under the
-      selector and "Figure 1 · the selected route" above the drawing, kept current on every change.
-      The whole selector now fits at 1440. Items 6 (opening route) and 7 (fold): 6 already met;
-      7's single proved box is left unfolded under your Q28 rule (folds need two) — your call.
-03:35 F34-T34 — item 13: the panel opens with a dark "Selected in Figure 1" header and the path to
-      the statement, its last step bold. Committed.
-04:00 PR #128 (items 5, 13) merged and deployed (run 45919409798).
-04:35 F34-T35 — item 14: the panel's Proof and Work tabs carry counts ("Proof 2", "Work 4" on the
-      erdos-257 root). Also repaired two T29 regressions the full browser suite found (on a phone,
-      a problem whose statement is one wide formula scrolled sideways; a browser test still
-      measured the removed review pill). Both are in this commit; the live site has the scroll
-      bug until it deploys.
-04:55 PR #129 (item 14 + the two T29 repairs) merged and deployed (run 45922240906): the phone
-      sideways-scroll bug from T29 is fixed on the live site.
-05:20 F34-T36 — item 16: a statement in §2 (its line or its small-tree box) selects into the
-      panel, which comes into view. Committed. Item 15 (a drawn line from the selected box to the
-      panel) is next.
-05:50 F34-T37 — item 15: with the panel beside the drawing, a line runs from the selected box to
-      the panel and follows the selection (and Esc); none on a phone. Committed. Items 13–16 done.
-06:05 PR #130 (items 15, 16) merged and deployed.
-06:30 F34-T38 — item 21: on a phone the route selector fits its box (scaled, never clipped) with
-      "Tap a numbered end to draw that route below." Committed. The ends get small on erdos-257
-      (~9px) — item 23 next gives them bigger tap areas, though 44px each can't fit side by side.
-06:50 F34-T39 — item 22: on a phone the record opens directly under its statement in the outline,
-      from the start (it used to sit after the whole drawing), with its dark header, tab counts and
-      buttons. Committed.
-07:20 F34-T40 — item 23: one phone width (760px) for styles and script; on a phone the folds,
-      buttons and the speculative link are 44px to touch. The route selector's ends can't be:
-      they're 26px apart and the selector must fit the phone, so each gets an invisible hit square
-      as big as its column (~16px on erdos-257's phone selector). Committed. Items 21–23 done.
-07:35 PR #131 (items 21–23) merged and deployed (run 45934210550).
-07:55 F34-T41 — item 8: Retire on the drawn route's header for a steward or curator (the same
-      control as the route's row in the list). Tested signed in as a steward on a fake service;
-      please check it on erdos-257 signed in — I can't sign in from here.
-08:15 F34-T42 — item 10's second half: a dashed "uses: …" chip on a statement that uses another
-      (erdos-257 Route 1: "uses: gap lemma …"); clicking it opens that statement. Committed.
-      Item 9 NOT built, on purpose: the mockup's List replaces the sets table, which carries your
-      F27 rulings (Shared, Assemblies, sorting, Fewest open first) and F31-Q18's Retire. That's your
-      call — say the word and I'll build the route cards.
-08:40 PR #132 (items 8, 10) merged and deployed (run 45939161960).
-08:45 F34-T43 — item 17: §2's trees with dotted boxes and serif labels; no duplicate list under a
-      tree; an unnamed statement shows its id in mono. Item 19 was already there (T18). Committing.
-09:05 F34-T44 — item 18: §2 headings read 'For "every other infinite set (what is left)" (Route 2)'
-      instead of "Proposed for erdos-257--h18". Committing. Not done: "note where a member is also
-      used elsewhere".
+LIVE (merged and deployed with site-deploy.yml):
+  23:19  PR #123  T27 "+ n speculative ↓" chips (item 10, first half); T28 the review's "Your turn"
+  00:48  PR #124  T29 items 1–3: the head — the problem's words as the headline, the id a sidenote,
+                  status a dot and a word, one note for the check and the review ("Open the review →"),
+                  kicker "Erdős problem 257 · number theory", "Open for work" in the steward sentence
+  02:10  PR #127  T30 item 4: selector edges grey hairlines, rust only on a disproving route's end
+                  T31 item 12: the caption is "Select a statement to see its record."
+                  T32 item 11: the tree's boxes white, sans 12.5px, no underline; proved a blue dot,
+                  open an ink ring, the selected box filled ink, its path heavier
+  02:53  PR #128  T33 item 5: "Drawn below ↓ Route 1 · greedy walk · 2 statements, 1 open" and
+                  "Figure 1 · the selected route"; T34 item 13: the panel's dark header with the path
+  03:22  PR #129  T35 item 14: tab counts ("Proof 2", "Work 4"), and two repairs to T29 the browser
+                  suite found: on a phone a wide-formula headline scrolled sideways (live 00:48–03:22),
+                  and a browser test still measured the removed review pill
+  04:10  PR #130  T36 item 16: a §2 statement selects into the panel; T37 item 15: a line from the
+                  selected box to the panel
+  05:26  PR #131  T38 item 21: the selector fits a phone, "Tap a numbered end…"; T39 item 22: on a
+                  phone the record opens under its statement from the start; T40 item 23: one phone
+                  width (760px) for styles and script, every control ≥ 44px on a phone
+  06:18  PR #132  T41 item 8: Retire on the drawn route's header (steward or curator); T42 item 10:
+                  a dashed "uses: …" chip (erdos-257 Route 1: "uses: gap lemma…")
+  06:53  PR #133  T43 item 17: §2's trees dotted with serif labels, the tree is the list, an unnamed
+                  statement's id in mono (item 19 was already built by T18)
+
+COMMITTED, DEPLOYING NEXT:
+  06:58  T44 item 18: §2 headings 'For "every other infinite set (what is left)" (Route 2)'.
+
+FOR YOU:
+  * Item 9 not built, on purpose: the mockup's List (route cards: Draw · Statements · Retire) replaces
+    the sets table, which carries your F27 rulings (Shared, Assemblies, sorting, Fewest open first)
+    and F31-Q18's Retire. Say the word and I'll build the route cards.
+  * Item 7 held by your Q28 rule: erdos-257 Route 1's single proved statement is not folded (folds
+    need two); "1 proved · show" would hide it and save nothing.
+  * Item 8: tested signed in as a steward on a fake service; please check Retire on erdos-257 signed in.
+  * Item 20 (stewards named once) and item 18's "note where a member is also used elsewhere": not done.
+  * Item 23's limit: the route selector's ends sit 26px apart and must fit a phone, so their hit areas
+    are as big as their columns (~16px on erdos-257's phone selector), not 44px.
+  * Noticed, not changed: box widths are still sized for the old mono labels (wider than needed);
+    the panel says "Selected in Figure 1" for a §2 statement too; the stage mark is bare dots where
+    the mockup labels them.
