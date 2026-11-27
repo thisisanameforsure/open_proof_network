@@ -22,3 +22,8 @@ Each item below: what changed, the commit, and whether it is deployed.
 02:20 F34-T32 — item 11: the tree's boxes white, sans 12.5px, no underline; proved = blue dot,
       open = ink ring, selected filled ink with its path heavier. Committed. Noticed: box widths
       still sized for the old mono labels (wider than needed) — layout, left for a separate change.
+02:40 PR #127 (items 4, 11, 12) merged and deployed (run 45915218728).
+03:05 F34-T33 — item 5: "Drawn below ↓ Route 1 · greedy walk · 2 statements, 1 open" under the
+      selector and "Figure 1 · the selected route" above the drawing, kept current on every change.
+      The whole selector now fits at 1440. Items 6 (opening route) and 7 (fold): 6 already met;
+      7's single proved box is left unfolded under your Q28 rule (folds need two) — your call.

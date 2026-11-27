@@ -508,12 +508,31 @@
     return null;
   }
 
+  // F34-T33 (REMINDERS item 5): "Drawn below ↓ Route n · …" and the figure's caption name the route
+  // a numbered end draws; any other view (a part of a route, every statement) says so instead.
+  var drawnBelow = document.querySelector(".drawn-below strong");
+  var figureCap = document.querySelector(".figure-cap strong");
+  function routeCaption(to) {
+    if (!drawnBelow && !figureCap) { return; }
+    var plain = base(to), end = null;
+    if (selector) {
+      slice(selector.querySelectorAll("g.kind-leaf[data-route]")).forEach(function (g) {
+        if (g.getAttribute("data-view") === plain) { end = g; }
+      });
+    }
+    var name = end ? end.getAttribute("data-route") : "the statements of your selection";
+    var count = end ? " · " + end.getAttribute("data-count") : "";
+    if (drawnBelow) { drawnBelow.textContent = name + count; }
+    if (figureCap) { figureCap.textContent = name; }
+  }
+
   // The view is shown: data-view on the svg, the pressed element, the table's rows and count
   // line, the proof note, the view-toggle, the hash (left alone on load, keepHash).
   function settle(to, keepHash) {
     state.view = to;
     svg.setAttribute("data-view", to);
     outlineFollows(to);  // F34-T17
+    routeCaption(to);  // F34-T33
     var sets = setsOf(to), shown = 0, plain = base(to);
     choices.forEach(function (c) {
       var on = c.getAttribute("data-view") === plain;

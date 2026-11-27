@@ -1,0 +1,5 @@
+FAILED site/tests/test_f34_drawn_below.py::test_every_numbered_end_names_its_route
+FAILED site/tests/test_f34_drawn_below.py::test_the_page_opens_saying_which_route_is_drawn
+FAILED site/tests/test_f34_drawn_below.py::test_choosing_another_route_rewrites_both_lines
+3 failed in 4.58s
+1 failed, 3 deselected in 0.24s

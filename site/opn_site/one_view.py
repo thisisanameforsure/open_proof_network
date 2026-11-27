@@ -1091,6 +1091,21 @@ def _tidy(
     return at, width, height
 
 
+#: F34-T33: the longest approach phrase a route's name carries before it is cut with "…".
+ROUTE_GIST_MAX = 60
+
+
+def route_gist(approach: str) -> str:
+    """F34-T33: a route's approach as a name, the way the mockup names one ("fifteen special
+    cases plus the rest"): the approach up to its first semicolon, cut at a word with "…" if it
+    is still longer than a line."""
+    gist = approach.split(";", 1)[0].strip()
+    if len(gist) <= ROUTE_GIST_MAX:
+        return gist
+    cut = gist[:ROUTE_GIST_MAX].rsplit(" ", 1)[0].rstrip(" ,")
+    return f"{cut}…"
+
+
 def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes and edges
     vs: Mapping[str, View],
     result: routes.Routes,
@@ -1125,6 +1140,8 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
     kinds: dict[str, str] = {}
     words: dict[str, str] = {}
     glyph: dict[str, str] = {}
+    route: dict[str, str] = {}  # F34-T33: a numbered end's route name and counts
+    count: dict[str, str] = {}
     forked = {
         v.parent
         for v in sel.values()
@@ -1141,6 +1158,8 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
             way = routes_view.settles(s)
             words[key] = f"Set {v.index} ({way}): {s.remaining} open {noun} of {s.total}"
             glyph[key] = str(v.index)
+            route[key] = f"Route {v.index}"
+            count[key] = f"{s.total} statement{'' if s.total == 1 else 's'}, {s.remaining} open"
         else:
             split = v.split or root
             label = dag.label_of(split, names, labels)
@@ -1168,6 +1187,8 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
                 else f"{at_label}: taken directly"
             )
             words[key] += f" — via {how}"
+            if key in route:
+                route[key] += f" · {route_gist(how)}"
     if has_root:
         kinds["root"] = "kind-root"
         words["root"] = f"{dag.label_of(root, names, labels)}: the problem's own statement"
@@ -1221,7 +1242,12 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
         parts.append(
             f'<a href="#"><g class="sel-node {kinds[key]}{side_cls}"{own} data-key="{escape(key)}" '
             f'data-words="{escape(words[key])}" '
-            f'transform="translate({x:g},{y:g})"><title>{escape(words[key])}</title> '
+            + (
+                f'data-route="{escape(route[key])}" data-count="{escape(count[key])}" '
+                if key in route
+                else ""
+            )
+            + f'transform="translate({x:g},{y:g})"><title>{escape(words[key])}</title> '
             f"{mark}</g></a>"
         )
     parts.append("</svg>")

@@ -1685,3 +1685,9 @@ svg.dag g.node.selected circle:not(.halo) { stroke: var(--surface); }
 svg.dag g.node.selected.proved circle:not(.halo) { fill: var(--surface); }
 svg.dag a:hover g.node:not(.selected) rect.pill, svg.dag a:focus-visible g.node:not(.selected) rect.pill { stroke: var(--ink); }
 svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
+/* F34-T33 (REMINDERS item 5): which route is drawn — under the selector, and the figure's caption */
+.selector-wrap:has(.drawn-below) { flex-wrap: wrap; }
+.selector-wrap .drawn-below { flex: 1 0 100%; }
+.drawn-below { margin: var(--s3) 0 0; padding-top: 10px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; }
+.figure-cap { margin: var(--s4) 0 var(--s3); font-family: var(--sans); font-size: 14px; }
+.figure-cap .figure-n { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
