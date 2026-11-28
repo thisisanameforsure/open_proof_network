@@ -50,3 +50,14 @@ golden problems/propositional regenerated.
 Site suite with browser tests: 1251 passed, 3 failed (the three that fail on main:
 test_finding_lemma_edge::test_measured_in_a_browser, two in test_web_flows).
 make lint, make types: clean.
+
+Live after the deploy (PR #140, main 3b4d51c4, site-deploy run 46103466179, 2026-11-28T03:37Z)
+erdos-1094 1440 {"viewBox": "0 0 752 1060", "drawingFolds": [3], "outlineFolds": [3], "headingToDrawing": 53, "bigButton": 0, "retireControls": 46, "offRoute": null, "holeOfAboveTabs": 1, "scrollWidth": 1440}
+erdos-1094 390 {"viewBox": "0 0 752 1060", "drawingFolds": [3], "outlineFolds": [3], "headingToDrawing": 53, "bigButton": 0, "retireControls": 46, "offRoute": null, "holeOfAboveTabs": 1, "scrollWidth": 390}
+erdos-257 1440 {"viewBox": "0 0 618 342", "drawingFolds": [], "outlineFolds": [], "headingToDrawing": 17, "bigButton": 0, "retireControls": 12, "offRoute": "1 more statement is not on a route (1 shelved) \u2193", "holeOfAboveTabs": 2, "scrollWidth": 1440}
+erdos-257 390 {"viewBox": "0 0 618 342", "drawingFolds": [], "outlineFolds": [], "headingToDrawing": 17, "bigButton": 0, "retireControls": 12, "offRoute": "1 more statement is not on a route (1 shelved) \u2193", "holeOfAboveTabs": 2, "scrollWidth": 390}
+
+Found by that live check: erdos-257's variant-cce9b284--h3 and --h7 still opened with two lines,
+because two splits of the same parent share the hole (holeOfAboveTabs 2 above). The first split
+opens the panel; the later one is in Record. Test red first (2 == 1):
+test_a_hole_two_splits_of_its_parent_share_opens_with_one_line. test_f34_round3.py is 15 tests.

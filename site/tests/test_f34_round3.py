@@ -101,6 +101,28 @@ def test_a_statement_only_restated_opens_with_its_role(tmp_path: Path) -> None:
     assert "Restated as hole <code>h_again</code>" in record
 
 
+def test_a_hole_two_splits_of_its_parent_share_opens_with_one_line(tmp_path: Path) -> None:
+    """Live erdos-257 after the deploy (2026-11-28): a second split of the same parent reused a
+    hole, and its panel opened with two lines. The first split says where it came from; the
+    second is in the Record tab."""
+    r, tv, nv = restated(tmp_path)
+    root = tv.nodes[ROOT_NODE]
+    first = next(
+        d
+        for d in root.graph_entry["decompositions"]
+        if any(h["node"] == nv.node_id for h in d["holes"])
+    )
+    again = {**first, "partial": "attempts/20260926T000000Z-dave-partial.lean"}
+    splits = [*root.graph_entry["decompositions"], again]
+    entry = {**root.graph_entry, "decompositions": splits}
+    tv = dataclasses.replace(
+        tv, nodes={**tv.nodes, ROOT_NODE: dataclasses.replace(root, graph_entry=entry)}
+    )
+    head, record = r.statement_panel(tv, nv).split('<details class="record">')
+    assert head.count('class="hole-of"') == 1, head
+    assert "dave-partial.lean" in record and "dave-partial.lean" not in head
+
+
 def test_the_statements_own_page_still_says_all_of_it(tmp_path: Path) -> None:
     r, tv, nv = restated(tmp_path)
     said = r.panel_role(tv, nv, page=True)
