@@ -30,7 +30,7 @@
   "use strict";
   var svg = document.querySelector("svg.dag:not(.band)");
   if (!svg) { return; }
-  var ROUTES = "routes", ALL = "all";
+  var ROUTES = "routes";
   var FADE_MS = 200, MOVE_MS = 400, PER_SEGMENT = 16, SAMPLES = 48;
   var reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
@@ -54,7 +54,6 @@
   var rows = slice(document.querySelectorAll("li.route-row[data-view]"));
   // F34-T50 (ROUND-2 D4): the phone's row of 44px route buttons under the picker
   var routeButtons = slice(document.querySelectorAll("button.route-btn[data-view]"));
-  var viewToggle = document.querySelector("button.view-toggle[data-view]");
   var HARD = "hard/";  // F34-T48: a strictly harder route's own view
   var FOLLOW = "follow/";
   var followBox = document.querySelector("input.follow-proved");
@@ -523,6 +522,7 @@
     // F34-T41: the drawn route's retire controls (shelve.js fills them for a steward or curator)
     slice(document.querySelectorAll(".figure-retire")).forEach(function (g) {
       g.hidden = g.getAttribute("data-view") !== plain;
+      if (g.hidden) { g.removeAttribute("open"); }  // F34-T55: another route's choices are shut
     });
   }
 
@@ -553,11 +553,6 @@
       b.setAttribute("aria-pressed", b.getAttribute("data-view") === plain ? "true" : "false");
     });
     notes.forEach(function (n) { n.hidden = n.getAttribute("data-view") !== to; });
-    if (viewToggle) {
-      var all = to === ALL;
-      viewToggle.setAttribute("aria-pressed", all ? "true" : "false");
-      viewToggle.textContent = all ? toggleWords.shown : toggleWords.plain;
-    }
     if (!keepHash) { writeHash(); }
     refreshLit();
     applyBand();
@@ -641,7 +636,9 @@
   }
 
   // F34-T27: the outline's "+ n speculative ↓" scrolls to its group; the hash keeps the view
-  slice(document.querySelectorAll("a.spec-more")).forEach(function (a) {
+  // F34-T55: so does the line under the drawing for the statements on no route (a bare hash
+  // would read as "no view" and put the home route back)
+  slice(document.querySelectorAll("a.spec-more, .off-route-line a")).forEach(function (a) {
     a.addEventListener("click", function (ev) {
       var group = document.getElementById(a.getAttribute("href").slice(1));
       if (group) { ev.preventDefault(); group.scrollIntoView({ block: "start" }); }
@@ -847,17 +844,8 @@
     if (state.view !== HOME) { transition(HOME); }
   });
 
-  // -- the view-toggle (R4): all <-> routes --------------------------------------------------------
-
-  var toggleWords = { plain: "", shown: "" };
-  if (viewToggle && has(ALL)) {
-    toggleWords.plain = viewToggle.textContent;
-    toggleWords.shown = viewToggle.getAttribute("data-shown-label") || toggleWords.plain;
-    viewToggle.hidden = false;
-    viewToggle.addEventListener("click", function () {
-      transition(state.view === ALL ? ROUTES : ALL);
-    });
-  }
+  // F34-T55 (the owner, 2026-11-28): no control draws every statement in place of the selected
+  // route; the statements on no route are a link to §2. The all layout stays, at its bookmark.
 
   // -- F34-T48 (ROUND-2 D2): "Show n harder routes" ------------------------------------------------
   // The quiet control under the picker swaps the picker for the one that also numbers the harder
@@ -912,34 +900,50 @@
   var outline = document.querySelector("ol.route-outline");
   var phone = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
   var panelHome = panels.length ? panels[0].parentNode : null;
-  // F34-T24 (R15): proved siblings folded into one box naming how many it holds; it opens in place.
+  // F34-T56 (the owner, 2026-11-28): the outline folds what the drawing folds, and counts what
+  // the drawing counts. Fold i of a route holds the statements its layout with that fold open
+  // (<route>~fold<i>) draws and its own layout does not; the box is built here, before the first
+  // of them, and opens in place. (The outline had a rule of its own over every route together,
+  // so a phone said "10 proved statements" where the drawing said 3.)
   var foldOpen = {};
   function outlineFollows(view) {
     if (!outline || !layouts || !layouts[view]) { return; }
-    // the route's statements, folded in the drawing or not: its own layout and its open folds'
-    var route = base(view), lays = [layouts[view]], inView = {};
-    for (var i = 0; layouts[route + "~fold" + i]; i++) { lays.push(layouts[route + "~fold" + i]); }
-    slice(outline.children).forEach(function (li) {
+    var route = base(view), home = layouts[route] || layouts[view];
+    var allOpen = view === route + "~open";
+    slice(outline.querySelectorAll("li.fold")).forEach(function (li) { outline.removeChild(li); });
+    var rows = slice(outline.children), foldOf = {}, folds = [];
+    for (var i = 0; layouts[route + "~fold" + i]; i++) {
+      folds.push({ key: route + ":" + i, rows: [], open: allOpen || view === route + "~fold" + i });
+      rows.forEach(function (li) {
+        var id = li.getAttribute("data-node");
+        if (id && !nodeIn(home, id) && nodeIn(layouts[route + "~fold" + i], id) && foldOf[id] === undefined) {
+          foldOf[id] = i;
+          folds[i].rows.push(li);
+        }
+      });
+    }
+    rows.forEach(function (li) {
       var id = li.getAttribute("data-node");
       if (!id) { return; }
-      var fold = li.getAttribute("data-in-fold");
-      var on = lays.some(function (lay) { return nodeIn(lay, id); });
-      if (on && fold !== null) { inView[fold] = true; }
-      li.hidden = !on || (fold !== null && !foldOpen[fold]);
+      var f = foldOf[id];
+      if (f === undefined) { li.hidden = !nodeIn(home, id) && !nodeIn(layouts[view], id); return; }
+      li.hidden = !(folds[f].open || foldOpen[folds[f].key]);
     });
-    slice(outline.querySelectorAll("li.fold")).forEach(function (li) {
-      li.hidden = !inView[li.getAttribute("data-fold")];
-    });
-  }
-  if (outline) {
-    slice(outline.querySelectorAll("li.fold > .fold-box")).forEach(function (b) {
-      b.hidden = false;
+    folds.forEach(function (f) {
+      if (!f.rows.length || f.open) { return; }
+      var li = document.createElement("li"), b = document.createElement("button");
+      var depth = /depth-\d+/.exec(f.rows[0].className);
+      li.className = "fold " + (depth ? depth[0] : "depth-1");
+      b.type = "button";
+      b.className = "fold-box";
+      b.setAttribute("aria-expanded", foldOpen[f.key] ? "true" : "false");
+      b.textContent = f.rows.length + " proved statements \u25B8";
       b.addEventListener("click", function () {
-        var k = b.parentNode.getAttribute("data-fold");
-        foldOpen[k] = !foldOpen[k];
-        b.setAttribute("aria-expanded", foldOpen[k] ? "true" : "false");
+        foldOpen[f.key] = !foldOpen[f.key];
         outlineFollows(state.view);
       });
+      li.appendChild(b);
+      outline.insertBefore(li, f.rows[0]);
     });
   }
   function putBack() {

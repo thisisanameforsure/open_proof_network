@@ -745,48 +745,42 @@ def test_a_pill_click_opens_the_panel_and_moves_nothing(tmp_path: Path) -> None:
     assert href and href != "#" and href.endswith("/")  # still a link to the record page
 
 
-def test_the_toggle_shows_every_statement(tmp_path: Path) -> None:
-    """AC7 (R4): the toggle, hidden without the script, shows the ``all`` layout with the
-    off-route statements at their coordinates and names how many it adds; pressing it again
-    returns to ``routes``; pressing it while a leaf is selected clears the selection."""
-    with browser(off_route(tmp_path / "g"), tmp_path / "site") as pg:
+def test_every_statement_is_drawn_at_its_bookmark_and_nothing_on_the_page_swaps_to_it(
+    tmp_path: Path,
+) -> None:
+    """AC7 (R4), restated by F34-T55 (the owner, 2026-11-28: the button "deselects the route and
+    shows the WHOLE graph structure"): the ``all`` layout is still drawn at its bookmark, with
+    the off-route statements at their coordinates; no control on the page swaps the selected
+    route for it. The statements on no route are a link to §2, which leaves the route drawn."""
+    root = off_route(tmp_path / "g")
+    with browser(root, tmp_path / "site", view="all") as pg:
         lays = layouts_in(pg)
-        loaded = pg.evaluate(SNAPSHOT)
-        toggle = pg.locator("button.view-toggle")
-        assert toggle.is_visible()
-        label = toggle.text_content()
-        toggle.click()
-        pg.mouse.move(5, 5)
         on_all = pg.evaluate(SNAPSHOT)
-        all_label = toggle.text_content()
-        toggle.click()
-        pg.mouse.move(5, 5)
-        back = pg.evaluate(SNAPSHOT)
-        pg.locator(LEAF).nth(0).click()
-        pg.mouse.move(5, 5)
-        on_leaf = pg.evaluate(SNAPSHOT)
-        toggle.click()
-        pg.mouse.move(5, 5)
-        from_leaf = pg.evaluate(SNAPSHOT)
     assert VARIANT in lays["all"]["nodes"] and VARIANT not in lays["routes"]["nodes"]
-    assert loaded["toggle"] == "false" and VARIANT not in shown_nodes(loaded)
-    assert label and "1" in label
-    assert on_all["view"] == "all" and on_all["toggle"] == "true"
+    assert on_all["view"] == "all" and on_all["toggle"] is None
     assert_at_layout(on_all, lays["all"])
-    # The variants' divider and label, when the markup carries them (T2 draws them only when the
-    # opening layout has a loose group), follow each layout's group_y and are not drawn without one.
     if on_all["group"] is not None:
         assert on_all["group"]["shown"] == isinstance(lays["all"]["group_y"], (int, float))
         if on_all["group"]["shown"]:
             assert on_all["group"]["y"] == pytest.approx(lays["all"]["group_y"])
-        assert back["group"]["shown"] == isinstance(lays["routes"]["group_y"], (int, float))
-    assert "view=all" in on_all["hash"]
-    assert all_label != label
-    assert back["view"] == "routes" and back["toggle"] == "false"
-    assert_at_layout(back, lays["routes"])
-    assert on_leaf["toggle"] == "false" and on_leaf["pressed"]
-    assert from_leaf["view"] == "all" and from_leaf["pressed"] == []
-    assert from_leaf["toggle"] == "true"
+    with browser(root, tmp_path / "site2") as pg:
+        loaded = pg.evaluate(SNAPSHOT)
+        other = pg.evaluate(
+            """v => [...document.querySelectorAll('svg.selector g.kind-leaf')]
+                 .map(g => g.dataset.view).find(x => x !== v)""",
+            loaded["view"],
+        )
+        pg.locator(f'svg.selector g.kind-leaf[data-view="{other}"]').click()
+        pg.mouse.move(5, 5)
+        link = pg.locator(".off-route-line a")
+        assert link.is_visible() and "1 more statement is not on a route" in link.inner_text()
+        link.click()
+        pg.wait_for_timeout(400)
+        after = pg.evaluate(SNAPSHOT)
+        top = pg.evaluate("document.getElementById('not-on-route').getBoundingClientRect().top")
+    assert VARIANT not in shown_nodes(loaded)
+    assert after["view"] == other, (after["view"], other)
+    assert 0 <= top < 400, top
 
 
 def test_unticking_stop_at_proved_shows_the_followed_set(tmp_path: Path) -> None:
@@ -895,9 +889,11 @@ def page_layouts(page: str) -> dict[str, Any]:
 
 
 def toggle_of(page: str) -> str:
-    m = re.search(r'<button type="button" class="chip view-toggle"[^>]*>[^<]*</button>', page)
-    assert m is not None, "no view-toggle"
-    return m.group(0)
+    """F34-T55: the words that say how many statements the routes leave out — a quiet link to §2
+    under the drawing (it was the view-toggle button)."""
+    m = re.search(r'<p class="off-route-line"><a href="#not-on-route">([^<]*)</a></p>', page)
+    assert m is not None, "no off-route line"
+    return m.group(1)
 
 
 def render_shelved(root: Path, shelved: dict[str, dict[str, Any]]) -> dict[str, str]:
@@ -930,7 +926,7 @@ def test_a_shelved_hole_is_under_the_toggle_not_on_the_routes_view(tmp_path: Pat
     assert "shelved by alice on 2026-10-24: Too &lt;b&gt;weak&lt;/b&gt; to help the root" in title
     assert "<b>" not in title
     toggle = toggle_of(page)
-    assert "Show 1 more statement" in toggle and "1 shelved" in toggle, toggle
+    assert "1 more statement is not on a route" in toggle and "1 shelved" in toggle, toggle
     # F34-T5 (F34-Q20): the statement's panel on its problem's page, not a Problems row
     problem = next(
         v
@@ -960,7 +956,8 @@ def test_a_route_whose_holes_are_all_shelved_loses_its_junction(tmp_path: Path) 
     junction = element(svg, ROUTE_ONE)
     assert {"junction", "dead", "off-view"} <= classes(svg, ROUTE_ONE)
     assert "retired" in junction and "Route 1 is a distraction" in junction
-    assert "Show 2 more statements" in toggle_of(page) and "2 shelved" in toggle_of(page)
+    assert "2 more statements are not on a route" in toggle_of(page)
+    assert "2 shelved" in toggle_of(page)
 
 
 def shelved_doc() -> dict[str, Any]:

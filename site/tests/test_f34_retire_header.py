@@ -33,7 +33,9 @@ PAGE = f"problems/{TARGET}/index.html"
 
 def groups(page: str) -> dict[str, str]:
     return dict(
-        re.findall(r'<div class="figure-retire" data-view="([^"]+)" hidden>(.*?)</div>', page, re.S)
+        re.findall(
+            r'<details class="figure-retire" data-view="([^"]+)" hidden>(.*?)</details>', page, re.S
+        )
     )
 
 
@@ -46,7 +48,7 @@ def test_each_numbered_end_has_its_routes_retire_controls(pages: dict[str, str])
 
 
 def test_no_service_no_header_controls(static_pages: dict[str, str]) -> None:  # noqa: F811
-    assert 'class="figure-retire"' not in static_pages[PAGE]
+    assert "figure-retire" not in static_pages[PAGE]
 
 
 def test_a_steward_sees_retire_on_the_drawn_routes_header(served: str) -> None:  # noqa: F811
@@ -55,6 +57,9 @@ def test_a_steward_sees_retire_on_the_drawn_routes_header(served: str) -> None: 
         b = p.chromium.launch()
         pg = b.new_page(viewport={"width": 1440, "height": 900})
         pg.goto(served + f"/problems/{TARGET}/")
+        # F34-T55: one "Retire this route…" control; the splits and their buttons are inside it
+        pg.wait_for_selector(".figure-retire:not([hidden]) > summary", timeout=10000)
+        pg.locator(".figure-retire:not([hidden]) > summary").click()
         pg.wait_for_selector(".figure-retire:not([hidden]) .retire-act button", timeout=10000)
         drawn = pg.evaluate("document.querySelector('svg.dag').dataset.view")
         shown = pg.evaluate(

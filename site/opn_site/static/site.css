@@ -1685,8 +1685,8 @@ svg.dag path.edge.on-path { stroke: var(--ink); stroke-width: 2.5; }
   .route-outline > li > a.spec-more { min-height: 44px; display: inline-flex; align-items: center; }
 }
 /* F34-T41 (REMINDERS item 8): the drawn route's retire controls, under its caption */
-.figure-retire { margin: 0 0 var(--s3); font-family: var(--sans); font-size: 13px; }
-.figure-retire .set-route { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin: 0 0 var(--s1); }
+.figure-retire { margin: 0; font-family: var(--sans); font-size: 13px; }
+.figure-retire .set-route { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin: 0 0 var(--s2); }
 /* F34-T46 (ROUND-2 D3): a split is named only beside a control a steward or curator was given,
    or beside what shelving did to it; every other reader sees no line here at all */
 .figure-retire .set-route:has(> .retire-act[hidden]) { display: none; }
@@ -1799,6 +1799,22 @@ svg.dag[data-view^="hard/"] .node.harder, svg.dag[data-view^="hard/"] .junction.
 .figure-card .figure-cap { margin: 0; }
 .figure-card .figure-cap strong { font-size: 15px; }
 .figure-card .figure-folds { align-self: flex-start; margin: 0; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 4px; color: var(--ink); }
+/* F34-T55 (the owner, 2026-11-28): one row under the figure's heading — the fold control and, for
+   a steward or curator, "Retire this route…" — and nothing else above the drawing. The splits a
+   route goes through are inside the retire control, which opens under the row. */
+.figure-acts { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s3); }
+.figure-acts:not(:has(> :not([hidden]))) { display: none; }
+.figure-retire:not(:has(.retire-act:not([hidden]))) { display: none; }
+.figure-retire > summary.retire-route { list-style: none; cursor: pointer; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 4px; color: var(--ink); width: max-content; }
+.figure-retire > summary.retire-route::-webkit-details-marker { display: none; }
+.figure-retire > summary.retire-route:hover, .figure-retire > summary.retire-route:focus-visible { border-color: var(--ink); }
+.figure-retire[open] { flex-basis: 100%; order: 2; }
+.figure-retire .retire-choices { margin-top: var(--s3); padding: var(--s3) var(--s4); border: 1px solid var(--rule); border-radius: 4px; max-width: 72ch; }
+.figure-retire .retire-lead { margin: 0 0 var(--s3); color: var(--muted); }
+/* the statements on no route: a quiet line under the drawing, to §2 */
+.off-route-line { margin: var(--s3) 0 0; font-family: var(--sans); font-size: 13px; }
+.off-route-line a { color: var(--muted); text-decoration: underline; }
+.off-route-line a:hover, .off-route-line a:focus-visible { color: var(--ink); }
 .dag-wrap > .dag-caption { position: static; margin: 0; font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--muted); max-width: 72ch; }
 .dag-caption strong { color: var(--ink); }
 .dag-caption .cap-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); vertical-align: 0; }

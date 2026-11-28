@@ -43,6 +43,8 @@ from opn_site import dag, routes_view
 #: A junction is a dot in a box this wide (as the routes drawing drew it, F27-T3).
 JUNCTION_W = routes_view.JUNCTION_W
 ALL = "all"
+#: F34-T55: §2 of the problem page, where the statements on no route are listed.
+OFF_ROUTE_ID = "not-on-route"
 ROUTES = "routes"
 #: F27-R14 (D-25 v3.52): the routes view with the strictly harder routes added, its own toggle's.
 HARDER = "harder"
@@ -1407,31 +1409,19 @@ def _follow_toggle() -> str:
     )
 
 
-def _toggle(hidden: int, shelved: int = 0, harder: int = 0, harder_proved: int = 0) -> str:
-    """The view-toggle's words: how many statements ``all`` adds to ``routes``, and (F31-T10)
-    how many of those are shelved rather than on no route, and (F27-R14) how many lie only on
-    strictly harder routes, with how many of those are proved."""
+def _toggle(hidden: int, shelved: int = 0) -> str:
+    """How many statements are on no route, and (F31-T10) how many of those are shelved.
+    F34-T55 (the owner, 2026-11-28): a quiet link under the drawing to §2, which lists them —
+    it was a full-width button that swapped the selected route for a drawing of every
+    statement. The statements only on strictly harder routes (F27-R14) are not counted: they
+    are on a route, behind "Show n harder routes" under the picker, and §2 does not list them."""
     if not hidden:
         return ""
-    noun = "statement" if hidden == 1 else "statements"
-    off_route = hidden - shelved - harder
-    if not shelved and not harder:
-        detail, why = "", " on no route"
-    else:
-        parts = [f"{off_route} on no route"] if off_route else []
-        if shelved:
-            parts.append(f"{shelved} shelved")
-        if harder:
-            route_noun = "route" if harder == 1 else "routes"
-            parts.append(
-                f"{harder} on strictly harder {route_noun}"
-                + (f", {harder_proved} of them proved" if harder_proved else "")
-            )
-        detail = why = f" ({', '.join(parts)})"
+    noun = "statement is" if hidden == 1 else "statements are"
+    detail = f" ({shelved} shelved)" if shelved else ""
     return (
-        f'<button type="button" class="chip view-toggle" data-view="{ALL}" aria-pressed="false" '
-        f'data-shown-label="Hide the {hidden} {noun}{why}" hidden>'
-        f"Show {hidden} more {noun}{detail}</button>"
+        f'<p class="off-route-line"><a href="#{OFF_ROUTE_ID}">'
+        f"{hidden} more {noun} not on a route{detail} ↓</a></p>"
     )
 
 
@@ -1521,38 +1511,6 @@ FOLD = "fold:"
 FOLD_OPEN = "~fold"
 #: F34-T47: the suffix of the view with every fold of a route open.
 ALL_OPEN = "~open"
-
-
-def outline_folds(rows: list[tuple[str, int]], proved: set[str]) -> list[tuple[int, int]]:
-    """F34-T24 (R15): the folds of an outline, as row ranges [start, end) — each a run of
-    sibling statements whose subtrees are entirely proved, holding at least two statements. The
-    root (row 0) is never folded; a sibling not entirely proved is looked into."""
-    folds: list[tuple[int, int]] = []
-
-    def end(i: int) -> int:
-        j = i + 1
-        while j < len(rows) and rows[j][1] > rows[i][1]:
-            j += 1
-        return j
-
-    def walk(lo: int, hi: int) -> None:
-        run: list[int] = []  # [start, end) of the current run of proved siblings
-        i = lo
-        while i < hi:
-            j = end(i)
-            if all(rows[k][0] in proved for k in range(i, j)):
-                run = [run[0], j] if run else [i, j]
-            else:
-                if run and run[1] - run[0] >= 2:
-                    folds.append((run[0], run[1]))
-                run = []
-                walk(i + 1, j)
-            i = j
-        if run and run[1] - run[0] >= 2:
-            folds.append((run[0], run[1]))
-
-    walk(1, len(rows))
-    return sorted(folds)
 
 
 def view_folds(
@@ -1796,7 +1754,7 @@ def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawi
             marks.add(f"relation-{label}")
     if any(n in shelved_rows for n in vs[ALL].nodes):
         marks.add("shelved")  # F31-T10
-    hidden, shelved_hidden, harder_hidden, harder_proved = _hidden_counts(vs, d, shelved_rows, dom)
+    hidden, shelved_hidden, harder_hidden, _harder_proved = _hidden_counts(vs, d, shelved_rows, dom)
     doc = json.dumps(layouts_document(lays), separators=(",", ":")).replace("</", "<\\/")
     merged_rows = list(merged_nodes(rows.values(), d, root).values())
     crossing = [ln for ln in dag.lines(merged_rows) if (ln[0] in set(band)) != (ln[1] in set(band))]
@@ -1843,11 +1801,16 @@ def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawi
     by_id = {r.id: r for r in route_rows}
     retire = (
         "".join(
-            f'<div class="figure-retire" data-view="{escape(leaf_of[s.id])}" hidden>'
+            # F34-T55 (the owner, 2026-11-28): one control beside the fold control; the splits
+            # the route goes through, each with its own retirement, are inside it
+            f'<details class="figure-retire" data-view="{escape(leaf_of[s.id])}" hidden>'
+            '<summary class="retire-route">Retire this route…</summary>'
+            '<div class="retire-choices"><p class="retire-lead">A route goes through one split '
+            "or more. Retiring a split takes away every route through it.</p>"
             + routes_view.retire_controls(
                 s, by_id, prefix or "", lambda n: dag.label_of(n, names, labels)
             )
-            + "</div>"
+            + "</div></details>"
             for s in whole.sets
             if s.id in leaf_of
         )
@@ -1939,9 +1902,7 @@ def drawing(  # noqa: PLR0912, PLR0913, PLR0915 — the page's inputs, one drawi
         else "",
         layouts_json=f'<script type="application/json" id="graph-layouts">{doc}</script>',
         # the general toggle only when something is on no route (F34-R18); then it says all
-        toggle=_toggle(hidden, shelved_hidden, harder_hidden, harder_proved)
-        if hidden > harder_hidden
-        else "",
+        toggle=_toggle(hidden - harder_hidden, shelved_hidden),
         harder_toggle=_harder_toggle(len(hard)) if harder_selector else "",
         harder_selector=harder_selector,
         marks=frozenset(marks),

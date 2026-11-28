@@ -86,11 +86,11 @@ def test_the_harder_toggle_counts_routes_statements_and_proved() -> None:
 
 
 def test_the_general_toggle_appears_only_for_what_is_on_no_route() -> None:
-    """The general toggle shows ``all``, which holds every statement (it seeds the layouts), so
-    when something is on no route it says everything it adds; when nothing is, the strictly
-    harder routes have their own toggle and the general one is absent."""
+    """F34-T55 restates this: the line under the drawing counts what is on no route and links
+    to §2, which lists it; the statements on strictly harder routes are behind their own
+    control and are not counted; with nothing on no route there is no line."""
     d = one_view.drawing(harder_doc(stray=True), [], href={})
-    assert "Show 3 more statements (1 on no route, 2 on strictly harder routes" in d.toggle
+    assert "1 more statement is not on a route ↓" in d.toggle and "harder" not in d.toggle
     assert "Show 1 harder route" in d.harder_toggle
     assert one_view.drawing(harder_doc(), [], href={}).toggle == ""
 

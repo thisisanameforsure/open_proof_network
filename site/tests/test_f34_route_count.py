@@ -79,7 +79,7 @@ def test_a_fold_counts_for_the_statements_it_holds(tmp_path: Path) -> None:
 
 def test_the_figures_retire_line_carries_no_raw_id(pages: dict[str, str]) -> None:  # noqa: F811
     page = pages[PAGE]
-    groups = re.findall(r'<div class="figure-retire"[^>]*>(.*?)</div>', page, re.S)
+    groups = re.findall(r'<details class="figure-retire"[^>]*>(.*?)</details>', page, re.S)
     assert groups
     for g in groups:
         assert "<code>" not in g, g

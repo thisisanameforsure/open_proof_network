@@ -88,7 +88,7 @@ def test_every_line_of_every_view_is_drawn_once_and_off_route_ones_are_hidden() 
     vs = one_view.views(g, routes.read(g, []))
     want = {f"{s}>{t}" for v in vs.values() for s, t, _k in v.lines}
     assert set(keys) == want
-    assert d.toggle and "1 more" in d.toggle and 'data-view="all"' in d.toggle
+    assert d.toggle and "1 more" in d.toggle and 'href="#not-on-route"' in d.toggle
 
 
 def test_no_toggle_when_every_statement_is_on_a_route() -> None:
@@ -205,7 +205,7 @@ def test_complete_without_the_script(tmp_path: Path) -> None:
     for nid in (ROOT_NODE, *HOLE_IDS, THIRD):
         assert re.search(rf'<a href="/[^"]+"><g class="node [^"]*" data-node="{nid}"', svg), nid
         assert "off-view" not in classes_of(svg, nid)
-    assert 'class="chip view-toggle"' not in page or " hidden>" in page
+    assert "view-toggle" not in page  # F34-T55: no control swaps the route for everything
     # F34-T47 (ROUND-2 D1): no table; the list of routes is whole without the script
     assert "<table" not in page[page.index('<div class="graph-grid">') : page.index("</section>")]
     assert page.count('<li class="route-row') == 2

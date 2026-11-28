@@ -214,7 +214,7 @@ def test_the_toggle_counts_off_route_statements_but_not_the_band() -> None:
         {**node("u", origin="authored"), "uses": [], "proposed_for": None}
     )
     d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
-    assert d.hidden == 1 and "Show 1 more statement" in d.toggle
+    assert d.hidden == 1 and "1 more statement is not on a route" in d.toggle
 
 
 def test_the_layouts_json_has_no_crux_ids() -> None:

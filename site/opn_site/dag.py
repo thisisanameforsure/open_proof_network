@@ -39,6 +39,11 @@ MAX_ROW_W = 720
 #: The gap between the wrapped rows of one layer: closer than two layers, but room for a line
 #: passing between them to bend.
 WRAP_GAP_Y = 30
+#: F34-T57: the gap above and below a row that holds only junction dots (boxes narrower than
+#: ``DOT_W``, which take every line at their centre): such a row is a joint between two levels of
+#: statements, not a level, so the levels stand a little further apart than a wrapped row.
+DOT_GAP_Y = 16
+DOT_W = 40
 #: F04-T33: the room a line passing through a row keeps from the pills beside it, and from
 #: another passing line.
 PASS_GAP = 14
@@ -733,18 +738,29 @@ def _rows(  # noqa: PLR0913, PLR0917 — the ordering's inputs (F30-T1 added the
     return ranks, rank_of
 
 
-def _tops(ranks: _Ranks, layer_of: dict[str, int]) -> dict[int, float]:
+def _tops(
+    ranks: _Ranks, layer_of: dict[str, int], wid: Mapping[str, float] | None = None
+) -> dict[int, float]:
     """Each row's top, the highest row first: a layer's wrapped rows close together, layers
-    further apart."""
+    further apart, and (F34-T57) a row of nothing but dots close to the rows it joins."""
 
     def layer(r: int) -> int | None:
         return next((layer_of[v] for v in ranks.rows[r] if not _is_bend(v)), None)
+
+    def dots(r: int) -> bool:
+        boxes = [v for v in ranks.rows[r] if not _is_bend(v)]
+        return bool(boxes) and wid is not None and all(wid.get(v, DOT_W) < DOT_W for v in boxes)
+
+    def gap(r: int) -> int:
+        if dots(r) or dots(r + 1):
+            return DOT_GAP_Y
+        return WRAP_GAP_Y if layer(r) == layer(r + 1) else GAP_Y
 
     tops: dict[int, float] = {}
     y = float(PAD)
     for r in range(len(ranks.rows) - 1, -1, -1):
         if tops:
-            y += NODE_H + (WRAP_GAP_Y if layer(r) == layer(r + 1) else GAP_Y)
+            y += NODE_H + gap(r)
         tops[r] = y
     return tops
 
@@ -772,7 +788,7 @@ def _route(
     for key, items in beyond.items():
         p = at[key.split(_BEND, 1)[1]]
         # F27-T3: a box narrower than a pill (a junction dot) takes every line at its centre.
-        step = max(0.0, min(8.0, (p.w - 40) / max(len(items), 1)))
+        step = max(0.0, min(8.0, (p.w - DOT_W) / max(len(items), 1)))
         for k, (_x, i) in enumerate(sorted(items)):
             port[(key, i)] = p.x + p.w / 2 + (k - (len(items) - 1) / 2) * step
     out: list[Edge] = []
@@ -820,7 +836,7 @@ def layout(  # noqa: PLR0913, PLR0915 — the drawing's inputs (F30-T1 the seed,
     wid: dict[str, float] = {v: float(node_width(v, names, widths, labels)) for v in status}
     wid.update({v: 0.0 for row in ranks.rows for v in row if _is_bend(v)})
     left, span = _balance(ranks, wid)
-    tops = _tops(ranks, layer_of)
+    tops = _tops(ranks, layer_of, wid)
     tree_h = max(tops.values()) + NODE_H if tops else float(PAD)
 
     # The group no line joins, wrapped and centred under the tree.

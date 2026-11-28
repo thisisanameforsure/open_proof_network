@@ -1311,7 +1311,6 @@ def topic_of(record: dict[str, Any] | None) -> str:
 
 
 #: F34-T24 (R15): the outline's fold rule, one with the drawing's home module
-outline_folds = one_view.outline_folds
 
 
 def figure_top(svg: str, layouts_json: str, *, rows: int = 3) -> tuple[str, int]:
@@ -3458,6 +3457,7 @@ class Renderer:
         # F34-T50 (ROUND-2 D4): the phone's row of route buttons, under the picker
         selector_block += picture.route_buttons if picture.selector else ""
         sets_block = picture.layouts_json
+        # (F34-T55: the statements on no route are a quiet link under the drawing, to §2)
         # F34-T12 (R14): Tree and List, two tabs over the selector and the list, each pane in a
         # wrapper of its own; the tabs are hidden until the script can switch them, so without it
         # both stay on the page. F34-T47 (ROUND-2 D1): the List is one row per route, beside the
@@ -3537,8 +3537,12 @@ class Renderer:
             legend=self.graph_legend(tv, picture, toggle=False),
             # F34-T21: beside the folded key, never inside it; F27-R14 the harder toggle beside
             view_toggle=picture.toggle,
-            figure_cap=figure_cap + figure_folds,  # F34-T33, T47
-            figure_retire=picture.retire,  # F34-T41
+            figure_cap=figure_cap,  # F34-T33
+            # F34-T55 (the owner, 2026-11-28): one row under the heading — the fold control
+            # (T47) and "Retire this route…" (T41) — and nothing else above the drawing
+            figure_acts=f'<div class="figure-acts">{figure_folds}{picture.retire}</div>'
+            if figure_folds or picture.retire
+            else "",
             dag=svg,
             band=picture.band,  # F30-T11: the proposed statements, under the drawing
             selector=selector_block,
@@ -4850,7 +4854,9 @@ class Renderer:
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
         title, id_line = self.panel_heading(tv, nv)
         known, work = self.known_section(tv, nv), self.work_section(tv, nv)
-        markup = _template("statement-panel.html").substitute(
+        markup = _template(
+            "statement-panel.html"
+        ).substitute(
             node_id=esc(nid),
             title=title,
             # ROUND-2 ("no raw ids outside the sidenotes and the Record"): a named statement's id
@@ -4863,6 +4869,7 @@ class Renderer:
             attempts=esc(self.attempts_words(nv)),
             proof_row=self.proof_row(tv, nv),
             role=self.panel_role(tv, nv),
+            restated=self.hole_origin(tv, nv, restated=True),  # F34-T54: in the Record tab
             claim=self.claim_block(tv, nv),
             how=self.how_block(tv, nv),
             known=known,
@@ -4902,7 +4909,9 @@ class Renderer:
         """The header's one line: a hole names the parent it came from (T46); any other node its
         role, with a related variant's pertinence (D-30). ``page``: on the statement's own page,
         where a link goes to the other statement's page rather than its panel (F04-T50)."""
-        hole_of = self.hole_origin(tv, nv, page=page)
+        # F34-T54: the panel opens with one line, the split that made the hole; the splits that
+        # restated the statement are in its Record tab. Its own page says all of them here.
+        hole_of = self.hole_origin(tv, nv, page=page, restated=None if page else False)
         if hole_of:
             return hole_of
         role = esc(sentence(self.node_role(tv, nv).capitalize()))
@@ -5146,28 +5155,18 @@ class Renderer:
         if len(rows) < 2:
             return ""
         rows = tuple((n, d) for n, d in rows if n in tv.nodes)
-        proved = {n for n, _d in rows if self.node_state(tv.nodes[n]) == "proved"}
-        folds = outline_folds(list(rows), proved)  # F34-T24 (R15)
-        fold_of = {i: k for k, (a, b) in enumerate(folds) for i in range(a, b)}
-        starts = {a: (k, b - a, rows[a][1]) for k, (a, b) in enumerate(folds)}
+        # F34-T56: no fold of its own — graph.js folds the rows the drawing folds for the route
+        # shown, so a phone and a desktop count the same statements
         items = []
-        for i, (nid, depth) in enumerate(rows):
+        for nid, depth in rows:
             nv = tv.nodes[nid]
-            if i in starts:
-                k, n, d = starts[i]
-                items.append(
-                    f'<li class="fold depth-{min(d, 8)}" data-fold="{k}">'
-                    '<button type="button" class="fold-box" aria-expanded="false" hidden>'
-                    f"{n} proved statements &#9656;</button></li>"
-                )
-            in_fold = f' data-in-fold="{fold_of[i]}"' if i in fold_of else ""
             label = record_words(self.node_label(nv) or nid)
             more = ""
             if chips and nid in chips:
                 n, anchor = chips[nid]
                 more = f'<a class="spec-more" href="#{esc(anchor)}">+ {n} speculative ↓</a>'
             items.append(
-                f'<li class="depth-{min(depth, 8)}" data-node="{esc(nid)}"{in_fold}>'
+                f'<li class="depth-{min(depth, 8)}" data-node="{esc(nid)}">'
                 f'<a href="{esc(self.node_path(tv.target_id, nid))}" data-node="{esc(nid)}">'
                 f"{self.dot(self.dot_state(self.node_state(nv)))}"
                 f'<span class="outline-label">{label}</span></a>{more}</li>'
@@ -5391,9 +5390,13 @@ class Renderer:
             f"<code>sorry</code> (D-12 #5); the whole file: {self.file_link(rel)}</p></details>"
         )
 
-    def hole_origin(self, tv: TargetView, nv: NodeView, *, page: bool = False) -> str:
+    def hole_origin(
+        self, tv: TargetView, nv: NodeView, *, page: bool = False, restated: bool | None = None
+    ) -> str:
         """T46: on a hole's panel, the parent whose merged partial made it, one line each (a
-        node a partial restated as a lemma hole is named by that parent too)."""
+        node a partial restated as a lemma hole is named by that parent too). ``restated``
+        (F34-T54): ``False`` keeps only the split that made the hole, ``True`` only the splits
+        that restated it, ``None`` both."""
         lines = []
         for parent in tv.nodes.values():
             for d in parent.graph_entry.get("decompositions") or []:
@@ -5404,13 +5407,12 @@ class Renderer:
                         continue
                     partial = str(d.get("partial") or "")
                     rel = f"{Path(parent.statement_path).parent.as_posix()}/{partial}"
-                    what = (
-                        "Hole"
-                        if graphmod.is_hole_of(
-                            parent.node_id, nv.node_id, str(nv.graph_entry.get("origin"))
-                        )
-                        else "Restated as hole"
+                    own = graphmod.is_hole_of(
+                        parent.node_id, nv.node_id, str(nv.graph_entry.get("origin"))
                     )
+                    if restated is not None and restated == own:
+                        continue
+                    what = "Hole" if own else "Restated as hole"
                     href = self.node_href(tv.target_id, parent.node_id, page=page)
                     of = self.node_label(parent)
                     shown = record_words(of) if of else esc(parent.node_id)
