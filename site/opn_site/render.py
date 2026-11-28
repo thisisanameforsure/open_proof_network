@@ -5395,9 +5395,11 @@ class Renderer:
     ) -> str:
         """T46: on a hole's panel, the parent whose merged partial made it, one line each (a
         node a partial restated as a lemma hole is named by that parent too). ``restated``
-        (F34-T54): ``False`` keeps only the split that made the hole, ``True`` only the splits
-        that restated it, ``None`` both."""
+        (F34-T54): ``False`` keeps only the first split that made the hole — the panel's one
+        opening line — ``True`` every other line (a later split of the same parent that reused
+        the hole, and the splits that restated it), ``None`` all of them."""
         lines = []
+        seen_own = False
         for parent in tv.nodes.values():
             for d in parent.graph_entry.get("decompositions") or []:
                 if not isinstance(d, dict):
@@ -5410,7 +5412,9 @@ class Renderer:
                     own = graphmod.is_hole_of(
                         parent.node_id, nv.node_id, str(nv.graph_entry.get("origin"))
                     )
-                    if restated is not None and restated == own:
+                    first = own and not seen_own
+                    seen_own = seen_own or own
+                    if restated is not None and restated == first:
                         continue
                     what = "Hole" if own else "Restated as hole"
                     href = self.node_href(tv.target_id, parent.node_id, page=page)
