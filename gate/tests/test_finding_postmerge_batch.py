@@ -570,12 +570,14 @@ def test_one_commit_credits_the_batch_and_a_moved_main_is_caught_up(
 ) -> None:
     """Restated by F07-T55: a moved main was left to the later run (T45) or replayed (T33); the
     run now catches up itself (``publish``, tested in ``test_finding_postmerge_catch_up.py``),
-    and what main already credits is still never credited twice."""
+    and what main already credits is still never credited twice. Restated by F07-T90: the
+    replay is dispatched by the program's ``dispatch-replay``, one per merge."""
     run = step_run(gate_doc, name="Commit the attestation")
     assert 'git commit -m "gate: ${credits} ' in run
     assert 'python3 "$helper" publish' in run
     assert 'replay_owed FETCH_HEAD "$REPLAY"' in run
-    assert "replay_pr=" in run
+    assert 'python3 "$helper" dispatch-replay "$1" $2' in run
+    assert "replay_pr=" in helper_source(gate_doc)
 
 
 def test_every_secret_is_still_named_by_one_step_only(gate_doc: dict[Any, Any]) -> None:

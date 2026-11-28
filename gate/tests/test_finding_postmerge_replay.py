@@ -28,6 +28,7 @@ from test_finding_merge_actor_wakes import (
     world,
 )
 from test_finding_merge_actor_workflow import RULES, _text, check, load_doc, load_pick, pull
+from test_finding_postmerge_batch import helper_source
 
 GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
 STEP9_JOB = "step 9 (a non-author approving review)"
@@ -160,10 +161,14 @@ def test_every_step_reads_the_merge_commit_not_the_event_commit(gate_doc: dict[A
 def test_a_moved_main_dispatches_the_replay_instead_of_asking_for_hands(
     gate_doc: dict[Any, Any],
 ) -> None:
+    """Restated by F07-T90: the dispatch is the post-merge program's ``dispatch-replay``, which
+    sends one replay per merge (``test_finding_replay_once.py``)."""
     commit = commit_step(gate_doc)
     run = str(commit["run"])
     assert "re-render by hand" not in run
-    assert "gh workflow run gate.yml" in run and "replay_pr" in run
+    assert 'python3 "$helper" dispatch-replay' in run
+    source = helper_source(gate_doc)
+    assert '"workflow", "run", "gate.yml"' in source and "replay_pr=" in source
     assert "github.token" in str(commit.get("env", {}))
 
 

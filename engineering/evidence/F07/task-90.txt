@@ -1,0 +1,46 @@
+F07-T90 (Q95): a merge is replayed once, however many runs find it owed.
+
+The record (graph, 2026-11-24). Every "gate: replay of #N" run the host lists, by title:
+  gate: replay of #1681   177
+  gate: replay of #1583    13
+  gate: replay of #1549     6
+The #1681 replays were dispatched from 2026-11-23T15:34Z to 2026-11-24T02:11Z, by post-merge runs
+on 175 distinct heads of main. #1681 was credited on main at 13e28997e4. 64 replays ran to success,
+each finding the work done only after its render; 113 were still queued at 06:31Z and were
+cancelled by hand. While they queued they held the account's 20 concurrent jobs, so pull
+request gates waited for hours.
+
+Cause: three dispatch sites (the find step's dispatch_replays, the commit step's replay_owed and
+publish's replay) each ran gh workflow run on their own, and none asked whether a replay of the
+same merge was already queued or running. A replay checked its credit at the commit it was
+dispatched at, which was hours old by the time it ran.
+
+Fix (graph branch f07-t90-replay-once):
+0127af5ee5 F07-T90: one replay per merge — dispatch skips a queued replay; a replay reads main and yields to an older one
+d1c80abf42 F07-T90: the seam — every replay dispatched through one command, at today's behaviour
+  - one program function, dispatch_replay, that all three sites call: it skips a merge the rev
+    credits and a merge whose replay the host lists as not completed. A host that does not answer
+    is read as none pending (C7), as before.
+  - a replay reads the credit from origin/main as fetched when it starts, as well as from HEAD.
+  - a replay yields to an older replay of the same merge that has not ended; the oldest goes on.
+
+Red first: the seam (dispatch-replay at today's behaviour) went in as its own commit, then:
+FAILED gate/tests/test_finding_replay_once.py::test_the_night_of_1681_dispatches_one_replay
+FAILED gate/tests/test_finding_replay_once.py::test_a_replay_reads_the_credit_from_main_as_it_is_not_as_dispatched
+FAILED gate/tests/test_finding_replay_once.py::test_a_replay_yields_to_an_older_replay_of_the_same_merge
+3 failed, 5 passed in 7.80s
+
+Green: uv run --frozen pytest -q gate/tests/test_finding_replay_once.py -v
+============================== 8 passed in 8.31s ===============================
+
+Two older tests pinned the shell text of the dispatch and were restated to the command
+(test_finding_postmerge_replay.py, test_finding_postmerge_batch.py).
+Every test that reads the graph's workflows, with the branch first in REFS: 357 passed.
+
+Defect 2 of the incident report, the product render cost, was measured and needs no change.
+The 65-minute renders of 2026-11-24 were fixed the same day by F14-T28's per-file attestation
+cache. Over the last 40 push runs of gate.yml on the graph, the "Regenerate the merge products"
+step ran 12 times:
+  n=12  min=76 s  median=100 s  max=277 s   (458 targets on main, 2026-11-28)
+On the two slowest post-merge runs of 2026-11-27 the time went to real work: the Lean re-derive of a
+proof (825 s), the closure join (456 s), the olean cache (458 s) and the outline extraction (787 s).

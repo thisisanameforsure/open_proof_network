@@ -2066,3 +2066,17 @@ The law of the project:
   minutes for a 13-minute suite); nothing heavy beside a hook. **`pgrep -f` on a commit's command
   line matches every stale wait loop that quotes it** (2026-09-17's lesson, paid again): wait on a
   marker the command writes.
+
+- 2026-11-28 — A dispatch that does not ask what is queued is a feedback loop. Every post-merge run
+  that found #1681 owed dispatched a replay of it, 177 in all over ten hours; the replays filled the
+  account's twenty concurrent jobs, every gate queued behind them, and #1681 stayed owed longer, so
+  the next run dispatched another (F07-T90, Q95). The replay's own idempotence check existed and
+  read the commit it was dispatched at, hours stale by the time it ran. One function now dispatches,
+  and it asks the host first. Two smaller ones. **Count before you write the number**: the evidence
+  first said "177 distinct heads" and "85 minutes", both typed from the first page of a listing;
+  the counted answer was 175 heads and 15:34Z–02:11Z. **A script the job runs bare is not the script
+  the tests import**: harness-drift had failed every week since it shipped, because pytest's
+  `pythonpath` put `site/` on the path and the script's own list did not (F16-T11); a test that runs
+  the script as a subprocess with no `PYTHONPATH` is the one that sees it. And an incident's second
+  half can already be fixed: the hour-long render was F14-T28's, two minutes now, measured before
+  anything was built for it.
