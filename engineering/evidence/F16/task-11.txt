@@ -1,0 +1,22 @@
+F16-T11: the harness-drift job reaches its report.
+
+The record: harness-drift.yml failed on every scheduled run since it shipped (42633491013 on
+2026-11-09, 43881013477 on 2026-11-16, 45216746220 on 2026-11-23). Each run's level-2 steps died at
+import with "ModuleNotFoundError: No module named 'opn_site'": the api's glosses read the site's
+prose renderer, and gate/tools/harness_check.py put gate, api and the two test folders on its
+import path but not site. Both steps end in "|| true", so the failure surfaced one step later as
+"FileNotFoundError: pinned.json" in the comparison.
+
+The fast tier never saw it: pytest's pythonpath (pyproject.toml) includes site, and the runner's
+tests load the module in process.
+
+Red first: gate/tests/test_harness_check.py::test_the_script_runs_outside_pytest runs the
+script as the job does, a subprocess with no PYTHONPATH and an empty --bin-dir.
+  without the fix:  E   ModuleNotFoundError: No module named 'opn_site'   (1 failed)
+  with the fix:     1 passed
+Fix: "site" added to the script's own import path.
+
+uv run --frozen pytest -q gate/tests/test_harness_check.py
+13 passed, 2 warnings in 15.95s
+
+The first green scheduled run is the workflow's next Monday run after the push.

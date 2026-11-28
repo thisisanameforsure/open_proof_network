@@ -534,7 +534,7 @@ fast-tier tests; the image is pinned but was not built here, because the sandbox
 refuses its apt fetches, so CI installs the same lockfile with <code>npm ci</code>) &middot; T8 built
 2026-09-25 (the <code>verify-harness</code> CI job and the weekly <code>harness-drift.yml</code>;
 the regression comparison is tested; the first green scheduled run id is pending) &middot;
-T9&ndash;T10 todo</div>
+T9&ndash;T10 todo &middot; T11 &#10003; 2026-11-28 (red first <code>ModuleNotFoundError: opn_site</code> with the script run as the job runs it, green 13 passed; <code>engineering/evidence/F16/task-11.txt</code>; the first green scheduled run follows the push)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red first: each task lands its tests failing, as
@@ -592,6 +592,9 @@ first.</p>
     <td><code>engineering/evidence/F16/fresh-*.md</code>, <code>gate/clients/README.md</code>,
     <code>engineering/specs/findings.html</code></td><td>T9</td>
     <td><code>uv run python gate/tools/bench.py replay --bench &lt;dir&gt; --assert</code> per harness</td></tr>
+  <tr><td>F16-T11</td><td><strong>The harness-drift job reaches its report.</strong> Every scheduled run since T8 died at import (<code>opn_site</code>, which the api&rsquo;s glosses read, was not on the script&rsquo;s path) and then failed on a missing <code>pinned.json</code>; pytest&rsquo;s own path hid it.</td>
+    <td><code>gate/tools/harness_check.py</code>, <code>gate/tests/test_harness_check.py</code></td><td>T8</td>
+    <td><code>uv run --frozen pytest -q gate/tests/test_harness_check.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F16 spec v0 · 2026-09-24 · drafted from the owner's "hobbyists first,

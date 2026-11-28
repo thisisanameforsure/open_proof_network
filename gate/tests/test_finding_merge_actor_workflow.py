@@ -45,6 +45,7 @@ PATH = ".github/workflows/merge.yml"
 #: sub-lane per target) reached main 2026-11-20 with the re-pin to network 90807562, and came
 #: out then.
 REFS = (
+    "f07-t90-replay-once",  # F07-T90: one replay per merge; first while it is a graph branch
     "f14-t22-intake-lane",
     "audit-b-workflows",
     "origin/main",
