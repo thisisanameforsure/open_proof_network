@@ -29,27 +29,6 @@ from opn_site import render
 PAGE = f"problems/{TARGET}/index.html"
 
 
-@pytest.mark.parametrize(
-    ("rows", "proved", "folds"),
-    [
-        # a root, two proved holes side by side: one fold of both
-        ([("r", 0), ("a", 1), ("b", 1)], {"a", "b"}, [(1, 3)]),
-        # one proved hole beside an open one: nothing boxed
-        ([("r", 0), ("a", 1), ("b", 1)], {"a"}, []),
-        # a proved hole whose own hole is open is not folded; its proved sibling alone is not either
-        ([("r", 0), ("a", 1), ("a1", 2), ("b", 1)], {"a", "b"}, []),
-        # a proved subtree (a, a1) beside a proved leaf b: one fold of three statements
-        ([("r", 0), ("a", 1), ("a1", 2), ("b", 1), ("c", 1)], {"a", "a1", "b"}, [(1, 4)]),
-        # the root itself is never folded, even when proved
-        ([("r", 0), ("a", 1), ("b", 1)], {"r", "a", "b"}, [(1, 3)]),
-    ],
-)
-def test_runs_of_proved_siblings_fold(
-    rows: list[tuple[str, int]], proved: set[str], folds: list[tuple[int, int]]
-) -> None:
-    assert render.outline_folds(rows, proved) == folds
-
-
 def proved_pair(root: Path) -> Path:
     """``two_routes`` with both holes of the first split proved: that route has nothing open."""
     for n, hole in enumerate(HOLE_IDS, start=20):
@@ -67,19 +46,16 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
     return render_tree(proved_pair(two_routes(tmp_path_factory.mktemp("f34-folds") / "g")))
 
 
-def test_the_outline_boxes_the_proved_pair(pages: dict[str, str]) -> None:
+def test_the_outline_lists_the_proved_pair_as_rows(pages: dict[str, str]) -> None:
+    """F34-T56 restates T24's check of the outline's markup: the page carries every statement
+    of the routes as a row and no fold of its own (the rule over every route together counted
+    statements the drawn route does not hold); graph.js boxes the rows the drawing folds."""
     page = pages[PAGE]
-    box = re.search(
-        r'<li class="fold depth-(\d+)" data-fold="(\d+)">'
-        r'<button type="button" class="fold-box" aria-expanded="false" hidden>([^<]+)</button>',
-        page,
-    )
-    assert box is not None
-    assert box.group(3).startswith("2 proved statements")
-    members = re.findall(
-        rf'<li class="depth-\d+" data-node="([^"]+)" data-in-fold="{box.group(2)}">', page
-    )
-    assert sorted(members) == sorted(HOLE_IDS)
+    outline = re.search(r'<ol class="route-outline".*?</ol>', page, re.S)
+    assert outline is not None
+    rows = re.findall(r'<li class="depth-\d+" data-node="([^"]+)">', outline.group(0))
+    assert set(HOLE_IDS) <= set(rows)
+    assert "fold" not in outline.group(0)
 
 
 # -- in a browser ------------------------------------------------------------------------------

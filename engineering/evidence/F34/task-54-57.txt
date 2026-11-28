@@ -1,0 +1,52 @@
+F34-T54 to T57 — the owner's review of the live problem pages, 2026-11-28
+
+What was asked, what was found, what changed
+--------------------------------------------
+1. "Selecting a statement shows five 'Restated as hole …' lines above the tabs."
+   Cause: the panel's opening line printed one line per split that names the statement.
+   Now (T54): the opening is one line (a hole names the split that made it); the splits that
+   restated it are in the Record tab. Live erdos-1094, "BHP short-interval primes": 1 line above
+   the tabs, 4 in Record (task-54-erdos-1094-panel-1440.png).
+
+2. "All the text below the 'Proved statements folded' button and above the diagram should be
+   removed. We need the retire this route button back."
+   Cause: a signed-in steward saw one "Split of …: … [Retire this route]" line per split of the
+   route (ten on erdos-1094's Route 1).
+   Now (T55): one "Retire this route…" control beside the fold control, for a steward or curator
+   only; it opens to the route's splits (task-55-steward-1440.png, from the test's fake service).
+
+3. "A full-width 'Show 1 more statement (1 shelved)' button … it deselects the route and shows
+   the WHOLE graph."
+   Now (T55): a quiet link under the drawing, "1 more statement is not on a route (1 shelved) ↓",
+   to §2, which lists it; the route stays drawn (task-54-57-erdos-257-figure-1440.png).
+   No control swaps the route for everything any more.
+
+4. "Desktop says 3 proved statements, the phone says 10, for the same route."
+   Cause: the phone outline had its own fold rule over all routes together and printed that
+   total. Now (T56): the outline boxes exactly what the drawing folds.
+
+5. "Large empty gaps between levels" on erdos-1094.
+   Cause: each row of junction dots took a whole level's height.
+   Now (T57): such a row is thin. Route 1's drawing: 1620 → 1060 tall.
+
+Measured on a render of the live graph (engineering/evidence/F34 captures, 1440 and 390)
+----------------------------------------------------------------------------------------
+erdos-1094 1440 open {"view": "sel/erdos-1094--h2--h1@1/erdos-1094--h2--h2@1", "viewBox": "0 0 752 1060", "drawingFolds": [3], "outlineFolds": [3], "headingToDrawing": 53, "bigButtons": 0, "offRoute": null, "panel": {"node": "erdos-1094", "holeOfAboveTabs": 0, "restatedInRecord": 0, "tabsFromPanelTop": 244}, "scrollWidth": 1440}
+erdos-1094 1440 restated 4 {"node": "erdos-1094--h2--h2--h1", "holeOfAboveTabs": 5, "restatedInRecord": 4, "tabsFromPanelTop": 287}
+erdos-1094 390 open {"view": "sel/erdos-1094--h2--h1@1/erdos-1094--h2--h2@1", "viewBox": "0 0 752 1060", "drawingFolds": [3], "outlineFolds": [3], "headingToDrawing": 53, "bigButtons": 0, "offRoute": null, "panel": null, "scrollWidth": 390}
+erdos-257 1440 open {"view": "sel/proves/erdos-257@1", "viewBox": "0 0 618 342", "drawingFolds": [], "outlineFolds": [], "headingToDrawing": 8, "bigButtons": 0, "offRoute": "1 more statement is not on a route (1 shelved) \u2193", "panel": {"node": "erdos-257", "holeOfAboveTabs": 0, "restatedInRecord": 0, "tabsFromPanelTop": 244}, "scrollWidth": 1440}
+erdos-257 1440 restated 1 {"node": "spec-137537c8", "holeOfAboveTabs": 1, "restatedInRecord": 1, "tabsFromPanelTop": 268}
+erdos-257 390 open {"view": "sel/proves/erdos-257@1", "viewBox": "0 0 618 342", "drawingFolds": [], "outlineFolds": [], "headingToDrawing": 8, "bigButtons": 0, "offRoute": "1 more statement is not on a route (1 shelved) \u2193", "panel": null, "scrollWidth": 390}
+(The "restated" rows' holeOfAboveTabs also counts the lines inside the closed Record fold, which
+lay out at the top; the capture shows one line above the tabs.)
+
+Tests
+-----
+New: site/tests/test_f34_round3.py, 14 tests; 9 red before the fixes, each on the defect (the
+phone test read boxes [3] against the drawing's [2]).
+Restated: test_f34_folds (2), test_f34_retire_header (3), test_f34_route_count (1),
+test_one_view (3), test_one_view_markup (2), test_one_view_dominated (1), test_crux_band (1);
+golden problems/propositional regenerated.
+Site suite with browser tests: 1251 passed, 3 failed (the three that fail on main:
+test_finding_lemma_edge::test_measured_in_a_browser, two in test_web_flows).
+make lint, make types: clean.
