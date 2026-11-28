@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -202,3 +204,35 @@ def test_drift_writes_nothing(tmp_path: Path) -> None:
     before = {p: p.stat().st_mtime_ns for p in tmp_path.iterdir()}
     assert runner.main(["--compare", str(pinned), str(latest)]) == 0
     assert {p: p.stat().st_mtime_ns for p in tmp_path.iterdir()} == before
+
+
+def test_the_script_runs_outside_pytest(tmp_path: Path) -> None:
+    """The weekly harness-drift job runs the script bare, with no PYTHONPATH: the import path is
+    the script's own. Run that way it died at import (``opn_site``, which the api's glosses read,
+    was not on its path), wrote no report, and the comparison then failed on a missing
+    ``pinned.json`` (runs 42633491013, 43881013477, 45216746220). With no binaries the run is red;
+    what this pins is that it reaches its report."""
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    bins = tmp_path / "bin"
+    bins.mkdir()
+    out = tmp_path / "pinned.json"
+    done = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "gate" / "tools" / "harness_check.py"),
+            "--bin-dir",
+            str(bins),
+            "--out",
+            str(out),
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert "ModuleNotFoundError" not in done.stderr, done.stderr[-2000:]
+    assert done.returncode == 1, done.stderr[-2000:]
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["schema"] == "harness-check/v1" and report["results"]
